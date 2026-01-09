@@ -14,7 +14,8 @@
 ### Stage 1 — Retrieval / Core set（C1）
 
 - `keyword-expansion`：扩展/收敛 `queries.md`（同义词、缩写、排除词）
-- `arxiv-search`（Network: online 可选）：从 arXiv 拉取元数据 → `papers/papers_raw.jsonl`（支持离线导入）
+- `literature-engineer`（Network: online/snowball 可选）：多路召回（imports/online/snowball）+ 元信息规范化 → `papers/papers_raw.jsonl` + `papers/retrieval_report.md`
+- `arxiv-search`（Network: online 可选）：轻量 arXiv 检索/导入（不做 snowball/覆盖桶；适合快速取一个小集合）
 - `dedupe-rank`：去重/排序 → `papers/papers_dedup.jsonl` + `papers/core_set.csv`
 - `survey-seed-harvest`：从 survey/review 论文提取 taxonomy seeds → `outline/taxonomy.yml`（用于 bootstrap）
 
@@ -60,7 +61,7 @@
 - “运行 pipeline / 继续执行 / 一键跑完 / kickoff” → `research-pipeline-runner`
 - “选 pipeline / 不确定该用哪个流程 / workflow router” → `pipeline-router`
 - “初始化 workspace / 创建模板 / artifacts” → `workspace-init`
-- “arxiv / 检索 / 拉论文 / metadata retrieval” → `arxiv-search`
+- “arxiv / 检索 / 拉论文 / metadata retrieval / 多路召回 / snowball” → `literature-engineer`（必要时退化用 `arxiv-search`）
 - “去重 / 排序 / core set / 精选论文” → `dedupe-rank`
 - “taxonomy / 分类 / 主题树 / 综述结构” → `taxonomy-builder`
 - “outline / 大纲 / bullets-only” → `outline-builder`
@@ -78,7 +79,7 @@
 
 ## 输入文件 → Skill
 
-- `queries.md` → `keyword-expansion`, `arxiv-search`, `pdf-text-extractor`（evidence_mode）
+- `queries.md` → `keyword-expansion`, `literature-engineer`, `arxiv-search`, `pdf-text-extractor`（evidence_mode）
 - `papers/papers_raw.jsonl` → `dedupe-rank`
 - `papers/papers_dedup.jsonl` → `taxonomy-builder`（可选辅助输入）
 - `papers/core_set.csv` → `taxonomy-builder`, `section-mapper`, `pdf-text-extractor`, `paper-notes`
@@ -89,7 +90,8 @@
 
 ## 输出文件 → Skill
 
-- `papers/papers_raw.jsonl` → `arxiv-search`
+- `papers/papers_raw.jsonl` → `literature-engineer`, `arxiv-search`
+- `papers/retrieval_report.md` → `literature-engineer`
 - `papers/papers_dedup.jsonl`, `papers/core_set.csv` → `dedupe-rank`
 - `outline/taxonomy.yml` → `taxonomy-builder` / `survey-seed-harvest`（bootstrap）
 - `outline/outline.yml` → `outline-builder`
@@ -112,6 +114,5 @@
 
 ## Network 相关（需要或受益于网络）
 
-- 必需（典型）：`arxiv-search`（online）、`pdf-text-extractor`（fulltext）、`citation-verifier`（自动验证）
+- 必需（典型）：`literature-engineer`（online/snowball）、`arxiv-search`（online）、`pdf-text-extractor`（fulltext）、`citation-verifier`（自动验证）
 - 可离线：`arxiv-search`（import）、`citation-verifier`（record-now/verify-later）、其余结构/写作类 skills
-

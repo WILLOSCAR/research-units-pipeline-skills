@@ -19,7 +19,7 @@ flowchart LR
 
   subgraph "C1 - Retrieval & core set"
     KX[keyword-expansion]:::optional
-    AS[arxiv-search]
+    LE[literature-engineer]
     DR[dedupe-rank]
     SSH[survey-seed-harvest]:::optional
   end
@@ -48,13 +48,13 @@ flowchart LR
     LCQ[latex-compile-qa]:::optional
   end
 
-  WS --> AS --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> CEM --> CV --> SV --> PW
-  KX -.-> AS
+  WS --> LE --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> CEM --> CV --> SV --> PW
+  KX -.-> LE
   SSH -.-> TB
   PW -.-> LS -.-> LCQ
 ```
 
-## arxiv-survey-latex (C0–C3)
+## arxiv-survey-latex (C0–C5)
 
 ```mermaid
 flowchart LR
@@ -67,7 +67,7 @@ flowchart LR
 
   subgraph "C1 - Retrieval & core set"
     KX[keyword-expansion]:::optional
-    AS[arxiv-search]
+    LE[literature-engineer]
     DR[dedupe-rank]
     SSH[survey-seed-harvest]:::optional
   end
@@ -79,19 +79,25 @@ flowchart LR
     C2A{{Approve C2 (HUMAN)}}:::human
   end
 
-  subgraph "C3 - Evidence → Draft → PDF [NO PROSE until C2]"
+  subgraph "C3 - Evidence [NO PROSE]"
     PT[pdf-text-extractor]
     PN[paper-notes]
     CEM[claim-evidence-matrix]
+  end
+
+  subgraph "C4 - Citations + visuals [NO PROSE]"
     CV[citation-verifier]
     SV[survey-visuals]
+  end
+
+  subgraph "C5 - Writing + PDF [PROSE after C2]"
     PW[prose-writer]
     LS[latex-scaffold]
     LCQ[latex-compile-qa]
   end
 
-  WS --> AS --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> CEM --> CV --> SV --> PW --> LS --> LCQ
-  KX -.-> AS
+  WS --> LE --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> CEM --> CV --> SV --> PW --> LS --> LCQ
+  KX -.-> LE
   SSH -.-> TB
 ```
 

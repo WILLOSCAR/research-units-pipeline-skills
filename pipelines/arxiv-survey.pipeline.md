@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey
-version: 1.0
+version: 1.1
 target_artifacts:
   - outline/taxonomy.yml
   - outline/outline.yml
@@ -29,7 +29,7 @@ produces:
 
 ## Stage 1 - Retrieval & core set (C1)
 required_skills:
-- arxiv-search
+- literature-engineer
 - dedupe-rank
 optional_skills:
 - keyword-expansion
@@ -42,6 +42,7 @@ produces:
 Notes:
 - `queries.md` may specify `max_results` and a year `time window`; `arxiv-search` will paginate and attach arXiv metadata (categories, arxiv_id, etc.) when online.
 - If you import an offline export but later have network, you can set `enrich_metadata: true` in `queries.md` (or run `arxiv-search --enrich-metadata`) to backfill missing abstracts/authors/categories via arXiv `id_list`.
+- Evidence-first expectation: for survey-quality runs, this stage should aim for a large candidate pool (multi-query + snowballing) before dedupe/rank, so later stages can bind ≥3 citations per subsection.
 
 ## Stage 2 - Structure (C2) [NO PROSE]
 required_skills:
@@ -55,6 +56,9 @@ produces:
 human_checkpoint:
 - approve: scope + outline
 - write_to: DECISIONS.md
+
+Notes:
+- Evidence-first expectation: each subsection should be written as a *question to answer* (RQ) plus *evidence needs* (what kind of citations/results are required), not just generic scaffold bullets.
 
 ## Stage 3 - Evidence (C3) [NO PROSE]
 required_skills:
@@ -89,3 +93,7 @@ optional_skills:
 - latex-compile-qa
 produces:
 - output/DRAFT.md
+
+## Quality gates (strict mode)
+- Citation coverage: expect a large, verifiable bibliography (e.g., ≥150 BibTeX entries) and subsection-level cite density (e.g., H3 ≥3).
+- Anti-template: drafts containing ellipsis placeholders (`…`) or leaked scaffold instructions (e.g., "enumerate 2-4 ...") should block and be regenerated from improved outline/mapping/evidence artifacts.

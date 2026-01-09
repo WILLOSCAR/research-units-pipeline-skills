@@ -191,20 +191,40 @@ def _looks_refined_mapping(path: Path) -> bool:
     if not rows:
         return False
 
+    # Require a non-trivial mapping before treating it as 'hand refined'; this avoids
+    # freezing the workspace-template placeholder row (often 1 row with '(placeholder)').
+    if len(rows) < 5:
+        return False
+
+    def _is_placeholder_why(value: str) -> bool:
+        why = (value or "").strip()
+        if not why:
+            return True
+        low = why.lower()
+        if "placeholder" in low or "(placeholder)" in low:
+            return True
+        if any(tok in low for tok in ("todo", "tbd", "fixme")):
+            return True
+        if why.startswith(("matched_terms=", "token_overlap=")) or "matched_terms=" in why or "token_overlap=" in why:
+            return True
+        return False
+
     why_total = 0
     placeholder = 0
+    section_ids: set[str] = set()
     for row in rows:
+        section_ids.add(str(row.get("section_id") or "").strip())
         why = str(row.get("why") or "").strip()
-        if not why:
-            continue
         why_total += 1
-        if why.startswith(("matched_terms=", "token_overlap=")) or "matched_terms=" in why or "token_overlap=" in why:
+        if _is_placeholder_why(why):
             placeholder += 1
 
-    # If most rationales are non-placeholder, assume this file was refined.
-    if why_total and (placeholder / why_total) <= 0.2:
+    # If most rationales are non-placeholder and this covers multiple subsections,
+    # assume the file was refined and avoid overwriting it.
+    if why_total and (placeholder / why_total) <= 0.2 and len([s for s in section_ids if s]) >= 2:
         return True
     return False
+
 
 
 def _load_core_set(path: Path) -> list[dict]:

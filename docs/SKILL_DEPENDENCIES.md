@@ -83,6 +83,20 @@ flowchart LR
   F_output_DRAFT_md["`output/DRAFT.md`"]:::file
   F_output_DRAFT_md --> S_latex_scaffold
   S_latex_scaffold --> F_latex_main_tex
+  S_literature_engineer["`literature-engineer`"]:::skill
+  F_papers_arxiv_export_csv_json_jsonl_bib["`papers/arxiv_export.(csv|json|jsonl|bib)`"]:::file
+  F_papers_arxiv_export_csv_json_jsonl_bib --> S_literature_engineer
+  F_papers_import_csv_json_jsonl_bib["`papers/import.(csv|json|jsonl|bib)`"]:::file
+  F_papers_import_csv_json_jsonl_bib --> S_literature_engineer
+  F_papers_imports_csv_json_jsonl_bib["`papers/imports/*.(csv|json|jsonl|bib)`"]:::file
+  F_papers_imports_csv_json_jsonl_bib --> S_literature_engineer
+  F_papers_snowball_csv_json_jsonl_bib["`papers/snowball/*.(csv|json|jsonl|bib)`"]:::file
+  F_papers_snowball_csv_json_jsonl_bib --> S_literature_engineer
+  F_queries_md --> S_literature_engineer
+  S_literature_engineer --> F_papers_papers_raw_csv
+  S_literature_engineer --> F_papers_papers_raw_jsonl
+  F_papers_retrieval_report_md["`papers/retrieval_report.md`"]:::file
+  S_literature_engineer --> F_papers_retrieval_report_md
   S_module_planner["`module-planner`"]:::skill
   F_outline_concept_graph_yml --> S_module_planner
   S_module_planner --> F_outline_module_plan_yml
@@ -230,7 +244,7 @@ flowchart LR
   end
 
   subgraph "C1 - Retrieval & core set"
-    U_U010["`U010`\n`arxiv-search`"]:::unit
+    U_U010["`U010`\n`literature-engineer`"]:::unit
     U_U020["`U020`\n`dedupe-rank`"]:::unit
   end
 
@@ -243,12 +257,18 @@ flowchart LR
     class U_U055 human
   end
 
-  subgraph "C3 - Evidence → Draft → PDF"
+  subgraph "C3 - Evidence pack"
     U_U058["`U058`\n`pdf-text-extractor`"]:::unit
     U_U060["`U060`\n`paper-notes`"]:::unit
     U_U070["`U070`\n`claim-evidence-matrix`"]:::unit
+  end
+
+  subgraph "C4 - Citations + visuals"
     U_U090["`U090`\n`citation-verifier`"]:::unit
     U_U095["`U095`\n`survey-visuals`"]:::unit
+  end
+
+  subgraph "C5 - Writing + PDF"
     U_U100["`U100`\n`prose-writer`"]:::unit
     U_U110["`U110`\n`latex-scaffold`"]:::unit
     U_U120["`U120`\n`latex-compile-qa`"]:::unit
@@ -285,7 +305,7 @@ flowchart LR
   end
 
   subgraph "C1 - Retrieval & core set"
-    U_U010["`U010`\n`arxiv-search`"]:::unit
+    U_U010["`U010`\n`literature-engineer`"]:::unit
     U_U020["`U020`\n`dedupe-rank`"]:::unit
   end
 

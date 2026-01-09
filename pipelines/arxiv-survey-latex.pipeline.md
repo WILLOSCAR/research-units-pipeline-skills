@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey-latex
-version: 1.1
+version: 1.2
 target_artifacts:
   - outline/taxonomy.yml
   - outline/outline.yml
@@ -17,7 +17,7 @@ target_artifacts:
   - latex/main.tex
   - latex/main.pdf
   - output/LATEX_BUILD_REPORT.md
-default_checkpoints: [C0,C1,C2,C3]
+default_checkpoints: [C0,C1,C2,C3,C4,C5]
 units_template: templates/UNITS.arxiv-survey-latex.csv
 ---
 
@@ -36,7 +36,7 @@ produces:
 
 ## Stage 1 - Retrieval & core set (C1)
 required_skills:
-- arxiv-search
+- literature-engineer
 - dedupe-rank
 optional_skills:
 - keyword-expansion
@@ -49,6 +49,7 @@ produces:
 Notes:
 - `queries.md` may specify `max_results` and a year `time window`; `arxiv-search` will paginate and attach arXiv metadata (categories, arxiv_id, etc.) when online.
 - If you import an offline export but later have network, you can set `enrich_metadata: true` in `queries.md` (or run `arxiv-search --enrich-metadata`) to backfill missing abstracts/authors/categories via arXiv `id_list`.
+- Evidence-first expectation: for survey-quality runs, this stage should aim for a large candidate pool (multi-query + snowballing) before dedupe/rank.
 
 ## Stage 2 - Structure (C2) [NO PROSE]
 required_skills:
@@ -63,25 +64,36 @@ human_checkpoint:
 - approve: scope + outline
 - write_to: DECISIONS.md
 
-## Stage 3 - Evidence → Draft → PDF (C3) [NO PROSE until C2 approved]
+Notes:
+- Evidence-first expectation: each subsection should be written as an explicit RQ plus evidence needs (what results/benchmarks/limitations must be supported), not just generic scaffold bullets.
+
+## Stage 3 - Evidence pack (C3) [NO PROSE]
 required_skills:
 - pdf-text-extractor
 - paper-notes
 - claim-evidence-matrix
-- citation-verifier
-- survey-visuals
-- prose-writer
-- latex-scaffold
-- latex-compile-qa
 produces:
 - papers/fulltext_index.jsonl
 - papers/paper_notes.jsonl
 - outline/claim_evidence_matrix.md
+
+## Stage 4 - Citations + visuals (C4) [NO PROSE]
+required_skills:
+- citation-verifier
+- survey-visuals
+produces:
 - citations/ref.bib
 - citations/verified.jsonl
 - outline/tables.md
 - outline/timeline.md
 - outline/figures.md
+
+## Stage 5 - Writing + PDF (C5) [PROSE ALLOWED AFTER C2]
+required_skills:
+- prose-writer
+- latex-scaffold
+- latex-compile-qa
+produces:
 - output/DRAFT.md
 - latex/main.tex
 - latex/main.pdf
@@ -91,3 +103,7 @@ Notes:
 - `queries.md` can set `evidence_mode: "abstract"|"fulltext"` (default template uses `abstract`).
 - If `evidence_mode: "fulltext"`, `pdf-text-extractor` can be tuned via `fulltext_max_papers`, `fulltext_max_pages`, `fulltext_min_chars`, and `--local-pdfs-only`.
 - In strict mode, the pipeline should block if the PDF is too short (<8 pages) or if citations are undefined (even if LaTeX technically compiles).
+
+## Quality gates (strict mode)
+- Citation coverage: expect a large, verifiable bibliography (e.g., ≥150 BibTeX entries) and subsection-level cite density (e.g., H3 ≥3).
+- Anti-template: drafts containing ellipsis placeholders (`…`) or leaked scaffold instructions (e.g., "enumerate 2-4 ...") should block and be regenerated from improved outline/mapping/evidence artifacts.

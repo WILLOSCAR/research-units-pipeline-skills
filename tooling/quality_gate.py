@@ -13,6 +13,23 @@ class QualityIssue:
     message: str
 
 
+def _pipeline_profile(workspace: Path) -> str:
+    lock_path = workspace / "PIPELINE.lock.md"
+    if not lock_path.exists():
+        return "default"
+    try:
+        for raw in lock_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if not line.startswith("pipeline:"):
+                continue
+            pipeline = line.split(":", 1)[1].strip().lower()
+            if "arxiv-survey" in pipeline:
+                return "arxiv-survey"
+            return "default"
+    except Exception:
+        return "default"
+
+
 def _check_placeholder_markers(text: str) -> bool:
     if not text:
         return False
@@ -107,6 +124,8 @@ def _check_keyword_expansion(workspace: Path) -> list[QualityIssue]:
 
 
 def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    if skill == "literature-engineer":
+        return _check_literature_engineer(workspace, outputs)
     if skill == "arxiv-search":
         return _check_arxiv_search(workspace, outputs)
     if skill == "dedupe-rank":
@@ -237,6 +256,11 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
     ]
 
     by_skill: dict[str, list[str]] = {
+        "literature-engineer": [
+            "- Provide multiple offline exports under `papers/imports/` (different queries/routes) to reach a large candidate pool (survey target: >=200).",
+            "- Ensure most records contain stable IDs (`arxiv_id`/`doi`) and non-empty `url`; prefer arXiv/OpenReview/ACL exports with IDs.",
+            "- If network is available, rerun with `--online` (and optionally `--snowball`) to expand coverage via arXiv API and citation graph.",
+        ],
         "dedupe-rank": [
             "- Inspect `papers/papers_raw.jsonl`: ensure `title/year/url/authors` are present and not empty; fix/replace the offline export if needed.",
             "- Rerun dedupe with an appropriate `--core-size` to get a usable `papers/core_set.csv` (with stable `paper_id`).",
@@ -332,7 +356,104 @@ def _check_arxiv_search(workspace: Path, outputs: list[str]) -> list[QualityIssu
     return []
 
 
+def _check_literature_engineer(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import read_jsonl
+
+    out_rel = outputs[0] if outputs else "papers/papers_raw.jsonl"
+    report_rel = outputs[1] if len(outputs) >= 2 else "papers/retrieval_report.md"
+
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_raw", message=f"`{out_rel}` does not exist.")]
+    records = read_jsonl(path)
+    if not records:
+        return [QualityIssue(code="empty_raw", message=f"No records found in `{out_rel}`.")]
+
+    report_path = workspace / report_rel
+    if not report_path.exists():
+        return [QualityIssue(code="missing_retrieval_report", message=f"`{report_rel}` does not exist.")]
+    report = report_path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not report or "Retrieval report" not in report:
+        return [QualityIssue(code="bad_retrieval_report", message=f"`{report_rel}` is empty or not a retrieval report.")]
+
+    total = len([r for r in records if isinstance(r, dict)])
+    missing_title = 0
+    missing_url = 0
+    missing_year = 0
+    missing_authors = 0
+    missing_stable_id = 0
+    missing_prov = 0
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        if not str(rec.get("title") or "").strip():
+            missing_title += 1
+        if not str(rec.get("url") or rec.get("id") or "").strip():
+            missing_url += 1
+        year = str(rec.get("year") or "").strip()
+        if not year:
+            missing_year += 1
+        authors = rec.get("authors") or []
+        if not isinstance(authors, list) or not [a for a in authors if str(a).strip()]:
+            missing_authors += 1
+        if not str(rec.get("arxiv_id") or "").strip() and not str(rec.get("doi") or "").strip():
+            missing_stable_id += 1
+        prov = rec.get("provenance")
+        if not isinstance(prov, list) or len([p for p in prov if isinstance(p, dict)]) == 0:
+            missing_prov += 1
+
+    issues: list[QualityIssue] = []
+    if missing_title:
+        issues.append(QualityIssue(code="raw_missing_titles", message=f"`{out_rel}` has {missing_title} record(s) missing `title`."))
+    if missing_url:
+        issues.append(QualityIssue(code="raw_missing_urls", message=f"`{out_rel}` has {missing_url} record(s) missing `url`."))
+    if missing_year / max(1, total) >= 0.25:
+        issues.append(
+            QualityIssue(
+                code="raw_missing_years",
+                message=f"Many records are missing `year` ({missing_year}/{total}); prefer richer exports or enable online metadata backfill.",
+            )
+        )
+    if missing_authors / max(1, total) >= 0.25:
+        issues.append(
+            QualityIssue(
+                code="raw_missing_authors",
+                message=f"Many records are missing `authors` ({missing_authors}/{total}); prefer richer exports or enable online metadata backfill.",
+            )
+        )
+    if missing_prov / max(1, total) >= 0.1:
+        issues.append(
+            QualityIssue(
+                code="raw_missing_provenance",
+                message=f"Many records are missing `provenance` ({missing_prov}/{total}); ensure imports are labeled and provenance is preserved through dedupe.",
+            )
+        )
+
+    profile = _pipeline_profile(workspace)
+    if profile == "arxiv-survey":
+        min_raw = 200
+        if total < min_raw:
+            issues.append(
+                QualityIssue(
+                    code="raw_too_small",
+                    message=f"`{out_rel}` has {total} records; target >= {min_raw} for survey-quality runs (add more imports / enable online + snowball).",
+                )
+            )
+        if missing_stable_id / max(1, total) >= 0.2:
+            issues.append(
+                QualityIssue(
+                    code="raw_missing_stable_ids",
+                    message=f"Too many records lack stable IDs (arxiv_id/doi) ({missing_stable_id}/{total}); filter bad exports or enrich metadata before citations.",
+                )
+            )
+
+    return issues
+
+
 def _check_dedupe_rank(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import read_jsonl
+
+    dedup_rel = outputs[0] if outputs else "papers/papers_dedup.jsonl"
     core_rel = outputs[1] if len(outputs) >= 2 else "papers/core_set.csv"
     path = workspace / core_rel
     if not path.exists():
@@ -380,6 +501,26 @@ def _check_dedupe_rank(workspace: Path, outputs: list[str]) -> list[QualityIssue
         )
     if ids and len(set(ids)) != len(ids):
         issues.append(QualityIssue(code="core_set_duplicate_ids", message=f"`{core_rel}` contains duplicate `paper_id` values."))
+
+    profile = _pipeline_profile(workspace)
+    if profile == "arxiv-survey":
+        min_core = 150
+        if len(rows) < min_core:
+            issues.append(
+                QualityIssue(
+                    code="core_set_too_small",
+                    message=f"`{core_rel}` has {len(rows)} rows; target >= {min_core} for survey-quality coverage (increase candidate pool and `core_size`).",
+                )
+            )
+        dedup_path = workspace / dedup_rel
+        dedup = read_jsonl(dedup_path)
+        if len([r for r in dedup if isinstance(r, dict)]) < 200:
+            issues.append(
+                QualityIssue(
+                    code="dedup_pool_too_small",
+                    message=f"`{dedup_rel}` has too few deduplicated records for a survey run; expand retrieval/snowballing first.",
+                )
+            )
     return issues
 
 
@@ -401,6 +542,17 @@ def _check_citations(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     bib_keys = re.findall(r"(?im)^@\w+\s*\{\s*([^,\s]+)\s*,", bib_text)
     if not bib_keys:
         return [QualityIssue(code="empty_ref_bib", message=f"`{bib_rel}` has no BibTeX entries.")]
+
+    profile = _pipeline_profile(workspace)
+    if profile == "arxiv-survey":
+        min_bib = 150
+        if len(bib_keys) < min_bib:
+            return [
+                QualityIssue(
+                    code="citations_too_few_entries",
+                    message=f"`{bib_rel}` has only {len(bib_keys)} entries; target >= {min_bib} for a survey-quality run (expand retrieval / snowball / imports).",
+                )
+            ]
 
     records = read_jsonl(verified_path)
     recs = [r for r in records if isinstance(r, dict)]
@@ -553,9 +705,13 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         "Benchmarks / datasets / evaluation metrics",
         "Limitations and open problems",
     }
+    scaffold_re = re.compile(
+        r"(?i)^(?:Scope and definitions for|Design space in|Evaluation practice for|Limitations for|Connections: how)\b"
+    )
 
     bullets_total = 0
     bullets_template = 0
+    bullets_scaffold = 0
     for section in outline:
         if not isinstance(section, dict):
             continue
@@ -569,6 +725,8 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 bullets_total += 1
                 if b in template_bullets:
                     bullets_template += 1
+                if scaffold_re.match(b):
+                    bullets_scaffold += 1
 
     if bullets_total and bullets_template / bullets_total >= 0.7:
         return [
@@ -577,11 +735,21 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 message="Outline bullets are mostly generic templates; replace with specific axes, comparisons, and concrete terms for each subsection.",
             )
         ]
+    if bullets_total and bullets_scaffold / bullets_total >= 0.7:
+        return [
+            QualityIssue(
+                code="outline_scaffold_bullets",
+                message=(
+                    "Outline bullets still look like scaffold prompts (scope/design space/evaluation/limitations/connections). "
+                    "Rewrite each subsection with concrete mechanisms, benchmarks, and comparison axes."
+                ),
+            )
+        ]
     return []
 
 
 def _check_mapping(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    from tooling.common import read_tsv
+    from tooling.common import load_yaml, read_tsv
 
     out_rel = outputs[0] if outputs else "outline/mapping.tsv"
     path = workspace / out_rel
@@ -590,6 +758,21 @@ def _check_mapping(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         return [QualityIssue(code="empty_mapping", message=f"`{out_rel}` has no rows.")]
 
     issues: list[QualityIssue] = []
+
+    placeholder_rows = 0
+    for row in rows:
+        why = str(row.get("why") or "").strip()
+        title = str(row.get("section_title") or "").strip()
+        low = f"{why} {title}".lower()
+        if "(placeholder)" in low or "placeholder" in low:
+            placeholder_rows += 1
+    if placeholder_rows:
+        issues.append(
+            QualityIssue(
+                code="mapping_contains_placeholders",
+                message=f"`{out_rel}` still contains placeholder rows/rationales; regenerate mapping or edit it to cover all subsections with real rationales.",
+            )
+        )
 
     generic_why = 0
     why_total = 0
@@ -608,6 +791,64 @@ def _check_mapping(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 message="Mapping rationale looks mostly token/term overlap; add brief semantic reasons (method/task/benchmark) or refine mapping manually.",
             )
         )
+
+    outline_path = workspace / "outline" / "outline.yml"
+    outline = load_yaml(outline_path) if outline_path.exists() else None
+    expected: dict[str, str] = {}
+    if isinstance(outline, list):
+        for section in outline:
+            if not isinstance(section, dict):
+                continue
+            for sub in section.get("subsections") or []:
+                if not isinstance(sub, dict):
+                    continue
+                sid = str(sub.get("id") or "").strip()
+                title = str(sub.get("title") or "").strip()
+                if sid and title:
+                    expected[sid] = title
+
+    if expected:
+        counts: dict[str, int] = {sid: 0 for sid in expected}
+        unknown = 0
+        title_mismatch = 0
+        for row in rows:
+            sid = str(row.get("section_id") or "").strip()
+            if sid in counts:
+                counts[sid] += 1
+                want = expected.get(sid) or ""
+                got = str(row.get("section_title") or "").strip()
+                if want and got:
+                    want_norm = re.sub(r"\s+", " ", want).strip().lower()
+                    got_norm = re.sub(r"\s+", " ", got).strip().lower()
+                    if want_norm != got_norm:
+                        title_mismatch += 1
+            else:
+                unknown += 1
+
+        per_subsection = 3
+        ok = sum(1 for _, c in counts.items() if c >= per_subsection)
+        total = max(1, len(counts))
+        if ok / total < 0.8:
+            issues.append(
+                QualityIssue(
+                    code="mapping_low_coverage",
+                    message=f"Only {ok}/{len(counts)} subsections have >= {per_subsection} mapped papers; mapping should cover most subsections before evidence/drafting.",
+                )
+            )
+        if unknown:
+            issues.append(
+                QualityIssue(
+                    code="mapping_unknown_sections",
+                    message=f"`{out_rel}` contains {unknown} row(s) with section_id not present in `outline/outline.yml`; regenerate mapping after updating outline.",
+                )
+            )
+        if title_mismatch / max(1, len(rows)) >= 0.3:
+            issues.append(
+                QualityIssue(
+                    code="mapping_section_title_mismatch",
+                    message="Many mapping rows have section_title not matching the outline title; ensure mapping.tsv corresponds to the current outline.",
+                )
+            )
 
     # Detect a small set of papers being repeated across many unrelated subsections.
     sections: set[str] = set()
@@ -803,7 +1044,10 @@ def _check_claim_evidence_matrix(workspace: Path, outputs: list[str]) -> list[Qu
     templ = 0
     around_template = 0
     for ln in claim_lines:
-        if "Key approaches in **" in ln and "can be compared along" in ln:
+        low = ln.lower()
+        if "key approaches in **" in low and "can be compared along" in low:
+            templ += 1
+        if "clusters around recurring themes" in low or "trade-offs tend to show up along" in low:
             templ += 1
         if ln.split("- Claim:", 1)[-1].strip().startswith("围绕 "):
             around_template += 1
@@ -935,6 +1179,22 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             )
         )
 
+    profile = _pipeline_profile(workspace)
+    if text.count("…") >= 20:
+        issues.append(
+            QualityIssue(
+                code="draft_contains_ellipsis_placeholders",
+                message="Draft contains many ellipsis placeholders (`…`), suggesting truncated scaffold text; regenerate after fixing outline/mapping/evidence artifacts.",
+            )
+        )
+    if re.search(r"(?i)enumerate\\s+2-4\\s+recurring", text):
+        issues.append(
+            QualityIssue(
+                code="draft_scaffold_instructions",
+                message="Draft still contains scaffold instructions like 'enumerate 2-4 recurring ...'; rewrite outline/claims into concrete content before drafting.",
+            )
+        )
+
     # If a BibTeX file exists, ensure every cited key is present (prevents LaTeX undefined-citation warnings).
     bib_path = workspace / "citations" / "ref.bib"
     if bib_path.exists():
@@ -956,6 +1216,15 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                     message=f"Draft cites keys that are missing from `citations/ref.bib` (e.g., {sample}{suffix}).",
                 )
             )
+        if profile == "arxiv-survey":
+            min_bib = 150
+            if len(bib_keys) < min_bib:
+                issues.append(
+                    QualityIssue(
+                        code="draft_bib_too_small",
+                        message=f"`citations/ref.bib` has {len(bib_keys)} entries; target >= {min_bib} for survey-quality coverage.",
+                    )
+                )
 
     # Detect repeated "open problems" boilerplate across subsections.
     open_lines = [ln.strip() for ln in text.splitlines() if ln.strip().lower().startswith(("open problems:", "开放问题："))]
@@ -999,6 +1268,9 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         "小结：综合这些工作，主要权衡通常落在以下维度：",
         "Takeaways: 综合这些工作，主要权衡通常落在以下维度：",
         "是 LLM 智能体系统中的一个关键维度",
+        "We use the following working claim to guide synthesis:",
+        "Across representative works, the dominant trade-offs",
+        "This section summarizes the main design patterns and empirical lessons",
     ]
     template_hits = sum(text.count(p) for p in template_phrases)
     if template_hits >= 3:
@@ -1009,18 +1281,52 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             )
         )
 
+    if profile == "arxiv-survey":
+        paras_all = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+        content_paras = 0
+        uncited_paras = 0
+        for para in paras_all:
+            if para.startswith(("#", "|", "```")):
+                continue
+            # Skip short paragraphs (titles, captions, etc.).
+            if len(para) < 240:
+                continue
+            # Tables are handled separately by other checks.
+            if "\n|" in para:
+                continue
+            content_paras += 1
+            if "[@" not in para:
+                uncited_paras += 1
+        if content_paras and (uncited_paras / content_paras) > 0.25:
+            issues.append(
+                QualityIssue(
+                    code="draft_too_many_uncited_paragraphs",
+                    message=f"Too many content paragraphs lack citations ({uncited_paras}/{content_paras}); survey drafting should be evidence-first with paragraph-level cites.",
+                )
+            )
+
     # Heuristic: each subsection should have some body and at least one citation.
     blocks = re.split(r"\n###\s+", text)
     subsection_blocks = blocks[1:] if len(blocks) > 1 else []
     if subsection_blocks:
         no_cite = 0
         too_short = 0
+        low_cite_density = 0
         for block in subsection_blocks:
             lines = [ln for ln in block.splitlines() if ln.strip()]
             if len(lines) < 8:
                 too_short += 1
             if "[@" not in block:
                 no_cite += 1
+            if profile == "arxiv-survey":
+                cite_keys: set[str] = set()
+                for m in re.finditer(r"\[@([^\]]+)\]", block):
+                    inside = (m.group(1) or "").strip()
+                    for k in re.findall(r"[A-Za-z0-9:_-]+", inside):
+                        if k:
+                            cite_keys.add(k)
+                if len(cite_keys) < 3:
+                    low_cite_density += 1
 
         total = max(1, len(subsection_blocks))
         if no_cite / total >= 0.5:
@@ -1035,6 +1341,13 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 QualityIssue(
                     code="draft_sections_too_short",
                     message="Many subsections are very short; expand with method/results/limitations comparisons from paper notes.",
+                )
+            )
+        if profile == "arxiv-survey" and low_cite_density / total >= 0.2:
+            issues.append(
+                QualityIssue(
+                    code="draft_sparse_subsection_citations",
+                    message=f"Many subsections have <3 unique citations ({low_cite_density}/{len(subsection_blocks)}); increase section-level evidence binding and cite density.",
                 )
             )
 

@@ -1,8 +1,8 @@
 unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
 U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md,"workspace目录存在且模板文件齐全",C0,TODO,,CODEX
 U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,"DECISIONS含C0问题块；queries.md 含非空关键词",C0,TODO,U001,CODEX
-U010,Run arXiv keyword search and save raw papers,RETRIEVE,arxiv-search,queries.md,papers/papers_raw.jsonl,"papers_raw.jsonl >= 50 条记录且每条含 title,authors,year,url,abstract（在线模式尽量附带 arxiv_id/categories 等元信息）",C1,TODO,U002,CODEX
-U020,Dedupe+rank and produce core set,CURATE,dedupe-rank,papers/papers_raw.jsonl,papers/papers_dedup.jsonl;papers/core_set.csv,"去重后重复率<2%，core_set每个主题至少3篇(若已有taxonomy则按叶子节点)",C1,TODO,U010,CODEX
+U010,Collect candidate papers (multi-route) and normalize metadata,RETRIEVE,literature-engineer,queries.md,papers/papers_raw.jsonl;papers/retrieval_report.md,"papers_raw.jsonl >= 200 条记录（survey 目标），且每条含 title/authors/year/url + 稳定标识（arxiv_id/doi）+ provenance；retrieval_report.md 记录来源/覆盖桶/缺失字段统计",C1,TODO,U002,CODEX
+U020,Dedupe+rank and produce core set,CURATE,dedupe-rank,papers/papers_raw.jsonl,papers/papers_dedup.jsonl;papers/core_set.csv,"去重后重复率<2%，dedup 池足够大；survey 目标 core_set >=150（为后续 citations>=150 与每小节证据绑定留出空间）",C1,TODO,U010,CODEX
 U030,Build taxonomy (2-level minimum),STRUCTURE,taxonomy-builder,papers/core_set.csv,outline/taxonomy.yml,"taxonomy至少2层且节点有说明",C2,TODO,U020,CODEX
 U040,Build outline bullets from taxonomy,STRUCTURE,outline-builder,outline/taxonomy.yml,outline/outline.yml,"outline含章节+小节，且每小节至少3个bullet",C2,TODO,U030,CODEX
 U050,Map papers to each subsection,STRUCTURE,section-mapper,papers/core_set.csv;outline/outline.yml,outline/mapping.tsv,"每小节映射>=3篇论文，覆盖率>=80%",C2,TODO,U040,CODEX
