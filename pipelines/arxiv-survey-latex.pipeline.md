@@ -5,14 +5,19 @@ target_artifacts:
   - outline/taxonomy.yml
   - outline/outline.yml
   - outline/mapping.tsv
+  - outline/subsection_briefs.jsonl
+  - outline/transitions.md
   - papers/fulltext_index.jsonl
   - papers/paper_notes.jsonl
   - outline/claim_evidence_matrix.md
+  - outline/table_schema.md
   - outline/tables.md
   - outline/timeline.md
   - outline/figures.md
+  - outline/evidence_drafts.jsonl
   - citations/ref.bib
   - citations/verified.jsonl
+  - output/GLOBAL_REVIEW.md
   - output/DRAFT.md
   - latex/main.tex
   - latex/main.pdf
@@ -71,30 +76,50 @@ Notes:
 required_skills:
 - pdf-text-extractor
 - paper-notes
-- claim-evidence-matrix
+- subsection-briefs
 produces:
 - papers/fulltext_index.jsonl
 - papers/paper_notes.jsonl
-- outline/claim_evidence_matrix.md
+- outline/subsection_briefs.jsonl
+
+Notes:
+- `subsection-briefs` converts each H3 into a verifiable writing card (scope_rule/rq/axes/clusters/paragraph_plan) so later drafting is section-specific and evidence-first.
 
 ## Stage 4 - Citations + visuals (C4) [NO PROSE]
 required_skills:
 - citation-verifier
+- evidence-draft
+- claim-matrix-rewriter
+- table-schema
+- table-filler
 - survey-visuals
 produces:
 - citations/ref.bib
 - citations/verified.jsonl
+- outline/evidence_drafts.jsonl
+- outline/claim_evidence_matrix.md
+- outline/table_schema.md
 - outline/tables.md
 - outline/timeline.md
 - outline/figures.md
 
+Notes:
+- `evidence-draft` turns paper notes into per-subsection evidence packs (claim candidates + concrete comparisons + eval protocol + limitations) that the writer must follow.
+- `claim-matrix-rewriter` makes `outline/claim_evidence_matrix.md` a projection/index of evidence packs (not an outline expansion), so writer guidance stays evidence-first.
+- `table-schema` defines comparison table questions/columns and the evidence fields each column must be grounded in.
+- `table-filler` fills `outline/tables.md` from evidence packs; if fields are missing it must surface them explicitly (do not write long prose in cells).
+
 ## Stage 5 - Writing + PDF (C5) [PROSE ALLOWED AFTER C2]
 required_skills:
+- transition-weaver
 - prose-writer
+- draft-polisher
+- global-reviewer
 - latex-scaffold
 - latex-compile-qa
 produces:
 - output/DRAFT.md
+- output/GLOBAL_REVIEW.md
 - latex/main.tex
 - latex/main.pdf
 - output/LATEX_BUILD_REPORT.md

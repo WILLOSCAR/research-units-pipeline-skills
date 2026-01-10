@@ -34,24 +34,31 @@ flowchart LR
   subgraph "C3 - Evidence [NO PROSE]"
     PT[pdf-text-extractor]
     PN[paper-notes]
-    CEM[claim-evidence-matrix]
+    SB[subsection-briefs]
   end
 
   subgraph "C4 - Citations + visuals [NO PROSE]"
     CV[citation-verifier]
+    ED[evidence-draft]
+    CMR[claim-matrix-rewriter]
+    TS[table-schema]
+    TF[table-filler]
     SV[survey-visuals]
   end
 
   subgraph "C5 - Writing [PROSE after C2]"
+    TW[transition-weaver]
     PW[prose-writer]
+    DP[draft-polisher]
+    GR[global-reviewer]
     LS[latex-scaffold]:::optional
     LCQ[latex-compile-qa]:::optional
   end
 
-  WS --> LE --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> CEM --> CV --> SV --> PW
+  WS --> LE --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> SB --> CV --> ED --> CMR --> TS --> TF --> SV --> TW --> PW --> DP --> GR
   KX -.-> LE
   SSH -.-> TB
-  PW -.-> LS -.-> LCQ
+  GR -.-> LS -.-> LCQ
 ```
 
 ## arxiv-survey-latex (C0–C5)
@@ -82,21 +89,28 @@ flowchart LR
   subgraph "C3 - Evidence [NO PROSE]"
     PT[pdf-text-extractor]
     PN[paper-notes]
-    CEM[claim-evidence-matrix]
+    SB[subsection-briefs]
   end
 
   subgraph "C4 - Citations + visuals [NO PROSE]"
     CV[citation-verifier]
+    ED[evidence-draft]
+    CMR[claim-matrix-rewriter]
+    TS[table-schema]
+    TF[table-filler]
     SV[survey-visuals]
   end
 
   subgraph "C5 - Writing + PDF [PROSE after C2]"
+    TW[transition-weaver]
     PW[prose-writer]
+    DP[draft-polisher]
+    GR[global-reviewer]
     LS[latex-scaffold]
     LCQ[latex-compile-qa]
   end
 
-  WS --> LE --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> CEM --> CV --> SV --> PW --> LS --> LCQ
+  WS --> LE --> DR --> TB --> OB --> SM --> C2A --> PT --> PN --> SB --> CV --> ED --> CMR --> TS --> TF --> SV --> TW --> PW --> DP --> GR --> LS --> LCQ
   KX -.-> LE
   SSH -.-> TB
 ```

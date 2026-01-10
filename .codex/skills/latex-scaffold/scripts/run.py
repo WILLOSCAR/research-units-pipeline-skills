@@ -43,6 +43,8 @@ def main() -> int:
             r"\usepackage{enumitem}",
             r"\usepackage{booktabs}",
             r"\usepackage{tabularx}",
+            r"\usepackage{array}",
+            r"\newcolumntype{Y}{>{\raggedright\arraybackslash}X}",
             r"\usepackage[numbers]{natbib}",
             r"\usepackage{url}",
             "",
@@ -118,6 +120,7 @@ def _escape_latex(text: str) -> str:
 
 
 _CITE_SINGLE = re.compile(r"\[@([A-Za-z0-9:_-]+)\]")
+_BR = re.compile(r"(?i)<br\s*/?>")
 _CITE_BLOCK = re.compile(r"\[@([^\]]+)\]")
 _INLINE_CODE = re.compile(r"`([^`]+)`")
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
@@ -145,6 +148,11 @@ def _convert_inline(text: str) -> str:
             if k not in uniq:
                 uniq.append(k)
         return _ph(rf"\citep{{{','.join(uniq)}}}")
+
+    def _br(m: re.Match[str]) -> str:
+        return _ph(r"\newline ")
+
+    text = _BR.sub(_br, text)
 
     # Multi-cite first, then fall back to single-cite.
     text = _CITE_BLOCK.sub(_cite, text)
@@ -328,7 +336,7 @@ def _render_table(lines: list[str], *, convert_inline) -> list[str]:
     header = (header + [""] * ncols)[:ncols]
     rows = [(r + [""] * ncols)[:ncols] for r in rows]
 
-    colspec = "l" + ("".join(["X" for _ in range(ncols - 1)]) if ncols > 1 else "")
+    colspec = "l" + ("".join(["Y" for _ in range(ncols - 1)]) if ncols > 1 else "")
     out: list[str] = []
     out.append(r"\begin{center}")
     out.append(rf"\begin{{tabularx}}{{\linewidth}}{{{colspec}}}")

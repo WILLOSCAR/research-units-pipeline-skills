@@ -86,7 +86,8 @@ def main() -> int:
 
         fulltext_path = fulltext_by_id.get(paper_id)
         fulltext_ok = bool(fulltext_path and fulltext_path.exists() and fulltext_path.stat().st_size > 0)
-        evidence_level = "fulltext" if fulltext_ok else "abstract"
+        has_abstract = bool(abstract)
+        evidence_level = "fulltext" if fulltext_ok else ("abstract" if has_abstract else "title")
 
         priority = "high" if paper_id in priority_set else "normal"
         mapped_sections = sorted(mapping_info.get(paper_id, {}).get("sections", set()))
@@ -101,7 +102,10 @@ def main() -> int:
             summary_bullets = _abstract_to_bullets(abstract)
             method = ""
             key_results = []
-            limitations = [f"Evidence level: abstract ({len(abstract)} chars). Validate with full text if used as key evidence."]
+            if evidence_level == "abstract":
+                limitations = [f"Evidence level: abstract ({len(abstract)} chars). Validate with full text if used as key evidence."]
+            else:
+                limitations = ["Evidence level: title only (no abstract/full text). Do not infer technical details; verify the source before using as evidence."]
 
         notes.append(
             {
@@ -326,8 +330,10 @@ def _infer_limitations(*, evidence_level: str, mapped_sections: list[str], abstr
     lims: list[str] = []
     if evidence_level == "fulltext":
         lims.append("Even with extracted text, evaluation details may be incomplete; verify the official PDF for exact settings and ablations.")
-    else:
+    elif evidence_level == "abstract":
         lims.append("Abstract-level evidence only: validate assumptions, evaluation protocol, and failure cases in the full paper before relying on this as key evidence.")
+    else:
+        lims.append("Title-only evidence: do not infer methods/results beyond what the title states; fetch abstract/full text before using this as key evidence.")
 
     if sec_str:
         lims.append(f"This work is mapped to: {sec_str}; confirm it is not over-used across unrelated subsections.")
@@ -466,14 +472,16 @@ def _backfill_note(
 
     fulltext_path = fulltext_by_id.get(pid)
     fulltext_ok = bool(fulltext_path and fulltext_path.exists() and fulltext_path.stat().st_size > 0)
-    note["evidence_level"] = "fulltext" if fulltext_ok else str(note.get("evidence_level") or "abstract")
+    abstract = str(meta.get("abstract") or "").strip()
+    has_abstract = bool(abstract)
+    note["evidence_level"] = "fulltext" if fulltext_ok else ("abstract" if has_abstract else "title")
     if fulltext_ok and fulltext_path:
         note.setdefault("fulltext_path", str(fulltext_path.relative_to(workspace)))
     else:
         note.setdefault("fulltext_path", "")
 
     note.setdefault("authors", meta.get("authors") or [])
-    note.setdefault("abstract", str(meta.get("abstract") or "").strip())
+    note.setdefault("abstract", abstract)
 
     # Ensure bibkey exists (never overwrite).
     used: set[str] = set()

@@ -30,11 +30,26 @@ def main() -> int:
     ]
     outputs = parse_semicolon_list(args.outputs) or ["outline/tables.md", "outline/timeline.md", "outline/figures.md"]
 
-    out_tables = workspace / outputs[0]
-    out_timeline = workspace / outputs[1] if len(outputs) >= 2 else workspace / "outline" / "timeline.md"
-    out_figures = workspace / outputs[2] if len(outputs) >= 3 else workspace / "outline" / "figures.md"
+    # Backward compatible:
+    # - 3 outputs: tables + timeline + figures (legacy)
+    # - 2 outputs: timeline + figures (tables may be produced by `table-filler`)
+    out_tables: Path | None = None
+    out_timeline: Path
+    out_figures: Path
+    if len(outputs) >= 3:
+        out_tables = workspace / outputs[0]
+        out_timeline = workspace / outputs[1]
+        out_figures = workspace / outputs[2]
+    elif len(outputs) == 2:
+        out_timeline = workspace / outputs[0]
+        out_figures = workspace / outputs[1]
+    else:
+        out_tables = workspace / "outline" / "tables.md"
+        out_timeline = workspace / "outline" / "timeline.md"
+        out_figures = workspace / "outline" / "figures.md"
 
-    ensure_dir(out_tables.parent)
+    if out_tables is not None:
+        ensure_dir(out_tables.parent)
     ensure_dir(out_timeline.parent)
     ensure_dir(out_figures.parent)
 
@@ -48,7 +63,11 @@ def main() -> int:
     mappings = read_tsv(mapping_path) if mapping_path.exists() else []
 
     notes_by_id = {str(n.get("paper_id") or "").strip(): n for n in notes if isinstance(n, dict)}
-    bibkey_by_pid = {pid: str(n.get("bibkey") or "").strip() for pid, n in notes_by_id.items() if pid and str(n.get("bibkey") or "").strip()}
+    bibkey_by_pid = {
+        pid: str(n.get("bibkey") or "").strip()
+        for pid, n in notes_by_id.items()
+        if pid and str(n.get("bibkey") or "").strip()
+    }
 
     mapped_by_section: dict[str, list[str]] = {}
     for row in mappings:
@@ -58,7 +77,11 @@ def main() -> int:
             mapped_by_section.setdefault(sid, []).append(pid)
 
     # Write artifacts (idempotent: do not overwrite refined files).
-    _maybe_write(out_tables, _render_tables(outline=outline, mapped_by_section=mapped_by_section, notes_by_id=notes_by_id, bibkey_by_pid=bibkey_by_pid))
+    if out_tables is not None:
+        _maybe_write(
+            out_tables,
+            _render_tables(outline=outline, mapped_by_section=mapped_by_section, notes_by_id=notes_by_id, bibkey_by_pid=bibkey_by_pid),
+        )
     _maybe_write(out_timeline, _render_timeline(notes_by_id=notes_by_id, bibkey_by_pid=bibkey_by_pid))
     _maybe_write(out_figures, _render_figures(outline=outline, notes_by_id=notes_by_id, bibkey_by_pid=bibkey_by_pid))
     return 0
@@ -103,16 +126,38 @@ def _iter_subsections(outline: list) -> list[dict[str, Any]]:
     return items
 
 
+def _extract_prefixed(bullets: list[str], *, prefix: str) -> str:
+    prefix = (prefix or "").strip().lower()
+    for b in bullets:
+        b = str(b).strip()
+        if not b:
+            continue
+        m = re.match(r"^([A-Za-z ]+)\s*[:：]\s*(.+)$", b)
+        if not m:
+            continue
+        head = (m.group(1) or "").strip().lower()
+        if head == prefix:
+            return (m.group(2) or "").strip()
+    return ""
+
+
+def _extract_list_prefixed(bullets: list[str], *, prefix: str) -> list[str]:
+    raw = _extract_prefixed(bullets, prefix=prefix)
+    if not raw:
+        return []
+    return [p.strip() for p in re.split(r"[,;；]", raw) if p.strip()]
+
+
 def _render_tables(*, outline: list, mapped_by_section: dict[str, list[str]], notes_by_id: dict[str, dict[str, Any]], bibkey_by_pid: dict[str, str]) -> str:
     subs = _iter_subsections(outline)
 
     lines: list[str] = [
         "# Tables",
         "",
-        "## Table 1: Subsection coverage and representative works",
+        "## Table 1: Subsection evidence plan (RQ -> evidence needs -> mapped works)",
         "",
-        "| Subsection | Key axes (from outline) | Representative works |",
-        "|---|---|---|",
+        "| Subsection | RQ | Evidence needs | Representative works |",
+        "|---|---|---|---|",
     ]
 
     rows_written = 0
@@ -120,7 +165,9 @@ def _render_tables(*, outline: list, mapped_by_section: dict[str, list[str]], no
         sid = sub["id"]
         title = sub["title"]
         bullets = [str(b).strip() for b in (sub.get("bullets") or []) if str(b).strip()]
-        axes = "; ".join([_short(b) for b in bullets[:2]]) if bullets else ""
+        rq = _extract_prefixed(bullets, prefix="rq")
+        evidence_needs = _extract_list_prefixed(bullets, prefix="evidence needs")
+        axes = "; ".join(evidence_needs[:6])
 
         pids = mapped_by_section.get(sid, [])
         uniq: list[str] = []
@@ -134,23 +181,33 @@ def _render_tables(*, outline: list, mapped_by_section: dict[str, list[str]], no
             note = notes_by_id.get(pid, {})
             bibkey = bibkey_by_pid.get(pid, "")
             cite = f" [@{bibkey}]" if bibkey else ""
-            rep_cells.append(f"`{pid}` { _short_title(str(note.get('title') or ''), max_len=52) }{cite}".strip())
+            rep_cells.append(f"`{pid}` {str(note.get('title') or '').strip()}{cite}".strip())
         rep = "<br>".join(rep_cells) if rep_cells else ""
 
-        lines.append(f"| {sid} {title} | {axes} | {rep} |")
+        lines.append(
+            "| "
+            + " ".join([sid, title]).replace("|", " ")
+            + " | "
+            + rq.replace("|", " ")
+            + " | "
+            + axes.replace("|", " ")
+            + " | "
+            + rep.replace("|", " ")
+            + " |"
+        )
         rows_written += 1
-        if rows_written >= 10:
+        if rows_written >= 12:
             break
 
     if rows_written == 0:
-        lines.append("| (no outline subsections found) | - | - |")
+        lines.append("| (no outline subsections found) | - | - | - |")
 
     lines.extend(
         [
             "",
             "## Table 2: High-priority papers (quick view)",
             "",
-            "| Work | Contribution (metadata-level) | Evidence | Notable limitation |",
+            "| Work | Contribution (from notes) | Evidence | Notable limitation |",
             "|---|---|---|---|",
         ]
     )
@@ -160,25 +217,24 @@ def _render_tables(*, outline: list, mapped_by_section: dict[str, list[str]], no
     pool.sort(key=lambda n: (-_year_int(n.get("year")), str(n.get("paper_id") or "")))
 
     wrote = 0
-    for note in pool[:12]:
+    for note in pool[:14]:
         pid = str(note.get("paper_id") or "").strip()
         if not pid:
             continue
         bibkey = bibkey_by_pid.get(pid, "")
         if not bibkey:
             continue
-        title = _short_title(str(note.get("title") or ""), max_len=60)
+        title = str(note.get("title") or "").strip()
         contrib = _first_bullet(note)
         evidence = str(note.get("evidence_level") or "").strip() or "abstract"
         lim = _first_limitation(note)
         lines.append(f"| `{pid}` {title} [@{bibkey}] | {contrib} | {evidence} | {lim} |")
         wrote += 1
-        if wrote >= 8:
+        if wrote >= 10:
             break
 
     if wrote < 2:
-        # Keep the table non-empty even for tiny/offline metadata.
-        lines.append("| (insufficient notes) | Provide paper notes to populate this table. | - | - |")
+        lines.append("| (insufficient notes) | Provide richer paper notes to populate this table. | - | - |")
 
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -203,14 +259,13 @@ def _render_timeline(*, notes_by_id: dict[str, dict[str, Any]], bibkey_by_pid: d
         bibkey = bibkey_by_pid.get(pid, "")
         if not bibkey:
             continue
-        title = _short_title(str(note.get("title") or ""), max_len=72)
+        title = str(note.get("title") or "").strip()
         phrase = _milestone_phrase(title)
         bullets.append(f"- {y}: {title} (`{pid}`) — {phrase} [@{bibkey}]")
         if len(bullets) >= 10:
             break
 
     if len(bullets) < 8:
-        # If the core set is small, reuse later-year items to reach the minimum gate.
         for note in reversed(notes):
             if len(bullets) >= 8:
                 break
@@ -219,7 +274,7 @@ def _render_timeline(*, notes_by_id: dict[str, dict[str, Any]], bibkey_by_pid: d
             bibkey = bibkey_by_pid.get(pid, "")
             if not bibkey:
                 continue
-            title = _short_title(str(note.get("title") or ""), max_len=72)
+            title = str(note.get("title") or "").strip()
             phrase = _milestone_phrase(title)
             line = f"- {y}: {title} (`{pid}`) — {phrase} [@{bibkey}]"
             if line not in bullets:
@@ -232,9 +287,13 @@ def _render_timeline(*, notes_by_id: dict[str, dict[str, Any]], bibkey_by_pid: d
 
 def _render_figures(*, outline: list, notes_by_id: dict[str, dict[str, Any]], bibkey_by_pid: dict[str, str]) -> str:
     cite_keys: list[str] = []
-    # Prefer high-priority items for supporting citations.
     notes = list(notes_by_id.values())
-    notes.sort(key=lambda n: (0 if str(n.get("priority") or "").strip().lower() == "high" else 1, -_year_int(n.get("year"))))
+    notes.sort(
+        key=lambda n: (
+            0 if str(n.get("priority") or "").strip().lower() == "high" else 1,
+            -_year_int(n.get("year")),
+        )
+    )
     for note in notes:
         pid = str(note.get("paper_id") or "").strip()
         key = bibkey_by_pid.get(pid, "")
@@ -252,12 +311,12 @@ def _render_figures(*, outline: list, notes_by_id: dict[str, dict[str, Any]], bi
         "# Figure specs (no prose)",
         "",
         "- Figure 1 (pipeline + dataflow): A diagram from retrieval -> curation -> taxonomy -> mapping -> evidence -> synthesis -> PDF.",
-        "  - Purpose: Help readers understand where evidence comes from and how sections are grounded.",
+        "  - Purpose: help readers understand where evidence comes from and how sections are grounded.",
         "  - Elements: queries; raw set; dedupe/rank; taxonomy; outline; mapping; notes; claim-evidence matrix; draft; LaTeX/PDF.",
         f"  - Supported by: {cite}".rstrip(),
         "",
         f"- Figure 2 (taxonomy view): A two-level tree summarizing {outline_hint} with representative works per leaf.",
-        "  - Purpose: Provide a navigable mental model of the design space before diving into details.",
+        "  - Purpose: provide a navigable mental model of the design space before details.",
         "  - Elements: top-level chapters; leaf subtopics; 2-3 cited exemplars per leaf; arrows for common trade-offs.",
         f"  - Supported by: {cite}".rstrip(),
         "",
@@ -271,11 +330,11 @@ def _first_bullet(note: dict[str, Any]) -> str:
         for b in bullets:
             b = str(b).strip()
             if b:
-                return _short(b, 96)
+                return b.replace("|", " ")
     method = str(note.get("method") or "").strip()
     if method:
-        return _short(method, 96)
-    return "Metadata-only; see paper notes for details."
+        return method.replace("|", " ")
+    return "Metadata-only; see paper notes for details.".replace("|", " ")
 
 
 def _first_limitation(note: dict[str, Any]) -> str:
@@ -284,8 +343,8 @@ def _first_limitation(note: dict[str, Any]) -> str:
         for l in lims:
             l = str(l).strip()
             if l:
-                return _short(l, 96)
-    return "Limitations not captured in metadata; verify from full text."
+                return l.replace("|", " ")
+    return "Limitations not captured in metadata; verify from full text.".replace("|", " ")
 
 
 def _milestone_phrase(title: str) -> str:
@@ -344,20 +403,6 @@ def _salient_terms(text: str) -> list[str]:
         if t not in out:
             out.append(t)
     return out[:6]
-
-
-def _short(text: str, max_len: int = 72) -> str:
-    text = re.sub(r"\s+", " ", (text or "").strip())
-    if len(text) <= max_len:
-        return text
-    return text[: max_len - 1].rstrip() + "…"
-
-
-def _short_title(title: str, *, max_len: int = 64) -> str:
-    title = re.sub(r"\s+", " ", (title or "").strip())
-    if len(title) <= max_len:
-        return title
-    return title[: max_len - 1].rstrip() + "…"
 
 
 def _year_int(value: Any) -> int:

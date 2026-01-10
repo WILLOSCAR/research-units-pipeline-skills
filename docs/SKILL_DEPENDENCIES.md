@@ -35,6 +35,13 @@ flowchart LR
   F_papers_paper_notes_jsonl --> S_claim_evidence_matrix
   F_outline_claim_evidence_matrix_md["`outline/claim_evidence_matrix.md`"]:::file
   S_claim_evidence_matrix --> F_outline_claim_evidence_matrix_md
+  S_claim_matrix_rewriter["`claim-matrix-rewriter`"]:::skill
+  F_citations_ref_bib --> S_claim_matrix_rewriter
+  F_outline_evidence_drafts_jsonl["`outline/evidence_drafts.jsonl`"]:::file
+  F_outline_evidence_drafts_jsonl --> S_claim_matrix_rewriter
+  F_outline_subsection_briefs_jsonl["`outline/subsection_briefs.jsonl`"]:::file
+  F_outline_subsection_briefs_jsonl --> S_claim_matrix_rewriter
+  S_claim_matrix_rewriter --> F_outline_claim_evidence_matrix_md
   S_claims_extractor["`claims-extractor`"]:::skill
   F_output_PAPER_md["`output/PAPER.md`"]:::file
   F_output_PAPER_md --> S_claims_extractor
@@ -51,10 +58,25 @@ flowchart LR
   S_dedupe_rank --> F_papers_core_set_csv
   F_papers_papers_dedup_jsonl["`papers/papers_dedup.jsonl`"]:::file
   S_dedupe_rank --> F_papers_papers_dedup_jsonl
+  S_draft_polisher["`draft-polisher`"]:::skill
+  F_citations_ref_bib --> S_draft_polisher
+  F_outline_mapping_tsv --> S_draft_polisher
+  F_outline_outline_yml --> S_draft_polisher
+  F_output_DRAFT_md["`output/DRAFT.md`"]:::file
+  F_output_DRAFT_md --> S_draft_polisher
+  F_papers_paper_notes_jsonl --> S_draft_polisher
+  S_draft_polisher --> F_output_DRAFT_md
   S_evidence_auditor["`evidence-auditor`"]:::skill
   F_output_CLAIMS_md --> S_evidence_auditor
   F_output_MISSING_EVIDENCE_md["`output/MISSING_EVIDENCE.md`"]:::file
   S_evidence_auditor --> F_output_MISSING_EVIDENCE_md
+  S_evidence_draft["`evidence-draft`"]:::skill
+  F_citations_ref_bib --> S_evidence_draft
+  F_outline_subsection_briefs_jsonl --> S_evidence_draft
+  F_papers_paper_notes_jsonl --> S_evidence_draft
+  S_evidence_draft --> F_outline_evidence_drafts_jsonl
+  F_outline_evidence_drafts["`outline/evidence_drafts/`"]:::file
+  S_evidence_draft --> F_outline_evidence_drafts
   S_exercise_builder["`exercise-builder`"]:::skill
   F_outline_module_plan_yml["`outline/module_plan.yml`"]:::file
   F_outline_module_plan_yml --> S_exercise_builder
@@ -65,6 +87,17 @@ flowchart LR
   F_papers_screening_log_csv["`papers/screening_log.csv`"]:::file
   F_papers_screening_log_csv --> S_extraction_form
   S_extraction_form --> F_papers_extraction_table_csv
+  S_global_reviewer["`global-reviewer`"]:::skill
+  F_citations_ref_bib --> S_global_reviewer
+  F_outline_claim_evidence_matrix_md --> S_global_reviewer
+  F_outline_mapping_tsv --> S_global_reviewer
+  F_outline_outline_yml --> S_global_reviewer
+  F_outline_taxonomy_yml["`outline/taxonomy.yml`"]:::file
+  F_outline_taxonomy_yml --> S_global_reviewer
+  F_output_DRAFT_md --> S_global_reviewer
+  S_global_reviewer --> F_output_DRAFT_md
+  F_output_GLOBAL_REVIEW_md["`output/GLOBAL_REVIEW.md`"]:::file
+  S_global_reviewer --> F_output_GLOBAL_REVIEW_md
   S_keyword_expansion["`keyword-expansion`"]:::skill
   F_DECISIONS_md["`DECISIONS.md`"]:::file
   F_DECISIONS_md --> S_keyword_expansion
@@ -80,7 +113,6 @@ flowchart LR
   S_latex_compile_qa --> F_output_LATEX_BUILD_REPORT_md
   S_latex_scaffold["`latex-scaffold`"]:::skill
   F_citations_ref_bib --> S_latex_scaffold
-  F_output_DRAFT_md["`output/DRAFT.md`"]:::file
   F_output_DRAFT_md --> S_latex_scaffold
   S_latex_scaffold --> F_latex_main_tex
   S_literature_engineer["`literature-engineer`"]:::skill
@@ -105,7 +137,6 @@ flowchart LR
   F_output_NOVELTY_MATRIX_md["`output/NOVELTY_MATRIX.md`"]:::file
   S_novelty_matrix --> F_output_NOVELTY_MATRIX_md
   S_outline_builder["`outline-builder`"]:::skill
-  F_outline_taxonomy_yml["`outline/taxonomy.yml`"]:::file
   F_outline_taxonomy_yml --> S_outline_builder
   S_outline_builder --> F_outline_outline_yml
   S_paper_notes["`paper-notes`"]:::skill
@@ -138,14 +169,17 @@ flowchart LR
   F_DECISIONS_md --> S_prose_writer
   F_citations_ref_bib --> S_prose_writer
   F_outline_claim_evidence_matrix_md --> S_prose_writer
+  F_outline_evidence_drafts_jsonl --> S_prose_writer
   F_outline_figures_md["`outline/figures.md`"]:::file
   F_outline_figures_md --> S_prose_writer
   F_outline_outline_yml --> S_prose_writer
+  F_outline_subsection_briefs_jsonl --> S_prose_writer
   F_outline_tables_md["`outline/tables.md`"]:::file
   F_outline_tables_md --> S_prose_writer
   F_outline_timeline_md["`outline/timeline.md`"]:::file
   F_outline_timeline_md --> S_prose_writer
-  F_papers_core_set_csv --> S_prose_writer
+  F_outline_transitions_md["`outline/transitions.md`"]:::file
+  F_outline_transitions_md --> S_prose_writer
   S_prose_writer --> F_output_DRAFT_md
   F_output_SNAPSHOT_md["`output/SNAPSHOT.md`"]:::file
   S_prose_writer --> F_output_SNAPSHOT_md
@@ -168,6 +202,14 @@ flowchart LR
   S_section_mapper --> F_outline_mapping_tsv
   F_outline_mapping_report_md["`outline/mapping_report.md`"]:::file
   S_section_mapper --> F_outline_mapping_report_md
+  S_subsection_briefs["`subsection-briefs`"]:::skill
+  F_GOAL_md["`GOAL.md`"]:::file
+  F_GOAL_md --> S_subsection_briefs
+  F_outline_claim_evidence_matrix_md --> S_subsection_briefs
+  F_outline_mapping_tsv --> S_subsection_briefs
+  F_outline_outline_yml --> S_subsection_briefs
+  F_papers_paper_notes_jsonl --> S_subsection_briefs
+  S_subsection_briefs --> F_outline_subsection_briefs_jsonl
   S_survey_seed_harvest["`survey-seed-harvest`"]:::skill
   F_papers_papers_dedup_jsonl --> S_survey_seed_harvest
   S_survey_seed_harvest --> F_outline_taxonomy_yml
@@ -184,11 +226,28 @@ flowchart LR
   F_papers_extraction_table_csv --> S_synthesis_writer
   F_output_SYNTHESIS_md["`output/SYNTHESIS.md`"]:::file
   S_synthesis_writer --> F_output_SYNTHESIS_md
+  S_table_filler["`table-filler`"]:::skill
+  F_citations_ref_bib --> S_table_filler
+  F_outline_evidence_drafts_jsonl --> S_table_filler
+  F_outline_subsection_briefs_jsonl --> S_table_filler
+  F_outline_table_schema_md["`outline/table_schema.md`"]:::file
+  F_outline_table_schema_md --> S_table_filler
+  S_table_filler --> F_outline_tables_md
+  S_table_schema["`table-schema`"]:::skill
+  F_GOAL_md --> S_table_schema
+  F_outline_evidence_drafts_jsonl --> S_table_schema
+  F_outline_outline_yml --> S_table_schema
+  F_outline_subsection_briefs_jsonl --> S_table_schema
+  S_table_schema --> F_outline_table_schema_md
   S_taxonomy_builder["`taxonomy-builder`"]:::skill
   F_DECISIONS_md --> S_taxonomy_builder
   F_papers_core_set_csv --> S_taxonomy_builder
   F_papers_papers_dedup_jsonl --> S_taxonomy_builder
   S_taxonomy_builder --> F_outline_taxonomy_yml
+  S_transition_weaver["`transition-weaver`"]:::skill
+  F_outline_outline_yml --> S_transition_weaver
+  F_outline_subsection_briefs_jsonl --> S_transition_weaver
+  S_transition_weaver --> F_outline_transitions_md
   S_tutorial_module_writer["`tutorial-module-writer`"]:::skill
   F_DECISIONS_md --> S_tutorial_module_writer
   F_outline_module_plan_yml --> S_tutorial_module_writer
@@ -214,7 +273,6 @@ flowchart LR
   F_CHECKPOINTS_md["`CHECKPOINTS.md`"]:::file
   S_workspace_init --> F_CHECKPOINTS_md
   S_workspace_init --> F_DECISIONS_md
-  F_GOAL_md["`GOAL.md`"]:::file
   S_workspace_init --> F_GOAL_md
   S_workspace_init --> F_STATUS_md
   S_workspace_init --> F_UNITS_csv
@@ -260,16 +318,23 @@ flowchart LR
   subgraph "C3 - Evidence pack"
     U_U058["`U058`\n`pdf-text-extractor`"]:::unit
     U_U060["`U060`\n`paper-notes`"]:::unit
-    U_U070["`U070`\n`claim-evidence-matrix`"]:::unit
+    U_U075["`U075`\n`subsection-briefs`"]:::unit
   end
 
   subgraph "C4 - Citations + visuals"
     U_U090["`U090`\n`citation-verifier`"]:::unit
+    U_U092["`U092`\n`evidence-draft`"]:::unit
+    U_U094["`U094`\n`claim-matrix-rewriter`"]:::unit
+    U_U096["`U096`\n`table-schema`"]:::unit
+    U_U097["`U097`\n`table-filler`"]:::unit
     U_U095["`U095`\n`survey-visuals`"]:::unit
   end
 
   subgraph "C5 - Writing + PDF"
+    U_U098["`U098`\n`transition-weaver`"]:::unit
     U_U100["`U100`\n`prose-writer`"]:::unit
+    U_U105["`U105`\n`draft-polisher`"]:::unit
+    U_U108["`U108`\n`global-reviewer`"]:::unit
     U_U110["`U110`\n`latex-scaffold`"]:::unit
     U_U120["`U120`\n`latex-compile-qa`"]:::unit
   end
@@ -284,11 +349,22 @@ flowchart LR
   U_U052 --> U_U055
   U_U055 --> U_U058
   U_U058 --> U_U060
-  U_U060 --> U_U070
-  U_U070 --> U_U090
-  U_U090 --> U_U095
+  U_U060 --> U_U075
+  U_U060 --> U_U090
+  U_U090 --> U_U092
+  U_U075 --> U_U092
+  U_U092 --> U_U094
+  U_U092 --> U_U096
+  U_U096 --> U_U097
+  U_U092 --> U_U097
+  U_U094 --> U_U095
+  U_U075 --> U_U098
+  U_U097 --> U_U100
   U_U095 --> U_U100
-  U_U100 --> U_U110
+  U_U098 --> U_U100
+  U_U100 --> U_U105
+  U_U105 --> U_U108
+  U_U108 --> U_U110
   U_U110 --> U_U120
 ```
 
@@ -321,16 +397,23 @@ flowchart LR
   subgraph "C3 - Evidence"
     U_U058["`U058`\n`pdf-text-extractor`"]:::unit
     U_U060["`U060`\n`paper-notes`"]:::unit
-    U_U070["`U070`\n`claim-evidence-matrix`"]:::unit
+    U_U075["`U075`\n`subsection-briefs`"]:::unit
   end
 
   subgraph "C4 - Citations + visuals"
     U_U090["`U090`\n`citation-verifier`"]:::unit
+    U_U092["`U092`\n`evidence-draft`"]:::unit
+    U_U094["`U094`\n`claim-matrix-rewriter`"]:::unit
+    U_U096["`U096`\n`table-schema`"]:::unit
+    U_U097["`U097`\n`table-filler`"]:::unit
     U_U095["`U095`\n`survey-visuals`"]:::unit
   end
 
   subgraph "C5 - Writing"
+    U_U098["`U098`\n`transition-weaver`"]:::unit
     U_U100["`U100`\n`prose-writer`"]:::unit
+    U_U105["`U105`\n`draft-polisher`"]:::unit
+    U_U108["`U108`\n`global-reviewer`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -343,10 +426,21 @@ flowchart LR
   U_U052 --> U_U055
   U_U055 --> U_U058
   U_U058 --> U_U060
-  U_U060 --> U_U070
-  U_U070 --> U_U090
-  U_U090 --> U_U095
+  U_U060 --> U_U075
+  U_U060 --> U_U090
+  U_U090 --> U_U092
+  U_U075 --> U_U092
+  U_U092 --> U_U094
+  U_U092 --> U_U096
+  U_U096 --> U_U097
+  U_U092 --> U_U097
+  U_U094 --> U_U095
+  U_U075 --> U_U098
+  U_U097 --> U_U100
   U_U095 --> U_U100
+  U_U098 --> U_U100
+  U_U100 --> U_U105
+  U_U105 --> U_U108
 ```
 
 ### lit-snapshot

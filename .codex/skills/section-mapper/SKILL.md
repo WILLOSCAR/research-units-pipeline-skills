@@ -30,6 +30,16 @@ Good mapping is **diverse** (avoids reusing the same paper everywhere) and **exp
 - `outline/mapping.tsv`
 - `outline/mapping_report.md` (diagnostics: reuse hotspots, weak-signal subsections)
 
+## Freeze marker (explicit)
+
+To prevent accidental overwrites after you refine mapping rationales:
+
+- Create `outline/mapping.refined.ok`.
+
+If you rerun the script without this marker, it will back up the previous mapping to a timestamped file:
+
+- `outline/mapping.tsv.bak.<timestamp>`
+
 ## Workflow (heuristic)
 
 1. Start from the outline subsections (each subsection should be “mappable”).

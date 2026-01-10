@@ -48,10 +48,13 @@ def main() -> int:
     outline_path = workspace / inputs[1]
     out_path = workspace / outputs[0]
 
-    # Bootstrap-only behavior: if a human/LLM already refined mapping rationales, do not overwrite.
-    # Delete `outline/mapping.tsv` to force regeneration.
-    if _looks_refined_mapping(out_path):
-        return 0
+    # Explicit freeze policy: only skip regeneration if the user creates `outline/mapping.refined.ok`.
+    # Otherwise always regenerate and keep a timestamped backup of the previous file.
+    freeze_marker = out_path.parent / "mapping.refined.ok"
+    if out_path.exists() and out_path.stat().st_size > 0:
+        if freeze_marker.exists():
+            return 0
+        _backup_existing(out_path)
 
     papers = _load_core_set(core_path)
     metadata = read_jsonl(workspace / "papers" / "papers_dedup.jsonl")
@@ -179,51 +182,18 @@ def main() -> int:
     return 0
 
 
-def _looks_refined_mapping(path: Path) -> bool:
-    if not path.exists():
-        return False
-    try:
-        with path.open("r", encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter="\t")
-            rows = [row for row in reader]
-    except Exception:
-        return False
-    if not rows:
-        return False
 
-    # Require a non-trivial mapping before treating it as 'hand refined'; this avoids
-    # freezing the workspace-template placeholder row (often 1 row with '(placeholder)').
-    if len(rows) < 5:
-        return False
+def _backup_existing(path: Path) -> None:
+    from datetime import datetime
 
-    def _is_placeholder_why(value: str) -> bool:
-        why = (value or "").strip()
-        if not why:
-            return True
-        low = why.lower()
-        if "placeholder" in low or "(placeholder)" in low:
-            return True
-        if any(tok in low for tok in ("todo", "tbd", "fixme")):
-            return True
-        if why.startswith(("matched_terms=", "token_overlap=")) or "matched_terms=" in why or "token_overlap=" in why:
-            return True
-        return False
-
-    why_total = 0
-    placeholder = 0
-    section_ids: set[str] = set()
-    for row in rows:
-        section_ids.add(str(row.get("section_id") or "").strip())
-        why = str(row.get("why") or "").strip()
-        why_total += 1
-        if _is_placeholder_why(why):
-            placeholder += 1
-
-    # If most rationales are non-placeholder and this covers multiple subsections,
-    # assume the file was refined and avoid overwriting it.
-    if why_total and (placeholder / why_total) <= 0.2 and len([s for s in section_ids if s]) >= 2:
-        return True
-    return False
+    stamp = datetime.now().replace(microsecond=0).isoformat().replace("-", "").replace(":", "")
+    backup = path.with_name(f"{path.name}.bak.{stamp}")
+    # Avoid accidental overwrite if multiple runs happen in the same second.
+    counter = 1
+    while backup.exists():
+        backup = path.with_name(f"{path.name}.bak.{stamp}.{counter}")
+        counter += 1
+    path.replace(backup)
 
 
 

@@ -32,7 +32,7 @@
 
 - `pdf-text-extractor`（Network: fulltext 可选）：下载/抽取全文 → `papers/fulltext_index.jsonl` + `papers/fulltext/*.txt`
 - `paper-notes`：结构化论文笔记 → `papers/paper_notes.jsonl`
-- `claim-evidence-matrix`：按 outline 做 claim–evidence 对齐 → `outline/claim_evidence_matrix.md`
+- `subsection-briefs`：为每个 H3 生成写作意图卡（scope_rule/rq/axes/clusters/paragraph_plan）→ `outline/subsection_briefs.jsonl`
 - `claims-extractor`：从单篇论文/稿件提取 claims → `output/CLAIMS.md`
 - `evidence-auditor`：审稿：证据缺口审计 → `output/MISSING_EVIDENCE.md`
 - `novelty-matrix`：审稿：新颖性矩阵 → `output/NOVELTY_MATRIX.md`
@@ -40,11 +40,18 @@
 ### Stage 4 — Citations / Visuals（C4）[NO PROSE]
 
 - `citation-verifier`（Network: verify 可选）：生成 BibTeX + verification 记录 → `citations/ref.bib` + `citations/verified.jsonl`
-- `survey-visuals`：非 prose 的表格/时间线/图规格 → `outline/tables.md` + `outline/timeline.md` + `outline/figures.md`
+- `evidence-draft`：把 notes→“可写证据包”（逐小节 claim candidates / concrete comparisons / eval / limitations）→ `outline/evidence_drafts.jsonl`
+- `claim-matrix-rewriter`：从 evidence packs 重写“claim→evidence 索引”（避免模板 claim）→ `outline/claim_evidence_matrix.md`
+- `table-schema`：先定义表格 schema（问题/列/证据字段）→ `outline/table_schema.md`
+- `table-filler`：用 evidence packs 填表（填不出就显式 missing）→ `outline/tables.md`
+- `survey-visuals`：非 prose 的时间线/图规格（v4：表格由 `table-filler` 负责）→ `outline/timeline.md` + `outline/figures.md`
 
 ### Stage 5 — Writing（C5）[PROSE after approvals]
 
+- `transition-weaver`：生成 H2/H3 过渡句映射（不新增事实/引用）→ `outline/transitions.md`
 - `prose-writer`：从已批准的 outline+evidence 写 `output/DRAFT.md`（仅用已验证 citation keys）
+- `draft-polisher`：对 `output/DRAFT.md` 做去套话 + 连贯性润色（不改变 citation keys 与语义）
+- `global-reviewer`：全局一致性回看（术语/章节呼应/结论回扣 RQ），输出 `output/GLOBAL_REVIEW.md`
 - `tutorial-spec`：教程规格说明 → `output/TUTORIAL_SPEC.md`（C1）
 - `tutorial-module-writer`：模块化教程内容 → `output/TUTORIAL.md`（C3）
 - `protocol-writer`：系统综述协议 → `output/PROTOCOL.md`（C1）
@@ -68,10 +75,15 @@
 - “mapping / 映射 / coverage / 覆盖率” → `section-mapper`
 - “pdf / fulltext / 下载 / 抽取全文” → `pdf-text-extractor`
 - “paper notes / 论文笔记 / 结构化阅读” → `paper-notes`
-- “claim evidence matrix / 证据矩阵” → `claim-evidence-matrix`
+- “claim matrix / 证据矩阵 / claim-evidence matrix” → `claim-matrix-rewriter`（survey 默认）, `claim-evidence-matrix`（legacy）
+- “subsection briefs / 写作意图卡 / 小节卡片” → `subsection-briefs`
 - “bibtex / citation / 引用 / 参考文献” → `citation-verifier`
-- “timeline / tables / figures / 可视化” → `survey-visuals`
+- “evidence pack / evidence draft / 证据草稿 / 对比维度” → `evidence-draft`
+- “tables / 表格 / schema-first tables / 表格填充” → `table-schema`, `table-filler`
+- “timeline / figures / 可视化” → `survey-visuals`
 - “写综述 / 写 draft / prose” → `prose-writer`
+- “润色 / 去套话 / coherence / polish draft” → `draft-polisher`, `global-reviewer`
+- “过渡句 / transitions / 章节承接” → `transition-weaver`
 - “LaTeX / PDF / 编译” → `latex-scaffold`, `latex-compile-qa`
 - “系统综述 / PRISMA / protocol” → `protocol-writer`, `screening-manager`, `extraction-form`, `bias-assessor`, `synthesis-writer`
 - “教程 / tutorial / running example” → `tutorial-spec`, `concept-graph`, `module-planner`, `exercise-builder`, `tutorial-module-writer`
@@ -84,9 +96,14 @@
 - `papers/papers_dedup.jsonl` → `taxonomy-builder`（可选辅助输入）
 - `papers/core_set.csv` → `taxonomy-builder`, `section-mapper`, `pdf-text-extractor`, `paper-notes`
 - `outline/taxonomy.yml` → `outline-builder`
-- `outline/outline.yml` → `section-mapper`, `claim-evidence-matrix`, `prose-writer`
+- `outline/outline.yml` → `section-mapper`, `table-schema`, `transition-weaver`, `prose-writer`
 - `outline/mapping.tsv` → `pdf-text-extractor`, `paper-notes`
 - `papers/paper_notes.jsonl` → `citation-verifier`
+- `outline/subsection_briefs.jsonl` → `evidence-draft`, `table-schema`, `transition-weaver`, `prose-writer`
+- `outline/evidence_drafts.jsonl` → `claim-matrix-rewriter`, `table-filler`, `prose-writer`
+- `outline/table_schema.md` → `table-filler`
+- `outline/transitions.md` → `prose-writer`
+- `output/DRAFT.md` → `draft-polisher`, `global-reviewer`
 
 ## 输出文件 → Skill
 
@@ -98,15 +115,21 @@
 - `outline/mapping.tsv` → `section-mapper`
 - `papers/fulltext_index.jsonl` → `pdf-text-extractor`
 - `papers/paper_notes.jsonl` → `paper-notes`
-- `outline/claim_evidence_matrix.md` → `claim-evidence-matrix`
+- `outline/subsection_briefs.jsonl` → `subsection-briefs`
+- `outline/evidence_drafts.jsonl` → `evidence-draft`
+- `outline/claim_evidence_matrix.md` → `claim-matrix-rewriter`
 - `citations/ref.bib`, `citations/verified.jsonl` → `citation-verifier`
-- `outline/tables.md`, `outline/timeline.md`, `outline/figures.md` → `survey-visuals`
-- `output/DRAFT.md` → `prose-writer`
+- `outline/table_schema.md` → `table-schema`
+- `outline/tables.md` → `table-filler`
+- `outline/timeline.md`, `outline/figures.md` → `survey-visuals`
+- `outline/transitions.md` → `transition-weaver`
+- `output/DRAFT.md` → `prose-writer`, `draft-polisher`
+- `output/GLOBAL_REVIEW.md` → `global-reviewer`
 - `latex/main.tex`, `latex/main.pdf` → `latex-scaffold`, `latex-compile-qa`
 
 ## 常见失败场景（症状 → 处理）
 
-- “无网络/网络受限” → `arxiv-search` 用 `--input` 离线导入；`pdf-text-extractor` 用 `evidence_mode: abstract`
+- “无网络/网络受限” → `literature-engineer` 走 `papers/imports/` 离线多路导入（必要时退化用 `arxiv-search --input`）；`pdf-text-extractor` 用 `evidence_mode: abstract`
 - “输出像模板/TODO 太多（strict 被挡）” → 按对应 `SKILL.md` 的 Quality checklist 逐条补齐后再标 `DONE`
 - “`papers/fulltext_index.jsonl` 为空” → 检查 `papers/core_set.csv` 是否含 `pdf_url/arxiv_id`；或退回 abstract 模式
 - “引用缺 `verified.jsonl`” → 先生成记录（标注 needs manual verification），网络可用时再 `verify-only`

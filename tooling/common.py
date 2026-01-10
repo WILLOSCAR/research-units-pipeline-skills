@@ -454,6 +454,7 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
             "- exclude:",
             "  - \"\"",
             "- max_results: \"\"",
+            "- core_size: \"\"",
             "- time window:",
             "  - from: \"\"",
             "  - to: \"\"",
@@ -504,10 +505,35 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
     has_time_from = _has_nonempty_time_field("from")
     has_time_to = _has_nonempty_time_field("to")
     has_max_results = _has_nonempty_scalar("max_results")
+    has_core_size = _has_nonempty_scalar("core_size")
+
+    def _pipeline_profile_from_workspace(workspace: Path) -> str:
+        lock_path = workspace / "PIPELINE.lock.md"
+        if not lock_path.exists():
+            return "default"
+        try:
+            for raw in lock_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = raw.strip()
+                if not line.startswith("pipeline:"):
+                    continue
+                pipeline = line.split(":", 1)[1].strip().lower()
+                if "arxiv-survey" in pipeline:
+                    return "arxiv-survey"
+                return "default"
+        except Exception:
+            return "default"
+
+    profile = _pipeline_profile_from_workspace(queries_path.parent)
 
     keyword_suggestions = [topic]
     tlow = topic.lower()
-    if "agent" in tlow:
+    is_agent = "agent" in tlow
+    is_text_to_image = any(t in tlow for t in ("text-to-image", "text to image", "t2i"))
+    is_text_to_video = any(t in tlow for t in ("text-to-video", "text to video", "t2v"))
+    is_diffusion = "diffusion" in tlow
+    is_generative = is_text_to_image or is_text_to_video or is_diffusion or ("image generation" in tlow) or ("generative" in tlow)
+
+    if is_agent:
         keyword_suggestions.extend(
             [
                 "LLM agent",
@@ -524,12 +550,37 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
             ]
         )
     exclude_suggestions: list[str] = []
-    if "agent" in tlow:
+    if is_agent:
         exclude_suggestions.append("agent-based modeling")
         exclude_suggestions.extend(["react hooks", "perovskite", "banach", "coxeter"])
 
-    max_results_suggestion = 800 if "agent" in tlow else 300
-    time_from_suggestion = "2022" if ("agent" in tlow and ("llm" in tlow or "language model" in tlow)) else ""
+    if is_generative:
+        keyword_suggestions.extend(
+            [
+                "text-to-image generation",
+                "text-guided image generation",
+                "diffusion model",
+                "denoising diffusion probabilistic model",
+                "latent diffusion",
+                "stable diffusion",
+                "classifier-free guidance",
+                "diffusion transformer",
+                "DiT",
+                "masked generative transformer",
+                "MaskGIT",
+                "autoregressive image generation",
+                "VQGAN",
+                "VQ-VAE",
+                "ControlNet",
+                "DreamBooth",
+                "textual inversion",
+                "LoRA fine-tuning",
+            ]
+        )
+
+    max_results_suggestion = 800 if (is_agent or is_generative) else 300
+    time_from_suggestion = "2022" if (is_agent and ("llm" in tlow or "language model" in tlow)) else ("2020" if is_generative else "")
+    core_size_suggestion = "150" if profile == "arxiv-survey" else ""
 
     out: list[str] = []
     i = 0
@@ -557,6 +608,11 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
 
         if stripped.startswith("- max_results:") and not has_max_results and max_results_suggestion:
             out.append(f"- max_results: \"{max_results_suggestion}\"")
+            i += 1
+            continue
+
+        if stripped.startswith("- core_size:") and not has_core_size and core_size_suggestion:
+            out.append(f"- core_size: \"{core_size_suggestion}\"")
             i += 1
             continue
 

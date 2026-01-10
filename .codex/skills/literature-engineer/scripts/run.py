@@ -63,6 +63,7 @@ def main() -> int:
 
     records: list[dict[str, Any]] = []
     route_to_source_paths: dict[str, set[str]] = {}
+    online_error: str = ""
 
     offline_inputs = [str(Path(p).resolve()) for p in (args.input or []) if str(p).strip()]
     if not offline_inputs and not args.online:
@@ -117,31 +118,38 @@ def main() -> int:
 
     if args.online or not records:
         if not keywords:
-            raise SystemExit(
+            online_error = (
                 "No keywords found in queries.md and no offline exports detected. "
-                "Provide offline exports under papers/imports/ or run with network and --online."
+                "Provide offline exports under papers/imports/ or enable network for online retrieval."
             )
-        online = _search_arxiv_paged(
-            queries=keywords,
-            excludes=excludes,
-            max_results=max_results or 200,
-            year_from=year_from,
-            year_to=year_to,
-        )
-        for rec in online:
-            norm = _normalize_record(rec)
-            query = str(rec.get("_query") or "").strip()
-            route = f"arxiv_query:{query}" if query else "arxiv_query"
-            _attach_provenance(
-                norm,
-                prov=RouteProvenance(
-                    route=route,
-                    source="arxiv",
-                    source_path="http://export.arxiv.org/api/query",
-                    imported_at=imported_at,
-                ),
-            )
-            records.append(norm)
+        else:
+            try:
+                online = _search_arxiv_paged(
+                    queries=keywords,
+                    excludes=excludes,
+                    max_results=max_results or 200,
+                    year_from=year_from,
+                    year_to=year_to,
+                )
+            except KeyboardInterrupt:
+                raise
+            except BaseException as exc:
+                online = []
+                online_error = f"{type(exc).__name__}: {exc}"
+            for rec in online:
+                norm = _normalize_record(rec)
+                query = str(rec.get("_query") or "").strip()
+                route = f"arxiv_query:{query}" if query else "arxiv_query"
+                _attach_provenance(
+                    norm,
+                    prov=RouteProvenance(
+                        route=route,
+                        source="arxiv",
+                        source_path="http://export.arxiv.org/api/query",
+                        imported_at=imported_at,
+                    ),
+                )
+                records.append(norm)
 
     # Basic filters.
     if year_from or year_to:
@@ -168,6 +176,7 @@ def main() -> int:
             year_to=year_to,
             offline_inputs=offline_inputs,
             snowball_inputs=_detect_snowball_exports(workspace) if args.snowball else [],
+            online_error=online_error,
             total_in=len(records),
             total_out=len(deduped),
             records=deduped,
@@ -306,7 +315,10 @@ def _parse_bib_entry(entry: str) -> dict[str, Any] | None:
     title = _clean_bib_value(str(fields.get("title") or "")).strip()
     year = _clean_bib_value(str(fields.get("year") or "")).strip()
     url = _clean_bib_value(str(fields.get("url") or "")).strip()
-    doi = _clean_bib_value(str(fields.get("doi") or "")).strip()
+    doi = _normalize_doi(_clean_bib_value(str(fields.get("doi") or "")).strip())
+    abstract = _clean_bib_value(str(fields.get("abstract") or "")).strip()
+    if not url and doi:
+        url = _doi_url(doi)
 
     author_raw = _clean_bib_value(str(fields.get("author") or "")).strip()
     authors = _split_bib_authors(author_raw)
@@ -342,7 +354,7 @@ def _parse_bib_entry(entry: str) -> dict[str, Any] | None:
         "authors": authors,
         "year": year_int,
         "url": url or (f"https://arxiv.org/abs/{arxiv_id}" if arxiv_id else ""),
-        "abstract": "",
+        "abstract": abstract,
         "source": "bib",
         "arxiv_id": arxiv_id,
         "pdf_url": pdf_url,
@@ -470,7 +482,9 @@ def _normalize_record(rec: dict) -> dict[str, Any]:
     if not arxiv_id and url and "arxiv.org/" in url:
         arxiv_id = _extract_arxiv_id(url)
 
-    doi = str(rec.get("doi") or "").strip()
+    doi = _normalize_doi(str(rec.get("doi") or ""))
+    if not url and doi:
+        url = _doi_url(doi)
 
     pdf_url = str(rec.get("pdf_url") or rec.get("pdf") or "").strip()
     if not pdf_url and arxiv_id:
@@ -669,6 +683,7 @@ def _render_report(
     year_to: int | None,
     offline_inputs: list[str],
     snowball_inputs: list[str],
+    online_error: str = "",
     total_in: int,
     total_out: int,
     records: list[dict[str, Any]],
@@ -721,11 +736,13 @@ def _render_report(
         f"- Keywords: `{len(keywords)}`",
         f"- Excludes: `{len(excludes)}`",
         f"- Time window: `{year_from or ''}`..`{year_to or ''}`",
+        f"- Online retrieval (best-effort): `{('OK' if not online_error else 'FAILED')}`",
         "",
         f"## Summary",
         "",
         f"- Imported/collected records (pre-dedupe): `{total_in}`",
         f"- Deduped records (output): `{total_out}`",
+        f"- Online error: `{online_error}`" if online_error else "- Online error: (none)",
         f"- Missing stable ID (arxiv_id/doi/url all empty): `{missing_id}`",
         f"- Missing abstract: `{missing_abstract}`",
         f"- Missing authors: `{missing_authors}`",
@@ -859,6 +876,22 @@ def _default_pdf_url(arxiv_id: str) -> str:
     if not arxiv_id:
         return ""
     return f"http://arxiv.org/pdf/{arxiv_id}.pdf"
+
+
+def _normalize_doi(doi: str) -> str:
+    doi = (doi or "").strip()
+    if not doi:
+        return ""
+    doi = re.sub(r"(?i)^https?://doi\.org/", "", doi).strip()
+    doi = re.sub(r"(?i)^doi\s*:\s*", "", doi).strip()
+    return doi
+
+
+def _doi_url(doi: str) -> str:
+    doi = _normalize_doi(doi)
+    if not doi:
+        return ""
+    return f"https://doi.org/{doi}"
 
 
 def _canonical_url(url: str) -> str:

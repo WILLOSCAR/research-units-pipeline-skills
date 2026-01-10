@@ -50,7 +50,7 @@ _GENERIC_WORDS = {
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", required=True)
-    parser.add_argument("--core-size", type=int, default=50)
+    parser.add_argument("--core-size", type=int, default=0)
     parser.add_argument("--unit-id", default="")
     parser.add_argument("--inputs", default="")
     parser.add_argument("--outputs", default="")
@@ -67,6 +67,8 @@ def main() -> int:
     core_size_cfg = _core_size_from_queries(workspace / 'queries.md')
     if core_size_cfg:
         args.core_size = int(core_size_cfg)
+    if int(args.core_size) <= 0:
+        args.core_size = _default_core_size_for_workspace(workspace)
 
     inputs = parse_semicolon_list(args.inputs) or ["papers/papers_raw.jsonl"]
     outputs = parse_semicolon_list(args.outputs) or ["papers/papers_dedup.jsonl", "papers/core_set.csv"]
@@ -256,6 +258,25 @@ def _core_size_from_queries(path: Path) -> int:
             return 0
         return n if n > 0 else 0
     return 0
+
+
+
+
+def _default_core_size_for_workspace(workspace: Path) -> int:
+    lock_path = workspace / "PIPELINE.lock.md"
+    if lock_path.exists():
+        try:
+            for raw in lock_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = raw.strip()
+                if not line.startswith("pipeline:"):
+                    continue
+                pipeline = line.split(":", 1)[1].strip().lower()
+                if "arxiv-survey" in pipeline:
+                    return 150
+                break
+        except Exception:
+            pass
+    return 50
 
 
 def _parse_queries_md(path: Path) -> list[str]:

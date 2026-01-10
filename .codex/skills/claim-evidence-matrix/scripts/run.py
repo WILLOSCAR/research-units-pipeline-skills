@@ -38,7 +38,14 @@ def main() -> int:
     notes = read_jsonl(notes_path)
     mappings = read_tsv(mapping_path) if mapping_path.exists() else []
 
-    papers_by_id = {str(n.get("paper_id") or ""): n for n in notes if isinstance(n, dict)}
+    papers_by_id: dict[str, dict[str, Any]] = {}
+    for n in notes:
+        if not isinstance(n, dict):
+            continue
+        pid = str(n.get("paper_id") or "").strip()
+        if pid:
+            papers_by_id[pid] = n
+
     paper_ids_fallback = [pid for pid in papers_by_id.keys() if pid]
 
     mapped_by_section: dict[str, list[str]] = {}
@@ -59,39 +66,48 @@ def main() -> int:
     for subsection in _iter_subsections(outline):
         sid = subsection["id"]
         title = subsection["title"]
-        axes = [str(b).strip() for b in (subsection.get("bullets") or []) if str(b).strip()]
+        bullets = [str(b).strip() for b in (subsection.get("bullets") or []) if str(b).strip()]
+
+        rq = _extract_prefixed(bullets, prefix="rq")
+        evidence_needs = _extract_list_prefixed(bullets, prefix="evidence needs")
+        outline_axes = _extract_list_prefixed(bullets, prefix="comparison axes")
 
         pids = mapped_by_section.get(sid, [])
         uniq: list[str] = []
         for pid in pids:
             if pid in papers_by_id and pid not in uniq:
                 uniq.append(pid)
-        if len(uniq) < 2 and paper_ids_fallback:
-            for cand in paper_ids_fallback:
-                if cand not in uniq:
-                    uniq.append(cand)
-                if len(uniq) >= 2:
-                    break
+        if not uniq:
+            uniq = paper_ids_fallback[:6]
+        uniq = uniq[:12]
 
         themes = _top_terms(
             [
-                str(papers_by_id.get(pid, {}).get("title") or "")
-                + " "
-                + str(papers_by_id.get(pid, {}).get("abstract") or "")
+                str(papers_by_id.get(pid, {}).get("title") or "") + " " + str(papers_by_id.get(pid, {}).get("abstract") or "")
                 for pid in uniq
             ],
             tokenize=tokenize,
         )
 
+        evidence_levels = _evidence_levels(pids=uniq, papers_by_id=papers_by_id)
+        axes = _merge_axes(evidence_needs=evidence_needs, outline_axes=outline_axes, themes=themes)
+
+        claim = _make_claim(title=title, rq=rq, axes=axes, themes=themes, evidence_levels=evidence_levels)
+
         parts.append(f"## {sid} {title}")
         parts.append("")
 
-        claim = _make_claim(title=title, axes=axes, themes=themes)
+        if rq:
+            parts.append(f"- RQ: {rq}")
+
         parts.append(f"- Claim: {claim}")
+
         if axes:
-            parts.append(f"  - Axes: {'; '.join(axes[:6])}")
+            parts.append(f"  - Axes: {'; '.join(axes[:8])}")
         if themes:
-            parts.append(f"  - Themes: {', '.join(themes[:6])}")
+            parts.append(f"  - Themes: {', '.join(themes[:8])}")
+        if evidence_levels:
+            parts.append(f"  - Evidence levels: {', '.join([f'{k}={v}' for k, v in sorted(evidence_levels.items())])}.")
 
         for pid in uniq[:6]:
             note = papers_by_id.get(pid, {})
@@ -102,6 +118,11 @@ def main() -> int:
                 parts.append(f"  - Evidence: `{pid}`{cite} — {tagline}")
             else:
                 parts.append(f"  - Evidence: `{pid}`{cite}")
+
+        if evidence_levels.get("title", 0) >= 2 or evidence_levels.get("fulltext", 0) == 0:
+            parts.append(
+                "  - Caveat: Evidence is not full-text grounded for this subsection; treat the claim as provisional and prioritize abstract/fulltext enrichment before making strong generalizations."
+            )
 
         parts.append("")
 
@@ -117,7 +138,7 @@ def _looks_refined_matrix(path: Path) -> bool:
         return False
     if re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", text):
         return False
-    if "- Claim:" in text and len(text.strip()) > 400:
+    if "- Claim:" in text and len(text.strip()) > 600:
         return True
     return False
 
@@ -133,14 +154,108 @@ def _iter_subsections(outline: list) -> list[dict[str, Any]]:
             sid = str(subsection.get("id") or "").strip()
             title = str(subsection.get("title") or "").strip()
             if sid and title:
-                items.append(
-                    {
-                        "id": sid,
-                        "title": title,
-                        "bullets": subsection.get("bullets") or [],
-                    }
-                )
+                items.append({"id": sid, "title": title, "bullets": subsection.get("bullets") or []})
     return items
+
+
+def _extract_prefixed(bullets: list[str], *, prefix: str) -> str:
+    prefix = (prefix or "").strip().lower()
+    for b in bullets:
+        b = str(b).strip()
+        if not b:
+            continue
+        m = re.match(r"^([A-Za-z ]+)\s*[:：]\s*(.+)$", b)
+        if not m:
+            continue
+        head = (m.group(1) or "").strip().lower()
+        if head == prefix:
+            return (m.group(2) or "").strip()
+    return ""
+
+
+def _extract_list_prefixed(bullets: list[str], *, prefix: str) -> list[str]:
+    raw = _extract_prefixed(bullets, prefix=prefix)
+    if not raw:
+        return []
+    parts = [p.strip() for p in re.split(r"[,;；]", raw) if p.strip()]
+    return parts
+
+
+def _merge_axes(*, evidence_needs: list[str], outline_axes: list[str], themes: list[str]) -> list[str]:
+    axes: list[str] = []
+
+    def _add(x: str) -> None:
+        x = re.sub(r"\s+", " ", (x or "").strip())
+        if not x:
+            return
+        if x.lower().startswith(("refine with evidence", "refine")):
+            return
+        if x not in axes:
+            axes.append(x)
+
+    for a in evidence_needs:
+        _add(a)
+    for a in outline_axes:
+        _add(a)
+
+    if not axes:
+        for t in themes[:4]:
+            _add(f"theme={t}")
+
+    if not axes:
+        axes = ["mechanism", "data", "evaluation", "limitations"]
+
+    return axes[:8]
+
+
+def _evidence_levels(*, pids: list[str], papers_by_id: dict[str, dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for pid in pids:
+        lvl = str((papers_by_id.get(pid) or {}).get("evidence_level") or "").strip().lower() or "unknown"
+        counts[lvl] = counts.get(lvl, 0) + 1
+    return counts
+
+
+def _make_claim(*, title: str, rq: str, axes: list[str], themes: list[str], evidence_levels: dict[str, int]) -> str:
+    title = (title or "this subsection").strip()
+    rq = (rq or "").strip()
+
+    # Evidence-aware wording: avoid strong conclusions when evidence is not full-text grounded.
+    provisional = evidence_levels.get("fulltext", 0) == 0
+
+    axis_hint = ", ".join([a for a in axes[:3] if a])
+    theme_hint = ", ".join([t for t in themes[:3] if t])
+
+    lead = "Provisional claim" if provisional else "Claim"
+
+    if rq and axis_hint:
+        return f"{lead}: For {title}, answering the RQ requires comparing approaches along {axis_hint} and validating conclusions against the cited evidence."
+    if axis_hint and theme_hint:
+        return f"{lead}: In {title}, mapped works differ along {axis_hint}, with recurring emphases on {theme_hint}; comparisons should cite evaluation context explicitly."
+    if axis_hint:
+        return f"{lead}: In {title}, mapped works can be compared along {axis_hint}; the evidence should be used to clarify when each choice is preferred."
+    if rq:
+        return f"{lead}: {rq} (use mapped papers to support a concrete, subsection-specific answer)."
+    return f"{lead}: Organize {title} into a small set of evidence-backed comparisons grounded in the mapped papers."
+
+
+def _tagline(note: dict[str, Any]) -> str:
+    method = str(note.get("method") or "").strip()
+    if method and not method.lower().startswith("main idea (from title):"):
+        return method
+
+    bullets = note.get("summary_bullets") or []
+    if isinstance(bullets, list):
+        for b in bullets:
+            b = str(b).strip()
+            if b and len(b) >= 16:
+                return b
+
+    abstract = str(note.get("abstract") or "").strip()
+    if abstract:
+        return abstract.splitlines()[0].strip()
+
+    return ""
 
 
 def _top_terms(texts: list[str], *, tokenize) -> list[str]:
@@ -197,46 +312,7 @@ def _top_terms(texts: list[str], *, tokenize) -> list[str]:
                 continue
             counts[t] = counts.get(t, 0) + 1
     ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-    return [t for t, _ in ranked[:8]]
-
-
-def _make_claim(*, title: str, axes: list[str], themes: list[str]) -> str:
-    title = (title or "this subsection").strip()
-    axes_hint = " / ".join([_short_axis(a) for a in axes[:2] if a])
-    themes_hint = ", ".join([t for t in themes[:3] if t])
-
-    if themes_hint and axes_hint:
-        return (
-            f"Work in {title} clusters around recurring themes (e.g., {themes_hint}), and the most practical trade-offs tend to show up along {axes_hint}."
-        )
-    if themes_hint:
-        return f"Work in {title} clusters around a small number of recurring themes (e.g., {themes_hint}); comparing them clarifies trade-offs and failure modes."
-    if axes_hint:
-        return f"For {title}, the key comparisons can be organized along {axes_hint}; these axes explain why methods succeed or fail in different settings."
-    return f"For {title}, organizing the literature into a few recurring design patterns makes evaluation and limitations comparable across papers."
-
-
-def _short_axis(text: str) -> str:
-    text = re.sub(r"\s+", " ", (text or "").strip())
-    if len(text) <= 44:
-        return text
-    return text[:43].rstrip() + "…"
-
-
-def _tagline(note: dict[str, Any]) -> str:
-    method = str(note.get("method") or "").strip()
-    if method:
-        return method
-    bullets = note.get("summary_bullets") or []
-    if isinstance(bullets, list):
-        for b in bullets:
-            b = str(b).strip()
-            if b:
-                return b
-    abstract = str(note.get("abstract") or "").strip()
-    if abstract:
-        return abstract.splitlines()[0].strip()
-    return ""
+    return [t for t, _ in ranked[:10]]
 
 
 if __name__ == "__main__":

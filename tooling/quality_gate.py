@@ -144,10 +144,26 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
         return _check_paper_notes(workspace, outputs)
     if skill == "claim-evidence-matrix":
         return _check_claim_evidence_matrix(workspace, outputs)
+    if skill == "claim-matrix-rewriter":
+        return _check_claim_evidence_matrix(workspace, outputs)
+    if skill == "table-schema":
+        return _check_table_schema(workspace, outputs)
+    if skill == "table-filler":
+        return _check_tables_md(workspace, outputs)
+    if skill == "subsection-briefs":
+        return _check_subsection_briefs(workspace, outputs)
+    if skill == "evidence-draft":
+        return _check_evidence_drafts(workspace, outputs)
     if skill == "survey-visuals":
         return _check_survey_visuals(workspace, outputs)
+    if skill == "transition-weaver":
+        return _check_transitions(workspace, outputs)
     if skill == "prose-writer":
         return _check_draft(workspace, outputs)
+    if skill == "draft-polisher":
+        return _check_draft(workspace, outputs)
+    if skill == "global-reviewer":
+        return _check_global_review(workspace, outputs)
     if skill == "latex-scaffold":
         return _check_latex_scaffold(workspace, outputs)
     if skill == "latex-compile-qa":
@@ -302,10 +318,11 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
             "- Fill `outline/figures.md` with ≥2 figure specs (purpose, elements, supporting citations).",
         ],
         "prose-writer": [
-            "- Edit `output/DRAFT.md`: add real cross-paper synthesis (comparisons and trade-offs), not per-paper lists.",
-            "- Ensure required paper-like sections exist: Introduction, Timeline/Evolution, Open Problems & Future Directions, Conclusion.",
-            "- Add ≥2 comparison tables and remove repeated boilerplate (identical open-problems/takeaways across sections).",
-            "- Use only citation keys present in `citations/ref.bib`.",
+            "- Treat any leaked scaffold text (`…`, `enumerate 2-4 ...`, 'Scope and definitions ...') as a HARD FAIL: fix outline/claims first, then draft.",
+            "- For each subsection, write a unique thesis + 2 contrast sentences (A vs B) + 1 failure mode, each backed by citations.",
+            "- Use concrete axes (datasets/metrics/compute/training/sampling/failure modes), not generic \"design space\" prose.",
+            "- Keep citations evidence-first: paragraph-level cites; keys must exist in `citations/ref.bib`.",
+            "- Ensure paper-like structure exists: Introduction, Timeline/Evolution, Open Problems & Future Directions, Conclusion, plus >=2 comparison tables.",
         ],
         "latex-scaffold": [
             "- Edit `latex/main.tex`: remove any leaked markdown (`##`, `**`, `[@...]`) and ensure bibliography points to `../citations/ref.bib`.",
@@ -381,6 +398,7 @@ def _check_literature_engineer(workspace: Path, outputs: list[str]) -> list[Qual
     missing_url = 0
     missing_year = 0
     missing_authors = 0
+    missing_abstract = 0
     missing_stable_id = 0
     missing_prov = 0
     for rec in records:
@@ -396,6 +414,8 @@ def _check_literature_engineer(workspace: Path, outputs: list[str]) -> list[Qual
         authors = rec.get("authors") or []
         if not isinstance(authors, list) or not [a for a in authors if str(a).strip()]:
             missing_authors += 1
+        if not str(rec.get("abstract") or "").strip():
+            missing_abstract += 1
         if not str(rec.get("arxiv_id") or "").strip() and not str(rec.get("doi") or "").strip():
             missing_stable_id += 1
         prov = rec.get("provenance")
@@ -444,6 +464,29 @@ def _check_literature_engineer(workspace: Path, outputs: list[str]) -> list[Qual
                 QualityIssue(
                     code="raw_missing_stable_ids",
                     message=f"Too many records lack stable IDs (arxiv_id/doi) ({missing_stable_id}/{total}); filter bad exports or enrich metadata before citations.",
+                )
+            )
+        # Evidence-first: if we're not extracting full text, we need abstracts for non-hallucinated notes/drafting.
+        evidence_mode = "abstract"
+        queries_path = workspace / "queries.md"
+        if queries_path.exists():
+            for raw in queries_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = raw.strip()
+                if not line.startswith("- evidence_mode:"):
+                    continue
+                value = line.split(":", 1)[1].split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
+                if value:
+                    evidence_mode = value
+                break
+        if evidence_mode != "fulltext" and missing_abstract / max(1, total) >= 0.7:
+            issues.append(
+                QualityIssue(
+                    code="raw_missing_abstracts",
+                    message=(
+                        f"Most records are missing `abstract` ({missing_abstract}/{total}); "
+                        "provide richer exports (e.g., Semantic Scholar/OpenAlex JSONL/CSV, Zotero export with abstracts) "
+                        "or enable online metadata enrichment, otherwise notes/claims/draft will collapse into title-only templates."
+                    ),
                 )
             )
 
@@ -512,6 +555,38 @@ def _check_dedupe_rank(workspace: Path, outputs: list[str]) -> list[QualityIssue
                     message=f"`{core_rel}` has {len(rows)} rows; target >= {min_core} for survey-quality coverage (increase candidate pool and `core_size`).",
                 )
             )
+
+        # Scope drift heuristic (evidence-first): if the goal says text-to-image but the core set is heavy on video,
+        # block early so the C2 scope decision can be tightened (exclude terms) or the goal can be widened explicitly.
+        goal_path = workspace / "GOAL.md"
+        goal = ""
+        if goal_path.exists():
+            for raw in goal_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = raw.strip()
+                if not line or line.startswith("#") or line.startswith(("-", ">", "<!--")):
+                    continue
+                low = line.lower()
+                if "写一句话描述" in line or "fill" in low:
+                    continue
+                goal = line
+                break
+        goal_low = goal.lower()
+        if goal_low and ("text-to-image" in goal_low or "text to image" in goal_low or "t2i" in goal_low):
+            # Only flag drift when video isn't explicitly part of the goal.
+            if "video" not in goal_low and "text-to-video" not in goal_low and "text to video" not in goal_low and "t2v" not in goal_low:
+                video_titles = sum(1 for r in rows if "video" in str(r.get("title") or "").lower())
+                audio_titles = sum(1 for r in rows if "audio" in str(r.get("title") or "").lower())
+                denom = max(1, len(rows))
+                if video_titles >= 10 and (video_titles / denom) >= 0.15:
+                    issues.append(
+                        QualityIssue(
+                            code="scope_drift_video",
+                            message=(
+                                f"GOAL suggests text-to-image, but {video_titles}/{len(rows)} core papers mention video "
+                                f"(audio={audio_titles}). Tighten `queries.md` excludes / filters, or explicitly broaden scope at C2."
+                            ),
+                        )
+                    )
         dedup_path = workspace / dedup_rel
         dedup = read_jsonl(dedup_path)
         if len([r for r in dedup if isinstance(r, dict)]) < 200:
@@ -745,6 +820,39 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 ),
             )
         ]
+
+    # Evidence-first Stage A: require verifiable subsection metadata for survey pipelines.
+    profile = _pipeline_profile(workspace)
+    if profile == "arxiv-survey":
+        missing_meta = 0
+        subs_total = 0
+        for section in outline:
+            if not isinstance(section, dict):
+                continue
+            for sub in section.get("subsections") or []:
+                if not isinstance(sub, dict):
+                    continue
+                bullets = [str(b).strip() for b in (sub.get("bullets") or []) if str(b).strip()]
+                if not bullets:
+                    continue
+                subs_total += 1
+                has_intent = any(re.match(r"(?i)^intent\s*[:：]", b) for b in bullets)
+                has_rq = any(re.match(r"(?i)^(?:rq|question)\s*[:：]", b) for b in bullets)
+                has_evidence = any(re.match(r"(?i)^evidence needs\s*[:：]", b) for b in bullets)
+                has_expected = any(re.match(r"(?i)^expected cites\s*[:：]", b) for b in bullets)
+                if not (has_intent and has_rq and has_evidence and has_expected):
+                    missing_meta += 1
+
+        if subs_total and missing_meta:
+            return [
+                QualityIssue(
+                    code="outline_missing_stage_a_fields",
+                    message=(
+                        f"{missing_meta}/{subs_total} subsections are missing required Stage A bullets "
+                        "(Intent/RQ/Evidence needs/Expected cites). Add these fields so later mapping/claims/drafting are verifiable."
+                    ),
+                )
+            ]
     return []
 
 
@@ -965,6 +1073,34 @@ def _check_paper_notes(workspace: Path, outputs: list[str]) -> list[QualityIssue
         )
         return issues
 
+    # Evidence-first: high-priority notes must not be title-only.
+    title_only = 0
+    abstract_missing = 0
+    for n in high:
+        lvl = str(n.get("evidence_level") or "").strip().lower()
+        abs_text = str(n.get("abstract") or "").strip()
+        if lvl == "title":
+            title_only += 1
+        if lvl == "abstract" and not abs_text:
+            abstract_missing += 1
+    if title_only:
+        issues.append(
+            QualityIssue(
+                code="paper_notes_title_only",
+                message=(
+                    f"{title_only}/{high_total} high-priority notes are title-only (no abstract/full text). "
+                    "Provide richer metadata (abstracts) or enable `evidence_mode: fulltext` so notes/claims can be evidence-grounded."
+                ),
+            )
+        )
+    if abstract_missing:
+        issues.append(
+            QualityIssue(
+                code="paper_notes_abstract_missing",
+                message=f"{abstract_missing}/{high_total} high-priority notes have `evidence_level=abstract` but empty `abstract`; fix upstream metadata merge or rerun retrieval enrichment.",
+            )
+        )
+
     def _has_todo(value: Any) -> bool:
         if value is None:
             return False
@@ -976,6 +1112,7 @@ def _check_paper_notes(workspace: Path, outputs: list[str]) -> list[QualityIssue
 
     complete = 0
     todo_hits = 0
+    title_method = 0
     for n in high:
         method = str(n.get("method") or "").strip()
         key_results = n.get("key_results") or []
@@ -986,6 +1123,9 @@ def _check_paper_notes(workspace: Path, outputs: list[str]) -> list[QualityIssue
             todo_hits += 1
             continue
         if not method:
+            continue
+        if method.lower().startswith("main idea (from title):"):
+            title_method += 1
             continue
         if not isinstance(key_results, list) or len([x for x in key_results if str(x).strip()]) < 1:
             continue
@@ -1003,6 +1143,13 @@ def _check_paper_notes(workspace: Path, outputs: list[str]) -> list[QualityIssue
             QualityIssue(
                 code="paper_notes_contains_todo",
                 message="High-priority paper notes still contain `TODO` placeholders; enrich them (method/results/limitations) before synthesis.",
+            )
+        )
+    if title_method:
+        issues.append(
+            QualityIssue(
+                code="paper_notes_title_method",
+                message="Some high-priority notes still use title-only method text (`Main idea (from title): ...`); replace with abstract/full-text grounded method summaries.",
             )
         )
     target_complete = max(5, int(high_total * 0.8))
@@ -1037,6 +1184,27 @@ def _check_claim_evidence_matrix(workspace: Path, outputs: list[str]) -> list[Qu
                 message="Claim–evidence matrix still contains placeholder markers (TODO/TBD/FIXME); rewrite claims into specific statements and remove placeholders.",
             )
         ]
+    if "…" in text or re.search(r"(?m)\.\.\.+", text):
+        return [
+            QualityIssue(
+                code="claim_matrix_contains_ellipsis",
+                message="Claim–evidence matrix contains ellipsis, which usually indicates truncated scaffold text; rewrite into concrete, checkable claims/axes.",
+            )
+        ]
+    if re.search(r"(?i)enumerate\s+2-4", text):
+        return [
+            QualityIssue(
+                code="claim_matrix_scaffold_instructions",
+                message="Claim–evidence matrix contains scaffold instructions like 'enumerate 2-4 ...'; replace with specific mechanisms/axes grounded in the mapped papers.",
+            )
+        ]
+    if re.search(r"(?i)\b(?:scope and definitions for|design space in|evaluation practice for)\b", text):
+        return [
+            QualityIssue(
+                code="claim_matrix_scaffold_phrases",
+                message="Claim–evidence matrix still contains outline scaffold phrases (scope/design space/evaluation practice). Rewrite claims/axes using evidence needs + paper notes, not prompt-like bullets.",
+            )
+        ]
     claim_lines = [ln.strip() for ln in text.splitlines() if ln.strip().startswith("- Claim:")]
     if not claim_lines:
         return [QualityIssue(code="empty_claims", message="No `- Claim:` lines found in claim–evidence matrix.")]
@@ -1065,13 +1233,347 @@ def _check_claim_evidence_matrix(workspace: Path, outputs: list[str]) -> list[Qu
                 message="Most claims start with the same '围绕 …' template; rewrite claims to be specific (mechanism/assumption/result) per subsection.",
             )
         ]
+
+    # Heuristic: each subsection should list >=2 evidence items.
+    blocks = re.split(r"(?m)^##\s+", text)
+    low_evidence = 0
+    total = 0
+    for block in blocks[1:]:
+        if not block.strip():
+            continue
+        total += 1
+        evidence_lines = [ln for ln in block.splitlines() if "Evidence:" in ln]
+        if len(evidence_lines) < 2:
+            low_evidence += 1
+    if total and (low_evidence / total) >= 0.2:
+        return [
+            QualityIssue(
+                code="claim_matrix_too_few_evidence_items",
+                message=f"Many subsections have <2 evidence items in the matrix ({low_evidence}/{total}); add mapped paper IDs + cite keys per subsection before drafting.",
+            )
+        ]
     return []
 
 
+def _check_subsection_briefs(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import load_yaml, read_jsonl
+
+    out_rel = outputs[0] if outputs else "outline/subsection_briefs.jsonl"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_subsection_briefs", message=f"`{out_rel}` does not exist.")]
+    raw = path.read_text(encoding="utf-8", errors="ignore")
+    if not raw.strip():
+        return [QualityIssue(code="empty_subsection_briefs", message=f"`{out_rel}` is empty.")]
+    if "…" in raw:
+        return [
+            QualityIssue(
+                code="subsection_briefs_contains_ellipsis",
+                message="Subsection briefs contain unicode ellipsis (`…`), which is treated as placeholder leakage; fill axes/clusters explicitly.",
+            )
+        ]
+    if _check_placeholder_markers(raw):
+        return [
+            QualityIssue(
+                code="subsection_briefs_placeholders",
+                message="Subsection briefs contain placeholder markers (TODO/TBD/FIXME/(placeholder)/SCAFFOLD); refine briefs before writing.",
+            )
+        ]
+
+    records = read_jsonl(path)
+    briefs = [r for r in records if isinstance(r, dict)]
+    if not briefs:
+        return [QualityIssue(code="invalid_subsection_briefs", message=f"`{out_rel}` has no JSON objects.")]
+
+    # Check coverage against outline subsections (best-effort).
+    outline_path = workspace / "outline" / "outline.yml"
+    expected_ids: set[str] = set()
+    if outline_path.exists():
+        try:
+            outline = load_yaml(outline_path) or []
+            for section in outline if isinstance(outline, list) else []:
+                if not isinstance(section, dict):
+                    continue
+                for sub in section.get("subsections") or []:
+                    if not isinstance(sub, dict):
+                        continue
+                    sid = str(sub.get("id") or "").strip()
+                    if sid:
+                        expected_ids.add(sid)
+        except Exception:
+            expected_ids = set()
+
+    by_id: dict[str, dict] = {}
+    dupes = 0
+    for rec in briefs:
+        sid = str(rec.get("sub_id") or "").strip()
+        if not sid:
+            continue
+        if sid in by_id:
+            dupes += 1
+        by_id[sid] = rec
+
+    issues: list[QualityIssue] = []
+    if dupes:
+        issues.append(QualityIssue(code="subsection_briefs_duplicate_ids", message=f"`{out_rel}` has duplicate `sub_id` entries ({dupes})."))
+
+    if expected_ids:
+        missing = sorted([sid for sid in expected_ids if sid not in by_id])
+        if missing:
+            sample = ", ".join(missing[:6])
+            suffix = "..." if len(missing) > 6 else ""
+            issues.append(
+                QualityIssue(
+                    code="subsection_briefs_missing_sections",
+                    message=f"Briefs missing some subsections from `outline/outline.yml` (e.g., {sample}{suffix}).",
+                )
+            )
+
+    required_top = {"sub_id", "title", "section_id", "section_title", "scope_rule", "rq", "axes", "clusters", "paragraph_plan", "evidence_level_summary"}
+    bad = 0
+    for sid, rec in by_id.items():
+        missing_top = [k for k in required_top if k not in rec]
+        if missing_top:
+            bad += 1
+            continue
+
+        rq = str(rec.get("rq") or "").strip()
+        if len(rq) < 12:
+            bad += 1
+            continue
+
+        axes = rec.get("axes")
+        if not isinstance(axes, list) or len([a for a in axes if str(a).strip()]) < 3:
+            bad += 1
+            continue
+
+        scope_rule = rec.get("scope_rule")
+        if not isinstance(scope_rule, dict):
+            bad += 1
+            continue
+
+        clusters = rec.get("clusters")
+        if not isinstance(clusters, list) or len(clusters) < 2:
+            bad += 1
+            continue
+        cluster_ok = 0
+        for c in clusters:
+            if not isinstance(c, dict):
+                continue
+            label = str(c.get("label") or "").strip()
+            pids = c.get("paper_ids") or []
+            if not label or not isinstance(pids, list) or len([p for p in pids if str(p).strip()]) < 2:
+                continue
+            cluster_ok += 1
+        if cluster_ok < 2:
+            bad += 1
+            continue
+
+        plan = rec.get("paragraph_plan")
+        if not isinstance(plan, list) or len(plan) < 2:
+            bad += 1
+            continue
+        plan_ok = 0
+        for item in plan[:3]:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("intent") or "").strip():
+                plan_ok += 1
+        if plan_ok < 2:
+            bad += 1
+            continue
+
+        ev = rec.get("evidence_level_summary")
+        if not isinstance(ev, dict):
+            bad += 1
+            continue
+
+    if bad:
+        issues.append(
+            QualityIssue(
+                code="subsection_briefs_incomplete",
+                message=f"`{out_rel}` has {bad} subsection brief(s) missing required fields or lacking axes/clusters/plan depth.",
+            )
+        )
+    return issues
+
+
+def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import read_jsonl
+
+    out_rel = outputs[0] if outputs else "outline/evidence_drafts.jsonl"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_evidence_drafts", message=f"`{out_rel}` does not exist.")]
+    raw = path.read_text(encoding="utf-8", errors="ignore")
+    if not raw.strip():
+        return [QualityIssue(code="empty_evidence_drafts", message=f"`{out_rel}` is empty.")]
+    if "…" in raw:
+        return [
+            QualityIssue(
+                code="evidence_drafts_contains_ellipsis",
+                message="Evidence drafts contain unicode ellipsis (`…`), which is treated as placeholder leakage; rewrite evidence packs explicitly.",
+            )
+        ]
+    if _check_placeholder_markers(raw):
+        return [
+            QualityIssue(
+                code="evidence_drafts_placeholders",
+                message="Evidence drafts contain placeholder markers (TODO/TBD/FIXME/(placeholder)/SCAFFOLD); fill evidence packs before writing.",
+            )
+        ]
+
+    records = read_jsonl(path)
+    packs = [r for r in records if isinstance(r, dict)]
+    if not packs:
+        return [QualityIssue(code="invalid_evidence_drafts", message=f"`{out_rel}` has no JSON objects.")]
+
+    # Validate citation keys against ref.bib if present.
+    bib_path = workspace / "citations" / "ref.bib"
+    bib_keys: set[str] = set()
+    if bib_path.exists():
+        bib_text = bib_path.read_text(encoding="utf-8", errors="ignore")
+        bib_keys = set(re.findall(r"(?im)^@\\w+\\s*\\{\\s*([^,\\s]+)\\s*,", bib_text))
+
+    def _collect_keys(citations: Any) -> set[str]:
+        out: set[str] = set()
+        if not isinstance(citations, list):
+            return out
+        for c in citations:
+            c = str(c or "").strip()
+            if not c:
+                continue
+            if c.startswith("@"):
+                c = c[1:]
+            # Allow inline bracket form too.
+            for k in re.findall(r"[A-Za-z0-9:_-]+", c):
+                if k:
+                    out.add(k)
+        return out
+
+    issues: list[QualityIssue] = []
+    bad = 0
+    missing_bib = 0
+    blocking_missing = 0
+    weak_comparisons = 0
+    missing_snippets = 0
+    bad_snippet_prov = 0
+
+    for pack in packs:
+        sub_id = str(pack.get("sub_id") or "").strip()
+        title = str(pack.get("title") or "").strip()
+        if not sub_id or not title:
+            bad += 1
+            continue
+
+        miss = pack.get("blocking_missing") or []
+        if isinstance(miss, list) and any(str(x).strip() for x in miss):
+            blocking_missing += 1
+            continue
+
+        snippets = pack.get("evidence_snippets") or []
+        if not isinstance(snippets, list) or len([s for s in snippets if isinstance(s, dict) and str(s.get("text") or "").strip()]) < 1:
+            missing_snippets += 1
+            continue
+        for snip in snippets[:6]:
+            if not isinstance(snip, dict):
+                continue
+            prov = snip.get("provenance")
+            if not isinstance(prov, dict):
+                bad_snippet_prov += 1
+                break
+            src = str(prov.get("source") or "").strip()
+            ptr = str(prov.get("pointer") or "").strip()
+            if not src or not ptr:
+                bad_snippet_prov += 1
+                break
+
+        comps = pack.get("concrete_comparisons") or []
+        if not isinstance(comps, list) or len([c for c in comps if isinstance(c, dict)]) < 3:
+            weak_comparisons += 1
+            continue
+
+        required_blocks = ["definitions_setup", "claim_candidates", "concrete_comparisons", "evaluation_protocol", "failures_limitations"]
+        for name in required_blocks:
+            block = pack.get(name)
+            if not isinstance(block, list) or not block:
+                bad += 1
+                break
+        else:
+            # Validate citations inside blocks.
+            cited: set[str] = set()
+            for name in required_blocks:
+                for item in pack.get(name) or []:
+                    if not isinstance(item, dict):
+                        continue
+                    cited |= _collect_keys(item.get("citations"))
+
+            if bib_keys:
+                missing = [k for k in cited if k not in bib_keys]
+                if missing:
+                    missing_bib += 1
+                    continue
+
+    if blocking_missing:
+        issues.append(
+            QualityIssue(
+                code="evidence_drafts_blocking_missing",
+                message=f"{blocking_missing} evidence pack(s) declare `blocking_missing`; enrich evidence (abstract/fulltext/meta) and complete packs before writing.",
+            )
+        )
+    if missing_snippets:
+        issues.append(
+            QualityIssue(
+                code="evidence_drafts_missing_snippets",
+                message=f"{missing_snippets} evidence pack(s) have no usable `evidence_snippets`; add abstracts/fulltext or enrich paper notes before writing.",
+            )
+        )
+    if bad_snippet_prov:
+        issues.append(
+            QualityIssue(
+                code="evidence_drafts_bad_snippet_provenance",
+                message=f"{bad_snippet_prov} evidence pack(s) have evidence snippets missing provenance `source/pointer`; fix evidence-draft provenance fields.",
+            )
+        )
+    if weak_comparisons:
+        issues.append(
+            QualityIssue(
+                code="evidence_drafts_too_few_comparisons",
+                message=f"{weak_comparisons} evidence pack(s) have <3 concrete comparisons; expand comparisons per subsection before writing.",
+            )
+        )
+    if missing_bib:
+        issues.append(
+            QualityIssue(
+                code="evidence_drafts_bad_citations",
+                message=f"{missing_bib} evidence pack(s) cite keys missing from `citations/ref.bib`; fix citation keys or regenerate bib.",
+            )
+        )
+    if bad:
+        issues.append(
+            QualityIssue(
+                code="evidence_drafts_incomplete",
+                message=f"`{out_rel}` has {bad} invalid pack(s) (missing required blocks or missing sub_id/title).",
+            )
+        )
+    return issues
+
+
 def _check_survey_visuals(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    tables_rel = outputs[0] if outputs else "outline/tables.md"
-    timeline_rel = outputs[1] if len(outputs) >= 2 else "outline/timeline.md"
-    figures_rel = outputs[2] if len(outputs) >= 3 else "outline/figures.md"
+    # Backward compatible:
+    # - legacy: outputs = tables + timeline + figures
+    # - v4: outputs = timeline + figures (tables handled by `table-filler`)
+    tables_rel: str | None
+    timeline_rel: str
+    figures_rel: str
+    if outputs and len(outputs) == 2:
+        tables_rel = None
+        timeline_rel = outputs[0]
+        figures_rel = outputs[1]
+    else:
+        tables_rel = outputs[0] if outputs else "outline/tables.md"
+        timeline_rel = outputs[1] if len(outputs) >= 2 else "outline/timeline.md"
+        figures_rel = outputs[2] if len(outputs) >= 3 else "outline/figures.md"
 
     issues: list[QualityIssue] = []
 
@@ -1088,11 +1590,18 @@ def _check_survey_visuals(workspace: Path, outputs: list[str]) -> list[QualityIs
             issues.append(QualityIssue(code="visuals_scaffold", message=f"`{rel}` still contains scaffold markers."))
         if re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", text):
             issues.append(QualityIssue(code="visuals_todo", message=f"`{rel}` still contains placeholder markers (TODO/TBD/FIXME)."))
+        if "…" in text:
+            issues.append(
+                QualityIssue(
+                    code="visuals_contains_ellipsis",
+                    message=f"`{rel}` contains unicode ellipsis (`…`), which usually indicates truncated scaffold text; rewrite into concrete table/timeline/figure content.",
+                )
+            )
         if re.search(r"\[@(?:Key|KEY)\d+", text):
             issues.append(QualityIssue(code="visuals_placeholder_cites", message=f"`{rel}` contains placeholder cite keys like `[@Key1]`."))
         return text
 
-    tables = _read(tables_rel)
+    tables = _read(tables_rel) if tables_rel is not None else None
     timeline = _read(timeline_rel)
     figures = _read(figures_rel)
 
@@ -1152,6 +1661,71 @@ def _check_survey_visuals(workspace: Path, outputs: list[str]) -> list[QualityIs
     return issues
 
 
+def _check_table_schema(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    out_rel = outputs[0] if outputs else "outline/table_schema.md"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_table_schema", message=f"`{out_rel}` does not exist.")]
+    text = path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not text:
+        return [QualityIssue(code="empty_table_schema", message=f"`{out_rel}` is empty.")]
+    if _check_placeholder_markers(text) or "…" in text:
+        return [QualityIssue(code="table_schema_placeholders", message=f"`{out_rel}` contains placeholders; fill schema with real table definitions.")]
+    n = len(re.findall(r"(?m)^##\s+Table\s+\d+:", text))
+    if n < 2:
+        return [QualityIssue(code="table_schema_too_few", message=f"`{out_rel}` should define >=2 tables (found {n}).")]
+    return []
+
+
+def _check_tables_md(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    out_rel = outputs[0] if outputs else "outline/tables.md"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_tables_md", message=f"`{out_rel}` does not exist.")]
+    text = path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not text:
+        return [QualityIssue(code="empty_tables_md", message=f"`{out_rel}` is empty.")]
+    if _check_placeholder_markers(text) or "…" in text:
+        return [QualityIssue(code="tables_placeholders", message=f"`{out_rel}` contains placeholders/ellipsis; fill tables from evidence packs.")]
+    table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
+    if len(table_seps) < 2:
+        return [QualityIssue(code="tables_missing", message=f"`{out_rel}` should contain >=2 Markdown tables (found {len(table_seps)}).")]
+    if "[@" not in text:
+        return [QualityIssue(code="tables_no_cites", message=f"`{out_rel}` should include citations in table rows (e.g., `[@BibKey]`).")]
+    if re.search(r"\[@(?:Key|KEY)\d+", text):
+        return [QualityIssue(code="tables_placeholder_cites", message=f"`{out_rel}` contains placeholder cite keys like `[@Key1]`.")]
+    return []
+
+
+def _check_transitions(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    out_rel = outputs[0] if outputs else "outline/transitions.md"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_transitions", message=f"`{out_rel}` does not exist.")]
+    text = path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not text:
+        return [QualityIssue(code="empty_transitions", message=f"`{out_rel}` is empty.")]
+    if _check_placeholder_markers(text) or "…" in text:
+        return [QualityIssue(code="transitions_placeholders", message=f"`{out_rel}` contains placeholders; rewrite transitions into concrete, title/RQ-driven sentences.")]
+    # Transitions must not introduce citations.
+    if "[@" in text:
+        return [
+            QualityIssue(
+                code="transitions_has_citations",
+                message=f"`{out_rel}` contains citation markers; transitions must not introduce new citations.",
+            )
+        ]
+    bullets = [ln for ln in text.splitlines() if ln.strip().startswith("- ")]
+    if len(bullets) < 8:
+        return [
+            QualityIssue(
+                code="transitions_too_short",
+                message=f"`{out_rel}` looks too short (bullets={len(bullets)}); generate more subsection transitions.",
+            )
+        ]
+    return []
+
+
 def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     out_rel = outputs[0] if outputs else "output/DRAFT.md"
     path = workspace / out_rel
@@ -1180,11 +1754,11 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         )
 
     profile = _pipeline_profile(workspace)
-    if text.count("…") >= 20:
+    if "…" in text:
         issues.append(
             QualityIssue(
                 code="draft_contains_ellipsis_placeholders",
-                message="Draft contains many ellipsis placeholders (`…`), suggesting truncated scaffold text; regenerate after fixing outline/mapping/evidence artifacts.",
+                message="Draft contains unicode ellipsis (`…`), which is treated as a hard failure signal (usually truncated scaffold text); regenerate after fixing outline/claims/visuals.",
             )
         )
     if re.search(r"(?i)enumerate\\s+2-4\\s+recurring", text):
@@ -1192,6 +1766,13 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             QualityIssue(
                 code="draft_scaffold_instructions",
                 message="Draft still contains scaffold instructions like 'enumerate 2-4 recurring ...'; rewrite outline/claims into concrete content before drafting.",
+            )
+        )
+    if re.search(r"(?i)\\b(?:scope and definitions for|design space in|evaluation practice for)\\b", text):
+        issues.append(
+            QualityIssue(
+                code="draft_scaffold_phrases",
+                message="Draft still contains outline scaffold phrases (scope/design space/evaluation practice). Replace with subsection-specific content grounded in evidence fields and mapped papers.",
             )
         )
 
@@ -1487,6 +2068,53 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 message=f"Draft contains repeated template-like lines ({count}×), e.g., `{example}...`; rewrite to be section-specific.",
             )
         )
+    return issues
+
+
+def _check_global_review(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    report_rel = outputs[0] if outputs else "output/GLOBAL_REVIEW.md"
+    report_path = workspace / report_rel
+    if not report_path.exists():
+        return [QualityIssue(code="missing_global_review", message=f"`{report_rel}` does not exist.")]
+    text = report_path.read_text(encoding="utf-8", errors="ignore")
+
+    issues: list[QualityIssue] = []
+    if _check_placeholder_markers(text):
+        issues.append(
+            QualityIssue(
+                code="global_review_placeholders",
+                message="Global review still contains placeholder markers (TODO/TBD/FIXME/(placeholder)); fill the review and set `Status: PASS`.",
+            )
+        )
+    if not re.search(r"(?im)^-\\s*Status:\\s*(PASS|OK)\\b", text):
+        issues.append(
+            QualityIssue(
+                code="global_review_status_missing",
+                message="Global review should include a bullet like `- Status: PASS` once issues are addressed.",
+            )
+        )
+    bullets = [ln for ln in text.splitlines() if ln.strip().startswith("- ")]
+    if len(bullets) < 12:
+        issues.append(
+            QualityIssue(
+                code="global_review_too_short",
+                message="Global review looks too short; include top issues + glossary + ready-for-LaTeX checklist (>=12 bullets).",
+            )
+        )
+
+    # Evidence-first audit sections (A–E) for writer failure modes.
+    required = ["A.", "B.", "C.", "D.", "E."]
+    missing = [k for k in required if not re.search(rf"(?m)^##\\s+{re.escape(k)}", text)]
+    if missing:
+        issues.append(
+            QualityIssue(
+                code="global_review_missing_audit_sections",
+                message=f"Global review is missing required audit sections: {', '.join(missing)} (add A–E to cover input integrity, narrative, scope, citations, and tables).",
+            )
+        )
+
+    # Re-run draft checks as part of the global pass.
+    issues.extend(_check_draft(workspace, ["output/DRAFT.md"]))
     return issues
 
 

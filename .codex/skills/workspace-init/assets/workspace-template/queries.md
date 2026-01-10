@@ -9,6 +9,7 @@
 - exclude:
   - ""
 - max_results: ""
+- core_size: ""              # dedupe-rank will select this many papers into papers/core_set.csv (survey target: >=150)
 - enrich_metadata: ""        # true|false; optional arXiv id_list backfill for offline imports (needs network)
 - evidence_mode: "abstract"   # abstract | fulltext
 - fulltext_max_papers: ""

@@ -1,33 +1,39 @@
 ---
 name: prose-writer
 description: |
-  Write `output/DRAFT.md` or `output/SNAPSHOT.md` from approved outline and evidence, using only verified citation keys from `citations/ref.bib`.
-  **Trigger**: write draft, prose writer, snapshot, survey writing, 写综述, 生成草稿.
-  **Use when**: outline + evidence 已就绪且 HITL 审批已记录在 `DECISIONS.md`（survey 默认：C2 通过后）。
-  **Skip if**: 缺少必要审批（`DECISIONS.md` 未勾选 Approve C*）或证据/引用尚未准备好。
+  Write `output/DRAFT.md` (or `output/SNAPSHOT.md`) from an approved outline and evidence packs, using only verified citation keys from `citations/ref.bib`.
+  **Trigger**: write draft, prose writer, snapshot, survey writing, 写综述, 生成草稿, section-by-section drafting.
+  **Use when**: structure is approved (`DECISIONS.md` has `Approve C2`) and evidence packs exist (`outline/subsection_briefs.jsonl`, `outline/evidence_drafts.jsonl`).
+  **Skip if**: approvals are missing, or evidence packs are incomplete / scaffolded (missing-fields, TODO markers).
   **Network**: none.
-  **Guardrail**: 在审批前禁止写长 prose（可做 bullets-only artifacts）；只使用 `citations/ref.bib` 中存在的 citation keys。
+  **Guardrail**: do not invent facts or citations; only cite keys present in `citations/ref.bib`; avoid pipeline-jargon leakage in final prose.
 ---
 
-# Prose Writer
+# Prose Writer (Evidence-first)
 
-Write a survey draft (or short snapshot) that reads like a real paper: motivation → structure → cross-paper synthesis → limitations/future work → conclusion.
+Goal: produce a survey draft that reads like a real paper because it is driven by **evidence packs**, not by outline placeholders.
 
-This skill is where “human-like iteration” matters: outline + evidence first, then section writing, then a polish pass to remove repetition.
+This skill should behave like a synthesis engine:
+- inputs = subsection briefs + evidence drafts
+- output = paragraph-level claim → evidence → synthesis (with citations)
 
 ## Non-negotiables
 
-- **No prose without approval**: check `DECISIONS.md` (survey default requires `Approve C2`).
-- **No invented citations**: only use keys that exist in `citations/ref.bib`.
+- **No prose without approval**: for surveys, require `Approve C2` in `DECISIONS.md`.
+- **No invented citations**: only use keys present in `citations/ref.bib`.
+- **No placeholder leakage**: if any upstream artifact still contains scaffold markers/ellipsis/TODO, do not write; block and request evidence fixes.
+- **No pipeline voice**: do not leak internal scaffolding terms like “working claim”, “enumerate 2-4”, “scope/design space/evaluation practice”.
 
 ## Inputs
 
 - `outline/outline.yml`
+- `outline/subsection_briefs.jsonl`
+- `outline/transitions.md`
+- `outline/evidence_drafts.jsonl`
+- Optional: `outline/tables.md`, `outline/timeline.md`, `outline/figures.md`
 - Optional: `outline/claim_evidence_matrix.md`
-- Optional: `outline/tables.md`, `outline/timeline.md`, `outline/figures.md` (from `survey-visuals`)
-- Optional: `papers/core_set.csv`
-- `citations/ref.bib` (when using citations)
-- `DECISIONS.md` (must authorize prose when required)
+- `citations/ref.bib`
+- `DECISIONS.md`
 
 ## Outputs
 
@@ -35,49 +41,57 @@ This skill is where “human-like iteration” matters: outline + evidence first
 
 ## Decision: snapshot vs draft
 
-- Snapshot: bullets-first, ~1 page, “what exists + what’s missing”.
-- Draft: section-by-section prose with tables/timeline and subsection-specific synthesis.
+- Snapshot: bullets-first, ~1 page; summarize what evidence exists + what is missing.
+- Draft: section-by-section prose that follows each subsection’s `paragraph_plan` and uses paragraph-level citations.
 
-## Workflow (heuristic)
-Uses: `outline/outline.yml`, `outline/figures.md`, `papers/core_set.csv`.
+## Workflow (v2: briefs + evidence packs)
 
+Before writing, load the structural and coherence inputs: `outline/outline.yml` (section order) and `outline/transitions.md` (transition map). Optionally consult `outline/claim_evidence_matrix.md` as an evidence index.
 
-1. Gate check: confirm writing is approved in `DECISIONS.md`.
-   - If not approved, write a short request (what you plan to write, and what evidence you will rely on) and stop.
-2. Pre-write pass (2–5 minutes):
-   - skim `outline/claim_evidence_matrix.md` + `outline/tables.md` + `outline/timeline.md`
-   - decide the “through-line” of the paper (what story ties sections together)
-3. Write the draft in a paper-like order:
-   - Abstract
-   - Introduction (motivation, scope, contributions, positioning vs prior surveys)
-   - Background / problem setup (only as needed)
-   - Body sections per outline with **cross-paper comparisons**
-   - Timeline/Evolution section (milestones + citations)
-   - Open Problems & Future Directions (make them subsection-specific and concrete)
-   - Conclusion
-4. Synthesis style (avoid per-paper lists):
-   - compare 2–4 approaches in one paragraph
-   - name the trade-off and the evidence (benchmarks, settings, failure modes)
-   - mention limitations with citations when possible
-   - **rule of thumb**: each subsection should contain at least one paragraph that cites ≥2 works (so it reads like synthesis, not a paper-by-paper list)
-5. Tables/figures:
-   - include ≥2 tables directly in the draft (the tables can be copied from `outline/tables.md`)
-   - reference figure specs (you can include them as “Figure X (spec)” until real figures are drawn)
-6. Polish pass:
-   - remove repeated template phrasing (“本小节聚焦…”, identical open-problems lines, identical takeaways)
-   - ensure each subsection has at least one citation
-   - ensure language/style is consistent (choose Chinese-first or English-first)
+1. **Gate check (HITL)**
+   - Read `DECISIONS.md`.
+   - If `Approve C2` is not ticked, write a short request block (what you plan to write + which evidence packs you will rely on), then stop.
+
+2. **Input integrity check (fail fast)**
+   - Read `outline/subsection_briefs.jsonl` and confirm:
+     - each H3 has a brief,
+     - `scope_rule/rq/axes/clusters/paragraph_plan` are filled,
+     - no placeholders/ellipsis.
+   - Read `outline/evidence_drafts.jsonl` and confirm:
+     - each H3 has >=3 concrete comparisons,
+     - `blocking_missing` is empty (or explicitly acknowledged and you switch to snapshot mode).
+
+3. **Write per-subsection mini-essays (do NOT draft whole paper in one blob)**
+   - For each subsection (`H3`):
+     - read its brief (`rq`, `axes`, `clusters`, `paragraph_plan`, evidence-level policy)
+     - read its evidence pack (`claim_candidates`, `concrete_comparisons`, `evaluation_protocol`, `failures_limitations`)
+     - write 2–3 paragraphs following `paragraph_plan`:
+       - Paragraph structure: Claim → Evidence → Synthesis.
+       - Each paragraph must include citations that match the claims.
+     - The subsection must have a **unique thesis** (would be false in other subsections).
+
+4. **Weave transitions (coherence)**
+   - Between adjacent subsections/sections, add 1–2 transition sentences that reflect the taxonomy logic (not generic “Moreover/However”).
+   - Keep the scope boundary consistent with `scope_rule` (avoid silent drift like T2I→T2V).
+
+5. **One-pass rewrite (de-template)**
+   - Remove repeated phrasing across subsections.
+   - Replace generic claims (“trade-offs depend on benchmarks”) with concrete comparisons from evidence packs.
+   - If evidence is abstract-only, downgrade to “hypothesis + verification needed” rather than confident conclusions.
+
+6. **Integrate cross-cutting artifacts**
+   - Insert `outline/tables.md` (>=2 tables), `outline/timeline.md` (>=8 cited milestones), and `outline/figures.md` (>=2 specs) into the draft.
 
 ## Quality checklist
 
-- [ ] If targeting PDF (e.g., `arxiv-survey-latex`): draft length is sufficient to compile into >= 8 pages (checked at `latex-compile-qa`).
-- [ ] Writing respects checkpoint policy (no prose without approval).
-- [ ] All citation keys referenced exist in `citations/ref.bib`.
-- [ ] Draft includes: Introduction, Timeline/Evolution, Open Problems & Future Directions, Conclusion.
-- [ ] Draft includes ≥2 comparison tables and avoids repeated boilerplate across subsections.
-- [ ] Most subsections include at least one “multi-citation” paragraph (≥2 citations in the same paragraph) to enforce cross-paper comparisons.
+- [ ] No `…`, `TODO`, `(placeholder)`, or `<!-- SCAFFOLD -->` remains in `output/DRAFT.md`.
+- [ ] Every subsection has citations and at least one paragraph with >=2 citations (cross-paper synthesis).
+- [ ] No undefined citation keys (all keys exist in `citations/ref.bib`).
+- [ ] Scope is consistent with `GOAL.md` and `scope_rule`.
 
-## Helper script (optional)
+## Helper script (bootstrap)
+
+The helper script is a **gate wrapper**: it blocks until approvals + prerequisites are satisfied and a real `output/DRAFT.md` exists (no scaffold markers). Writing itself is LLM-driven.
 
 ### Quick Start
 
@@ -86,48 +100,31 @@ Uses: `outline/outline.yml`, `outline/figures.md`, `papers/core_set.csv`.
 
 ### All Options
 
-- See `--help` (the helper writes a first-pass draft and enforces approvals)
+- See `--help`.
 
 ### Examples
 
-- Generate a first-pass draft after approval:
-  - Tick `Approve C2` in `DECISIONS.md` (or run `python scripts/pipeline.py approve --workspace <ws> --checkpoint C2`), then run the script.
-
-### Notes
-
-- The helper writes a first-pass draft if missing and never overwrites an existing refined draft.
-- If `outline/mapping.tsv` + `papers/paper_notes.jsonl` exist it will include starter mapped paper IDs + citation keys.
-- In `pipeline.py --strict` the quality gate will block template-y drafts.
+- Run the gate wrapper after approval (it will block until `output/DRAFT.md` is written):
+  - Tick `Approve C2` in `DECISIONS.md` then run:
+  - `python .codex/skills/prose-writer/scripts/run.py --workspace workspaces/<ws>`
 
 ## Troubleshooting
 
-### Common Issues
+### Issue: writer outputs ellipsis / scaffold text
 
-#### Issue: Script refuses to write (missing approval)
-
-**Symptom**:
-- Unit is `BLOCKED` and `DECISIONS.md` asks for `Approve C2`.
+**Symptom**: `output/DRAFT.md` contains `…`, `enumerate 2-4 ...`, or repeats the same paragraph template.
 
 **Causes**:
-- Survey policy: prose is allowed only after HUMAN approves C2.
+- `outline/subsection_briefs.jsonl` is missing or generic.
+- `outline/evidence_drafts.jsonl` has `blocking_missing` or scaffold markers.
 
 **Solutions**:
-- Tick `Approve C2` in `DECISIONS.md` (or run `python scripts/pipeline.py approve --workspace <ws> --checkpoint C2`).
+- Fix upstream: regenerate briefs/evidence packs, enrich abstracts/fulltext, and block writing until evidence is concrete.
 
-#### Issue: Quality gate blocks template-y draft
+### Issue: scope drift (e.g., T2I vs T2V)
 
-**Symptom**:
-- `output/QUALITY_GATE.md` reports draft looks like scaffolding/template.
-
-**Causes**:
-- Draft still contains repeated `TODO` blocks or generic paragraphs.
+**Symptom**: subsections cite many out-of-scope papers without justification.
 
 **Solutions**:
-- Rewrite section-by-section using `outline/claim_evidence_matrix.md` and `outline/tables.md`/`timeline.md`/`figures.md`.
-- Add cross-paper comparisons and concrete trade-offs.
-
-### Recovery Checklist
-
-- [ ] `DECISIONS.md` has `Approve C2` ticked (survey).
-- [ ] `citations/ref.bib` exists if you plan to cite; use only existing keys.
-- [ ] Remove all scaffold markers / repeated boilerplate.
+- Tighten `scope_rule` in subsection briefs and rerun evidence packs.
+- Tighten `queries.md` excludes and rerun retrieval/dedupe/mapping.

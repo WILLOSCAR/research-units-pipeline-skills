@@ -58,6 +58,15 @@ This skill is intentionally **evidence-first**: if you can't reach the target si
 
 - `python .codex/skills/literature-engineer/scripts/run.py --help`
 
+
+### All Options
+
+- See `python .codex/skills/literature-engineer/scripts/run.py --help`.
+- Reads retrieval config from `queries.md`.
+- Offline inputs (merged if present): `papers/import.(csv|json|jsonl|bib)`, `papers/arxiv_export.(csv|json|jsonl|bib)`, `papers/imports/*.(csv|json|jsonl|bib)`.
+- Optional offline snowball inputs: `papers/snowball/*.(csv|json|jsonl|bib)`.
+- Online expansion requires network: use `--online` and/or `--snowball`.
+
 ### Examples
 
 - Offline imports only:

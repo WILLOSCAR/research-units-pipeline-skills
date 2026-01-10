@@ -26,7 +26,7 @@
 
 - Meta / orchestration: `pipeline-router`, `workspace-init`, `unit-planner`, `unit-executor`
 - End-to-end runner: `research-pipeline-runner`
-- Survey flow: `arxiv-search`, `keyword-expansion`, `survey-seed-harvest`, `dedupe-rank`, `taxonomy-builder`, `outline-builder`, `section-mapper`, `pdf-text-extractor`, `paper-notes`, `claim-evidence-matrix`, `citation-verifier`, `survey-visuals`, `prose-writer`, `latex-scaffold`, `latex-compile-qa`
+- Survey flow: `literature-engineer`, `arxiv-search`, `keyword-expansion`, `survey-seed-harvest`, `dedupe-rank`, `taxonomy-builder`, `outline-builder`, `section-mapper`, `pdf-text-extractor`, `paper-notes`, `subsection-briefs`, `citation-verifier`, `evidence-draft`, `claim-matrix-rewriter`, `table-schema`, `table-filler`, `survey-visuals`, `transition-weaver`, `prose-writer`, `draft-polisher`, `global-reviewer`, `latex-scaffold`, `latex-compile-qa`
 - Tutorial flow: `tutorial-spec`, `concept-graph`, `module-planner`, `exercise-builder`, `tutorial-module-writer`
 - Systematic review flow: `protocol-writer`, `screening-manager`, `extraction-form`, `bias-assessor`, `synthesis-writer`
 - Peer review flow: `claims-extractor`, `evidence-auditor`, `novelty-matrix`, `rubric-writer`

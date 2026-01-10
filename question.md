@@ -196,16 +196,138 @@
   - `citation-verifier`：BibTeX entries 目标（survey ≥150）
   - `outline-builder`：scaffold bullets 检测
   - `section-mapper`：覆盖率/占位检测
-  - `claim-evidence-matrix`：英文模板 claim 检测
+  - `claim-matrix-rewriter`：claim→evidence 索引必须 evidence-first（禁止模板 claim/ellipsis）
+  - `table-schema` / `table-filler`：表格必须 schema-first 且可引用（禁止 placeholder cells）
+  - `transition-weaver`：过渡句必须无引用且无 placeholders
   - `prose-writer`：ellipsis 检测、模板短语检测、subsection 引用密度检测、段落无引用率阈值
 
 ---
 
-## 6) 如何验证“改造后链路不再断”
+## 6) v2 复盘：为什么“文献少”+“没润色”仍然发生？
+
+诊断对象：`workspaces/smoke-arxiv-survey-latex-v2`
+
+### 6.1 文献为什么少（确定性根因）
+
+- **候选池上限太低（离线 only + 两份导入）**：`workspaces/smoke-arxiv-survey-latex-v2/papers/retrieval_report.md#L11` 显示 dedupe 后只有 `129`，而且 offline inputs 只有 `2` 个文件（`ref1.bib/ref2.bib`）。
+- **core_set 默认值过小**：`workspaces/smoke-arxiv-survey-latex-v2/papers/core_set.csv` 只有 `50` 行 ⇒ `workspaces/smoke-arxiv-survey-latex-v2/citations/ref.bib` 也只可能有 ~50 条（最终 draft 引用密度被天花板限制）。
+
+### 6.2 为什么看起来“没润色 / 套话作文”
+
+- **证据粒度被误标**：v2 的 `paper_notes.jsonl` 里 `evidence_level=abstract`，但 `abstract` 实际为空（检索报告也显示 `Missing abstract: 129`），这会把下游写作变成“标题级推断”，自然套话。
+- **模板内容从 claim matrix 开始放大**：`workspaces/smoke-arxiv-survey-latex-v2/outline/claim_evidence_matrix.md#L7` 出现 “clusters around recurring themes … trade-offs …” 和大量 `…`，并在 `workspaces/smoke-arxiv-survey-latex-v2/output/DRAFT.md#L22` 直接泄漏为 prose（未做去模板/连贯性二次处理）。
+
+结论：v2 产物“能编译出很多页”不代表质量过关；它是“证据不足 + core 太小 + 模板链路未被 strict 阻断”的自然结果。
+
+---
+
+## 7) v3 已落地修复点（让 pipeline 自动逼近合格综述）
+
+### 7.1 Retrieval → Core：默认就朝 ≥150 引用对齐
+
+- `tooling/common.py`：kickoff 会为生成式主题扩展 keywords，并在 `arxiv-survey*` pipeline 下自动写入 `core_size: \"150\"`。
+- `.codex/skills/workspace-init/assets/workspace-template/queries.md`：新增 `core_size` 字段（让用户显式可见）。
+- `.codex/skills/dedupe-rank/scripts/run.py`：当 workspace pipeline 为 `arxiv-survey*` 且未显式配置时，默认 core_size=150（不再默认为 50）。
+- `.codex/skills/literature-engineer/scripts/run.py`：补齐 `doi -> url`，并读取 `bib.abstract`（如果导入里有），减少“缺 url/缺 abstract”导致的后续崩塌。
+- `tooling/quality_gate.py`：新增 `raw_missing_abstracts`（在 `evidence_mode != fulltext` 时强制要求 abstract 覆盖，否则后续 notes/draft 只能 title-only）。
+
+### 7.2 Evidence：避免“标题级假装 abstract”
+
+- `.codex/skills/paper-notes/scripts/run.py`：无 fulltext 且无 abstract ⇒ `evidence_level=title`（而不是误标为 abstract）。
+- `tooling/quality_gate.py`：高优先级论文若出现 `evidence_level=title` 或 `Main idea (from title): ...` 将被 strict 阻断（逼迫在写作前补齐证据粒度）。
+
+### 7.3 Writing：补齐 Stage D/E（润色 + 全局一致性）
+
+- 新增 skills：
+  - `.codex/skills/draft-polisher/`：去套话 + 连贯性（不新增 citation keys）
+  - `.codex/skills/global-reviewer/`：全局一致性回看（术语/章节呼应/结论回扣 RQ），输出 `output/GLOBAL_REVIEW.md`
+- 两条 pipeline 已接入：`pipelines/arxiv-survey.pipeline.md` 与 `pipelines/arxiv-survey-latex.pipeline.md`
+- Units 模板已接入：`templates/UNITS.arxiv-survey.csv`、`templates/UNITS.arxiv-survey-latex.csv`
+- `tooling/quality_gate.py` 已接入检查：
+  - `draft-polisher` 复用 draft gate
+  - `global-reviewer` 需要 `Status: PASS` + 足够 bullets，并会再次跑 draft gate
+
+### 7.4 Stage A：大纲从“scaffold”升级为可验证合同
+
+- `.codex/skills/outline-builder/scripts/run.py`：不再生成 “Scope/Design space/Evaluation practice/…/enumerate 2-4 …” 这类 prompt 文本；改为每个 H3 明确写出：
+  - `Intent:`（写作意图）
+  - `RQ:`（本节要回答的问题）
+  - `Evidence needs:`（需要的证据类型/字段）
+  - `Expected cites:`（预期引用密度）
+  - `Comparison axes:`（可核对的对比维度类型）
+- `tooling/quality_gate.py`：新增 `outline_missing_stage_a_fields`，缺字段直接阻断（避免 writer 读到“未填充 outline 字段”后照抄进正文）。
+
+### 7.5 Claim matrix：去 ellipsis/去模板，强制“主张可核对”
+
+- `.codex/skills/claim-matrix-rewriter/scripts/run.py`：从 evidence packs 投影生成 claim→evidence 索引（legacy 格式），并禁止 “clusters around recurring themes / trade-offs … / …” 等模板句；无 fulltext 时标记为 provisional。
+- `tooling/quality_gate.py`：新增/强化
+  - `claim_matrix_contains_ellipsis`（出现 `…` 直接 fail）
+  - `claim_matrix_scaffold_instructions`（出现 `enumerate 2-4` 直接 fail）
+  - `claim_matrix_scaffold_phrases`（出现 scope/design space/evaluation practice 直接 fail）
+  - `claim_matrix_too_few_evidence_items`（很多小节证据条目 <2 直接 fail）
+
+### 7.6 Writer：fail-fast + 禁止模板句（把“病灶”变成可阻断信号）
+
+- `.codex/skills/prose-writer/scripts/run.py`：
+  - 写作前做 prerequisites 检查：outline/claim-matrix/visuals/mapping/ref.bib 不合格则直接返回 non-zero 并写 `output/QUALITY_GATE.md`（即使非 `--strict` 也会 BLOCK）。
+  - 作为 gate wrapper：**不再生成 scaffold 草稿**；只有当真实 `output/DRAFT.md` 已存在且通过 draft gate 时才会返回 0。
+- `tooling/quality_gate.py`：draft gate 改为 **ellipsis 阈值=0**（出现 `…` 即 fail），并新增 `draft_scaffold_phrases`（scope/design space/evaluation practice 出现即 fail）。
+
+### 7.7 Scope 漂移：在 core set 阶段提前拦截（T2I vs T2V）
+
+- `tooling/quality_gate.py`：在 `dedupe-rank` 阶段加入 `scope_drift_video`：
+  - 若 `GOAL.md` 明确是 text-to-image，但 core_set 标题里 video 占比过高（>=10 且 >=15%），则直接阻断，要求：
+    - 收紧 `queries.md` 的 exclude/filter，或
+    - 在 C2 显式扩 scope（把标题/Taxonomy 改为 T2I+T2V/T2AV 并合理安放这些 papers）。
+
+### 7.8 LaTeX 表格排版：统一可读模板
+
+- `.codex/skills/latex-scaffold/scripts/run.py`：
+  - 将表格单元格内的 `<br>` 转为 `\\newline`（避免 PDF 里出现原样 `<br>`）。
+  - `tabularx` 使用 ragged-right 的 `Y` 列类型（减少 overfull/难读的两端对齐）。
+
+### 7.9 Global reviewer：把 A–E “拷打清单”固化成可验证产物
+
+- `.codex/skills/global-reviewer/scripts/run.py`：默认 scaffold 输出包含 `## A.`…`## E.` 五段结构（对应输入完整性/论证链/scope/引用/表格）。
+- `tooling/quality_gate.py`：新增 `global_review_missing_audit_sections`，缺 A–E 结构直接 fail，逼迫把“writer 病灶”逐项落地为可审计结论。
+
+### 7.10 Writer 输入合同升级：用 briefs + evidence packs 把“灌水器”改成“证据→段落合成器”
+
+> 核心变化：writer 不再直接把 `outline.yml` bullets 当事实轴；改为先生成 **可执行写作卡**（briefs），再生成 **可引用证据包**（evidence packs），最后按 `paragraph_plan` 逐节写作。
+
+- 新增 skills（NO PROSE）：
+  - `.codex/skills/subsection-briefs/`：输出 `outline/subsection_briefs.jsonl`
+    - 每个 H3 一行：`scope_rule/rq/axes/clusters/paragraph_plan/evidence_level_summary`
+    - 目标：让 writer 拿到“可写结构”，而不是 placeholder bullets。
+  - `.codex/skills/evidence-draft/`：输出 `outline/evidence_drafts.jsonl`（并可选写 `outline/evidence_drafts/<sub_id>.md`）
+    - 固定 5 块：Definitions/setup、Claim candidates、Concrete comparisons、Evaluation protocol、Failures/limitations
+    - 目标：把 `paper_notes` 变成“段落级可引用事实/对比”，缺证据就显式 `blocking_missing` 并阻断写作。
+- `prose-writer` 输入重定向：
+  - `.codex/skills/prose-writer/SKILL.md` 与 `.codex/skills/prose-writer/scripts/run.py` 已改为读取 `subsection_briefs + evidence_drafts`。
+  - `prose-writer` 在写作前会 **fail-fast**：若 briefs/evidence packs 仍含 scaffold/TODO 或 `blocking_missing`，直接写 `output/QUALITY_GATE.md` 并 BLOCK（不会“看起来写完了但其实是模板”）。
+- Pipeline/Units 同步（避免“MD 写了但 runner 没跑”）：
+  - `pipelines/arxiv-survey.pipeline.md`、`pipelines/arxiv-survey-latex.pipeline.md` 已加入：
+    - C3：`subsection-briefs`
+    - C4：`evidence-draft`
+  - `templates/UNITS.arxiv-survey*.csv` 已加入：
+    - `U075 subsection-briefs`
+    - `U092 evidence-draft`
+    - 并把 `U095 survey-visuals` 与 `U100 prose-writer` 的 inputs/依赖更新为 evidence-first。
+- 质量门槛（gates）补齐：
+  - `tooling/quality_gate.py` 新增：
+    - `subsection-briefs`：缺字段/缺 axes/缺 clusters/缺 paragraph_plan ⇒ fail
+    - `evidence-draft`：`blocking_missing` 非空、comparisons<3、引用 key 不在 `ref.bib` ⇒ fail
+
+---
+
+## 8) 如何验证“改造后链路不再断”
 
 1. 运行严格模式（应在证据不足处主动 BLOCK，而不是产出低质草稿）：
    - `python scripts/pipeline.py kickoff --topic \"...\" --pipeline arxiv-survey-latex --workspace workspaces/<ws> --overwrite --overwrite-units`
    - 准备离线多路 exports：放到 `<ws>/papers/imports/`（或提供网络）
    - `python scripts/pipeline.py run --workspace <ws> --strict`
 2. 验证 stage4/5 存在：`<ws>/UNITS.csv` 中应有 `C4` 和 `C5`。
-3. 验证最终 PDF：`<ws>/output/LATEX_BUILD_REPORT.md` 中 `Page count >= 8` 且无 undefined cites。
+3. 验证 briefs/evidence packs：应存在且可审计：
+   - `<ws>/outline/subsection_briefs.jsonl`（每个 H3 一条；无 placeholders/ellipsis）
+   - `<ws>/outline/evidence_drafts.jsonl`（每个 H3 >=3 concrete comparisons；`blocking_missing` 为空）
+4. 验证最终 PDF：`<ws>/output/LATEX_BUILD_REPORT.md` 中 `Page count >= 8` 且无 undefined cites。

@@ -43,11 +43,11 @@ def main() -> int:
             "id": "1",
             "title": "Introduction",
             "bullets": [
-                "Motivation and scope: what is covered, what is excluded, and why the topic matters now.",
-                "Core terminology: define key terms used across sections and clarify ambiguous naming conventions.",
-                "Reader guide: how the taxonomy maps to the outline and how to navigate comparisons.",
-                "What we synthesize: common design patterns, evaluation practices, and recurring failure modes.",
-                "Reproducibility note: data sources/time window and how the core set was constructed.",
+                "Intent: motivate the topic, set scope boundaries, and explain why the survey is needed now.",
+                "RQ: What is the survey scope and what reader questions will the taxonomy answer?",
+                "Evidence needs: define key terms; position vs prior surveys; summarize what evidence is collected (datasets/metrics/benchmarks).",
+                "Expected cites: >=10 across intro + background (surveys, seminal works, widely-used benchmarks).",
+                "Structure: preview the taxonomy and how later sections map to evidence and comparisons.",
             ],
         }
     ]
@@ -59,9 +59,11 @@ def main() -> int:
         name = str(topic.get("name") or "").strip() or f"Topic {section_no}"
         children = topic.get("children") or []
         section_id = str(section_no)
+
         section: dict[str, Any] = {
             "id": section_id,
             "title": name,
+            "bullets": _section_meta_bullets(title=name),
             "subsections": [],
         }
 
@@ -87,15 +89,28 @@ def main() -> int:
     return 0
 
 
+def _section_meta_bullets(*, title: str) -> list[str]:
+    title = (title or "").strip() or "this chapter"
+    return [
+        f"Intent: define the design space for {title} and provide cross-subsection comparisons.",
+        f"RQ: What are the major sub-problems and solution families within {title}, and how should they be compared?",
+        "Evidence needs: representative methods; evaluation protocols; known failure modes; connections to adjacent chapters.",
+        "Expected cites: each subsection >=3; chapter total should be high enough to support evidence-first synthesis.",
+    ]
+
+
 def _subsection_bullets(*, parent: str, title: str) -> list[str]:
     title = (title or "").strip() or "this subtopic"
     parent = (parent or "").strip() or "this chapter"
+
+    # Stage A contract: each H3 must be verifiable with intent/RQ/evidence needs/expected cite density.
+    # Keep bullets checkable; do not leave instruction-like scaffold text (e.g., "enumerate 2-4 ...").
     return [
-        f"Scope and definitions for {title}: what belongs here and how it differs from neighboring subtopics.",
-        f"Design space in {title}: enumerate 2-4 recurring mechanisms/choices and when each is preferred.",
-        f"Evaluation practice for {title}: typical benchmarks/metrics and what they fail to capture.",
-        f"Limitations for {title}: robustness, efficiency, safety/ethics, and common failure cases.",
-        f"Connections: how {title} interacts with other parts of {parent} (hybrids, shared components, trade-offs).",
+        f"Intent: explain what belongs in {title} (within {parent}) and how it differs from neighboring subtopics.",
+        f"RQ: What are the main approaches/settings in {title}, and under what assumptions do they work best?",
+        "Evidence needs: mechanism/architecture; data/training setup; evaluation protocol (datasets/metrics/human); efficiency/compute; failure modes/limitations.",
+        "Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.",
+        "Comparison axes: mechanism; data; evaluation; efficiency; limitations (refine with evidence in later stages).",
     ]
 
 
