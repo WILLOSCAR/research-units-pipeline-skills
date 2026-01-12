@@ -188,18 +188,9 @@ def main() -> int:
 
 
 def _backup_existing(path: Path) -> None:
-    from datetime import datetime
+    from tooling.common import backup_existing
 
-    stamp = datetime.now().replace(microsecond=0).isoformat().replace("-", "").replace(":", "")
-    backup = path.with_name(f"{path.name}.bak.{stamp}")
-    # Avoid accidental overwrite if multiple runs happen in the same second.
-    counter = 1
-    while backup.exists():
-        backup = path.with_name(f"{path.name}.bak.{stamp}.{counter}")
-        counter += 1
-    path.replace(backup)
-
-
+    backup_existing(path)
 
 def _load_core_set(path: Path) -> list[dict]:
     if not path.exists():

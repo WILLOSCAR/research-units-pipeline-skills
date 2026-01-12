@@ -9,11 +9,9 @@ description: |
   **Guardrail**: 每个练习必须包含 expected output + verification steps；避免只给“思考题”无验收。
 ---
 
-# Skill: exercise-builder
+# Exercise Builder
 
-## Goal
-
-- Ensure each module has at least one verifiable exercise.
+Goal: attach at least one verifiable exercise to every module so the tutorial has a teaching loop.
 
 ## Inputs
 
@@ -23,14 +21,33 @@ description: |
 
 - Updated `outline/module_plan.yml`
 
-## Procedure (MUST FOLLOW)
+## Exercise schema (recommended)
 
-1. For each module, add ≥1 exercise with:
-   - prompt
-   - expected output
-   - verification checklist
-2. Keep exercises aligned to learning objectives.
+For each module, add an `exercises` list. Each exercise should contain:
+- `prompt`
+- `expected_output`
+- `verification_steps` (a checklist)
 
-## Acceptance criteria (MUST CHECK)
+## Workflow
 
-- [ ] Every module has at least one exercise with verification.
+1. Read `outline/module_plan.yml` and enumerate modules.
+2. For each module, design ≥1 exercise that directly verifies the module objectives.
+3. Ensure every exercise has an expected output and a verification checklist.
+4. Update `outline/module_plan.yml` in place.
+
+## Definition of Done
+
+- [ ] Every module in `outline/module_plan.yml` has ≥1 exercise.
+- [ ] Every exercise includes `expected_output` + `verification_steps`.
+
+## Troubleshooting
+
+### Issue: exercises are open-ended with no verification
+
+**Fix**:
+- Convert them into “do X → observe Y → verify Z” with concrete artifacts.
+
+### Issue: exercises drift from the running example
+
+**Fix**:
+- Re-anchor each exercise to the module’s `running_example_steps` so the tutorial stays coherent.

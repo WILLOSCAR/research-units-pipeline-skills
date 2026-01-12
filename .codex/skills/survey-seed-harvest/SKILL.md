@@ -64,3 +64,15 @@ Uses: `papers/papers_dedup.jsonl`.
 ### Notes
 
 - This helper is keyword-based; treat the output as *seeds* and refine with `taxonomy-builder`.
+
+## Troubleshooting
+
+### Issue: no survey/review papers are detected in the set
+
+**Fix**:
+- Broaden retrieval (add “survey”, “review”, “benchmark” variants) or manually seed a few known surveys, then rerun.
+
+### Issue: taxonomy seeds look like generic buckets
+
+**Fix**:
+- Keep seeds concrete (named methods/benchmarks/tasks) and rely on `taxonomy-builder` to rewrite under the actual scope.

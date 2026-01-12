@@ -377,6 +377,22 @@ description: |
 
 ---
 
-**最后更新**: 2026-01-08
+---
+
+## 🔥 Sprint 8: E2E Smoke + Writer/LaTeX 稳定性 (2026-01-12)
+
+> 来源：对 `pipelines/arxiv-survey-latex.pipeline.md` 进行端到端 strict smoke test（workspace: `workspaces/e2e-agent-survey-test-20260112`）后的阻塞点清单。
+
+- [x] 修复 `tooling/quality_gate.py` 中 subsection-writer 引用提取/heading 检查的正则 bug（避免误报/崩溃）
+- [x] 让 `draft_sections_too_short` 变为稳健判定（从“行数”改为“长度”，避免段落一行写法误伤）
+- [x] 修复 `pipeline-auditor`：H3 chunk 解析需要把 `##` 当作边界；uncited rate 只统计长正文段落
+- [x] 修复 `citation-verifier`：BibTeX 字段 LaTeX-safe（escape `& % $ # _`；`X^N / X$^N$ → X\\textsuperscript{N}`；URL 保持 raw）
+- [x] 让 `transition-weaver` 脚本生成“可用的基础过渡句”（避免每次都手填）
+- [x] 将 `global-reviewer` 的“可确定性指标部分”脚本化（输出 A–E + >=12 bullets + PASS/OK），LLM 仅负责解释与修复建议（可选）
+- [x] 强化 `subsection-briefs` clusters：从年份 heuristic 增强为 agent 主题词 tags（tool-use/planning/memory/multi-agent/security 等）
+- [x] 强化 `evidence-draft` concrete comparisons：增加 `A_highlights/B_highlights`（snippet-backed 对比锚点 + provenance）
+- [ ] 设计 writer 的“段落计划”中间工件（每段绑定 evidence_ids/bibkeys），减少模板化写作
+
+**最后更新**: 2026-01-12
 **计划文件**: `/home/rjs/.claude/plans/witty-honking-hearth.md`
 **负责人**: [待指定]

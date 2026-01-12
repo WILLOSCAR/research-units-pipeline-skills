@@ -11,7 +11,7 @@
 | `type` | 类别 | `RETRIEVE/CURATE/STRUCTURE/EVIDENCE/WRITE/CITE/LATEX/QA/META` |
 | `skill` | skill 名称 | 对应 `.codex/skills/<skill>/` |
 | `inputs` | 输入文件 | `;` 分隔，允许为空 |
-| `outputs` | 输出文件 | `;` 分隔，允许为空（但 DONE 前应满足验收） |
+| `outputs` | 输出文件 | `;` 分隔，允许为空；可用 `?` 前缀标记“可选输出”（例如 `?sections/abstract.md`） |
 | `acceptance` | 验收标准 | 必须可检查（手动或自动） |
 | `checkpoint` | 关联 checkpoint | `C0/C1/...` 或 pipeline 自定义 checkpoints |
 | `status` | 状态 | `TODO/DOING/BLOCKED/DONE/SKIP` |
@@ -20,7 +20,7 @@
 
 ## Contract rules
 
-- `status=DONE` 之前：必须满足 `acceptance` 且 `outputs` 中列出的文件存在（或在验收里明确豁免）。
+- `status=DONE` 之前：必须满足 `acceptance` 且 `outputs` 中**非 `?` 前缀**的文件存在（可选输出可缺失，但建议在 `acceptance` 里明确何时需要）。
 - 若 `depends_on` 未全部 `DONE`：该 unit 只能是 `TODO/BLOCKED`，不应进入 `DOING`。
 - 人类检查点（HITL）建议用 `owner=HUMAN` 且 `status=BLOCKED` 初始化。
 - `status=BLOCKED` 的 unit 会在再次运行时被重新尝试（适合等待输入/等待签字/修复后重跑）。

@@ -90,11 +90,14 @@ Include a top bullet:
 
 ## Helper script
 
-This skill includes a tiny wrapper script that scaffolds `output/GLOBAL_REVIEW.md` (placeholder headings). The actual review is LLM-driven.
+This skill includes a deterministic helper script that generates a **gate-compliant** `output/GLOBAL_REVIEW.md` from the current draft and context (no invented facts/citations).
 
 - `python .codex/skills/global-reviewer/scripts/run.py --workspace <ws>`
 
-The wrapper runs the same quality-gate checks and blocks until the report is filled and the draft passes (even without `--strict`).
+Notes:
+- The script does not “write” new survey content; it summarizes integrity/citation/structure signals and re-runs draft quality checks.
+- The report must not contain placeholder markers; use wording like “placeholder tokens” rather than embedding placeholder keywords.
+- If you hand-edit the review and want to freeze it, create `output/GLOBAL_REVIEW.refined.ok` to prevent overwrites.
 
 ### Quick Start
 
@@ -103,10 +106,21 @@ The wrapper runs the same quality-gate checks and blocks until the report is fil
 ### All Options
 
 - See `python .codex/skills/global-reviewer/scripts/run.py --help`.
-- Reads context (do not modify unless you are fixing upstream): `outline/outline.yml`, `outline/taxonomy.yml`, `outline/mapping.tsv`, `outline/claim_evidence_matrix.md`, `citations/ref.bib`.
+- Reads context (read-only): `outline/outline.yml`, `outline/taxonomy.yml`, `outline/mapping.tsv`, `outline/claim_evidence_matrix.md`, `citations/ref.bib`.
 
 ### Examples
 
-- Create and then fill the global review:
-  - Run the script once to create the scaffold: `python .codex/skills/global-reviewer/scripts/run.py --workspace workspaces/<ws>`
-  - Fill `output/GLOBAL_REVIEW.md` and set `- Status: PASS` only after blocking issues are addressed.
+- Generate a review after merging the draft:
+  - `python .codex/skills/global-reviewer/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: review flags missing citations / undefined keys
+
+**Fix**:
+- Run `citation-verifier` and ensure `citations/ref.bib` contains every cited key in `output/DRAFT.md`.
+
+### Issue: review suggests changes that would add new claims
+
+**Fix**:
+- Convert those into “missing evidence” notes instead; this pass must not invent facts or citations.

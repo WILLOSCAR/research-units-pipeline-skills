@@ -224,6 +224,7 @@ def main() -> int:
             axes=axes,
             clusters=clusters,
             cite_keys=cite_keys,
+            evidence_snippets=evidence_snippets,
         )
         if len([c for c in concrete_comparisons if isinstance(c, dict)]) < 3:
             blocking_missing.append("too few concrete comparisons (need >=3 A-vs-B comparisons grounded in clusters)")
@@ -264,16 +265,9 @@ def main() -> int:
 
 
 def _backup_existing(path: Path) -> None:
-    from datetime import datetime
+    from tooling.common import backup_existing
 
-    stamp = datetime.now().replace(microsecond=0).isoformat().replace("-", "").replace(":", "")
-    backup = path.with_name(f"{path.name}.bak.{stamp}")
-    counter = 1
-    while backup.exists():
-        backup = path.with_name(f"{path.name}.bak.{stamp}.{counter}")
-        counter += 1
-    path.replace(backup)
-
+    backup_existing(path)
 
 def _looks_refined_jsonl(path: Path) -> bool:
     if not path.exists() or path.stat().st_size == 0:
@@ -513,7 +507,13 @@ def _claim_candidates(
     return out
 
 
-def _comparisons(*, axes: list[str], clusters: Any, cite_keys: list[str]) -> list[dict[str, Any]]:
+def _comparisons(
+    *,
+    axes: list[str],
+    clusters: Any,
+    cite_keys: list[str],
+    evidence_snippets: Any,
+) -> list[dict[str, Any]]:
     axes = [a for a in axes if a]
     if not axes:
         axes = ["mechanism/architecture", "evaluation protocol", "compute/efficiency"]
@@ -541,17 +541,119 @@ def _comparisons(*, axes: list[str], clusters: Any, cite_keys: list[str]) -> lis
     if b_pids:
         b_txt += ": " + ", ".join([f"`{p}`" for p in b_pids[:3]])
 
+    def axis_keywords(axis: str) -> list[str]:
+        low = (axis or "").lower()
+        kws: list[str] = []
+        if any(k in low for k in ["tool", "function", "schema", "protocol", "api", "mcp", "router"]):
+            kws += ["tool", "function", "schema", "protocol", "api", "mcp", "router"]
+        if any(k in low for k in ["plan", "reason", "search", "mcts", "cot", "tot"]):
+            kws += ["plan", "planner", "reason", "search", "mcts", "chain-of-thought", "tree"]
+        if any(k in low for k in ["memory", "retriev", "rag", "index"]):
+            kws += ["memory", "retrieval", "rag", "index", "vector", "embedding"]
+        if any(k in low for k in ["eval", "benchmark", "dataset", "metric", "human"]):
+            kws += ["benchmark", "dataset", "metric", "evaluation", "human"]
+        if any(k in low for k in ["compute", "latency", "cost", "efficien"]):
+            kws += ["compute", "latency", "cost", "efficient", "speed"]
+        if any(k in low for k in ["train", "supervision", "preference", "rl", "sft"]):
+            kws += ["train", "training", "supervision", "preference", "rl", "sft"]
+        if any(k in low for k in ["security", "safety", "threat", "attack", "sandbox", "permission", "injection"]):
+            kws += ["security", "safety", "threat", "attack", "sandbox", "permission", "injection"]
+        # De-dupe while preserving order.
+        seen: set[str] = set()
+        out = [k for k in kws if not (k in seen or seen.add(k))]
+        return out[:10]
+
+    def pick_highlights(pids: list[str], axis: str, *, limit: int = 2) -> list[dict[str, Any]]:
+        if not isinstance(evidence_snippets, list) or not pids:
+            return []
+
+        kws = axis_keywords(axis)
+        scored: list[tuple[int, int, str, dict[str, Any]]] = []
+        for snip in evidence_snippets:
+            if not isinstance(snip, dict):
+                continue
+            pid = str(snip.get("paper_id") or "").strip()
+            if pid not in pids:
+                continue
+            text = str(snip.get("text") or "").strip()
+            if not text:
+                continue
+            low = text.lower()
+            score = 0
+            for kw in kws:
+                if kw and kw in low:
+                    score += 1
+            if re.search(r"\b\d+(?:\.\d+)?%?\b", text):
+                score += 1
+            prov = snip.get("provenance")
+            if isinstance(prov, dict) and str(prov.get("evidence_level") or "").strip().lower() == "fulltext":
+                score += 1
+            scored.append((score, len(text), low[:80], snip))
+
+        scored.sort(key=lambda t: (-t[0], -t[1], t[2]))
+
+        out: list[dict[str, Any]] = []
+        for score, _, _, snip in scored:
+            pid = str(snip.get("paper_id") or "").strip()
+            eid = str(snip.get("evidence_id") or "").strip()
+            cites = [str(c).strip() for c in (snip.get("citations") or []) if str(c).strip()]
+            prov = snip.get("provenance") or {}
+            ptr = str((prov.get("pointer") if isinstance(prov, dict) else "") or "").strip()
+
+            raw = str(snip.get("text") or "").strip()
+            sents = _split_sentences(raw)
+            excerpt = (sents[0] if sents else raw).strip()
+            excerpt = re.sub(r"\s+", " ", excerpt)
+            if len(excerpt) > 240:
+                excerpt = excerpt[:240].rstrip() + "..."
+
+            out.append(
+                {
+                    "paper_id": pid,
+                    "evidence_id": eid,
+                    "excerpt": excerpt,
+                    "citations": cites,
+                    "pointer": ptr,
+                    "score": int(score),
+                }
+            )
+            if len(out) >= int(limit):
+                break
+        return out
+
     out: list[dict[str, Any]] = []
     for ax in axes[:3]:
+        a_hl = pick_highlights(a_pids, ax)
+        b_hl = pick_highlights(b_pids, ax)
+
+        cits: list[str] = []
+        for h in a_hl + b_hl:
+            if isinstance(h, dict):
+                for c in (h.get("citations") or []):
+                    c = str(c).strip()
+                    if c and c not in cits:
+                        cits.append(c)
+        if not cits:
+            cits = cite_keys[:6]
+
         out.append(
             {
                 "axis": ax,
+                "A_label": a_label,
+                "B_label": b_label,
                 "A_papers": a_txt,
                 "B_papers": b_txt,
+                "A_highlights": a_hl,
+                "B_highlights": b_hl,
+                "write_prompt": (
+                    f"Contrast {a_label} vs {b_label} along '{ax}'. "
+                    "Ground A and B using the highlight snippets; do not introduce new claims beyond the cited evidence."
+                ),
                 "evidence_field": ax,
-                "citations": cite_keys[:6],
+                "citations": cits,
             }
         )
+
     return out
 
 
@@ -696,6 +798,21 @@ def _write_md_pack(path: Path, pack: dict[str, Any]) -> None:
         b = str((item or {}).get("B_papers") or "").strip()
         cites = " ".join([c for c in (item or {}).get("citations") or [] if str(c).strip()])
         lines.append(f"- Axis: {axis}; A: {a}; B: {b}. {cites}".rstrip())
+
+        for side, hs in [("A", (item or {}).get("A_highlights") or []), ("B", (item or {}).get("B_highlights") or [])]:
+            if not isinstance(hs, list):
+                continue
+            for h in hs[:2]:
+                if not isinstance(h, dict):
+                    continue
+                ref = str(h.get("evidence_id") or h.get("paper_id") or "").strip()
+                excerpt = str(h.get("excerpt") or "").strip()
+                hcites = " ".join([c for c in (h.get("citations") or []) if str(c).strip()])
+                ptr = str(h.get("pointer") or "").strip()
+                if excerpt:
+                    prefix = f"({ref}) " if ref else ""
+                    suffix = f" (pointer: {ptr})" if ptr else ""
+                    lines.append(f"  - {side} highlight: {prefix}{excerpt} {hcites}".rstrip() + suffix)
 
     lines.extend(["", "## Evaluation protocol", ""])
     for item in pack.get("evaluation_protocol") or []:

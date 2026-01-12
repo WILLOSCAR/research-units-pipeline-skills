@@ -14,7 +14,8 @@
 补充：
 - Skill 快速索引：`SKILL_INDEX.md`
 - Skill 设计与脚本使用约定见 `SKILLS_STANDARD.md`（对齐 Anthropic/Claude Code 的 “SKILL.md + deterministic scripts” 实践）。
-- repo 一致性自检：`python scripts/validate_repo.py`
+- 最新 E2E smoke 诊断与阻塞点清单：`question.md`
+- repo 一致性自检：`python scripts/validate_repo.py`（默认包含 SKILL.md 质量检查；如需仅做对齐检查用 `--no-check-quality`）
 
 ## 自动执行（脚本）
 

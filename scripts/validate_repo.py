@@ -54,8 +54,8 @@ def main() -> int:
     parser.add_argument(
         "--check-quality",
         action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Check skill doc quality conventions (default: disabled).",
+        default=True,
+        help="Check skill doc quality conventions (default: enabled).",
     )
     parser.add_argument("--check-claude-symlink", action="store_true", help="Also check `.claude/skills` presence.")
     parser.add_argument("--report", default="", help="Optional Markdown report output path.")

@@ -156,6 +156,8 @@ def main() -> int:
                     expected[_norm_title(title)] = sid
 
     # Parse H3 chunks from draft.
+    # Treat new H2 headings as boundaries; otherwise trailing global sections and
+    # visuals get incorrectly attributed to the last H3.
     chunks: list[tuple[str, str]] = []  # (h3_title, body)
     cur_title = ""
     cur_lines: list[str] = []
@@ -164,6 +166,12 @@ def main() -> int:
             if cur_title:
                 chunks.append((cur_title, "\n".join(cur_lines).strip()))
             cur_title = raw[4:].strip()
+            cur_lines = []
+            continue
+        if raw.startswith("## "):
+            if cur_title:
+                chunks.append((cur_title, "\n".join(cur_lines).strip()))
+            cur_title = ""
             cur_lines = []
             continue
         if cur_title:
@@ -201,13 +209,24 @@ def main() -> int:
     if low_cite:
         issues.append(f"some H3 have <3 unique citations: {', '.join(low_cite[:10])}")
 
-    # Paragraph-level no-citation rate.
-    paras = _split_paragraphs(draft)
-    uncited = [p for p in paras if "[@" not in p]
-    if paras:
-        rate = len(uncited) / len(paras)
-        if rate > 0.45:
-            issues.append(f"too many uncited paragraphs ({len(uncited)}/{len(paras)} = {rate:.1%})")
+    # Paragraph-level no-citation rate (content-only; ignore headings/tables/short transitions).
+    paras_all = _split_paragraphs(draft)
+    content_paras = 0
+    uncited = 0
+    for para in paras_all:
+        if para.startswith(("#", "|", "```")):
+            continue
+        if len(para) < 240:
+            continue
+        if "\n|" in para:
+            continue
+        content_paras += 1
+        if "[@" not in para:
+            uncited += 1
+    if content_paras:
+        rate = uncited / content_paras
+        if rate > 0.25:
+            issues.append(f"too many uncited content paragraphs ({uncited}/{content_paras} = {rate:.1%})")
 
     # Boilerplate repetition.
     rep = _repeated_sentences(draft)

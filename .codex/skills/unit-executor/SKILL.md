@@ -68,3 +68,15 @@ description: |
 ### Notes
 
 - Returns 0 on `DONE/IDLE`, 2 on `BLOCKED/ERROR` (useful for automation).
+
+## Troubleshooting
+
+### Issue: no runnable unit is found
+
+**Fix**:
+- Check `UNITS.csv` for unmet dependencies, missing outputs, or `owner=HUMAN` units waiting on approvals in `DECISIONS.md`.
+
+### Issue: a unit is marked `DONE` but outputs are missing
+
+**Fix**:
+- Fix the status to `TODO`/`BLOCKED` and re-run; only mark `DONE` when acceptance criteria and outputs are satisfied.

@@ -13,26 +13,28 @@ description: |
 
 Goal: turn a first-pass draft into readable survey prose **without breaking the evidence contract**.
 
-This is Stage D (local polish): de-template + coherence + terminology + redundancy pruning.
+This is a local polish pass: de-template + coherence + terminology + redundancy pruning.
 
 ## Inputs
 
 - `output/DRAFT.md`
-- Optional context (read-only):
+- Optional context (read-only; helps avoid “polish drift”):
   - `outline/outline.yml`
   - `outline/subsection_briefs.jsonl`
   - `outline/evidence_drafts.jsonl`
   - `citations/ref.bib`
 
-## Output
+## Outputs
 
 - `output/DRAFT.md` (in-place refinement)
+- `output/citation_anchors.prepolish.jsonl` (baseline, generated on first run by the script)
 
 ## Non-negotiables (hard rules)
 
 1) **Citation keys are immutable**
 - Do not add new `[@BibKey]` keys.
 - Do not delete citation markers.
+- If `citations/ref.bib` exists, do not introduce any key that is not defined there.
 
 2) **Citation anchoring is immutable**
 - Do not move citations across `###` subsections.
@@ -40,6 +42,7 @@ This is Stage D (local polish): de-template + coherence + terminology + redundan
 
 3) **No evidence inflation**
 - If a sentence sounds stronger than the evidence level (abstract-only), rewrite it into a qualified statement.
+- When in doubt, check the subsection’s evidence pack in `outline/evidence_drafts.jsonl` and keep claims aligned to snippets.
 
 4) **No pipeline voice**
 - Remove scaffolding phrases like:
@@ -59,6 +62,8 @@ Role split:
 Targets:
 - Each H3 reads like: tension → contrast → evidence → limitation.
 - Remove repeated “disclaimer paragraphs”; keep evidence-level note in one place.
+- Use `outline/outline.yml` (if present) to avoid heading drift during edits.
+- If present, use `outline/subsection_briefs.jsonl` to keep each H3’s scope/RQ consistent while improving flow.
 
 ### Pass 2 — Terminology normalization
 
@@ -80,20 +85,28 @@ Targets:
 - Cross-section repeated intros/outros are removed.
 - Only subsection-specific content remains inside subsections.
 
-## Helper script (gate wrapper + anchoring baseline)
+## Script
 
-This skill includes a deterministic wrapper script so it can be used as a verifiable unit in `UNITS.csv`.
+### Quick Start
 
-- `python .codex/skills/draft-polisher/scripts/run.py --workspace <ws>`
+- `python .codex/skills/draft-polisher/scripts/run.py --help`
+- `python .codex/skills/draft-polisher/scripts/run.py --workspace workspaces/<ws>`
 
-Behavior:
-- On first run, it writes a citation anchoring baseline: `output/citation_anchors.prepolish.jsonl`.
-- On subsequent runs, it blocks if citations drift across H3 subsections.
+### All Options
 
-### Resetting the baseline (only if intentional)
+- `--workspace <dir>`: workspace root
+- `--unit-id <U###>`: unit id (optional; for logs)
+- `--inputs <semicolon-separated>`: override inputs (rare; prefer defaults)
+- `--outputs <semicolon-separated>`: override outputs (rare; prefer defaults)
+- `--checkpoint <C#>`: checkpoint id (optional; for logs)
 
-If you intentionally need to restructure and accept citation drift:
-- Delete `output/citation_anchors.prepolish.jsonl`, then rerun the polisher to regenerate a new baseline.
+### Examples
+
+- First polish pass (creates anchoring baseline `output/citation_anchors.prepolish.jsonl`):
+  - `python .codex/skills/draft-polisher/scripts/run.py --workspace workspaces/<ws>`
+
+- Reset the anchoring baseline (only if you intentionally accept citation drift):
+  - Delete `output/citation_anchors.prepolish.jsonl`, then rerun the polisher.
 
 ## Acceptance checklist
 
@@ -102,3 +115,15 @@ If you intentionally need to restructure and accept citation drift:
 - [ ] No repeated boilerplate sentence across many subsections.
 - [ ] Citation anchoring passes (no cross-subsection drift).
 - [ ] Each H3 has at least one cross-paper synthesis paragraph (>=2 citations).
+
+## Troubleshooting
+
+### Issue: polishing causes citation drift across subsections
+
+**Fix**:
+- Keep citations inside the same `###` subsection; if restructuring is intentional, delete `output/citation_anchors.prepolish.jsonl` and regenerate a new baseline.
+
+### Issue: draft polishing is requested before writing approval
+
+**Fix**:
+- Record the relevant approval in `DECISIONS.md` (typically `Approve C2`) before doing prose-level edits.

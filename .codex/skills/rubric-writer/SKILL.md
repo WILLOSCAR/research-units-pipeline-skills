@@ -9,31 +9,58 @@ description: |
   **Guardrail**: 给可执行建议（actionable feedback），并覆盖 novelty/soundness/clarity/impact；避免泛泛而谈。
 ---
 
-# Skill: rubric-writer
+# Rubric Writer (referee report)
 
-## Goal
-
-- Produce a complete referee report with actionable items.
+Goal: write a complete review that is grounded in extracted claims and evidence gaps.
 
 ## Inputs
 
+Required:
 - `output/CLAIMS.md`
 - `output/MISSING_EVIDENCE.md`
-- Optional: `output/NOVELTY_MATRIX.md`
+
+Optional:
+- `output/NOVELTY_MATRIX.md`
+- `DECISIONS.md` (if you have reviewer constraints/format)
 
 ## Outputs
 
 - `output/REVIEW.md`
 
-## Procedure (MUST FOLLOW)
-Uses: `output/CLAIMS.md`, `output/MISSING_EVIDENCE.md`, `output/NOVELTY_MATRIX.md`.
+## Workflow
 
+0. If `DECISIONS.md` exists, follow any required reviewer format/constraints.
 
-1. Summarize contributions in 3–6 bullets.
-2. Evaluate: novelty, soundness, clarity, impact.
-3. List major concerns and minor comments.
-4. Provide recommendation (accept/reject/weak accept/weak reject) with rationale.
+1. One-paragraph summary (bounded)
+   - Summarize the paper’s goal + main contributions using `output/CLAIMS.md`.
 
-## Acceptance criteria (MUST CHECK)
+2. Rubric sections
+   - Novelty: reference `output/NOVELTY_MATRIX.md` (if present) and/or the related work discussion.
+   - Soundness: reference the concrete gaps from `output/MISSING_EVIDENCE.md`.
+   - Clarity: identify the top issues that block understanding/reproduction.
+   - Impact: discuss likely relevance if the issues were fixed.
 
-- [ ] Review includes rubric sections and actionable suggestions.
+3. Actionable feedback
+   - Major concerns: each with “problem → why it matters → minimal fix”.
+   - Minor comments: clarity, presentation, missing details.
+
+4. Final recommendation
+   - Choose a decision label and justify it primarily via soundness + evidence quality.
+
+## Definition of Done
+
+- [ ] `output/REVIEW.md` covers novelty/soundness/clarity/impact.
+- [ ] Major concerns are actionable (each has a minimal fix).
+- [ ] Critiques are traceable to `output/CLAIMS.md` / `output/MISSING_EVIDENCE.md` (not free-floating).
+
+## Troubleshooting
+
+### Issue: review turns into a rewrite of the paper
+
+**Fix**:
+- Cut; keep to critique + actionable fixes and avoid adding new content.
+
+### Issue: review is generic (“needs more experiments”)
+
+**Fix**:
+- Replace with concrete gaps from `output/MISSING_EVIDENCE.md` (which baseline, which dataset, which ablation).

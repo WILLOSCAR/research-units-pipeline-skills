@@ -9,29 +9,56 @@ description: |
   **Guardrail**: 明确 overlap 与 delta；尽量给出可追溯证据来源（来自稿件/引用/作者陈述）。
 ---
 
-# Skill: novelty-matrix
+# Novelty Matrix (overlap vs delta)
 
-## Goal
-
-- Provide a structured novelty assessment.
+Goal: make novelty/positioning concrete by aligning each contribution against the closest prior work.
 
 ## Inputs
 
+Required:
 - `output/CLAIMS.md`
-- Optional: provided related work list
+
+Optional:
+- A provided list of related work (titles/URLs/DOIs) or the submission’s reference list
 
 ## Outputs
 
-- `output/NOVELTY_MATRIX.md` (recommended)
+- `output/NOVELTY_MATRIX.md`
 
-## Procedure (MUST FOLLOW)
-Uses: `output/CLAIMS.md`.
+## Output format (recommended)
 
+- Rows: contributions/claims (from `output/CLAIMS.md`)
+- Columns: closest related works (provided or cited by the paper)
+- For each row/column, record:
+  - `overlap`: what is the same
+  - `delta`: what is different/new
+  - `evidence`: where this is supported (paper statement / citation / method difference)
 
-1. List contributions/claims as rows.
-2. List closest related works as columns.
-3. Mark overlap and differentiation with short evidence notes.
+## Workflow
 
-## Acceptance criteria (MUST CHECK)
+1. Extract the contribution list from `output/CLAIMS.md`.
+2. Pick ≥5 closest related works (or state explicitly why you cannot).
+3. For each contribution, compare to each related work:
+   - identify overlap
+   - identify delta
+   - attach evidence (quote/section/citation pointer)
+4. Summarize:
+   - which contributions look clearly novel
+   - which ones look like incremental variants
 
-- [ ] Matrix identifies at least 5 related works or explains why unavailable.
+## Definition of Done
+
+- [ ] Matrix includes ≥5 related works or explains why unavailable.
+- [ ] Every “delta” entry has a short evidence pointer (not just opinion).
+
+## Troubleshooting
+
+### Issue: no related works list is available
+
+**Fix**:
+- Use the paper’s own citations as the initial related set; if even that is missing, mark `needs_related_work_list` and stop.
+
+### Issue: overlap/delta becomes vague
+
+**Fix**:
+- Force each cell to reference a concrete axis (problem setting, method component, training data, evaluation protocol, result).

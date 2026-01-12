@@ -47,7 +47,7 @@ JSONL (one JSON object per line). Required fields per record:
 - `rq` (1–2 sentences)
 - `axes` (list of 3–5 checkable comparison dimensions; no ellipsis)
 - `clusters` (2–3 clusters; each has `label`, `rationale`, `paper_ids`, and optional `bibkeys`)
-- `paragraph_plan` (2–3 paragraphs; each describes what to compare + which clusters to cite)
+- `paragraph_plan` (6–10 paragraphs; each paragraph is a *unit of comparison* with explicit clusters/evidence needs)
 - `evidence_level_summary` (counts by `fulltext|abstract|title`)
 
 ## Workflow
@@ -65,10 +65,15 @@ Optional context (if present): read `GOAL.md` to pin scope and audience, and use
    - Prefer concrete, checkable phrases (e.g., representation, training signal, sampling/solver, compute, evaluation protocol, failure modes).
    - Use the subsection title + mapped-paper tags to specialize axes.
 6. Build 2–3 **clusters** of papers (2–5 papers each) and explain why they cluster (which axis/theme).
-7. Build a 2–3 paragraph **paragraph_plan**:
-   - Para 1: define setup + scope boundary.
-   - Para 2: compare clusters along axes.
-   - Para 3: evaluation protocol + limitations + open questions (evidence-aware).
+7. Build a 6–10 paragraph **paragraph_plan** (plan paragraphs, not prose):
+   - Para 1: setup + scope boundary + thesis/definitions.
+   - Para 2: approach family / cluster A (mechanism + assumptions).
+   - Para 3: cluster A evaluation/trade-offs (benchmarks/metrics/latency/compute).
+   - Para 4: approach family / cluster B (contrast with A).
+   - Para 5: cluster B evaluation/trade-offs (mirror A for comparability).
+   - Para 6: cross-paper synthesis (explicit compare A vs B; later prose should include >=2 citations in one paragraph).
+   - Para 7: failures/limitations + verification targets + open question (especially under abstract-only evidence).
+   - Para 8–10 (optional): design implication / deployment nuance / bridge terms.
 8. Write `outline/subsection_briefs.jsonl`.
 
 ## Quality checklist
@@ -76,12 +81,14 @@ Optional context (if present): read `GOAL.md` to pin scope and audience, and use
 - [ ] Every subsection has `rq` and `scope_rule`.
 - [ ] `axes` length is 3–5 and each axis is a concrete noun phrase.
 - [ ] `clusters` length is 2–3; each cluster has 2–5 papers.
-- [ ] `paragraph_plan` length is 2–3; each plan references clusters (not generic filler).
+- [ ] `paragraph_plan` length is 6–10; each plan references clusters (not generic filler).
 - [ ] No placeholder markers appear anywhere.
 
 ## Helper script (bootstrap)
 
 This skill includes a deterministic bootstrap script that scaffolds briefs from existing artifacts. Treat it as a starting point and refine as needed.
+
+- Clustering note: the script groups papers using lightweight title keyword tags (e.g., agents/tool-use/planning/memory/multi-agent/security) and falls back to recency splits when tags are sparse.
 
 ### Quick Start
 

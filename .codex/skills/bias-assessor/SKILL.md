@@ -9,11 +9,9 @@ description: |
   **Guardrail**: 使用简单可复核刻度（low/unclear/high）+ 简短 notes；保持字段一致性。
 ---
 
-# Skill: bias-assessor
+# Bias Assessor (risk-of-bias, lightweight)
 
-## Goal
-
-- Make evidence quality explicit in the extraction table.
+Goal: make evidence quality explicit in a way that is quick, consistent, and auditable.
 
 ## Inputs
 
@@ -23,11 +21,46 @@ description: |
 
 - Updated `papers/extraction_table.csv`
 
-## Procedure (MUST FOLLOW)
+## Recommended fields
 
-1. Add a small set of bias fields (selection, measurement, confounding, reporting).
-2. Fill with a simple scale (low/unclear/high) plus short notes.
+Use a simple 3-level scale (all lowercase): `low | unclear | high`.
 
-## Acceptance criteria (MUST CHECK)
+Suggested columns to add (if missing):
+- `rob_selection`
+- `rob_measurement`
+- `rob_confounding`
+- `rob_reporting`
+- `rob_overall`
+- `rob_notes`
 
-- [ ] Bias fields exist and are populated for included papers.
+## Workflow
+
+1. Read `papers/extraction_table.csv` and identify the set of included studies.
+2. If RoB columns are missing, add them (keep names stable once introduced).
+3. For each study, fill each RoB domain:
+   - `low`: design/reporting plausibly controls the bias
+   - `unclear`: not enough information to judge
+   - `high`: clear risk (e.g., missing controls, ambiguous measurement, selective reporting)
+4. Set `rob_overall` conservatively:
+   - `high` if any domain is `high`
+   - `unclear` if no `high` but at least one `unclear`
+   - `low` only if all domains are `low`
+5. Add 1–3 short notes in `rob_notes` that justify the rating.
+
+## Definition of Done
+
+- [ ] Every included paper row has all RoB columns filled.
+- [ ] Values are strictly from `low|unclear|high` (no free-form scale drift).
+- [ ] Notes are short and specific (what was missing / what was strong).
+
+## Troubleshooting
+
+### Issue: the table has mixed or inconsistent RoB column names
+
+**Fix**:
+- Normalize to the recommended column names and keep a single set across all rows.
+
+### Issue: the paper lacks enough methodological detail
+
+**Fix**:
+- Prefer `unclear` with a concrete note (“no details on X”) rather than guessing.

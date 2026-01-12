@@ -15,11 +15,13 @@ units_template: templates/UNITS.peer-review.csv
 ## Stage 0 - Init (C0)
 required_skills:
 - workspace-init
+- pipeline-router
 produces:
 - STATUS.md
 - UNITS.csv
 - CHECKPOINTS.md
 - DECISIONS.md
+- GOAL.md
 
 ## Stage 1 - Claims (C1)
 required_skills:

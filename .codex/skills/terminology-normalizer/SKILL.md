@@ -29,3 +29,15 @@ Purpose: make the draft read like one author wrote it by enforcing consistent na
 
 - Primary: update `output/DRAFT.md` in place.
 - Optional: write a small glossary appendix if helpful.
+
+## Troubleshooting
+
+### Issue: normalization changes citation keys or moves citations
+
+**Fix**:
+- Revert; this skill must not add/remove keys or move citations across subsections.
+
+### Issue: synonyms policy is unclear
+
+**Fix**:
+- Define one canonical term per concept and list allowed synonyms; apply consistently across headings, tables, and prose.

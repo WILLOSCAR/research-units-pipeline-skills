@@ -370,7 +370,6 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
         ],
         "section-merger": [
             "- Ensure all required `sections/*.md` exist (see `output/MERGE_REPORT.md` for missing paths), then rerun merge.",
-            "- Ensure evidence-first visuals exist: `outline/timeline.md`, `outline/tables.md`, `outline/figures.md`.",
             "- After merge, polish/review the combined `output/DRAFT.md` (then run `pipeline-auditor` before LaTeX).",
         ],
         "prose-writer": [
@@ -378,7 +377,7 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
             "- For each subsection, write a unique thesis + 2 contrast sentences (A vs B) + 1 failure mode, each backed by citations.",
             "- Use concrete axes (datasets/metrics/compute/training/sampling/failure modes), not generic \"design space\" prose.",
             "- Keep citations evidence-first: paragraph-level cites; keys must exist in `citations/ref.bib`.",
-            "- Ensure paper-like structure exists: Introduction, Timeline/Evolution, Open Problems & Future Directions, Conclusion, plus >=2 comparison tables.",
+            "- Ensure paper-like structure exists: Introduction, (optional) Related Work, 3–4 core chapters, Discussion/Future Work, Conclusion.",
         ],
         "latex-scaffold": [
             "- Edit `latex/main.tex`: remove any leaked markdown (`##`, `**`, `[@...]`) and ensure bibliography points to `../citations/ref.bib`.",
@@ -917,6 +916,18 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 if not (has_intent and has_rq and has_evidence and has_expected):
                     missing_meta += 1
 
+        # Paper-like constraint: avoid fragmenting the survey into too many tiny H3s.
+        if subs_total > 12:
+            return [
+                QualityIssue(
+                    code="outline_too_many_subsections",
+                    message=(
+                        f"Outline has too many subsections for survey-quality writing ({subs_total}). "
+                        "Prefer <=12 H3 subsections (fewer, thicker sections). Merge/simplify the taxonomy/outline so each H3 can sustain deeper evidence-first prose."
+                    ),
+                )
+            ]
+
         if subs_total and missing_meta:
             return [
                 QualityIssue(
@@ -1398,6 +1409,10 @@ def _check_subsection_briefs(workspace: Path, outputs: list[str]) -> list[Qualit
                 )
             )
 
+    profile = _pipeline_profile(workspace)
+    # Survey default: paragraph plans must be thick enough to prevent 1–2 paragraph stubs downstream.
+    min_plan_len = 6 if profile == "arxiv-survey" else 2
+
     required_top = {"sub_id", "title", "section_id", "section_title", "scope_rule", "rq", "axes", "clusters", "paragraph_plan", "evidence_level_summary"}
     bad = 0
     for sid, rec in by_id.items():
@@ -1439,16 +1454,18 @@ def _check_subsection_briefs(workspace: Path, outputs: list[str]) -> list[Qualit
             continue
 
         plan = rec.get("paragraph_plan")
-        if not isinstance(plan, list) or len(plan) < 2:
+        if not isinstance(plan, list) or len(plan) < min_plan_len:
             bad += 1
             continue
         plan_ok = 0
-        for item in plan[:3]:
+        sample = plan[:min_plan_len] if min_plan_len > 2 else plan[:3]
+        for item in sample:
             if not isinstance(item, dict):
                 continue
             if str(item.get("intent") or "").strip():
                 plan_ok += 1
-        if plan_ok < 2:
+        required_ok = 4 if min_plan_len >= 6 else (3 if min_plan_len >= 4 else 2)
+        if plan_ok < required_ok:
             bad += 1
             continue
 
@@ -1896,6 +1913,16 @@ def _check_transitions(workspace: Path, outputs: list[str]) -> list[QualityIssue
                 message=f"`{out_rel}` contains citation markers; transitions must not introduce new citations.",
             )
         ]
+    if re.search(r"(?i)\bwhat\s+are\s+the\s+main\s+approaches\b", text):
+        return [
+            QualityIssue(
+                code="transitions_scaffold_questions",
+                message=(
+                    f"`{out_rel}` contains template RQ phrasing ('What are the main approaches...'); "
+                    "rewrite transitions into short, paper-like handoffs (no explicit RQ questions)."
+                ),
+            )
+        ]
     bullets = [ln for ln in text.splitlines() if ln.strip().startswith("- ")]
     if len(bullets) < 8:
         return [
@@ -2008,7 +2035,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
     bib_keys: set[str] = set()
     if bib_path.exists():
         bib_text = bib_path.read_text(encoding="utf-8", errors="ignore")
-        bib_keys = set(re.findall(r"(?im)^@\\w+\\s*\\{\\s*([^,\\s]+)\\s*,", bib_text))
+        bib_keys = set(re.findall(r"(?im)^@\w+\s*\{\s*([^,\s]+)\s*,", bib_text))
 
     # Load evidence bindings to enforce subsection-scoped citations.
     bindings_path = workspace / "outline" / "evidence_bindings.jsonl"
@@ -2031,7 +2058,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
 
     def _extract_keys(text: str) -> set[str]:
         keys: set[str] = set()
-        for m in re.finditer(r"\\[@([^\\]]+)\\]", text):
+        for m in re.finditer(r"\[@([^\]]+)\]", text):
             inside = (m.group(1) or "").strip()
             for k in re.findall(r"[A-Za-z0-9:_-]+", inside):
                 if k:
@@ -2044,7 +2071,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
         if not p.exists() or p.stat().st_size <= 0:
             continue
         text = p.read_text(encoding="utf-8", errors="ignore")
-        if _check_placeholder_markers(text) or "…" in text or re.search(r"(?m)\\.\\.\\.+", text):
+        if _check_placeholder_markers(text) or "…" in text or re.search(r"(?m)\.\.\.+", text):
             issues.append(
                 QualityIssue(
                     code="sections_contains_placeholders",
@@ -2052,7 +2079,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 )
             )
             break
-        if re.search(r"(?i)\\babstracts are treated as verification targets\\b", text) or re.search(r"(?i)\\bthe main axes we track are\\b", text):
+        if re.search(r"(?i)\babstracts are treated as verification targets\b", text) or re.search(r"(?i)\bthe main axes we track are\b", text):
             issues.append(
                 QualityIssue(
                     code="sections_contains_pipeline_voice",
@@ -2085,11 +2112,24 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
 
             if profile == "arxiv-survey":
                 paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
-                if len(paragraphs) < 2:
+                if len(paragraphs) < 6:
                     issues.append(
                         QualityIssue(
                             code="sections_h3_too_few_paragraphs",
-                            message=f"`{rel}` has too few paragraphs ({len(paragraphs)}); aim for 2–3 paragraphs per H3 (tension → contrast → limitation), not a single block.",
+                            message=f"`{rel}` has too few paragraphs ({len(paragraphs)}); for survey-quality runs aim for 6–10 paragraphs per H3 (thesis → contrasts → eval anchor → synthesis → limitations), not a short stub.",
+                        )
+                    )
+
+                content = re.sub(r"\[@[^\]]+\]", "", text)
+                content = re.sub(r"\s+", " ", content).strip()
+                if len(content) < 4000:
+                    issues.append(
+                        QualityIssue(
+                            code="sections_h3_too_short",
+                            message=(
+                                f"`{rel}` looks too short ({len(content)} chars after removing citations). "
+                                "For survey-quality runs, expand with concrete comparisons + evaluation details + synthesis + limitations from the evidence pack."
+                            ),
                         )
                     )
 
@@ -2153,21 +2193,21 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     )
         elif kind == "global":
             # Minimal heading sanity for required global sections.
-            if uid == "abstract" and not re.search(r"(?im)^##\\s+(abstract|摘要)\\b", text):
+            if uid == "abstract" and not re.search(r"(?im)^##\s+(abstract|摘要)\b", text):
                 issues.append(
                     QualityIssue(
                         code="sections_abstract_missing_heading",
                         message=f"`{rel}` should start with `## Abstract` (or `## 摘要`).",
                     )
                 )
-            if uid == "open_problems" and not re.search(r"(?im)^##\\s+(open problems|future directions|future work|开放问题|未来方向|未来工作)\\b", text):
+            if uid == "open_problems" and not re.search(r"(?im)^##\s+(open problems|future directions|future work|开放问题|未来方向|未来工作)\b", text):
                 issues.append(
                     QualityIssue(
                         code="sections_open_problems_missing_heading",
                         message=f"`{rel}` should include an `## Open Problems & Future Directions` heading (or equivalent).",
                     )
                 )
-            if uid == "conclusion" and not re.search(r"(?im)^##\\s+(conclusion|结论)\\b", text):
+            if uid == "conclusion" and not re.search(r"(?im)^##\s+(conclusion|结论)\b", text):
                 issues.append(
                     QualityIssue(
                         code="sections_conclusion_missing_heading",
@@ -2202,7 +2242,7 @@ def _check_merge_report(workspace: Path, outputs: list[str]) -> list[QualityIssu
     if not draft_path.exists():
         return [QualityIssue(code="missing_merged_draft", message=f"`{draft_rel}` does not exist.")]
     draft = draft_path.read_text(encoding="utf-8", errors="ignore")
-    if re.search(r"(?m)^TODO:\\s+MISSING\\s+`", draft):
+    if re.search(r"(?m)^TODO:\s+MISSING\s+`", draft):
         return [
             QualityIssue(
                 code="merge_contains_missing_markers",
@@ -2421,7 +2461,11 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         low_cite_density = 0
         for block in subsection_blocks:
             lines = [ln for ln in block.splitlines() if ln.strip()]
-            if len(lines) < 8:
+            # Robustness: do not use line-count as a proxy for section length.
+            # Many writers use 1 line per paragraph, which makes "short section" detection brittle.
+            body = "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+            body = re.sub(r"\[@[^\]]+\]", "", body)
+            if len(body) < 4000:
                 too_short += 1
             if "[@" not in block:
                 no_cite += 1
@@ -2447,7 +2491,7 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             issues.append(
                 QualityIssue(
                     code="draft_sections_too_short",
-                    message="Many subsections are very short; expand with method/results/limitations comparisons from paper notes.",
+                    message="Many subsections are very short (<~4000 chars sans citations); expand with concrete comparisons, evaluation anchors, synthesis paragraphs, and limitations from evidence packs/paper notes.",
                 )
             )
         if profile == "arxiv-survey" and low_cite_density / total >= 0.2:
@@ -2500,30 +2544,18 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 )
             )
 
-    # Require at least 2 Markdown tables (for comparisons + benchmarks).
-    table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
-    if len(table_seps) < 2:
-        issues.append(
-            QualityIssue(
-                code="draft_missing_tables",
-                message=f"Draft should include >=2 Markdown tables (found {len(table_seps)}); add comparison + benchmarks tables.",
-            )
-        )
-
     # Require Introduction + Conclusion headings.
     if not re.search(r"(?im)^##\s+(introduction|引言)\b", text):
         issues.append(QualityIssue(code="draft_missing_introduction", message="Draft is missing an `Introduction/引言` section."))
     if not re.search(r"(?im)^##\s+(conclusion|结论)\b", text):
         issues.append(QualityIssue(code="draft_missing_conclusion", message="Draft is missing a `Conclusion/结论` section."))
-    if not re.search(r"(?im)^##\s+(timeline|evolution|chronology|时间线|演化|发展)\b", text):
-        issues.append(
-            QualityIssue(code="draft_missing_timeline", message="Draft is missing a `Timeline/Evolution/时间线` section.")
-        )
-    if not re.search(r"(?im)^##\s+(open problems|future directions|future work|开放问题|未来方向|未来工作)\b", text):
+    if not re.search(r"(?im)^##\s+(open problems|future directions|future work|开放问题|未来方向|未来工作)\b", text) and not re.search(
+        r"(?im)^##\s+(discussion|discussion and future work|discussion & future work|讨论|讨论与未来工作)\b", text
+    ):
         issues.append(
             QualityIssue(
                 code="draft_missing_open_problems",
-                message="Draft is missing an `Open Problems & Future Directions/开放问题` section.",
+                message="Draft is missing an `Open Problems & Future Directions` or `Discussion/Future Work` section.",
             )
         )
 
@@ -2536,25 +2568,6 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 QualityIssue(
                     code="draft_intro_too_short",
                     message="Introduction looks too short (<~180 words); expand motivation, scope, contributions, and positioning vs. prior surveys.",
-                )
-            )
-
-    timeline = _extract_section_body(text, heading_re=r"(?im)^##\s+(timeline|evolution|chronology|时间线|演化|发展)\b")
-    if timeline is not None:
-        year_lines = [ln.strip() for ln in timeline.splitlines() if re.search(r"\b20\d{2}\b", ln)]
-        cited = [ln for ln in year_lines if "[@" in ln]
-        if len(year_lines) < 6:
-            issues.append(
-                QualityIssue(
-                    code="draft_timeline_too_short",
-                    message=f"Timeline section seems too short (found {len(year_lines)} year lines); add more milestones with citations.",
-                )
-            )
-        if year_lines and len(cited) / len(year_lines) < 0.6:
-            issues.append(
-                QualityIssue(
-                    code="draft_timeline_sparse_cites",
-                    message="Timeline should cite key works for most milestones (>=60%).",
                 )
             )
 

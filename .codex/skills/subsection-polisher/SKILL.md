@@ -18,7 +18,7 @@ This is intentionally local: fix one unit at a time, then rerun `subsection-writ
 ## Capability checklist
 
 A polished H3 unit should:
-- have 2–3 paragraphs (not one block)
+- have 6–10 paragraphs (survey-quality; not 1–2 paragraph stubs)
 - include explicit contrast language (A vs B)
 - include at least one evaluation anchor (benchmark/dataset/metric/protocol)
 - include at least one limitation/provisional sentence

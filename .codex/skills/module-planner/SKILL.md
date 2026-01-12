@@ -9,11 +9,9 @@ description: |
   **Guardrail**: 每模块明确 objectives + outputs（最好含 running example 步骤）；避免 prose 段落。
 ---
 
-# Skill: module-planner
+# Module Planner
 
-## Goal
-
-- Produce a module plan that is executable and testable.
+Goal: turn a concept DAG into a teachable module sequence with clear objectives and outputs.
 
 ## Inputs
 
@@ -23,14 +21,39 @@ description: |
 
 - `outline/module_plan.yml`
 
-## Procedure (MUST FOLLOW)
-Uses: `outline/concept_graph.yml`.
+## Output schema (recommended)
 
+- `modules`: ordered list of modules
+  - `id`, `title`
+  - `objectives` (3–6 measurable bullets)
+  - `concepts` (node ids from `outline/concept_graph.yml`)
+  - `outputs` (what the learner produces)
+  - `running_example_steps` (optional but recommended)
 
-1. Create 4–10 modules ordered by prerequisites.
-2. For each module, list objectives, key concepts, and a short checklist of outputs.
-3. Mark which modules require a running example step.
+## Workflow
 
-## Acceptance criteria (MUST CHECK)
+1. Read `outline/concept_graph.yml` and topologically sort concepts.
+2. Cluster concepts into modules (keep module scope coherent; avoid “misc”).
+3. For each module:
+   - write measurable objectives
+   - define concrete outputs (code/artifact)
+   - specify how the running example advances
+4. Write `outline/module_plan.yml`.
 
-- [ ] Every module has objectives and outputs.
+## Definition of Done
+
+- [ ] `outline/module_plan.yml` exists and modules are ordered by prerequisites.
+- [ ] Every module has objectives + outputs.
+- [ ] Every concept node from `outline/concept_graph.yml` is covered by at least one module.
+
+## Troubleshooting
+
+### Issue: modules are too many / too granular
+
+**Fix**:
+- Merge adjacent modules with shared prerequisites; target ~5–12 modules for most tutorials.
+
+### Issue: objectives are not verifiable
+
+**Fix**:
+- Rewrite objectives so `exercise-builder` can attach a concrete exercise for each module.

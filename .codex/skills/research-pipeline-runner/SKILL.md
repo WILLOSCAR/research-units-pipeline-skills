@@ -61,3 +61,15 @@ User goal → choose:
 - [ ] No prose is written unless `DECISIONS.md` explicitly approves it for the relevant checkpoint/sections.
 - [ ] The run stops at HUMAN checkpoints with clear next questions.
 - [ ] In `--strict` mode, scaffold/stub outputs do not get marked `DONE` without LLM refinement.
+
+## Troubleshooting
+
+### Issue: run stops at a HUMAN unit
+
+**Fix**:
+- Summarize the relevant artifacts and write a concise approval request into `DECISIONS.md`; do not proceed until approved.
+
+### Issue: strict mode blocks on scaffolding/ellipsis
+
+**Fix**:
+- Treat current artifact as a draft scaffold; refine it following the skill’s `SKILL.md` until placeholders are gone, then mark the unit `DONE`.

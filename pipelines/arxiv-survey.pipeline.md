@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey
-version: 1.3
+version: 1.6
 target_artifacts:
   - papers/retrieval_report.md
   - outline/taxonomy.yml
@@ -22,6 +22,7 @@ target_artifacts:
   - outline/figures.md
   - outline/evidence_drafts.jsonl
   - citations/ref.bib
+  - citations/verified.jsonl
   - sections/sections_manifest.jsonl
   - sections/abstract.md
   - sections/open_problems.md
@@ -39,11 +40,14 @@ units_template: templates/UNITS.arxiv-survey.csv
 ## Stage 0 - Init (C0)
 required_skills:
 - workspace-init
+- pipeline-router
 produces:
 - STATUS.md
 - UNITS.csv
 - CHECKPOINTS.md
 - DECISIONS.md
+- GOAL.md
+- queries.md
 
 ## Stage 1 - Retrieval & core set (C1)
 required_skills:
@@ -54,6 +58,7 @@ optional_skills:
 - survey-seed-harvest
 produces:
 - papers/papers_raw.jsonl
+- papers/retrieval_report.md
 - papers/papers_dedup.jsonl
 - papers/core_set.csv
 
@@ -125,8 +130,25 @@ Notes:
 - `table-filler` fills `outline/tables.md` from evidence packs; if fields are missing it must surface them explicitly (do not write long prose in cells).
 
 ## Stage 5 - Draft (C5) [PROSE AFTER C2]
+required_skills:
+- subsection-writer
+- transition-weaver
+- section-merger
+- draft-polisher
+- global-reviewer
+- pipeline-auditor
+optional_skills:
+- prose-writer
+- subsection-polisher
+- redundancy-pruner
+- terminology-normalizer
+- latex-scaffold
+- latex-compile-qa
 produces:
 - sections/sections_manifest.jsonl
+- sections/abstract.md
+- sections/open_problems.md
+- sections/conclusion.md
 - output/MERGE_REPORT.md
 - output/DRAFT.md
 - output/GLOBAL_REVIEW.md
@@ -137,6 +159,7 @@ Notes:
   - Planner pass: for each section/subsection, pick the exact citation IDs to use from the evidence bank (`outline/evidence_drafts.jsonl`) and keep scope consistent with the outline.
   - Writer pass: write that section using only those citation IDs; avoid dumping the whole notes set into context.
 - Treat this stage as an iteration loop: draft per H3 → de-template/cohere → global review → (if gaps) back to C3/C4 → regenerate.
+- Depth target (survey-quality): each H3 should be **6–10 paragraphs** (~800–1400 words) with >=2 concrete contrasts + an evaluation anchor + a cross-paper synthesis paragraph + an explicit limitation (quality gates should block short stubs).
 - Recommended skills (toolkit, not a rigid one-shot chain):
   - Modular drafting: `subsection-writer` → `transition-weaver` → `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor`.
   - Legacy one-shot drafting: `prose-writer` (kept for quick experiments; less debuggable).

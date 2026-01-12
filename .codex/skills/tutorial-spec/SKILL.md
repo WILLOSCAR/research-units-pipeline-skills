@@ -9,30 +9,55 @@ description: |
   **Guardrail**: 结构化 spec 优先；避免提前写长教程 prose（prose 在 C3）。
 ---
 
-# Skill: tutorial-spec
+# Tutorial Spec
 
-## Goal
-
-- Produce a clear tutorial spec that constrains downstream writing.
+Goal: define an executable tutorial scope so downstream planning can be deterministic.
 
 ## Inputs
 
-- `STATUS.md` (optional existing context)
-- User requirements
+Required:
+- `STATUS.md` (context + constraints)
+
+Optional:
+- `GOAL.md` (topic phrasing)
+- `DECISIONS.md` (any pre-agreed constraints)
 
 ## Outputs
 
 - `output/TUTORIAL_SPEC.md`
 
-## Procedure (MUST FOLLOW)
-Uses: `STATUS.md`.
+## Output template (recommended)
 
+- Audience (who this is for)
+- Prerequisites (what they must already know)
+- Learning objectives (3–8 measurable outcomes)
+- Non-goals (explicit out-of-scope)
+- Running example (one consistent example used throughout)
+- Deliverable format (Markdown/LaTeX, code language, expected length)
 
-1. Define target audience and prerequisites.
-2. Define 5–10 learning objectives (measurable).
-3. Define one running example and what artifacts learners will produce.
-4. Define in-scope and out-of-scope topics.
+## Workflow
 
-## Acceptance criteria (MUST CHECK)
+1. Extract constraints from `STATUS.md` (time, depth, language, audience).
+   - If `DECISIONS.md` exists, treat it as authoritative for any pre-agreed constraints.
+2. If `GOAL.md` exists, reuse its topic phrasing/examples so the spec stays consistent.
+3. Propose a running example that can survive the whole tutorial (simple but non-trivial).
+4. Write `output/TUTORIAL_SPEC.md` using the template above.
+5. Ensure every learning objective is measurable (can be verified by an exercise later).
 
-- [ ] Spec includes audience, prerequisites, objectives, running example, scope.
+## Definition of Done
+
+- [ ] `output/TUTORIAL_SPEC.md` exists and is structured (not long prose).
+- [ ] Running example is concrete and consistent.
+- [ ] Objectives are measurable and match the intended audience.
+
+## Troubleshooting
+
+### Issue: objectives are vague (“understand X”)
+
+**Fix**:
+- Rewrite as observable outcomes (“implement Y”, “explain trade-off Z”, “debug W”).
+
+### Issue: running example is too large
+
+**Fix**:
+- Reduce to a minimal end-to-end scenario that still exercises the core concepts.

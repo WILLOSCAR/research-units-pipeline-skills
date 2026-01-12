@@ -63,3 +63,15 @@ Uses: `outline/outline.yml`, `outline/mapping.tsv`.
 ### Notes
 
 - The helper generates a baseline matrix (claims + evidence) and never overwrites non-placeholder work; in `pipeline.py --strict` it will be blocked only if placeholder markers remain.
+
+## Troubleshooting
+
+### Issue: claims are generic or read like outline boilerplate
+
+**Fix**:
+- Tighten each claim to a falsifiable statement and add an explicit caveat if evidence is abstract-only.
+
+### Issue: you cannot add `[@BibKey]` because keys are missing
+
+**Fix**:
+- Run `citation-verifier` to generate `citations/ref.bib`, then use the produced keys in the matrix.

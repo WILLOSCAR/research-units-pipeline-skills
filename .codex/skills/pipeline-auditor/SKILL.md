@@ -15,7 +15,7 @@ Goal: catch the failures your writer/polisher can accidentally produce:
 - placeholder leakage (`...`, `…`, TODO)
 - repeated boilerplate sentences
 - missing/undefined/duplicate citations
-- subsection coverage drift (H3 headings not matching outline)
+- outline drift (H3 headings not matching `outline/outline.yml`)
 
 Outputs are deterministic and auditable.
 
@@ -23,13 +23,46 @@ Outputs are deterministic and auditable.
 
 - `output/DRAFT.md`
 - `outline/outline.yml`
-- `outline/evidence_bindings.jsonl` (recommended)
-- `citations/ref.bib`
+- Optional (recommended):
+  - `outline/evidence_bindings.jsonl`
+  - `citations/ref.bib`
 
 ## Outputs
 
 - `output/AUDIT_REPORT.md`
 
+## What it checks (deterministic)
+
+- **Placeholder leakage** in `output/DRAFT.md`: ellipsis, TODO markers, scaffold tags.
+- **Outline alignment**: section/subsection order and presence compared to `outline/outline.yml`.
+- **Citation health** (if `citations/ref.bib` exists): undefined keys, duplicate keys, basic formatting red flags.
+- **Evidence binding hygiene** (if `outline/evidence_bindings.jsonl` exists): citations used per H3 should stay within the bound evidence set.
+- **H3 parsing boundary**: treat new `##` headings as boundaries so tables/figures/open-problems sections are not accidentally attributed to the last H3.
+- **Paragraph-level cite coverage**: only counts substantive paragraphs (ignores headings/tables/short transitions) when computing uncited paragraph rates, to avoid false FAILs.
+
 ## Script
 
-- `python .codex/skills/pipeline-auditor/scripts/run.py --workspace <ws>`
+### Quick Start
+
+- `python .codex/skills/pipeline-auditor/scripts/run.py --help`
+- `python .codex/skills/pipeline-auditor/scripts/run.py --workspace workspaces/<ws>`
+
+### All Options
+
+- `--workspace <dir>`: workspace root
+- `--unit-id <U###>`: unit id (optional; for logs)
+- `--inputs <semicolon-separated>`: override inputs (rare; prefer defaults)
+- `--outputs <semicolon-separated>`: override outputs (rare; prefer defaults)
+- `--checkpoint <C#>`: checkpoint id (optional; for logs)
+
+### Examples
+
+- Run audit after `global-reviewer` and before LaTeX:
+  - `python .codex/skills/pipeline-auditor/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: audit fails due to undefined citations
+
+**Fix**:
+- Regenerate citations with `citation-verifier` (ensure `citations/ref.bib` includes every cited key), then rerun.

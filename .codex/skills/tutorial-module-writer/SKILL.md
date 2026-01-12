@@ -9,30 +9,52 @@ description: |
   **Guardrail**: 只写已批准范围；保持 running example 一致；每模块包含练习与答案要点。
 ---
 
-# Skill: tutorial-module-writer
+# Tutorial Module Writer
 
-## Goal
-
-- Produce readable tutorial prose only for approved modules.
+Goal: write the tutorial as a coherent module sequence with a consistent running example and verifiable exercises.
 
 ## Inputs
 
+Required:
 - `outline/module_plan.yml`
-- `DECISIONS.md` (must authorize writing)
+- `DECISIONS.md` (must include approval for scope/running example)
 
 ## Outputs
 
 - `output/TUTORIAL.md`
 
-## Procedure (MUST FOLLOW)
-Uses: `outline/module_plan.yml`.
+## Workflow
 
+1. Confirm approval
+   - Check `DECISIONS.md` has the required approval (typically `Approve C2`).
+   - If approval is missing, stop and request sign-off.
 
-1. Check `DECISIONS.md` for approval to write.
-2. If missing, write a short request into `DECISIONS.md` and stop.
-3. Write module-by-module with consistent structure: objective → explanation → exercise → expected output.
+2. Expand modules into prose
+   - Follow the module order in `outline/module_plan.yml`.
+   - Keep the running example consistent across modules.
 
-## Acceptance criteria (MUST CHECK)
+3. Embed exercises
+   - For each module, include at least one exercise from `outline/module_plan.yml`.
+   - Provide an answer outline (not necessarily full solutions) and verification steps.
 
-- [ ] Only approved modules are written.
-- [ ] Each module includes its exercises and expected outputs.
+4. Write `output/TUTORIAL.md`
+   - Prefer short sections and concrete steps.
+   - Avoid scope drift beyond the spec and approved plan.
+
+## Definition of Done
+
+- [ ] `output/TUTORIAL.md` covers all approved modules in order.
+- [ ] Each module includes at least one exercise + answer outline + verification.
+- [ ] Running example remains consistent.
+
+## Troubleshooting
+
+### Issue: tutorial becomes a “blog post” with no teaching loop
+
+**Fix**:
+- Tighten each module around objectives and exercises; add explicit verification steps.
+
+### Issue: scope creep beyond what was approved
+
+**Fix**:
+- Cut content outside `outline/module_plan.yml` and document new scope ideas for a separate iteration.

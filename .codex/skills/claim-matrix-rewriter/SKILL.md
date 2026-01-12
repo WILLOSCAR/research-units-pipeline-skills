@@ -59,3 +59,15 @@ Key property: keep the **legacy, gate-checked format** so downstream QA can rely
   - Ensure `outline/subsection_briefs.jsonl` and `outline/evidence_drafts.jsonl` exist and `blocking_missing` is empty.
   - Ensure `citations/ref.bib` exists and contains the cited keys.
   - Run: `python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: cited keys are missing from `citations/ref.bib`
+
+**Fix**:
+- Run `citation-verifier` (or fix the upstream notes) so every referenced key exists before rewriting.
+
+### Issue: evidence packs still have `blocking_missing`
+
+**Fix**:
+- Fix upstream evidence (`paper-notes` / `evidence-draft`) first; the matrix should not “paper over” missing evidence.

@@ -76,6 +76,8 @@ When network access is restricted, run in offline mode to produce auditable reco
 
 - Minimal requirement for every verification record: `url`, `date`, `title`.
 - The script sanitizes stray/unbalanced `{}` in titles to keep `bibtex` parsing robust.
+- The script escapes LaTeX special chars in text fields (`& % $ # _`) and rewrites superscript patterns like `X^N` or `X$^N$` as `X\textsuperscript{N}` to keep LaTeX builds stable.
+- URLs are kept raw in BibTeX `url` fields (BibTeX styles wrap them with `\url{...}`); `@misc` uses `howpublished=\url{...}`.
 - In offline mode, records are *not* truly verified; treat `offline_generated` as a to-do for human/network verification.
 
 ## Troubleshooting

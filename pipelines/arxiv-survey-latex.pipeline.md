@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey-latex
-version: 1.4
+version: 1.6
 target_artifacts:
   - papers/retrieval_report.md
   - outline/taxonomy.yml
@@ -45,11 +45,14 @@ Same as `arxiv-survey`, but includes the optional LaTeX scaffold + compile units
 ## Stage 0 - Init (C0)
 required_skills:
 - workspace-init
+- pipeline-router
 produces:
 - STATUS.md
 - UNITS.csv
 - CHECKPOINTS.md
 - DECISIONS.md
+- GOAL.md
+- queries.md
 
 ## Stage 1 - Retrieval & core set (C1)
 required_skills:
@@ -60,6 +63,7 @@ optional_skills:
 - survey-seed-harvest
 produces:
 - papers/papers_raw.jsonl
+- papers/retrieval_report.md
 - papers/papers_dedup.jsonl
 - papers/core_set.csv
 
@@ -86,6 +90,7 @@ human_checkpoint:
 
 Notes:
 - Evidence-first expectation: each subsection should be written as an explicit RQ plus evidence needs (what results/benchmarks/limitations must be supported), not just generic scaffold bullets.
+- Paper-like default: `outline-builder` inserts a standard `Related Work & Prior Surveys` H2 section (no H3) before the taxonomy-driven chapters, so the final PDF has a conventional structure (Intro → Related Work → 3–4 core chapters → Future Work → Conclusion).
 
 ## Stage 3 - Evidence pack (C3) [NO PROSE]
 required_skills:
@@ -127,10 +132,28 @@ Notes:
 - `claim-matrix-rewriter` makes `outline/claim_evidence_matrix.md` a projection/index of evidence packs (not an outline expansion), so writer guidance stays evidence-first.
 - `table-schema` defines comparison table questions/columns and the evidence fields each column must be grounded in.
 - `table-filler` fills `outline/tables.md` from evidence packs; if fields are missing it must surface them explicitly (do not write long prose in cells).
+- `citation-verifier` must produce LaTeX-safe BibTeX (escape `& % $ # _`, handle common `X^N` patterns) so `latex-compile-qa` does not fail on `.bbl` errors.
 
 ## Stage 5 - Draft + PDF (C5) [PROSE AFTER C2]
+required_skills:
+- subsection-writer
+- transition-weaver
+- section-merger
+- draft-polisher
+- global-reviewer
+- pipeline-auditor
+- latex-scaffold
+- latex-compile-qa
+optional_skills:
+- prose-writer
+- subsection-polisher
+- redundancy-pruner
+- terminology-normalizer
 produces:
 - sections/sections_manifest.jsonl
+- sections/abstract.md
+- sections/open_problems.md
+- sections/conclusion.md
 - output/MERGE_REPORT.md
 - output/DRAFT.md
 - output/GLOBAL_REVIEW.md
@@ -145,7 +168,9 @@ Notes:
   - Writer pass: write that section using only those citation IDs; avoid dumping the whole notes set into context (prevents “lost in the middle” + template filler).
 - Treat this stage as an iteration loop:
   - draft per H3 → de-template/cohere → global review → (if gaps) go back to C3/C4 to strengthen evidence packs → regenerate draft.
+- Depth target (survey-quality): each H3 should be **6–10 paragraphs** (~800–1400 words) with >=2 concrete contrasts + an evaluation anchor + a cross-paper synthesis paragraph + an explicit limitation (quality gates should block short stubs).
 - PDF compile should run early/often to catch LaTeX failures, but compile success is not narrative quality.
+- `section-merger` produces a paper-like `output/DRAFT.md` by merging `sections/*.md` plus `outline/transitions.md`. Evidence-first visuals (`outline/tables.md`, `outline/timeline.md`, `outline/figures.md`) are **intermediate artifacts** by default and should be woven into prose intentionally (or kept out of the main draft) to avoid inflating the PDF ToC with short, reader-facing-empty sections.
 - Recommended skills (toolkit, not a rigid one-shot chain):
   - Modular drafting: `subsection-writer` → `transition-weaver` → `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor` → `latex-*`.
   - Legacy one-shot drafting: `prose-writer` (kept for quick experiments; less debuggable).

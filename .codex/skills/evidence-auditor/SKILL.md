@@ -9,11 +9,9 @@ description: |
   **Guardrail**: 只写“缺口/风险/下一步验证”，不要替作者补写论述或引入新主张。
 ---
 
-# Skill: evidence-auditor
+# Evidence Auditor (peer review)
 
-## Goal
-
-- Make evidence gaps explicit and actionable.
+Goal: for each claim, either (a) point to the supporting evidence in the manuscript, or (b) write a concrete gap with an actionable fix.
 
 ## Inputs
 
@@ -23,14 +21,42 @@ description: |
 
 - `output/MISSING_EVIDENCE.md`
 
-## Procedure (MUST FOLLOW)
-Uses: `output/CLAIMS.md`.
+## Output format (recommended)
 
+For each claim:
+- `Claim`: copy the claim text
+- `Evidence present`: what the paper provides (experiments/theory/citations)
+- `Gap / concern`: what is missing or weak
+- `Minimal fix`: the smallest additional evidence that would address the gap
+- `Severity`: `major` | `minor` (optional)
 
-1. For each claim, check what evidence is provided (experiments, proofs, citations).
-2. Record missing baselines, unclear datasets, missing ablations, or overclaims.
-3. Suggest minimal fixes (what evidence to add).
+## Workflow
 
-## Acceptance criteria (MUST CHECK)
+1. Iterate claims in `output/CLAIMS.md`.
+2. For empirical claims, check:
+   - dataset/task definition is clear
+   - baselines are appropriate
+   - evaluation protocol is valid
+   - ablations/sensitivity analyses exist where needed
+3. For conceptual claims, check:
+   - definitions are unambiguous
+   - assumptions are stated
+   - claims do not exceed what is argued
+4. Write `output/MISSING_EVIDENCE.md` as a list of claim-by-claim entries.
 
-- [ ] Every claim has either supporting evidence notes or a gap item.
+## Definition of Done
+
+- [ ] Every claim from `output/CLAIMS.md` has an evidence note or a gap item.
+- [ ] “Fix” items are actionable (what to add, not “more experiments”).
+
+## Troubleshooting
+
+### Issue: you cannot locate the evidence in the paper
+
+**Fix**:
+- Mark the claim as “evidence not locatable” and ask for a clearer source pointer (or re-extract claims with better pointers).
+
+### Issue: the audit starts proposing new claims
+
+**Fix**:
+- Stop; only critique what exists in `output/CLAIMS.md` and the manuscript.

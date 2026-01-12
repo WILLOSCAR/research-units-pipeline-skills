@@ -166,8 +166,30 @@ def _escape_tex(text: str) -> str:
     # which can break `bibtex`, so we strip braces here.
     text = text.replace("{", "").replace("}", "")
     text = re.sub(r"\s+", " ", text).strip()
-    return text
 
+    # Make common superscript patterns LaTeX-safe in text mode (avoids raw `^` errors).
+    # Example: `MemR$^3$` -> `MemR\textsuperscript{3}`
+    text = re.sub(r"(?<!\\)([A-Za-z])\s*\$\s*\^(\d+)\s*\$", r"\1\\textsuperscript{\2}", text)
+    # Example: `M^3-Bench` -> `M\textsuperscript{3}-Bench`
+    text = re.sub(r"(?<!\\)([A-Za-z])\^(\d+)", r"\1\\textsuperscript{\2}", text)
+
+    # Escape LaTeX special characters (avoid double-escaping already-escaped sequences).
+    specials = {"&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_"}
+    out: list[str] = []
+    for i, ch in enumerate(text):
+        if ch in specials and not (i > 0 and text[i - 1] == "\\"):
+            out.append(specials[ch])
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def _escape_url(url: str) -> str:
+    url = (url or "").strip()
+    # Keep URLs raw for LaTeX/url.sty; do not TeX-escape characters here.
+    url = url.replace("{", "").replace("}", "")
+    url = re.sub(r"\s+", "", url)
+    return url
 
 def _arxiv_id_from_note(note: dict[str, Any]) -> str:
     arxiv_id = str(note.get("arxiv_id") or "").strip()
@@ -199,7 +221,7 @@ def _bibtex_entry(*, bibkey: str, title: str, author: str, year: str, url: str, 
         if primary_class:
             fields.append(f"  primaryClass = {{{_escape_tex(primary_class)}}},")
         if url:
-            fields.append(f"  url          = {{{_escape_tex(url)}}},")
+            fields.append(f"  url          = {{{_escape_url(url)}}},")
         fields.append("}")
         fields.append("")
         return "\n".join(fields)
@@ -210,7 +232,7 @@ def _bibtex_entry(*, bibkey: str, title: str, author: str, year: str, url: str, 
     fields.append(f"  author       = {{{_escape_tex(author)}}},")
     fields.append(f"  year         = {{{_escape_tex(year)}}},")
     if url:
-        fields.append(f"  howpublished = {{\\url{{{_escape_tex(url)}}}}},")
+        fields.append(f"  howpublished = {{\\url{{{_escape_url(url)}}}}},")
     fields.append("}")
     fields.append("")
     return "\n".join(fields)

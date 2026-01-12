@@ -78,7 +78,7 @@ def main() -> int:
         top_topics = ["methods", "evaluation", "applications"]
 
     taxonomy: list[dict[str, Any]] = []
-    for token in top_topics[:8]:
+    for token in top_topics[:4]:
         subset = [t for t in titles if token in set(tokenize(t))]
         sub = candidate_keywords(subset, top_k=6, min_freq=1)
         sub = [s for s in sub if s not in {"overview", "benchmarks", "open", "problems"}]
@@ -109,7 +109,7 @@ def main() -> int:
                             seed_terms=[token, st],
                         ),
                     }
-                    for st in sub[:6]
+                    for st in sub[:3]
                 ],
             }
         )
@@ -167,86 +167,86 @@ def _detect_profile(*, workspace: Path, text_blob: str) -> str:
 
 
 def _llm_agent_taxonomy(*, core_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
-    rep = _representative_papers(core_rows=core_rows, terms=["agent", "tool", "planning", "memory", "rag"])
-    rep_str = ", ".join(rep[:4]) if rep else ""
+    """Domain-aware, paper-like taxonomy for tool-using LLM agents.
+
+    Design goal: avoid fragmentation (too many tiny H3s). Prefer fewer, thicker buckets
+    that can each sustain evidence-first writing.
+    """
+
+    def rep_str(terms: list[str]) -> str:
+        rep = _representative_papers(core_rows=core_rows, terms=terms)
+        return ", ".join(rep[:4]) if rep else ""
+
+    def with_rep(base: str, terms: list[str]) -> str:
+        rep = rep_str(terms)
+        return base + (f" Representative paper_id(s): {rep}." if rep else "")
+
     return [
         {
-            "name": "Agent Design & Architectures",
-            "description": (
-                "Architectures and control loops for tool-using language-model agents, including planner-executor patterns, "
-                "action spaces, tool interfaces, and reliability mechanisms."
-                + (f" Representative paper_id(s): {rep_str}." if rep_str else "")
+            "name": "Foundations & Interfaces",
+            "description": with_rep(
+                "Problem formulation and interface design for tool-using LLM agents: the agent loop, action spaces, and the tool/environment boundary that constrains reliability.",
+                ["agent", "tool", "environment", "api", "interface", "function"],
+            ),
+            "children": [
+                {
+                    "name": "Agent loop and action spaces",
+                    "description": "Agent loop abstractions (state → decide → act → observe), action representations, environment/tool modeling, and failure recovery assumptions.",
+                },
+                {
+                    "name": "Tool interfaces and orchestration",
+                    "description": "Calling tools/APIs (function calling), tool selection/routing, permissions/sandboxing, and orchestration patterns that affect correctness and safety.",
+                },
+            ],
+        },
+        {
+            "name": "Core Components (Planning + Memory)",
+            "description": with_rep(
+                "Core capability levers for long-horizon agents: planning/reasoning for action selection and memory/retrieval for grounded state.",
+                ["planning", "reasoning", "memory", "retrieval", "rag"],
             ),
             "children": [
                 {
                     "name": "Planning and reasoning loops",
-                    "description": "How agents decompose tasks, choose actions, and recover from failures across long-horizon trajectories.",
-                },
-                {
-                    "name": "Tool use and orchestration",
-                    "description": "Interfaces for calling external tools/APIs, routing, sandboxing/permissions, and error handling for tool execution.",
+                    "description": "Decomposition, plan search/verification, and robustness under partial observability and tool failures; how planning interleaves with tool calls.",
                 },
                 {
                     "name": "Memory and retrieval (RAG)",
-                    "description": "Persistent/episodic memory, retrieval policies, and grounding strategies for maintaining state over time.",
+                    "description": "Working vs long-term memory, retrieval policies, state summarization, grounding strategies, and how memory interacts with planning and tool use.",
+                },
+            ],
+        },
+        {
+            "name": "Learning, Adaptation & Coordination",
+            "description": with_rep(
+                "How agents improve with experience (reflection/RL/prompt/program optimization) and how multiple agents coordinate to divide labor or verify outputs.",
+                ["reflection", "self", "improve", "rl", "multi-agent", "coordination", "communication"],
+            ),
+            "children": [
+                {
+                    "name": "Self-improvement and adaptation",
+                    "description": "Reflection/critique/revision loops, preference optimization, and evaluation-driven prompt/program tuning; stability and reward hacking risks.",
                 },
                 {
                     "name": "Multi-agent coordination",
-                    "description": "Coordination protocols, role specialization, communication topologies, and aggregation/verification in multi-agent systems.",
+                    "description": "Role specialization, communication protocols, debate/verification patterns, aggregation, and coordination failure modes.",
                 },
             ],
         },
         {
-            "name": "Training, Adaptation & Alignment",
-            "description": "How agents are trained or adapted (SFT/RL/prompt optimization/reflection) and how alignment constraints shape behavior.",
+            "name": "Evaluation & Risks",
+            "description": with_rep(
+                "What we measure and why it is hard: benchmarks/protocols for tool-use and long-horizon tasks, plus risk surfaces and governance constraints for deployed agents.",
+                ["benchmark", "evaluation", "tool", "safety", "security", "attack", "governance"],
+            ),
             "children": [
                 {
-                    "name": "Self-improvement and reflection",
-                    "description": "Iterative improvement loops (reflection, critique, revision) and their stability/robustness trade-offs.",
+                    "name": "Benchmarks and evaluation protocols",
+                    "description": "Task suites, datasets, metrics, human evaluation, leakage/reproducibility concerns, and how evaluation choices bias conclusions.",
                 },
                 {
-                    "name": "Preference optimization and RL",
-                    "description": "RL-style objectives, reward models, environments, and pitfalls like reward hacking or distribution shift.",
-                },
-                {
-                    "name": "Prompt/program optimization",
-                    "description": "Search/optimization over prompts/programs, evaluation-driven iteration, and transfer across tasks/domains.",
-                },
-            ],
-        },
-        {
-            "name": "Evaluation & Benchmarks",
-            "description": "How agent systems are evaluated: task suites, tool-use benchmarks, metrics, and reproducibility/leakage concerns.",
-            "children": [
-                {
-                    "name": "Long-horizon task suites",
-                    "description": "Benchmarks that stress multi-step planning, partial observability, and recovery after mistakes.",
-                },
-                {
-                    "name": "Tool-use evaluation",
-                    "description": "Benchmarks emphasizing API/tool invocation correctness, latency/cost, and reliability under tool failures.",
-                },
-                {
-                    "name": "Real-world deployments",
-                    "description": "Constraints from enterprise/web settings: permissions, safety policies, observability, and monitoring.",
-                },
-            ],
-        },
-        {
-            "name": "Safety, Security & Governance",
-            "description": "Threat models and mitigations for agentic systems, including prompt injection, tool abuse, and governance controls.",
-            "children": [
-                {
-                    "name": "Attacks and vulnerabilities",
-                    "description": "Attack surfaces (prompt injection, data exfiltration, jailbreaks) and evaluation methodology for red-teaming.",
-                },
-                {
-                    "name": "Guardrails and defenses",
-                    "description": "Policy enforcement, sandboxing, validation/verification layers, and trade-offs with capability and usability.",
-                },
-                {
-                    "name": "Secure tool orchestration",
-                    "description": "Permissioning, isolation, auditing, and risk controls for agents interacting with external systems.",
+                    "name": "Safety, security, and governance",
+                    "description": "Threat models (prompt injection, data exfiltration, tool abuse), guardrails/monitoring, and governance controls for deployed agents.",
                 },
             ],
         },
@@ -254,8 +254,11 @@ def _llm_agent_taxonomy(*, core_rows: list[dict[str, str]]) -> list[dict[str, An
 
 
 def _gen_image_taxonomy(*, core_rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    """Paper-like taxonomy for generative image models (<=12 subsections)."""
+
     rep = _representative_papers(core_rows=core_rows, terms=["diffusion", "text", "image", "token", "gan", "edit"])
     rep_str = ", ".join(rep[:4]) if rep else ""
+
     return [
         {
             "name": "Foundations & Formulations",
@@ -279,34 +282,20 @@ def _gen_image_taxonomy(*, core_rows: list[dict[str, str]]) -> list[dict[str, An
             ],
         },
         {
-            "name": "Diffusion / Score / Flow Families",
-            "description": "Diffusion-style generators and score/flow-based views, including architectural trends and scaling recipes for high fidelity.",
+            "name": "Model Families (Diffusion & Token-based)",
+            "description": "Major model families for text-to-image generation and editing, and the trade-offs they induce (quality, speed, controllability).",
             "children": [
                 {
-                    "name": "U-Net diffusion and latent diffusion",
-                    "description": "U-Net backbones and latent-space diffusion; conditioning via cross-attention and implications for memory/latency.",
+                    "name": "Diffusion and latent diffusion",
+                    "description": "Diffusion-style pipelines, latent diffusion, and conditioning mechanisms (cross-attention) with implications for compute and controllability.",
                 },
                 {
-                    "name": "Diffusion transformers",
-                    "description": "Transformer backbones for diffusion (DiT-style) and how scaling and architecture choices affect quality and speed.",
+                    "name": "Diffusion transformers and scaling",
+                    "description": "Transformer backbones (DiT-style) and scaling/architecture choices that affect sample quality, training stability, and inference speed.",
                 },
                 {
-                    "name": "Solvers and distillation",
-                    "description": "Fast samplers/ODE solvers, progressive distillation, and consistency-style training targeting few-step generation.",
-                },
-            ],
-        },
-        {
-            "name": "Token and Autoregressive Families",
-            "description": "Discrete tokenization and transformer-style sequence modeling for image synthesis and editing.",
-            "children": [
-                {
-                    "name": "Tokenizers and codebooks",
-                    "description": "VQ-style tokenization, reconstruction loss, and artifacts that impact downstream generation and editing quality.",
-                },
-                {
-                    "name": "AR and masked token generation",
-                    "description": "Autoregressive and masked token predictors, decoding strategies, and trade-offs versus diffusion pipelines.",
+                    "name": "Token-based / AR / masked generation",
+                    "description": "Discrete tokenization, autoregressive or masked token predictors, and decoding strategies; comparisons versus diffusion pipelines.",
                 },
             ],
         },

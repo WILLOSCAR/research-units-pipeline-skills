@@ -9,11 +9,9 @@ description: |
   **Guardrail**: 只做结构；避免写长 prose 段落。
 ---
 
-# Skill: concept-graph
+# Concept Graph (prerequisites)
 
-## Goal
-
-- Make concept dependencies explicit to drive module ordering.
+Goal: represent tutorial concepts as a prerequisite DAG so modules can be planned and ordered.
 
 ## Inputs
 
@@ -23,14 +21,38 @@ description: |
 
 - `outline/concept_graph.yml`
 
-## Procedure (MUST FOLLOW)
-Uses: `output/TUTORIAL_SPEC.md`.
+## Output schema (recommended)
 
+A minimal, readable YAML schema:
 
-1. Extract key concepts (≥10 nodes).
-2. Add prerequisite edges and short node descriptions.
-3. Keep it structural (no prose explanations).
+- `nodes`: list of `{id, title, summary}`
+- `edges`: list of `{from, to}` meaning `from` is a prerequisite of `to`
 
-## Acceptance criteria (MUST CHECK)
+Constraints:
+- Graph should be acyclic (DAG).
+- Prefer 10–30 nodes for a medium tutorial.
 
-- [ ] Concept graph has nodes, edges, and descriptions.
+## Workflow
+
+1. Read `output/TUTORIAL_SPEC.md` and extract the concept list implied by objectives + running example.
+2. Normalize each concept into a node with a stable `id`.
+3. Add prerequisite edges and verify the graph is acyclic.
+4. Write `outline/concept_graph.yml`.
+
+## Definition of Done
+
+- [ ] `outline/concept_graph.yml` exists and is a DAG.
+- [ ] Nodes cover all learning objectives from `output/TUTORIAL_SPEC.md`.
+- [ ] Node titles are specific (not “misc”).
+
+## Troubleshooting
+
+### Issue: the graph looks like a linear list
+
+**Fix**:
+- Add intermediate prerequisites explicitly (e.g., “data model” before “evaluation protocol”).
+
+### Issue: cycles appear (A → B → A)
+
+**Fix**:
+- Split concepts or redefine edges so prerequisites flow in one direction.

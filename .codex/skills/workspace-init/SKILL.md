@@ -60,3 +60,15 @@ This skill is intentionally simple and deterministic.
   - `python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run`
 - Re-init and overwrite template files (be careful):
   - `python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run --overwrite`
+
+## Troubleshooting
+
+### Issue: workspace already exists and files were not overwritten
+
+**Fix**:
+- This is the default behavior. Re-run with `--overwrite` only if you want to replace template files.
+
+### Issue: you accidentally tried to use the repo root as a workspace
+
+**Fix**:
+- Always use `workspaces/<name>/` (the runner refuses to use the repo root).

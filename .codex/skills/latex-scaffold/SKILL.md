@@ -58,3 +58,15 @@ This is a deterministic conversion step; prose quality should already be address
   - `## Abstract` → `abstract` environment.
   - `[@Key]` or `[@Key1; @Key2]` → `\citep{Key}` / `\citep{Key1,Key2}`.
   - Inline markdown `**bold**` / `*italic*` / `` `code` `` → `\textbf{}` / `\emph{}` / `\texttt{}`.
+
+## Troubleshooting
+
+### Issue: the generated `latex/main.tex` still contains Markdown markers
+
+**Fix**:
+- Re-run `latex-scaffold` and ensure the input `output/DRAFT.md` is clean (no `##`, no `**`, no `[@...]` syntax that isn""t handled).
+
+### Issue: citations are missing in LaTeX
+
+**Fix**:
+- Ensure `citations/ref.bib` exists and the scaffold points bibliography to it; then compile with `latex-compile-qa`.

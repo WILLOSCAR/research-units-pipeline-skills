@@ -77,6 +77,7 @@ Uses: `outline/taxonomy.yml`.
 ### Notes
 
 - The script generates a baseline bullets-only outline and never overwrites non-placeholder work.
+- Paper-like default: it inserts `Introduction` and `Related Work & Prior Surveys` as fixed H2 sections before taxonomy-driven chapters.
 - In `pipeline.py --strict` it will be blocked only if placeholder markers (TODO/TBD/FIXME/(placeholder)) remain.
 
 ## Troubleshooting

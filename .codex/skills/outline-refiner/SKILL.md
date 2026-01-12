@@ -12,22 +12,11 @@ description: |
 # Outline Refiner (Planner pass, NO PROSE)
 
 Goal: make the outline *auditable* by adding an explicit planner stage that answers:
-- Do we have enough evidence per H3?
+- Do we have enough mapped evidence per H3?
 - Are the same few papers reused everywhere?
 - Are subsection axes still generic/scaffold-y?
 
-This is a deterministic “planner” unit: it should not write survey prose.
-
-
-## Roles (planner council, NO PROSE)
-
-Use a multi-role lens when interpreting the report (still bullets-only):
-
-- **Planner**: is the structure actually answerable (RQ + evidence needs per H3)?
-- **Librarian**: do we have enough mapped papers per H3; where are coverage gaps?
-- **Taxonomist**: are subsection titles and axes consistent and non-overlapping?
-- **Skeptic**: where is the outline generic/scaffold-y; where will writer produce template prose?
-- **Integrator**: do `outline.yml`, `mapping.tsv`, and briefs align (no drift / no stale artifacts)?
+This is a deterministic “planner” unit: it must not write survey prose.
 
 ## Inputs
 
@@ -35,7 +24,7 @@ Required:
 - `outline/outline.yml`
 - `outline/mapping.tsv`
 
-Optional (improves diagnosis):
+Optional (best-effort diagnosis; may be missing early in the pipeline):
 - `papers/paper_notes.jsonl` (for evidence levels)
 - `outline/subsection_briefs.jsonl` (for axis specificity)
 - `GOAL.md` (for scope drift hints)
@@ -45,16 +34,45 @@ Optional (improves diagnosis):
 - `outline/coverage_report.md` (bullets + small tables; NO PROSE)
 - `outline/outline_state.jsonl` (append-only JSONL; one record per run)
 
+## Workflow (planner pass, NO PROSE)
+
+1. Parse `outline/outline.yml` to enumerate all H3 subsections.
+2. Read `outline/mapping.tsv` and compute per-H3 coverage and reuse hotspots.
+3. If `papers/paper_notes.jsonl` exists, summarize evidence levels (fulltext/abstract/title) for mapped papers.
+4. If `outline/subsection_briefs.jsonl` exists, compute axis specificity (generic vs specific axes) per H3.
+5. Optionally use `GOAL.md` to flag obvious scope drift (keywords not reflected in outline).
+6. Write `outline/coverage_report.md` and append a run record to `outline/outline_state.jsonl`.
+
 ## Freeze policy
 
 - If `outline/coverage_report.refined.ok` exists, the script will not overwrite `outline/coverage_report.md`.
 
-## What this skill should *not* do
-
-- Do not rewrite the draft.
-- Do not fabricate evidence.
-- Do not silently change the approved outline.
-
 ## Script
 
-- `python .codex/skills/outline-refiner/scripts/run.py --workspace <ws>`
+### Quick Start
+
+- `python .codex/skills/outline-refiner/scripts/run.py --help`
+- `python .codex/skills/outline-refiner/scripts/run.py --workspace workspaces/<ws>`
+
+### All Options
+
+- `--workspace <dir>`: workspace root
+- `--unit-id <U###>`: unit id (optional; for logs)
+- `--inputs <semicolon-separated>`: override inputs (rare; prefer defaults)
+- `--outputs <semicolon-separated>`: override outputs (rare; prefer defaults)
+- `--checkpoint <C#>`: checkpoint id (optional; for logs)
+
+### Examples
+
+- Planner-pass diagnostics after `section-mapper`:
+  - `python .codex/skills/outline-refiner/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: report is missing evidence-level or axis-specificity columns
+
+**Cause**:
+- Optional inputs are missing (no `papers/paper_notes.jsonl` and/or no `outline/subsection_briefs.jsonl`).
+
+**Fix**:
+- Run `paper-notes` and/or `subsection-briefs`, then rerun `outline-refiner`.

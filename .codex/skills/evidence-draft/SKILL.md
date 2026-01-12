@@ -53,7 +53,7 @@ JSONL (one JSON object per line). Required fields per record:
 - `evidence_snippets` (list; each has `text`, `paper_id`, `citations`, `provenance`)
 - `definitions_setup` (list of cited bullets)
 - `claim_candidates` (3–5 items; each has `claim`, `citations`, `evidence_field`)
-- `concrete_comparisons` (>=3 items; each has `axis`, `A_papers`, `B_papers`, `citations`, `evidence_field`)
+- `concrete_comparisons` (>=3 items; each has `axis`, `A_papers`, `B_papers`, `citations`, `evidence_field`; may also include `A_highlights`/`B_highlights` with snippet-backed contrast anchors)
 - `evaluation_protocol` (list of concrete protocol bullets + citations)
 - `failures_limitations` (2–4 cited bullets)
 - `blocking_missing` (list[str]; if non-empty, drafting must stop)
@@ -106,7 +106,8 @@ Allowed `source`: `fulltext|abstract|paper_notes|title`.
 ### All Options
 
 - See `--help`.
-- Inputs: `outline/subsection_briefs.jsonl`, `papers/paper_notes.jsonl`, `citations/ref.bib`.
+- Inputs (required): `outline/subsection_briefs.jsonl`, `papers/paper_notes.jsonl`, `citations/ref.bib`.
+- Inputs (optional): `papers/evidence_bank.jsonl`, `outline/evidence_bindings.jsonl`.
 
 ### Examples
 
@@ -115,3 +116,15 @@ Allowed `source`: `fulltext|abstract|paper_notes|title`.
   - Ensure `outline/subsection_briefs.jsonl` exists (axes/clusters/plan filled).
   - Ensure `papers/paper_notes.jsonl` has usable evidence (abstract/fulltext/limitations).
   - Run: `python .codex/skills/evidence-draft/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: evidence packs have `blocking_missing` entries
+
+**Fix**:
+- Treat `blocking_missing` as a stop signal: enrich `papers/paper_notes.jsonl` / `papers/evidence_bank.jsonl` (or adjust scope) before drafting prose.
+
+### Issue: evidence snippets are empty or untraceable
+
+**Fix**:
+- Ensure each snippet includes provenance (paper id + location) and that `outline/evidence_bindings.jsonl` is non-empty for the subsection.

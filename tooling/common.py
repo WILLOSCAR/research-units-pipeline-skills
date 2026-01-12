@@ -41,6 +41,20 @@ def atomic_write_text(path: Path, content: str) -> None:
         raise
 
 
+def backup_existing(path: Path) -> Path:
+    """Rename an existing file to a timestamped `.bak.*` sibling and return the backup path."""
+    if not path.exists():
+        return path
+    stamp = datetime.now().replace(microsecond=0).isoformat().replace("-", "").replace(":", "")
+    backup = path.with_name(f"{path.name}.bak.{stamp}")
+    counter = 1
+    while backup.exists():
+        backup = path.with_name(f"{path.name}.bak.{stamp}.{counter}")
+        counter += 1
+    path.replace(backup)
+    return backup
+
+
 def parse_semicolon_list(value: str | None) -> list[str]:
     if not value:
         return []

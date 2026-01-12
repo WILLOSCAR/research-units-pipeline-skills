@@ -16,26 +16,47 @@ Goal: write prose in **small, independently verifiable units** so we can catch:
 - template boilerplate
 - subsection→citation drift
 
-This skill produces multiple files under `sections/`, plus a machine-readable manifest.
+This skill produces multiple files under `sections/`, plus a machine-readable manifest consumed by `section-merger`.
+
+## Inputs
+
+- `DECISIONS.md` (must include `Approve C2` before writing)
+- `outline/outline.yml` (drives ordering + subsection ids)
+- `outline/subsection_briefs.jsonl` (rq/axes/clusters/paragraph_plan)
+- `outline/evidence_drafts.jsonl` (evidence packs: snippets + comparisons + limitations)
+- `outline/evidence_bindings.jsonl` (allowed evidence ids / citation scope per H3)
+- `citations/ref.bib` (defines valid citation keys)
 
 ## Outputs
 
 Required:
 - `sections/sections_manifest.jsonl`
+- `sections/`
+
+Optional (pipeline-dependent):
 - `sections/abstract.md`
 - `sections/open_problems.md`
 - `sections/conclusion.md`
+- `sections/evidence_note.md`
 
-Per-outline units:
-- `sections/S<section_id>.md` for H2-only sections (e.g., `S1.md`)
-- `sections/S<sub_id>.md` for each H3 (e.g., `2.1` → `S2_1.md`)
+## Workflow (recommended two-pass)
 
-Optional:
-- `sections/evidence_note.md` (recommended when evidence is abstract-only)
+0. Gate check: confirm `DECISIONS.md` has `Approve C2` (scope+outline approval).
+1. Use `outline/outline.yml` to enumerate H2/H3 units and determine write order.
+2. For each H3, plan paragraphs from `outline/subsection_briefs.jsonl` + `outline/evidence_drafts.jsonl`:
+   - pick 3–5 contrasts from `concrete_comparisons` (use >=2 in the prose)
+   - pick 2–3 evidence snippets with **concrete nouns** (benchmarks/datasets/tools/numbers)
+   - pick an evaluation anchor from `evaluation_protocol` (dataset/metric/protocol when available)
+   - pick failures/limitations from `failures_limitations` (use >=1 in the subsection)
+3. Write the H3 body file under `sections/` (see contract below).
+4. Enforce citation scope:
+   - every cited key must exist in `citations/ref.bib`
+   - every citation used in a subsection must be allowed by `outline/evidence_bindings.jsonl`
+5. Write/update `sections/sections_manifest.jsonl` so downstream merge is deterministic.
 
-## File contract (H3)
+## File contract (H3 body files)
 
-For `sections/S2_1.md` (H3 body files):
+For each H3 file (e.g., `sections/S2_1.md`):
 
 - **Body only**: MUST NOT contain headings (`#`, `##`, `###`).
 - **Evidence-first**: MUST include citations `[@BibKey]` (survey default: `>=3` unique citations per H3).
@@ -43,13 +64,16 @@ For `sections/S2_1.md` (H3 body files):
   - explicit **contrast** phrasing (e.g., whereas / in contrast / 相比 / 不同于)
   - an **evaluation anchor** (benchmark/dataset/metric/protocol/评测)
   - at least one explicit **limitation / provisional** sentence (limited/unclear/受限/待验证)
+- **Depth target (survey-quality)**:
+  - Aim for **6–10 paragraphs** per H3 (not 1–2).
+  - Aim for **~800–1400 words** per H3 (shorter only if the evidence pack is explicitly thin and you mark it as provisional).
 - **No pipeline voice**: do not leak scaffold phrases like “working claim”, “axes we track”, “verification targets”.
 
-## Roles (recommended two-pass)
+## Roles (optional but effective)
 
 ### Role A: Argument Planner
 
-For each H3 subsection, extract from evidence packs:
+For each H3 subsection, extract from `outline/evidence_drafts.jsonl`:
 - 1 subsection thesis (subsection-specific)
 - 3 snippet-derived insight candidates (pick from `claim_candidates` / `evidence_snippets`; each should name at least one concrete artifact like a benchmark/dataset/tool)
 - 2 contrasts (A vs B) grounded in mapped citations
@@ -60,33 +84,46 @@ If you can’t do this without guessing, stop and push the gap upstream (`paper-
 
 ### Role B: Writer
 
-Write 2–3 paragraphs that realize the plan:
-- paragraph 1: tension/RQ + first contrast
-- paragraph 2: second contrast + evaluation anchor
-- paragraph 3 (optional): limitation + bridge to next subsection
+Write **6–10 paragraphs** that realize the plan (survey-quality default):
+- paragraph 1: scope/tension + define the comparison axis
+- paragraph 2: approach family / cluster A (mechanism + assumptions) + citations
+- paragraph 3: cluster A evaluation/trade-offs (benchmarks/metrics/latency/compute) + citations
+- paragraph 4: approach family / cluster B (contrast with A) + citations
+- paragraph 5: cluster B evaluation/trade-offs + citations
+- paragraph 6: cross-paper synthesis paragraph (>=2 citations in the same paragraph)
+- paragraph 7: limitations/failure modes + what needs verification (especially under abstract-only evidence)
+- paragraph 8 (optional): practical implication / design guideline grounded in the contrasts
+- paragraph 9 (optional): bridge to next subsection (use transition map if available)
 
-Do not reuse framing across subsections (ban phrases like “a useful way to compare…”, “taken together…”, “dominant trade-offs…”); your sentences must be anchored in the subsection’s specific evidence snippets.
-
-Use `grad-paragraph` as a micro-skill for each paragraph.
+Do not reuse framing across subsections; sentences must be anchored in the subsection’s specific evidence snippets.
 
 ### Role C: Skeptic (quick pass)
 
 Delete or rewrite any sentence that is:
 - copy-pastable into other subsections
-- purely generic (“depends on metrics”, “important considerations include…”) without concrete nouns
+- purely generic without concrete nouns
 
-## Inputs
+## Script
 
-- `outline/outline.yml`
-- `outline/subsection_briefs.jsonl`
-- `outline/evidence_drafts.jsonl`
-- `outline/evidence_bindings.jsonl` (allowed citations per H3)
-- `citations/ref.bib`
-- `DECISIONS.md`
+### Quick Start
 
-## Quick Start
-
+- `python .codex/skills/subsection-writer/scripts/run.py --help`
 - `python .codex/skills/subsection-writer/scripts/run.py --workspace workspaces/<ws>`
+
+### All Options
+
+- `--workspace <dir>`: workspace root
+- `--unit-id <U###>`: unit id (optional; for logs)
+- `--inputs <semicolon-separated>`: override inputs (rare; prefer defaults)
+- `--outputs <semicolon-separated>`: override outputs (rare; prefer defaults)
+- `--checkpoint <C#>`: checkpoint id (optional; for logs)
+
+### Examples
+
+- Draft all section files after evidence packs are ready:
+  - Ensure `outline/evidence_drafts.jsonl` is complete (no placeholders).
+  - Ensure `DECISIONS.md` has `Approve C2`.
+  - Run: `python .codex/skills/subsection-writer/scripts/run.py --workspace workspaces/<ws>`
 
 ## Troubleshooting
 
@@ -102,10 +139,10 @@ Delete or rewrite any sentence that is:
 - Rebuild the subsection using `grad-paragraph` (tension → contrast → eval anchor → limitation).
 - If evidence packs don’t contain concrete comparison snippets, strengthen upstream evidence.
 
-### Issue: citations outside mapped subset
+### Issue: citations outside allowed binding set
 
 **Symptom**:
-- “cites keys not mapped to subsection …”
+- “cites keys not mapped/bound to subsection …”
 
 **Fix**:
-- Either (a) replace with mapped citations, or (b) fix `outline/mapping.tsv` + rerun `evidence-binder`.
+- Either (a) replace with bound citations, or (b) fix `outline/mapping.tsv` + rerun `evidence-binder`.

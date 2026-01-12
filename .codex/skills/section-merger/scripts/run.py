@@ -53,13 +53,13 @@ def _parse_transitions(text: str) -> tuple[dict[tuple[str, str], str], dict[tupl
         if not line.startswith("-"):
             continue
         # H3: - 2.1 → 2.2: ...
-        m = re.match(r"^-\s+([0-9]+\.[0-9]+)\s+→\s+([0-9]+\.[0-9]+):\s+(.*)$", line)
+        m = re.match(r"^\-\s+([0-9]+\.[0-9]+)\s+→\s+([0-9]+\.[0-9]+):\s+(.*)$", line)
         if m:
             a, b, body = m.group(1), m.group(2), m.group(3)
             h3_map[(a, b)] = body.strip()
             continue
         # H2: - Title A → Title B: ...
-        m2 = re.match(r"^-\s+(.+?)\s+→\s+(.+?):\s+(.*)$", line)
+        m2 = re.match(r"^\-\s+(.+?)\s+→\s+(.+?):\s+(.*)$", line)
         if m2:
             a, b, body = m2.group(1).strip(), m2.group(2).strip(), m2.group(3).strip()
             if a and b and body:
@@ -119,13 +119,6 @@ def main() -> int:
         "sections/conclusion.md",
     ]
 
-    # Required visuals (evidence-first).
-    required_visuals = [
-        "outline/timeline.md",
-        "outline/tables.md",
-        "outline/figures.md",
-    ]
-
     # Required transitions map.
     required_transitions = [
         "outline/transitions.md",
@@ -146,7 +139,7 @@ def main() -> int:
                 unit_files.append(f"sections/{_slug_unit_id(sid)}.md")
 
     # Probe all required inputs. We do NOT write a partial draft with TODO markers.
-    for rel in required_global + unit_files + required_visuals + required_transitions:
+    for rel in required_global + unit_files + required_transitions:
         _require(rel)
 
     status = "PASS" if not missing else "FAIL"
@@ -190,11 +183,6 @@ def main() -> int:
     out_lines.append(_require("sections/abstract.md").strip())
     out_lines.append("")
 
-    note = _read_text(workspace / "sections" / "evidence_note.md").strip()
-    if note:
-        out_lines.append(note)
-        out_lines.append("")
-
     for idx, sec in enumerate(outline_sections):
         sec_title = sec["title"]
         out_lines.append(f"## {sec_title}")
@@ -228,27 +216,6 @@ def main() -> int:
             if t:
                 out_lines.append(t)
                 out_lines.append("")
-
-    timeline = _read_text(workspace / "outline" / "timeline.md").strip()
-    if timeline:
-        out_lines.append("## Timeline / Evolution")
-        out_lines.append("")
-        out_lines.append(timeline)
-        out_lines.append("")
-
-    tables = _read_text(workspace / "outline" / "tables.md").strip()
-    if tables:
-        out_lines.append("## Evidence-First Tables")
-        out_lines.append("")
-        out_lines.append(tables)
-        out_lines.append("")
-
-    figures = _read_text(workspace / "outline" / "figures.md").strip()
-    if figures:
-        out_lines.append("## Figure Specs (for the final PDF)")
-        out_lines.append("")
-        out_lines.append(figures)
-        out_lines.append("")
 
     out_lines.append(_require("sections/open_problems.md").strip())
     out_lines.append("")

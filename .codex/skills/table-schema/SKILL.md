@@ -57,3 +57,15 @@ Purpose: prevent “ugly tables” by fixing the **information architecture firs
 - Create schema-first table specs:
   - Ensure `outline/evidence_drafts.jsonl` exists so columns can be tied to evidence fields.
   - Run: `python .codex/skills/table-schema/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: schema columns are not grounded in evidence
+
+**Fix**:
+- For each column, specify exactly which evidence-pack fields will populate it; remove columns that would require inventing facts.
+
+### Issue: schema is too broad (cannot be filled)
+
+**Fix**:
+- Narrow the table question; prefer two smaller, fillable tables over one “all-in-one” table.

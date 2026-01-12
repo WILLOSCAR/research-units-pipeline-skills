@@ -24,16 +24,9 @@ def _is_placeholder(text: str) -> bool:
 
 
 def _backup_existing(path: Path) -> None:
-    from datetime import datetime
+    from tooling.common import backup_existing
 
-    stamp = datetime.now().replace(microsecond=0).isoformat().replace('-', '').replace(':', '')
-    backup = path.with_name(f"{path.name}.bak.{stamp}")
-    counter = 1
-    while backup.exists():
-        backup = path.with_name(f"{path.name}.bak.{stamp}.{counter}")
-        counter += 1
-    path.replace(backup)
-
+    backup_existing(path)
 
 def _tokenize(text: str) -> set[str]:
     toks = set()

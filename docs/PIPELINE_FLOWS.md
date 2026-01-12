@@ -15,6 +15,7 @@ flowchart LR
 
   subgraph "C0 - Init"
     WS[workspace-init]
+    PR0[pipeline-router]
   end
 
   subgraph "C1 - Retrieval & core set"
@@ -29,6 +30,7 @@ flowchart LR
     OB[outline-builder]
     SM[section-mapper]
     OR[outline-refiner]
+    PR2[pipeline-router]
     C2A{{Approve C2 (HUMAN)}}:::human
   end
 
@@ -59,7 +61,7 @@ flowchart LR
     LCQ[latex-compile-qa]:::optional
   end
 
-  WS --> LE --> DR --> TB --> OB --> SM --> OR --> C2A --> PT --> PN --> SB --> CV --> EB --> ED --> CMR --> TS --> TF --> SV --> SW --> TW --> MG --> DP --> GR --> PA
+  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CV --> EB --> ED --> CMR --> TS --> TF --> SV --> SW --> TW --> MG --> DP --> GR --> PA
   KX -.-> LE
   SSH -.-> TB
   PA -.-> LS -.-> LCQ
@@ -74,6 +76,7 @@ flowchart LR
 
   subgraph "C0 - Init"
     WS[workspace-init]
+    PR0[pipeline-router]
   end
 
   subgraph "C1 - Retrieval & core set"
@@ -88,6 +91,7 @@ flowchart LR
     OB[outline-builder]
     SM[section-mapper]
     OR[outline-refiner]
+    PR2[pipeline-router]
     C2A{{Approve C2 (HUMAN)}}:::human
   end
 
@@ -118,9 +122,36 @@ flowchart LR
     LCQ[latex-compile-qa]
   end
 
-  WS --> LE --> DR --> TB --> OB --> SM --> OR --> C2A --> PT --> PN --> SB --> CV --> EB --> ED --> CMR --> TS --> TF --> SV --> SW --> TW --> MG --> DP --> GR --> PA --> LS --> LCQ
+  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CV --> EB --> ED --> CMR --> TS --> TF --> SV --> SW --> TW --> MG --> DP --> GR --> PA --> LS --> LCQ
   KX -.-> LE
   SSH -.-> TB
+```
+
+## lit-snapshot (C0–C2)
+
+```mermaid
+flowchart LR
+  classDef optional stroke-dasharray: 5 5;
+
+  subgraph "C0 - Init"
+    WS[workspace-init]
+    PR0[pipeline-router]
+  end
+
+  subgraph "C1 - Retrieval"
+    KX[keyword-expansion]:::optional
+    AS[arxiv-search]
+    DR[dedupe-rank]
+  end
+
+  subgraph "C2 - Structure + snapshot [NO LONG PROSE]"
+    TB[taxonomy-builder]
+    OB[outline-builder]
+    PW[prose-writer]
+  end
+
+  WS --> PR0 --> AS --> DR --> TB --> OB --> PW
+  KX -.-> AS
 ```
 
 ## tutorial (C0–C3)
@@ -131,6 +162,7 @@ flowchart LR
 
   subgraph "C0 - Init"
     WS[workspace-init]
+    PR0[pipeline-router]
   end
 
   subgraph "C1 - Spec"
@@ -148,7 +180,7 @@ flowchart LR
     TMW[tutorial-module-writer]
   end
 
-  WS --> TS --> CG --> MP --> EB --> C2A --> TMW
+  WS --> PR0 --> TS --> CG --> MP --> EB --> C2A --> TMW
 ```
 
 ## systematic-review (C0–C4)
@@ -159,6 +191,7 @@ flowchart LR
 
   subgraph "C0 - Init"
     WS[workspace-init]
+    PR0[pipeline-router]
   end
 
   subgraph "C1 - Protocol"
@@ -179,7 +212,7 @@ flowchart LR
     SW[synthesis-writer]
   end
 
-  WS --> PR --> C1A --> SCM --> EF --> BA --> SW
+  WS --> PR0 --> PR --> C1A --> SCM --> EF --> BA --> SW
 ```
 
 ## peer-review (C0–C3)
@@ -188,6 +221,7 @@ flowchart LR
 flowchart LR
   subgraph "C0 - Init"
     WS[workspace-init]
+    PR0[pipeline-router]
   end
 
   subgraph "C1 - Claims"
@@ -203,6 +237,6 @@ flowchart LR
     RW[rubric-writer]
   end
 
-  WS --> CE --> EA --> RW
+  WS --> PR0 --> CE --> EA --> RW
   CE --> NM --> RW
 ```

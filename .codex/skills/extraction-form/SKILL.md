@@ -9,29 +9,63 @@ description: |
   **Guardrail**: 严格按 schema 填字段；不要在此阶段写 narrative synthesis（那是 `synthesis-writer`）。
 ---
 
-# Skill: extraction-form
+# Extraction Form (systematic review)
 
-## Goal
-
-- Create a consistent extraction table for synthesis.
+Goal: create a consistent, analysis-ready extraction table that is directly grounded in the protocol.
 
 ## Inputs
 
+Required:
 - `papers/screening_log.csv`
 - `output/PROTOCOL.md`
+
+Optional:
+- `papers/paper_notes.jsonl` (if you already have structured notes)
 
 ## Outputs
 
 - `papers/extraction_table.csv`
 
-## Procedure (MUST FOLLOW)
-Uses: `papers/screening_log.csv`, `output/PROTOCOL.md`.
+## Workflow
 
+1. Determine the included set
+   - From `papers/screening_log.csv`, collect all rows with `decision=include`.
 
-1. Derive extraction fields from the protocol.
-2. For each included paper, fill extraction fields and capture key outcomes/limitations.
-3. Keep provenance (paper id/url) for each row.
+2. Build/confirm the schema
+   - Use the extraction schema defined in `output/PROTOCOL.md`.
+   - If the protocol does not define fields yet, stop and update `output/PROTOCOL.md` first.
 
-## Acceptance criteria (MUST CHECK)
+3. Populate `papers/extraction_table.csv`
+   - One row per included paper.
+   - If `papers/paper_notes.jsonl` exists, use it as a structured source for values/provenance (but keep the table schema governed by `output/PROTOCOL.md`).
+   - Always include provenance columns:
+     - `paper_id`, `title`, `year`, `url`
+   - For each protocol-defined field:
+     - fill concrete values (units explicit)
+     - use an explicit sentinel for unknowns (recommended: empty cell + `notes`)
 
-- [ ] All included papers have extraction rows.
+4. Keep it auditable
+   - If a value is inferred (not directly stated), mark it in a notes column.
+   - Do not write synthesis; only extraction.
+
+5. Quick QA
+   - Ensure 1:1 coverage: included papers == extraction rows.
+   - Spot-check a few rows against the paper text/notes.
+
+## Definition of Done
+
+- [ ] `papers/extraction_table.csv` exists.
+- [ ] Every included paper from `papers/screening_log.csv` has exactly one extraction row.
+- [ ] Column meanings match `output/PROTOCOL.md` (no ad-hoc columns without updating the protocol).
+
+## Troubleshooting
+
+### Issue: the protocol does not specify extraction fields
+
+**Fix**:
+- Update `output/PROTOCOL.md` (extraction schema section) and re-run extraction.
+
+### Issue: extraction table mixes narrative text with fields
+
+**Fix**:
+- Move narrative into a `notes` column and keep the rest as atomic values (numbers/enums/short strings).

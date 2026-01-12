@@ -54,3 +54,15 @@ Purpose: generate readable, citation-backed tables from evidence packs, with str
   - Ensure `outline/evidence_drafts.jsonl` has empty `blocking_missing`.
   - Ensure `citations/ref.bib` contains all cited keys.
   - Run: `python .codex/skills/table-filler/scripts/run.py --workspace workspaces/<ws>`
+
+## Troubleshooting
+
+### Issue: table cells become long prose
+
+**Fix**:
+- Convert cells into atomic facts/comparisons and keep prose out of table cells; move narrative into a draft section.
+
+### Issue: rows cannot be filled from evidence packs
+
+**Fix**:
+- Treat this as an evidence gap: enrich `outline/evidence_drafts.jsonl` or adjust the schema in `outline/table_schema.md`.

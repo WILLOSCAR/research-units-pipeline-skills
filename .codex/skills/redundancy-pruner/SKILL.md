@@ -24,3 +24,15 @@ Purpose: make the survey feel intentional by removing “looped template paragra
 2) Choose one location for global disclaimers (e.g., a single evidence note) and delete duplicates.
 3) Rewrite repeated transitions into subsection-specific bridges (without adding facts).
 4) Verify each subsection still has its unique thesis + contrasts.
+
+## Troubleshooting
+
+### Issue: pruning removes subsection-specific content
+
+**Fix**:
+- Restrict edits to obviously repeated boilerplate; keep anything that encodes a unique comparison/limitation for that subsection.
+
+### Issue: pruning changes citation placement
+
+**Fix**:
+- Undo; citations must remain in the same subsection and keys must not change.

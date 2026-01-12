@@ -68,7 +68,8 @@ Before writing, load the structural and coherence inputs: `outline/outline.yml` 
    - If you cannot do this without guessing, stop and push the gap upstream (strengthen briefs/notes/evidence packs) rather than writing template prose.
 
 4. **Writer pass (write per subsection; avoid global dump)**
-   - Write 2–3 paragraphs per H3 following `paragraph_plan`.
+   - Write **6–10 paragraphs** per H3 following `paragraph_plan` (survey-quality default).
+   - Aim for **~800–1400 words** per H3 (shorter only if the evidence pack is explicitly thin and you mark it as provisional).
    - Keep prose natural, but make every paragraph an argument: claim → cited evidence → synthesis.
    - **Evidence note placement**: if the run is abstract-only, put a single short evidence note once (e.g., in the introduction or an “Evidence note” subsection). Do *not* repeat the same “abstract-only” disclaimer sentence in every H3; only mention verification needs when they are subsection-specific.
    - Enforce `scope_rule` strictly to prevent silent drift; if you include an out-of-scope paper as a bridge, justify it once and keep it secondary.
@@ -101,6 +102,7 @@ Do not emit any of the following in final prose (rewrite upstream instead):
 - [ ] Every subsection has citations and at least one paragraph with >=2 citations (cross-paper synthesis).
 - [ ] No undefined citation keys (all keys exist in `citations/ref.bib`).
 - [ ] Scope is consistent with `GOAL.md` and `scope_rule`.
+- [ ] Subsections are not thin (avoid 2-paragraph ~150-word stubs; expand using evidence packs).
 
 ## Helper script (bootstrap)
 

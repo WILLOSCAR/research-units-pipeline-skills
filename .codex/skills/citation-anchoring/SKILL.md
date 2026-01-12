@@ -27,3 +27,15 @@ Purpose: prevent a common failure mode:
 
 If you intentionally restructure across subsections:
 - delete `output/citation_anchors.prepolish.jsonl` and regenerate a new baseline.
+
+## Troubleshooting
+
+### Issue: baseline anchor file is missing
+
+**Fix**:
+- Run `draft-polisher` once to generate `output/citation_anchors.prepolish.jsonl`, then rerun the anchoring check.
+
+### Issue: citations intentionally moved across subsections
+
+**Fix**:
+- Delete `output/citation_anchors.prepolish.jsonl` and regenerate a new baseline (then treat that as the new regression anchor).

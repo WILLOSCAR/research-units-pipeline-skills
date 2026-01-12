@@ -48,3 +48,15 @@ Uses: `templates/UNITS.*.csv`.
 
 - Allowed: edit `UNITS.csv`, `STATUS.md`, `CHECKPOINTS.md` (for adding custom checkpoints).
 - Not allowed: change pipeline files in `pipelines/` unless requested.
+
+## Troubleshooting
+
+### Issue: `PIPELINE.lock.md` is missing
+
+**Fix**:
+- Run `pipeline-router` (Mode A) or `python scripts/pipeline.py kickoff|init` to create `PIPELINE.lock.md` before generating units.
+
+### Issue: `UNITS.csv` becomes invalid CSV after edits
+
+**Fix**:
+- Keep semicolon-delimited `inputs/outputs` and avoid unescaped commas inside fields; validate with `python scripts/validate_repo.py`.

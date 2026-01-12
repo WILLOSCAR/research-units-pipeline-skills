@@ -92,3 +92,15 @@ If PDFs are missing, the script writes a to-do list:
 
 - Downloads are cached under `papers/pdfs/`; extracted text is cached under `papers/fulltext/`.
 - The script does not overwrite existing extracted text unless you delete the `.txt` file.
+
+## Troubleshooting
+
+### Issue: no PDFs are available to download
+
+**Fix**:
+- Use `evidence_mode: abstract` (default) or provide local PDFs under `papers/pdfs/` and rerun with `--local-pdfs-only`.
+
+### Issue: extracted text is empty/garbled
+
+**Fix**:
+- Try a different extraction backend if supported; otherwise mark the paper as `abstract` evidence level and avoid strong fulltext claims.

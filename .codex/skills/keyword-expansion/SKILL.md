@@ -34,3 +34,15 @@ description: |
 
 - [ ] `queries.md` contains updated keywords and excludes.
 - [ ] Changes do not contradict `DECISIONS.md` scope constraints.
+
+## Troubleshooting
+
+### Issue: keyword expansion causes scope drift
+
+**Fix**:
+- Re-read `DECISIONS.md` scope notes and add explicit exclusions in `queries.md` for common false positives.
+
+### Issue: query count explodes and becomes unmanageable
+
+**Fix**:
+- Keep a small set of high-signal queries; merge synonyms into the same query where possible instead of adding many near-duplicates.

@@ -89,7 +89,10 @@ def main() -> int:
 
     briefs: list[dict[str, Any]] = []
     for sec_id, sec_title, sub_id, sub_title, bullets in _iter_subsections(outline):
-        rq = _extract_prefixed(bullets, "rq") or f"What are the main approaches and comparisons in {sub_title}?"
+        rq = _extract_prefixed(bullets, "rq") or f"Which design choices in {sub_title} drive the major trade-offs, and how are those trade-offs measured?"
+        rq_norm = str(rq or "").strip()
+        if re.match(r"(?i)^what\s+are\s+the\s+main\s+approaches", rq_norm):
+            rq = f"Which design choices in {sub_title} drive the major trade-offs, and how are those trade-offs measured?"
 
         evidence_needs = _extract_list_prefixed(bullets, "evidence needs")
         outline_axes = _extract_list_prefixed(bullets, "comparison axes")
@@ -153,16 +156,9 @@ def main() -> int:
 
 
 def _backup_existing(path: Path) -> None:
-    from datetime import datetime
+    from tooling.common import backup_existing
 
-    stamp = datetime.now().replace(microsecond=0).isoformat().replace("-", "").replace(":", "")
-    backup = path.with_name(f"{path.name}.bak.{stamp}")
-    counter = 1
-    while backup.exists():
-        backup = path.with_name(f"{path.name}.bak.{stamp}.{counter}")
-        counter += 1
-    path.replace(backup)
-
+    backup_existing(path)
 
 def _looks_refined_jsonl(path: Path) -> bool:
     if not path.exists() or path.stat().st_size == 0:
@@ -505,8 +501,16 @@ def _required_evidence_fields(*, sub_title: str, axes: list[str], goal: str) -> 
 
 
 def _paper_tags(p: PaperRef) -> set[str]:
+    """Lightweight keyword tags for clustering (bootstrap only).
+
+    These tags are intentionally heuristic and title-only so the pipeline remains
+    deterministic without needing an LLM in the planner pass.
+    """
+
     text = f"{p.title}".lower()
     tags: set[str] = set()
+
+    # Vision / generative (legacy tags kept for other topics).
     if "diffusion" in text:
         tags.add("diffusion")
     if "transformer" in text or "dit" in text:
@@ -523,6 +527,43 @@ def _paper_tags(p: PaperRef) -> set[str]:
         tags.add("distillation")
     if "guidance" in text or "classifier-free" in text or "cfg" in text:
         tags.add("guidance")
+
+    # Agentic / LLM systems (bootstrap from titles).
+    if re.search(r"agent(?:s|ic)?", text) or any(k in text for k in ["autogpt", "react", "toolformer", "mrkl"]):
+        tags.add("agents")
+    if any(
+        k in text
+        for k in [
+            "tool",
+            "function call",
+            "function-call",
+            "function calling",
+            "api",
+            "schema",
+            "protocol",
+            "mcp",
+            "orchestrat",
+            "router",
+        ]
+    ):
+        tags.add("tool-use")
+    if any(k in text for k in ["plan", "planner", "planning", "reason", "tree of thought", "tot", "mcts", "search"]):
+        tags.add("planning")
+    if any(k in text for k in ["memory", "retriev", "rag", "vector", "embedding", "index", "cache"]):
+        tags.add("memory")
+    if any(k in text for k in ["multi-agent", "multiagent", "society", "debate", "swarm", "coordination", "collaborat"]):
+        tags.add("multi-agent")
+    if any(k in text for k in ["safety", "secure", "security", "guard", "jailbreak", "injection", "threat", "sandbox", "permission"]):
+        tags.add("security")
+    if any(k in text for k in ["code", "coding", "program", "software", "debug", "bug", "repo", "github"]):
+        tags.add("code")
+    if any(k in text for k in ["web", "browser", "search", "crawl", "scrape"]):
+        tags.add("web")
+    if any(k in text for k in ["workflow", "orchestration", "pipeline"]):
+        tags.add("orchestration")
+    if any(k in text for k in ["reflection", "self-refine", "self improve", "self-improve"]):
+        tags.add("reflection")
+
     return tags
 
 
@@ -577,6 +618,17 @@ def _build_clusters(*, paper_refs: list[PaperRef], goal: str, want: int) -> list
             "evaluation": "Evaluation / benchmark-focused works",
             "distillation": "Distillation / acceleration",
             "guidance": "Guidance strategies",
+            "agents": "Agent frameworks / architectures",
+            "tool-use": "Tool-use and function calling",
+            "planning": "Planning / reasoning loops",
+            "memory": "Memory / retrieval augmentation",
+            "multi-agent": "Multi-agent coordination",
+            "security": "Safety / security / guardrails",
+            "code": "Code agents / software tasks",
+            "web": "Web navigation / search",
+            "orchestration": "Orchestration / workflows",
+            "reflection": "Self-improvement / reflection",
+            "video": "Video / temporal generation",
         }.get(tag, f"{tag} cluster")
         add_cluster(label, f"Grouped by keyword tag `{tag}` from titles (bootstrap).", ps)
         if len(clusters) >= want:
@@ -640,44 +692,74 @@ def _build_clusters(*, paper_refs: list[PaperRef], goal: str, want: int) -> list
 
 
 def _paragraph_plan(*, sub_title: str, rq: str, axes: list[str], clusters: list[dict[str, Any]], evidence_summary: dict[str, int]) -> list[dict[str, Any]]:
+    """Return a paragraph-by-paragraph writing plan (NO PROSE).
+
+    Survey default: prefer fewer, thicker paragraphs with explicit contrasts and an evaluation anchor.
+    """
+
     has_fulltext = int(evidence_summary.get("fulltext", 0) or 0) > 0
     mode = "grounded" if has_fulltext else "provisional"
 
     cluster_labels = [c.get("label") for c in clusters if c.get("label")]
     c1 = cluster_labels[0] if cluster_labels else "Cluster A"
     c2 = cluster_labels[1] if len(cluster_labels) > 1 else "Cluster B"
+    c3 = cluster_labels[2] if len(cluster_labels) > 2 else ""
 
-    axes_hint = ", ".join(axes[:4])
+    axes_hint = ", ".join(axes[:5])
 
     plan = [
         {
             "para": 1,
             "intent": "Define scope, setup, and the subsection thesis (no pipeline jargon).",
-            "focus": ["scope boundary", "key definitions"],
-            "use_clusters": [c1],
+            "focus": ["scope boundary", "key definitions", "thesis vs neighboring subsections"],
+            "use_clusters": [c1] if c1 else [],
         },
         {
             "para": 2,
-            "intent": "Make the main comparison: contrast clusters along concrete axes.",
-            "focus": [f"compare {c1} vs {c2}", f"axes: {axes_hint}"],
-            "use_clusters": [c1, c2],
+            "intent": "Explain approach family / cluster A: mechanism + assumptions + what it optimizes for (evidence-first).",
+            "focus": [f"cluster: {c1}", f"axes: {axes_hint}", "assumptions"],
+            "use_clusters": [c1] if c1 else [],
         },
         {
             "para": 3,
-            "intent": "Discuss evaluation protocols + limitations; end with open questions if evidence is weak.",
-            "focus": ["evaluation protocol", "failure modes", f"evidence mode: {mode}"],
-            "use_clusters": [c2] if len(cluster_labels) > 1 else [c1],
+            "intent": "Cluster A evaluation/trade-offs: where it works, costs (compute/latency), and typical failure modes.",
+            "focus": [f"cluster: {c1}", "evaluation anchor", "efficiency", "failure modes"],
+            "use_clusters": [c1] if c1 else [],
+        },
+        {
+            "para": 4,
+            "intent": "Explain approach family / cluster B (contrast with A): mechanism + assumptions + what it optimizes for.",
+            "focus": [f"cluster: {c2}", f"contrast with {c1}", f"axes: {axes_hint}"],
+            "use_clusters": [c2] if c2 else ([c1] if c1 else []),
+        },
+        {
+            "para": 5,
+            "intent": "Cluster B evaluation/trade-offs: where it works, costs, and failure modes (mirror A for comparability).",
+            "focus": [f"cluster: {c2}", "evaluation anchor", "efficiency", "failure modes"],
+            "use_clusters": [c2] if c2 else ([c1] if c1 else []),
+        },
+        {
+            "para": 6,
+            "intent": "Cross-paper synthesis: compare clusters along the main axes and summarize what the evaluation evidence actually supports.",
+            "focus": [f"compare {c1} vs {c2}", "multiple citations in one paragraph", f"axes: {axes_hint}"],
+            "use_clusters": [x for x in [c1, c2, c3] if x],
+        },
+        {
+            "para": 7,
+            "intent": "Limitations + verification targets; end with a concrete open question to hand off.",
+            "focus": ["limitations", f"evidence mode: {mode}", "what needs verification", "open question"],
+            "use_clusters": [x for x in [c1, c2, c3] if x],
         },
     ]
 
     if not has_fulltext:
-        plan[2]["policy"] = "Use conservative language; avoid 'dominant trade-offs' claims; prefer questions-to-answer + explicit evidence gaps list."
+        plan[-1]["policy"] = "Use conservative language; avoid strong conclusions; prefer questions-to-answer + explicit evidence gaps list."
     else:
-        plan[2]["policy"] = "Claims must remain traceable to citations; summarize limitations without adding new facts."
+        plan[-1]["policy"] = "Claims must remain traceable to citations; summarize limitations without adding new facts."
 
     plan[0]["rq"] = rq
+    return plan
 
-    return plan[:3]
 
 
 def _scope_rule(*, goal: str, sub_title: str) -> dict[str, Any]:
