@@ -468,7 +468,7 @@ def _default_per_subsection_for_workspace(workspace: Path) -> int:
                 pipeline = line.split(":", 1)[1].strip().lower()
                 if "arxiv-survey" in pipeline:
                     # Survey drafting needs high cite density to enable evidence-first writing.
-                    return 12
+                    return 18
                 break
         except Exception:
             pass

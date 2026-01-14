@@ -1,0 +1,13 @@
+# Open-access arXiv surveys/reviews for style reference (LLM agents / tool use / agentic systems).
+# One ID per line; comments allowed.
+2508.17281
+2508.17692
+2509.16325
+2509.16330
+2512.22256
+2510.16720
+2510.17491
+2510.10991
+2510.04023
+2509.18970
+2511.18538

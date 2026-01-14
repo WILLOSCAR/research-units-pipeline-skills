@@ -27,6 +27,9 @@ Bullets should describe *what the section must cover*, not draft prose.
 ## Input
 
 - `outline/taxonomy.yml`
+- Optional style references (paper-like section sizing):
+  - `ref/agent-surveys/STYLE_REPORT.md`
+  - `ref/agent-surveys/text/`
 
 ## Output
 
@@ -35,6 +38,9 @@ Bullets should describe *what the section must cover*, not draft prose.
 ## Workflow (heuristic)
 Uses: `outline/taxonomy.yml`.
 
+Optional style calibration (recommended for paper-like structure):
+- Read `ref/agent-surveys/STYLE_REPORT.md` to sanity-check top-level section counts and typical subsection sizing.
+- Skim 1–2 examples under `ref/agent-surveys/text/` to imitate *structure* (not wording), keeping your outline at ~6–8 H2 sections with fewer, thicker H3s.
 
 1. Translate taxonomy nodes into section headings that read like a survey structure.
 2. For each subsection, write **≥3 bullets** that are:
@@ -77,7 +83,7 @@ Uses: `outline/taxonomy.yml`.
 ### Notes
 
 - The script generates a baseline bullets-only outline and never overwrites non-placeholder work.
-- Paper-like default: it inserts `Introduction` and `Related Work & Prior Surveys` as fixed H2 sections before taxonomy-driven chapters.
+- Paper-like default: it inserts `Introduction` and `Related Work` as fixed H2 sections before taxonomy-driven chapters.
 - In `pipeline.py --strict` it will be blocked only if placeholder markers (TODO/TBD/FIXME/(placeholder)) remain.
 
 ## Troubleshooting

@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey-latex
-version: 1.7
+version: 1.8
 target_artifacts:
   - papers/retrieval_report.md
   - outline/taxonomy.yml
@@ -23,11 +23,12 @@ target_artifacts:
   - outline/figures.md
   - outline/evidence_drafts.jsonl
   - outline/anchor_sheet.jsonl
+  - outline/writer_context_packs.jsonl
   - citations/ref.bib
   - citations/verified.jsonl
   - sections/sections_manifest.jsonl
   - sections/abstract.md
-  - sections/open_problems.md
+  - sections/discussion.md
   - sections/conclusion.md
   - output/GLOBAL_REVIEW.md
   - output/DRAFT.md
@@ -92,7 +93,8 @@ human_checkpoint:
 
 Notes:
 - Evidence-first expectation: each subsection should be written as an explicit RQ plus evidence needs (what results/benchmarks/limitations must be supported), not just generic scaffold bullets.
-- Paper-like default: `outline-builder` inserts a standard `Related Work & Prior Surveys` H2 section (no H3) before the taxonomy-driven chapters, so the final PDF has a conventional structure (Intro → Related Work → 3–4 core chapters → Future Work → Conclusion).
+- Paper-like default: `outline-builder` inserts a standard `Related Work` H2 section (no H3) before the taxonomy-driven chapters, so the final PDF has a conventional structure (Intro → Related Work → 3–4 core chapters → Discussion → Conclusion).
+- Coverage default: `section-mapper` uses a higher per-subsection mapping target for `arxiv-survey` (configurable via `queries.md` `per_subsection`) so later evidence binding and writing have enough in-scope citations to choose from.
 
 ## Stage 3 - Evidence pack (C3) [NO PROSE]
 required_skills:
@@ -116,6 +118,7 @@ required_skills:
 - evidence-binder
 - evidence-draft
 - anchor-sheet
+- writer-context-pack
 - claim-matrix-rewriter
 - table-schema
 - table-filler
@@ -127,6 +130,7 @@ produces:
 - outline/evidence_binding_report.md
 - outline/evidence_drafts.jsonl
 - outline/anchor_sheet.jsonl
+- outline/writer_context_packs.jsonl
 - outline/claim_evidence_matrix.md
 - outline/table_schema.md
 - outline/tables.md
@@ -136,6 +140,7 @@ produces:
 Notes:
 - `evidence-draft` turns paper notes into per-subsection evidence packs (claim candidates + concrete comparisons + eval protocol + limitations) that the writer must follow.
 - `claim-matrix-rewriter` makes `outline/claim_evidence_matrix.md` a projection/index of evidence packs (not an outline expansion), so writer guidance stays evidence-first.
+- `writer-context-pack` builds a deterministic per-H3 drafting pack (briefs + evidence + anchors + allowed cites), reducing hollow writing and making C5 more debuggable.
 - `table-schema` defines comparison table questions/columns and the evidence fields each column must be grounded in.
 - `table-filler` fills `outline/tables.md` from evidence packs; if fields are missing it must surface them explicitly (do not write long prose in cells).
 - `citation-verifier` must produce LaTeX-safe BibTeX (escape `& % $ # _`, handle common `X^N` patterns) so `latex-compile-qa` does not fail on `.bbl` errors.
@@ -158,7 +163,7 @@ optional_skills:
 produces:
 - sections/sections_manifest.jsonl
 - sections/abstract.md
-- sections/open_problems.md
+- sections/discussion.md
 - sections/conclusion.md
 - output/MERGE_REPORT.md
 - output/DRAFT.md
@@ -174,17 +179,19 @@ Notes:
   - Writer pass: write that section using only those citation IDs; avoid dumping the whole notes set into context (prevents “lost in the middle” + template filler).
 - Treat this stage as an iteration loop:
   - draft per H3 → de-template/cohere → global review → (if gaps) go back to C3/C4 to strengthen evidence packs → regenerate draft.
-- Depth target (survey-quality): each H3 should be **6–10 paragraphs** (~800–1400 words) with >=2 concrete contrasts + an evaluation anchor + a cross-paper synthesis paragraph + an explicit limitation (quality gates should block short stubs).
+- Depth target (survey-quality): each H3 should be **8–12 paragraphs** (aim ~1200–2000 words) with >=2 concrete contrasts + an evaluation anchor + a cross-paper synthesis paragraph + an explicit limitation (quality gates should block short stubs).
 - Coherence target (paper-like): for every H2 chapter with H3 subsections, write a short **chapter lead** block (`sections/S<sec_id>_lead.md`) that previews the comparison axes and how the H3s connect (no new headings; avoid generic glue).
 - PDF compile should run early/often to catch LaTeX failures, but compile success is not narrative quality.
 - `section-merger` produces a paper-like `output/DRAFT.md` by merging `sections/*.md` plus `outline/transitions.md`. Evidence-first visuals (`outline/tables.md`, `outline/timeline.md`, `outline/figures.md`) are **intermediate artifacts** by default and should be woven into prose intentionally (or kept out of the main draft) to avoid inflating the PDF ToC with short, reader-facing-empty sections.
+- Citation scope policy: citations are subsection-first (from `outline/evidence_bindings.jsonl`), with limited reuse allowed within the same H2 chapter to reduce brittleness; avoid cross-chapter “free cite” drift.
 - Recommended skills (toolkit, not a rigid one-shot chain):
   - Modular drafting: `subsection-writer` → `transition-weaver` → `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor` → `latex-*`.
   - Legacy one-shot drafting: `prose-writer` (kept for quick experiments; less debuggable).
 - `queries.md` can set `evidence_mode: "abstract"|"fulltext"` (default template uses `abstract`).
+- `queries.md` can set `draft_profile: "lite"|"survey"|"deep"` to control writing gate strictness (default: `survey`).
 - If `evidence_mode: "fulltext"`, `pdf-text-extractor` can be tuned via `fulltext_max_papers`, `fulltext_max_pages`, `fulltext_min_chars`, and `--local-pdfs-only`.
 - In strict mode, the pipeline should block if the PDF is too short (<8 pages) or if citations are undefined (even if LaTeX technically compiles).
 
 ## Quality gates (strict mode)
-- Citation coverage: expect a large, verifiable bibliography (e.g., ≥150 BibTeX entries) and subsection-level cite density (e.g., H3 ≥3).
+- Citation coverage: expect a large, verifiable bibliography (e.g., ≥150 BibTeX entries) and high cite density (e.g., H3 ≥8; Intro/Related Work ≥10 in `survey` profile).
 - Anti-template: drafts containing ellipsis placeholders (`…`) or leaked scaffold instructions (e.g., "enumerate 2-4 ...") should block and be regenerated from improved outline/mapping/evidence artifacts.

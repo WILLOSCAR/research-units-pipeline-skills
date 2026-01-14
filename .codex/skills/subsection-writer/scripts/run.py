@@ -210,6 +210,27 @@ def main() -> int:
             anchors_by_sub[sid] = out
 
 
+    # Chapter-scoped allowed citations: union of mapped bibkeys across sibling H3s in the same H2 section.
+    # This provides flexibility while still keeping citations chapter-bounded.
+    allowed_by_section: dict[str, set[str]] = {}
+    for u in units:
+        if str(u.get("kind") or "").strip() != "h3":
+            continue
+        sub_id = str(u.get("id") or "").strip()
+        sec_id = str(u.get("section_id") or "").strip()
+        if not sub_id or not sec_id:
+            continue
+        binding = bindings_by_sub.get(sub_id) or {}
+        mapped = binding.get("mapped_bibkeys") or []
+        if not isinstance(mapped, list):
+            continue
+        bucket = allowed_by_section.setdefault(sec_id, set())
+        for bk in mapped:
+            bk = str(bk).strip()
+            if bk:
+                bucket.add(bk)
+
+
     global_files = [
         {
             "kind": "global",
@@ -219,9 +240,9 @@ def main() -> int:
         },
         {
             "kind": "global",
-            "id": "open_problems",
-            "title": "Open Problems & Future Directions",
-            "path": str((sections_dir / "open_problems.md").relative_to(workspace)),
+            "id": "discussion",
+            "title": "Discussion",
+            "path": str((sections_dir / "discussion.md").relative_to(workspace)),
         },
         {
             "kind": "global",
@@ -295,6 +316,10 @@ def main() -> int:
             if isinstance(anchors, list) and anchors:
                 rec["anchor_facts"] = anchors
 
+            sec_id = str(rec.get("section_id") or "").strip()
+            if sec_id and allowed_by_section.get(sec_id):
+                rec["allowed_bibkeys_chapter"] = sorted(allowed_by_section.get(sec_id) or set())
+
         _add_record({**rec, "generated_at": generated_at})
 
     lines = [json.dumps(r, ensure_ascii=False) for r in records]
@@ -308,6 +333,7 @@ def main() -> int:
         ("chapter-briefs", ["outline/chapter_briefs.jsonl"]),
         ("evidence-draft", ["outline/evidence_drafts.jsonl"]),
         ("anchor-sheet", ["outline/anchor_sheet.jsonl"]),
+        ("writer-context-pack", ["outline/writer_context_packs.jsonl"]),
         ("citation-verifier", ["citations/ref.bib"]),
         ("evidence-binder", ["outline/evidence_bindings.jsonl"]),
     ]:
@@ -318,6 +344,11 @@ def main() -> int:
     if issues:
         write_quality_report(workspace=workspace, unit_id=unit_id, skill="subsection-writer", issues=issues)
         return 2
+
+    # Avoid confusing stale QUALITY_GATE.md after a successful run.
+    report_path = workspace / "output" / "QUALITY_GATE.md"
+    if report_path.exists():
+        write_quality_report(workspace=workspace, unit_id=unit_id, skill="subsection-writer", issues=[])
     return 0
 
 

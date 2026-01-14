@@ -163,7 +163,7 @@ def _check_no_placeholders(records: list[dict[str, Any]]) -> None:
         raise SystemExit("chapter_briefs contains ellipsis placeholder")
     if "(placeholder)" in low:
         raise SystemExit("chapter_briefs contains placeholder markers")
-    if re.search(r"(?i)(?:todo|tbd|fixme)", raw):
+    if re.search(r"(?i)\b(?:todo|tbd|fixme)\b", raw):
         raise SystemExit("chapter_briefs contains TODO/TBD/FIXME")
 
 

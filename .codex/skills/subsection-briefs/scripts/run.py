@@ -366,17 +366,18 @@ def _choose_axes(*, sub_title: str, goal: str, evidence_needs: list[str], outlin
     specific = [a for a in ordered if norm(a) not in generic]
     generic_axes = [a for a in ordered if norm(a) in generic]
 
-    # Avoid repeating the same generic axis list in every subsection.
-    # Keep generic axes only as a fallback when we don't have enough specific ones.
+    # Avoid repeating the same generic axis list in every subsection, but keep enough axes
+    # so later evidence packs can generate multiple concrete comparison cards.
     out: list[str] = list(specific)
-    if len(out) < 3:
+    target = 5
+    if len(out) < target:
         for a in generic_axes:
             if a not in out:
                 out.append(a)
-            if len(out) >= 3:
+            if len(out) >= target:
                 break
 
-    return out[:5]
+    return out[:target]
 
 
 
@@ -529,7 +530,7 @@ def _paper_tags(p: PaperRef) -> set[str]:
         tags.add("guidance")
 
     # Agentic / LLM systems (bootstrap from titles).
-    if re.search(r"agent(?:s|ic)?", text) or any(k in text for k in ["autogpt", "react", "toolformer", "mrkl"]):
+    if re.search(r"\bagent(?:s|ic)?\b", text) or any(k in text for k in ["autogpt", "react", "toolformer", "mrkl"]):
         tags.add("agents")
     if any(
         k in text
@@ -716,36 +717,54 @@ def _paragraph_plan(*, sub_title: str, rq: str, axes: list[str], clusters: list[
         },
         {
             "para": 2,
-            "intent": "Explain approach family / cluster A: mechanism + assumptions + what it optimizes for (evidence-first).",
-            "focus": [f"cluster: {c1}", f"axes: {axes_hint}", "assumptions"],
+            "intent": "Explain cluster A: core mechanism/architecture and what decision it makes in the agent loop.",
+            "focus": [f"cluster: {c1}", "mechanism / architecture", "assumptions"],
             "use_clusters": [c1] if c1 else [],
         },
         {
             "para": 3,
+            "intent": "Cluster A implementation details: data/training signals and interface contract (tools/memory) that constrain behavior.",
+            "focus": [f"cluster: {c1}", "data / training setup", "interface contract", f"axes: {axes_hint}"],
+            "use_clusters": [c1] if c1 else [],
+        },
+        {
+            "para": 4,
             "intent": "Cluster A evaluation/trade-offs: where it works, costs (compute/latency), and typical failure modes.",
             "focus": [f"cluster: {c1}", "evaluation anchor", "efficiency", "failure modes"],
             "use_clusters": [c1] if c1 else [],
         },
         {
-            "para": 4,
-            "intent": "Explain approach family / cluster B (contrast with A): mechanism + assumptions + what it optimizes for.",
-            "focus": [f"cluster: {c2}", f"contrast with {c1}", f"axes: {axes_hint}"],
-            "use_clusters": [c2] if c2 else ([c1] if c1 else []),
-        },
-        {
             "para": 5,
-            "intent": "Cluster B evaluation/trade-offs: where it works, costs, and failure modes (mirror A for comparability).",
-            "focus": [f"cluster: {c2}", "evaluation anchor", "efficiency", "failure modes"],
+            "intent": "Explain cluster B (contrast with A): core mechanism/architecture and what it optimizes for.",
+            "focus": [f"cluster: {c2}", f"contrast with {c1}", "mechanism / architecture"],
             "use_clusters": [c2] if c2 else ([c1] if c1 else []),
         },
         {
             "para": 6,
-            "intent": "Cross-paper synthesis: compare clusters along the main axes and summarize what the evaluation evidence actually supports.",
+            "intent": "Cluster B implementation details: data/training and interface assumptions (mirror A for comparability).",
+            "focus": [f"cluster: {c2}", "data / training setup", "interface contract", f"axes: {axes_hint}"],
+            "use_clusters": [c2] if c2 else ([c1] if c1 else []),
+        },
+        {
+            "para": 7,
+            "intent": "Cluster B evaluation/trade-offs: where it works, costs, and failure modes (mirror A).",
+            "focus": [f"cluster: {c2}", "evaluation anchor", "efficiency", "failure modes"],
+            "use_clusters": [c2] if c2 else ([c1] if c1 else []),
+        },
+        {
+            "para": 8,
+            "intent": "Cross-paper synthesis: compare clusters along the main axes (include >=2 citations in one paragraph).",
             "focus": [f"compare {c1} vs {c2}", "multiple citations in one paragraph", f"axes: {axes_hint}"],
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
         {
-            "para": 7,
+            "para": 9,
+            "intent": "Decision guidance: when to choose which route (criteria + evaluation signals + engineering constraints).",
+            "focus": ["decision checklist", "evaluation protocol", "practical constraints"],
+            "use_clusters": [x for x in [c1, c2, c3] if x],
+        },
+        {
+            "para": 10,
             "intent": "Limitations + verification targets; end with a concrete open question to hand off.",
             "focus": ["limitations", f"evidence mode: {mode}", "what needs verification", "open question"],
             "use_clusters": [x for x in [c1, c2, c3] if x],

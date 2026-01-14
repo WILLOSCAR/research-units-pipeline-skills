@@ -3,3 +3,7 @@ __pycache__/
 
 workspaces/
 
+# Local reference corpus (PDFs/text extracts); keep curated id lists/docs tracked.
+ref/**/pdfs/
+ref/**/text/
+ref/**/index.jsonl

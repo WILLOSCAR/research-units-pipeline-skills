@@ -115,7 +115,7 @@ def main() -> int:
     # Required global sections.
     required_global = [
         "sections/abstract.md",
-        "sections/open_problems.md",
+        "sections/discussion.md",
         "sections/conclusion.md",
     ]
 
@@ -226,7 +226,7 @@ def main() -> int:
                 out_lines.append(t)
                 out_lines.append("")
 
-    out_lines.append(_require("sections/open_problems.md").strip())
+    out_lines.append(_require("sections/discussion.md").strip())
     out_lines.append("")
     out_lines.append(_require("sections/conclusion.md").strip())
     out_lines.append("")

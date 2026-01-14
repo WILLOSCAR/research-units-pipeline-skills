@@ -9,6 +9,15 @@ flowchart LR
   classDef skill fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
   classDef file fill:#f1f8e9,stroke:#7cb342,color:#1b5e20;
 
+  S_agent_survey_corpus["`agent-survey-corpus`"]:::skill
+  F_ref_agent_surveys_arxiv_ids_txt["`ref/agent-surveys/arxiv_ids.txt`"]:::file
+  F_ref_agent_surveys_arxiv_ids_txt --> S_agent_survey_corpus
+  F_ref_agent_surveys_STYLE_REPORT_md["`ref/agent-surveys/STYLE_REPORT.md`"]:::file
+  S_agent_survey_corpus --> F_ref_agent_surveys_STYLE_REPORT_md
+  F_ref_agent_surveys_pdfs["`ref/agent-surveys/pdfs/`"]:::file
+  S_agent_survey_corpus --> F_ref_agent_surveys_pdfs
+  F_ref_agent_surveys_text["`ref/agent-surveys/text/`"]:::file
+  S_agent_survey_corpus --> F_ref_agent_surveys_text
   S_anchor_sheet["`anchor-sheet`"]:::skill
   F_citations_ref_bib["`citations/ref.bib`"]:::file
   F_citations_ref_bib --> S_anchor_sheet
@@ -286,6 +295,8 @@ flowchart LR
   F_outline_evidence_drafts_jsonl --> S_subsection_writer
   F_outline_outline_yml --> S_subsection_writer
   F_outline_subsection_briefs_jsonl --> S_subsection_writer
+  F_outline_writer_context_packs_jsonl["`outline/writer_context_packs.jsonl`"]:::file
+  F_outline_writer_context_packs_jsonl --> S_subsection_writer
   F_sections["`sections/`"]:::file
   S_subsection_writer --> F_sections
   F_sections_S_sec_id__lead_md["`sections/S<sec_id>_lead.md`"]:::file
@@ -296,8 +307,8 @@ flowchart LR
   S_subsection_writer --> F_sections_abstract_md
   F_sections_conclusion_md["`sections/conclusion.md`"]:::file
   S_subsection_writer --> F_sections_conclusion_md
-  F_sections_open_problems_md["`sections/open_problems.md`"]:::file
-  S_subsection_writer --> F_sections_open_problems_md
+  F_sections_discussion_md["`sections/discussion.md`"]:::file
+  S_subsection_writer --> F_sections_discussion_md
   S_subsection_writer --> F_sections_sections_manifest_jsonl
   S_survey_seed_harvest["`survey-seed-harvest`"]:::skill
   F_papers_papers_dedup_jsonl --> S_survey_seed_harvest
@@ -378,6 +389,15 @@ flowchart LR
   F_papers["`papers/`"]:::file
   S_workspace_init --> F_papers
   S_workspace_init --> F_queries_md
+  S_writer_context_pack["`writer-context-pack`"]:::skill
+  F_citations_ref_bib --> S_writer_context_pack
+  F_outline_anchor_sheet_jsonl --> S_writer_context_pack
+  F_outline_chapter_briefs_jsonl --> S_writer_context_pack
+  F_outline_evidence_bindings_jsonl --> S_writer_context_pack
+  F_outline_evidence_drafts_jsonl --> S_writer_context_pack
+  F_outline_outline_yml --> S_writer_context_pack
+  F_outline_subsection_briefs_jsonl --> S_writer_context_pack
+  S_writer_context_pack --> F_outline_writer_context_packs_jsonl
   S_writer_selfloop["`writer-selfloop`"]:::skill
   F_citations_ref_bib --> S_writer_selfloop
   F_outline_anchor_sheet_jsonl --> S_writer_selfloop
@@ -385,6 +405,7 @@ flowchart LR
   F_outline_evidence_bindings_jsonl --> S_writer_selfloop
   F_outline_evidence_drafts_jsonl --> S_writer_selfloop
   F_outline_subsection_briefs_jsonl --> S_writer_selfloop
+  F_outline_writer_context_packs_jsonl --> S_writer_selfloop
   F_output_QUALITY_GATE_md["`output/QUALITY_GATE.md`"]:::file
   F_output_QUALITY_GATE_md --> S_writer_selfloop
   F_sections --> S_writer_selfloop
@@ -438,6 +459,7 @@ flowchart LR
     U_U091["`U091`\n`evidence-binder`"]:::unit
     U_U092["`U092`\n`evidence-draft`"]:::unit
     U_U093["`U093`\n`anchor-sheet`"]:::unit
+    U_U099["`U099`\n`writer-context-pack`"]:::unit
     U_U094["`U094`\n`claim-matrix-rewriter`"]:::unit
     U_U096["`U096`\n`table-schema`"]:::unit
     U_U097["`U097`\n`table-filler`"]:::unit
@@ -474,17 +496,17 @@ flowchart LR
   U_U060 --> U_U091
   U_U091 --> U_U092
   U_U092 --> U_U093
+  U_U093 --> U_U099
+  U_U076 --> U_U099
   U_U092 --> U_U094
   U_U092 --> U_U096
   U_U096 --> U_U097
   U_U092 --> U_U097
   U_U094 --> U_U095
-  U_U093 --> U_U100
+  U_U099 --> U_U100
   U_U076 --> U_U100
   U_U100 --> U_U098
   U_U100 --> U_U101
-  U_U097 --> U_U101
-  U_U095 --> U_U101
   U_U098 --> U_U101
   U_U101 --> U_U105
   U_U105 --> U_U108
@@ -532,6 +554,7 @@ flowchart LR
     U_U091["`U091`\n`evidence-binder`"]:::unit
     U_U092["`U092`\n`evidence-draft`"]:::unit
     U_U093["`U093`\n`anchor-sheet`"]:::unit
+    U_U099["`U099`\n`writer-context-pack`"]:::unit
     U_U094["`U094`\n`claim-matrix-rewriter`"]:::unit
     U_U096["`U096`\n`table-schema`"]:::unit
     U_U097["`U097`\n`table-filler`"]:::unit
@@ -566,17 +589,17 @@ flowchart LR
   U_U060 --> U_U091
   U_U091 --> U_U092
   U_U092 --> U_U093
+  U_U093 --> U_U099
+  U_U076 --> U_U099
   U_U092 --> U_U094
   U_U092 --> U_U096
   U_U096 --> U_U097
   U_U092 --> U_U097
   U_U094 --> U_U095
-  U_U093 --> U_U100
+  U_U099 --> U_U100
   U_U076 --> U_U100
   U_U100 --> U_U098
   U_U100 --> U_U101
-  U_U097 --> U_U101
-  U_U095 --> U_U101
   U_U098 --> U_U101
   U_U101 --> U_U105
   U_U105 --> U_U108

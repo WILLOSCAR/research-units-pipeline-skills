@@ -45,6 +45,7 @@
 - `evidence-binder`：把 subsection→evidence_id 绑定成“证据计划”（writer 只能按 ID 取证据）→ `outline/evidence_bindings.jsonl` + `outline/evidence_binding_report.md`
 - `evidence-draft`：把 notes→“可写证据包”（逐小节 claim candidates / concrete comparisons / eval / limitations）→ `outline/evidence_drafts.jsonl`
 - `anchor-sheet`：从 evidence packs 提取“可写锚点”（数字/benchmark/limitation；NO PROSE）→ `outline/anchor_sheet.jsonl`
+- `writer-context-pack`：把 briefs + evidence + anchors + allowed cites 合并成 per-H3 写作上下文包（NO PROSE）→ `outline/writer_context_packs.jsonl`
 - `claim-matrix-rewriter`：从 evidence packs 重写“claim→evidence 索引”（避免模板 claim）→ `outline/claim_evidence_matrix.md`
 - `table-schema`：先定义表格 schema（问题/列/证据字段）→ `outline/table_schema.md`
 - `table-filler`：用 evidence packs 填表（填不出就显式 missing）→ `outline/tables.md`
@@ -75,6 +76,7 @@
 
 - `latex-scaffold`：把 Markdown draft scaffold 成 LaTeX → `latex/main.tex`
 - `latex-compile-qa`：编译 LaTeX + QA 报告 → `latex/main.pdf` + `output/LATEX_BUILD_REPORT.md`
+- `agent-survey-corpus`：下载/抽取几篇 agent survey 作为写作风格参考（arXiv PDFs → `ref/agent-surveys/`）
 
 ## 触发词（中英文）→ Skill
 
@@ -129,6 +131,7 @@
 - `outline/evidence_bindings.jsonl` → `evidence-draft`, `pipeline-auditor`
 - `outline/evidence_drafts.jsonl` → `claim-matrix-rewriter`, `table-filler`, `prose-writer`
 - `outline/anchor_sheet.jsonl` → `subsection-writer`（写作锚点）
+- `outline/writer_context_packs.jsonl` → `subsection-writer`, `writer-selfloop`（C4→C5 bridge，上下文包）
 - `outline/table_schema.md` → `table-filler`
 - `outline/transitions.md` → `prose-writer`
 - `outline/transitions.md` → `section-merger`（自动插入过渡句）
@@ -152,6 +155,7 @@
 - `outline/evidence_bindings.jsonl`, `outline/evidence_binding_report.md` → `evidence-binder`
 - `outline/evidence_drafts.jsonl` → `evidence-draft`
 - `outline/anchor_sheet.jsonl` → `anchor-sheet`
+- `outline/writer_context_packs.jsonl` → `writer-context-pack`
 - `outline/claim_evidence_matrix.md` → `claim-matrix-rewriter`
 - `citations/ref.bib`, `citations/verified.jsonl` → `citation-verifier`
 - `outline/table_schema.md` → `table-schema`

@@ -43,7 +43,7 @@ If you rerun the script without this marker, it will back up the previous mappin
 ## Workflow (heuristic)
 
 1. Start from the outline subsections (each subsection should be “mappable”).
-2. For each subsection, pick ~3–6 papers that are:
+2. For each subsection, pick enough papers to support evidence-first writing (survey default: ~12–20; lightweight runs: ~3–6) that are:
    - representative (canonical / frequently-cited)
    - complementary (different design choices, different eval setups)
    - not overly reused elsewhere unless truly foundational
@@ -67,7 +67,7 @@ If you rerun the script without this marker, it will back up the previous mappin
 ### Quick Start
 
 - `python .codex/skills/section-mapper/scripts/run.py --help`
-- `python .codex/skills/section-mapper/scripts/run.py --workspace <workspace_dir> --per-subsection 3`
+- `python .codex/skills/section-mapper/scripts/run.py --workspace <workspace_dir> --per-subsection 18`
 
 ### All Options
 

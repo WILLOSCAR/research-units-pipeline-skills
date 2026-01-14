@@ -71,6 +71,7 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, load_yaml, parse_semicolon_list, read_jsonl
+    from tooling.quality_gate import _draft_profile, _pipeline_profile
 
     workspace = Path(args.workspace).resolve()
 
@@ -110,6 +111,9 @@ def main() -> int:
         return 2
 
     draft = draft_path.read_text(encoding="utf-8", errors="ignore")
+
+    profile = _pipeline_profile(workspace)
+    draft_profile = _draft_profile(workspace)
 
     # Placeholder leakage.
     if "…" in draft:
@@ -209,6 +213,34 @@ def main() -> int:
     if low_cite:
         issues.append(f"some H3 have <3 unique citations: {', '.join(low_cite[:10])}")
 
+    # Global cite coverage (encourage using more of the bibliography, not just a small subset).
+    if profile == "arxiv-survey" and expected:
+        h3_n = len(set(expected.values()))
+        if draft_profile == "deep":
+            per_h3 = 12
+            base = 30
+            frac = 0.55
+        elif draft_profile == "lite":
+            per_h3 = 6
+            base = 14
+            frac = 0.30
+        else:
+            per_h3 = 10
+            base = 24
+            frac = 0.45
+
+        min_unique_struct = base + per_h3 * h3_n
+        min_unique_frac = int(len(bib_keys) * frac) if bib_keys else 0
+        min_unique = max(min_unique_struct, min_unique_frac)
+        if bib_keys:
+            min_unique = min(min_unique, len(bib_keys))
+
+        if len(cited) < min_unique:
+            issues.append(
+                f"unique citations too low ({len(cited)}; target >= {min_unique} for {draft_profile} profile)"
+                + (f" [struct={min_unique_struct}, frac={min_unique_frac}, bib={len(bib_keys)}]" if bib_keys else "")
+            )
+
     # Paragraph-level no-citation rate (content-only; ignore headings/tables/short transitions).
     paras_all = _split_paragraphs(draft)
     content_paras = 0
@@ -225,8 +257,16 @@ def main() -> int:
             uncited += 1
     if content_paras:
         rate = uncited / content_paras
-        if rate > 0.25:
-            issues.append(f"too many uncited content paragraphs ({uncited}/{content_paras} = {rate:.1%})")
+
+        max_uncited = 0.25
+        if profile == "arxiv-survey":
+            if draft_profile == "deep":
+                max_uncited = 0.15
+            elif draft_profile != "lite":
+                max_uncited = 0.20
+
+        if rate > max_uncited:
+            issues.append(f"too many uncited content paragraphs ({uncited}/{content_paras} = {rate:.1%}; max={max_uncited:.0%})")
 
     # Boilerplate repetition.
     rep = _repeated_sentences(draft)

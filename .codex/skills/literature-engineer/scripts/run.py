@@ -139,7 +139,7 @@ def main() -> int:
                     prov=RouteProvenance(
                         route=route,
                         source="arxiv",
-                        source_path="http://export.arxiv.org/api/query?id_list=...",
+                        source_path="https://export.arxiv.org/api/query?id_list=...",
                         imported_at=imported_at,
                     ),
                 )
@@ -200,7 +200,7 @@ def main() -> int:
                     prov=RouteProvenance(
                         route=route,
                         source="arxiv",
-                        source_path="http://export.arxiv.org/api/query",
+                        source_path="https://export.arxiv.org/api/query",
                         imported_at=imported_at,
                     ),
                 )
@@ -926,7 +926,7 @@ def _is_excluded_text(text: str, excludes: list[str]) -> bool:
     return False
 
 
-def _semantic_scholar_request_json(url: str, *, timeout: int = 30, max_retries: int = 8) -> dict[str, Any]:
+def _semantic_scholar_request_json(url: str, *, timeout: int = 30, max_retries: int = 5) -> dict[str, Any]:
     """Fetch Semantic Scholar JSON via the r.jina.ai proxy.
 
     Rationale: some environments intermittently fail TLS handshakes to external domains;
@@ -968,7 +968,7 @@ def _semantic_scholar_request_json(url: str, *, timeout: int = 30, max_retries: 
                     except Exception:
                         code = 0
                     if code in {429, 500, 502, 503, 504}:
-                        time.sleep(min(90.0, 2.0 * (2**attempt)))
+                        time.sleep(min(20.0, 1.5 * (2**attempt)))
                         continue
                     data = outer.get("data")
                     if isinstance(data, dict):
@@ -980,11 +980,12 @@ def _semantic_scholar_request_json(url: str, *, timeout: int = 30, max_retries: 
                 obj = json.loads(payload or "{}")
             except Exception as exc:
                 # Common rate limit / upstream errors are rendered as plain text.
-                if "returned error 429" in text or "Too Many Requests" in text or "HTTP Error 429" in text:
-                    time.sleep(min(90.0, 2.0 * (2**attempt)))
+                pl = (payload or "").lstrip()
+                if (not pl) or pl.startswith("<") or "returned error 429" in text or "Too Many Requests" in text or "HTTP Error 429" in text:
+                    time.sleep(min(20.0, 1.5 * (2**attempt)))
                     continue
                 last_exc = exc
-                time.sleep(min(30.0, 1.5 * (2**attempt)))
+                time.sleep(min(10.0, 1.25 * (2**attempt)))
                 continue
 
             if not isinstance(obj, dict):
@@ -994,7 +995,7 @@ def _semantic_scholar_request_json(url: str, *, timeout: int = 30, max_retries: 
             if obj.get("error") or obj.get("message"):
                 msg = str(obj.get("error") or obj.get("message") or "").lower()
                 if "too many requests" in msg or "rate limit" in msg or "429" in msg:
-                    time.sleep(min(90.0, 2.0 * (2**attempt)))
+                    time.sleep(min(20.0, 1.5 * (2**attempt)))
                     continue
                 raise SystemExit(f"Semantic Scholar error: {obj.get('error') or obj.get('message')}")
 
@@ -1002,12 +1003,12 @@ def _semantic_scholar_request_json(url: str, *, timeout: int = 30, max_retries: 
         except urllib.error.HTTPError as exc:
             last_exc = exc
             if int(getattr(exc, "code", 0)) in {429, 500, 502, 503, 504}:
-                time.sleep(min(90.0, 2.0 * (2**attempt)))
+                time.sleep(min(20.0, 1.5 * (2**attempt)))
                 continue
             raise
         except Exception as exc:
             last_exc = exc
-            time.sleep(min(30.0, 1.5 * (2**attempt)))
+            time.sleep(min(10.0, 1.25 * (2**attempt)))
             continue
     raise SystemExit(f"Semantic Scholar request failed after {max_retries} retries: {last_exc}")
 
@@ -1310,7 +1311,7 @@ def _default_pdf_url(arxiv_id: str) -> str:
     arxiv_id = (arxiv_id or "").strip()
     if not arxiv_id:
         return ""
-    return f"http://arxiv.org/pdf/{arxiv_id}.pdf"
+    return f"https://arxiv.org/pdf/{arxiv_id}.pdf"
 
 
 def _normalize_doi(doi: str) -> str:
@@ -1368,7 +1369,7 @@ def _fetch_arxiv_id_list(
     seen_urls: set[str] = set()
 
     for chunk in chunked(ids, 24):
-        url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode({"id_list": ",".join(chunk)})
+        url = "https://export.arxiv.org/api/query?" + urllib.parse.urlencode({"id_list": ",".join(chunk)})
         batch, raw_count = _search_arxiv_once(url=url, query=f"id_list:{','.join(chunk)}", excludes=excludes, year_from=year_from, year_to=year_to)
         if raw_count <= 0:
             continue
@@ -1402,7 +1403,7 @@ def _search_arxiv_paged(
 
     start = 0
     while len(all_records) < target:
-        url = "http://export.arxiv.org/api/query?" + urllib.parse.urlencode(
+        url = "https://export.arxiv.org/api/query?" + urllib.parse.urlencode(
             {"search_query": q, "start": start, "max_results": page_size}
         )
         batch, raw_count = _search_arxiv_once(url=url, query=q, excludes=excludes, year_from=year_from, year_to=year_to)
@@ -1430,11 +1431,26 @@ def _search_arxiv_once(
     year_from: int | None,
     year_to: int | None,
 ) -> tuple[list[dict[str, Any]], int]:
-    try:
-        with urllib.request.urlopen(url, timeout=30) as resp:
-            content = resp.read()
-    except Exception as exc:
-        raise SystemExit(f"arXiv request failed (network?): {exc}")
+    headers = {"User-Agent": "research-units-pipeline-skills/1.0 (+https://github.com/anthropics/skills)"}
+    req = urllib.request.Request(url, headers=headers, method="GET")
+
+    content = b""
+    last_exc: Exception | None = None
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                content = resp.read()
+            last_exc = None
+            break
+        except KeyboardInterrupt:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(min(10.0, 1.25 * (2**attempt)))
+            continue
+
+    if last_exc is not None or not content:
+        raise SystemExit(f"arXiv request failed (network?): {last_exc}")
 
     root = ET.fromstring(content)
     ns = {

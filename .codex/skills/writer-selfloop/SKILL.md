@@ -6,7 +6,7 @@ description: |
   **Use when**: `subsection-writer` is BLOCKED (missing/short/thin H3, citation scope errors, missing chapter leads).
   **Skip if**: you are still pre-C2 (NO PROSE), or evidence packs/anchor sheet are incomplete (fix C3/C4 first).
   **Network**: none.
-  **Guardrail**: do not invent facts/citations; do not add/remove citation keys; keep citations subsection-scoped per `outline/evidence_bindings.jsonl`; H3 body files must not contain headings.
+  **Guardrail**: do not invent facts; only use citation keys present in `citations/ref.bib`; keep citations subsection- or chapter-scoped per `outline/evidence_bindings.jsonl`; H3 body files must not contain headings.
 ---
 
 # Writer Self-loop (Fix → Recheck → Repeat)
@@ -21,6 +21,7 @@ This skill reads `output/QUALITY_GATE.md`, pinpoints which `sections/*.md` files
 - `sections/sections_manifest.jsonl` (paths + allowed citations + anchor facts)
 - `outline/subsection_briefs.jsonl`
 - `outline/chapter_briefs.jsonl`
+- `outline/writer_context_packs.jsonl` (preferred: merged per-H3 drafting pack)
 - `outline/evidence_drafts.jsonl`
 - `outline/anchor_sheet.jsonl`
 - `outline/evidence_bindings.jsonl`
@@ -60,13 +61,14 @@ For a failing `sections/S<sub_id>.md`:
    - `allowed_bibkeys_selected` / `allowed_bibkeys_mapped`
    - `evidence_ids`
    - `anchor_facts`
-2. Read the matching entries in:
-   - `outline/subsection_briefs.jsonl` (rq/axes/paragraph_plan)
-   - `outline/evidence_drafts.jsonl` (comparisons/eval/limitations)
+2. Prefer `outline/writer_context_packs.jsonl` for this `sub_id` (single merged pack: rq/axes/paragraph_plan + comparisons + eval + limitations + anchors + allowed cites).
+   - If missing, fall back to:
+     - `outline/subsection_briefs.jsonl` (rq/axes/paragraph_plan)
+     - `outline/evidence_drafts.jsonl` (comparisons/eval/limitations)
 3. Rewrite/expand the section to satisfy the gates, while only using citation keys present in `citations/ref.bib`:
    - Body-only (no headings)
-   - 6–10 paragraphs; >=~5000 chars after removing citations
-   - >=3 unique citations, all allowed by `outline/evidence_bindings.jsonl` for this `sub_id`
+   - Depth target depends on `draft_profile` (all sans cites): `lite`>=6 paragraphs & >=~5000 chars; `survey`>=9 & >=~9000; `deep`>=10 & >=~11000.
+   - Cite density depends on `draft_profile` (`lite`>=7, `survey`>=10, `deep`>=12 unique citations), all allowed by `outline/evidence_bindings.jsonl` for this `sub_id`
    - >=2 explicit contrasts (whereas/in contrast/相比/不同于)
    - >=1 evaluation anchor (benchmark/dataset/metric/protocol)
    - >=1 limitation/provisional sentence (limited/unclear/受限/待验证)

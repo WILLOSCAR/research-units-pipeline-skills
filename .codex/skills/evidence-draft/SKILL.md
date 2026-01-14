@@ -4,7 +4,7 @@ description: |
   Create per-subsection evidence packs (NO PROSE): claim candidates, concrete comparisons, evaluation protocol, limitations, plus citation-backed evidence snippets with provenance.
   **Trigger**: evidence draft, evidence pack, claim candidates, concrete comparisons, evidence snippets, provenance, 证据草稿, 证据包, 可引用事实.
   **Use when**: `outline/subsection_briefs.jsonl` exists and you want evidence-first section drafting where every paragraph can be backed by traceable citations/snippets.
-  **Skip if**: `outline/evidence_drafts.jsonl` already exists and is refined (no placeholders; >=3 comparisons per subsection; `blocking_missing` empty).
+  **Skip if**: `outline/evidence_drafts.jsonl` already exists and is refined (no placeholders; >=4 comparisons per subsection; `blocking_missing` empty).
   **Network**: none (richer evidence improves with abstracts/fulltext).
   **Guardrail**: NO PROSE; do not invent facts; only use citation keys that exist in `citations/ref.bib`.
 ---
@@ -53,7 +53,7 @@ JSONL (one JSON object per line). Required fields per record:
 - `evidence_snippets` (list; each has `text`, `paper_id`, `citations`, `provenance`)
 - `definitions_setup` (list of cited bullets)
 - `claim_candidates` (3–5 items; each has `claim`, `citations`, `evidence_field`)
-- `concrete_comparisons` (>=3 items; each has `axis`, `A_papers`, `B_papers`, `citations`, `evidence_field`; may also include `A_highlights`/`B_highlights` with snippet-backed contrast anchors)
+- `concrete_comparisons` (>=4 items; each has `axis`, `A_papers`, `B_papers`, `citations`, `evidence_field`; may also include `A_highlights`/`B_highlights` with snippet-backed contrast anchors)
 - `evaluation_protocol` (list of concrete protocol bullets + citations)
 - `failures_limitations` (2–4 cited bullets)
 - `blocking_missing` (list[str]; if non-empty, drafting must stop)
@@ -77,7 +77,7 @@ Allowed `source`: `fulltext|abstract|paper_notes|title`.
    - Build **evidence_snippets** from mapped papers (prefer fulltext, else abstract), and record provenance.
    - Definitions/setup: 1–2 bullets that define setup + scope boundary (with citations).
    - Claim candidates: 3–5 **checkable** candidates (prefer snippet-derived; tag with `evidence_field`).
-   - Concrete comparisons: >=3 A-vs-B comparisons (cluster-vs-cluster) along explicit axes.
+   - Concrete comparisons: >=4 A-vs-B comparisons (cluster-vs-cluster) along explicit axes.
    - Evaluation protocol: list concrete benchmark/metric tokens if extractable; otherwise treat as a blocking gap.
    - Failures/limitations: 2–4 concrete limitations/failure modes with citations.
    - Set `blocking_missing` for hard blockers (e.g., no usable citations; title-only evidence; no eval tokens for an eval-heavy subsection).
@@ -85,7 +85,7 @@ Allowed `source`: `fulltext|abstract|paper_notes|title`.
 
 ## Quality checklist
 
-- [ ] Every subsection has >=3 concrete comparisons.
+- [ ] Every subsection has >=4 concrete comparisons.
 - [ ] `evidence_snippets` is non-empty and includes provenance.
 - [ ] `claim_candidates` has >=3 snippet-derived items (no axis-driven hypotheses).
 - [ ] `blocking_missing` is empty.

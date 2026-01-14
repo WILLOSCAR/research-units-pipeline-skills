@@ -87,7 +87,7 @@ def main() -> int:
                     if re.search(r"\d", excerpt):
                         add_anchor(hook_type="quant", text=excerpt, citations=cites, paper_id=paper_id, evidence_id=evidence_id, pointer=pointer)
 
-        # Add a few non-quant but concrete evidence snippets (benchmarks/datasets/metrics).
+        # Evidence snippets: grab quantitative/evaluation/limitation hooks directly.
         for sn in rec.get("evidence_snippets") or []:
             if not isinstance(sn, dict):
                 continue
@@ -97,8 +97,13 @@ def main() -> int:
             evidence_id = str(sn.get("evidence_id") or "").strip()
             prov = sn.get("provenance") or {}
             pointer = str((prov or {}).get("pointer") or "").strip()
-            if re.search(r"(?i)(benchmark|dataset|metric|evaluation|protocol)|评测|基准|数据集|指标", text):
+
+            if re.search(r"\d", text):
+                add_anchor(hook_type="quant", text=text, citations=cites, paper_id=paper_id, evidence_id=evidence_id, pointer=pointer)
+            if re.search(r"(?i)\b(benchmark|dataset|metric|evaluation|protocol)\b|评测|基准|数据集|指标", text):
                 add_anchor(hook_type="eval", text=text, citations=cites, paper_id=paper_id, evidence_id=evidence_id, pointer=pointer)
+            if re.search(r"(?i)\b(limitation|limited|failure|risk|caveat|threat)\b|局限|受限|失败|风险|待验证", text):
+                add_anchor(hook_type="limitation", text=text, citations=cites, paper_id=paper_id, evidence_id=evidence_id, pointer=pointer)
 
         # Limitations/failures.
         for it in rec.get("failures_limitations") or []:
@@ -159,7 +164,7 @@ def _check_no_placeholders(records: list[dict[str, Any]]) -> None:
         pass
     if "(placeholder)" in low:
         raise SystemExit("anchor_sheet contains placeholder markers")
-    if re.search(r"(?i)(?:todo|tbd|fixme)", raw):
+    if re.search(r"(?i)\b(?:todo|tbd|fixme)\b", raw):
         raise SystemExit("anchor_sheet contains TODO/TBD/FIXME")
 
 

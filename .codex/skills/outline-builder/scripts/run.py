@@ -45,20 +45,20 @@ def main() -> int:
             "bullets": [
                 "Intent: motivate the topic, set scope boundaries, and explain why the survey is needed now.",
                 "RQ: What is the survey scope and what reader questions will the taxonomy answer?",
-                "Evidence needs: define key terms; position vs prior surveys; summarize what evidence is collected (datasets/metrics/benchmarks).",
+                "Evidence needs: define key terms; position vs related work; summarize what evidence is collected (datasets/metrics/benchmarks).",
                 "Expected cites: >=10 across intro + background (surveys, seminal works, widely-used benchmarks).",
                 "Structure: preview the taxonomy and how later sections map to evidence and comparisons.",
             ],
         },
         {
             "id": "2",
-            "title": "Related Work & Prior Surveys",
+            "title": "Related Work",
             "bullets": [
-                "Intent: position this survey relative to prior surveys/reviews and adjacent lines of work (agents, tool use, RAG, evaluation, security).",
-                "RQ: What does this survey add beyond prior surveys (taxonomy choices, evidence-first criteria, evaluation focus)?",
-                "Evidence needs: cite 3–6 prior surveys/reviews and 3–6 foundational works; clarify scope boundaries and terminology.",
-                "Expected cites: >=10 (prior surveys + seminal works + widely-used benchmarks).",
-                "Structure: explain how the taxonomy differs from prior organization schemes and why it supports deeper comparisons.",
+                "Intent: position this survey relative to adjacent lines of work (agents, tool use, RAG, evaluation, security) and existing surveys/reviews.",
+                "RQ: What does this survey add beyond existing overviews (taxonomy choices, evidence-first criteria, evaluation focus)?",
+                "Evidence needs: cite 3–6 surveys/reviews and 3–6 foundational works; clarify scope boundaries and terminology.",
+                "Expected cites: >=10 (surveys/reviews + seminal works + widely-used benchmarks).",
+                "Structure: explain how the taxonomy differs from common organization schemes and why it supports deeper comparisons.",
             ],
         },
     ]
@@ -135,6 +135,7 @@ def _section_meta_bullets(*, title: str, hint: str = "") -> list[str]:
         [
             "Evidence needs: representative methods; evaluation protocols; known failure modes; connections to adjacent chapters.",
             "Expected cites: each subsection >=3; chapter total should be high enough to support evidence-first synthesis.",
+            "Chapter lead plan: later write a short (2–3 paragraph) lead that previews the key comparison axes and how the H3 subsections connect.",
         ]
     )
     return bullets
@@ -157,6 +158,8 @@ def _subsection_bullets(*, parent: str, title: str, hint: str = "") -> list[str]
         [
             "Evidence needs: mechanism/architecture; data/training setup; evaluation protocol (datasets/metrics/human); efficiency/compute; failure modes/limitations.",
             "Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.",
+            "Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.",
+            "Evaluation anchors: name 1–3 benchmarks/datasets/metrics/protocols that will appear in the subsection.",
             "Comparison axes: mechanism; data; evaluation; efficiency; limitations (refine with evidence in later stages).",
         ]
     )
@@ -171,7 +174,7 @@ def _is_placeholder(text: str) -> bool:
         return True
     if "<!-- scaffold" in text:
         return True
-    if re.search(r"(?:todo|tbd|fixme)", text, flags=re.IGNORECASE):
+    if re.search(r"\b(?:todo|tbd|fixme)\b", text, flags=re.IGNORECASE):
         return True
     if re.search(r"(?m)^\s*#\s*outline\s*\(placeholder\)", text):
         return True

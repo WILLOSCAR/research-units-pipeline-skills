@@ -226,8 +226,8 @@ def main() -> int:
             cite_keys=cite_keys,
             evidence_snippets=evidence_snippets,
         )
-        if len([c for c in concrete_comparisons if isinstance(c, dict)]) < 3:
-            blocking_missing.append("too few concrete comparisons (need >=3 A-vs-B comparisons grounded in clusters)")
+        if len([c for c in concrete_comparisons if isinstance(c, dict)]) < 4:
+            blocking_missing.append("too few concrete comparisons (need >=4 A-vs-B comparisons grounded in clusters)")
 
         evaluation_protocol = _evaluation_protocol(
             tokens=eval_tokens,
@@ -622,7 +622,7 @@ def _comparisons(
         return out
 
     out: list[dict[str, Any]] = []
-    for ax in axes[:3]:
+    for ax in axes[:5]:
         a_hl = pick_highlights(a_pids, ax)
         b_hl = pick_highlights(b_pids, ax)
 
@@ -709,40 +709,76 @@ def _evaluation_protocol(*, tokens: list[str], cite_keys: list[str]) -> list[dic
 
 
 def _limitations_from_notes(pids: list[str], *, notes_by_pid: dict[str, dict[str, Any]], cite_keys: list[str]) -> list[dict[str, Any]]:
+    """Extract cite-backed limitations/failure-mode bullets.
+
+    Prefer explicit `limitations` fields from notes, but fall back to scanning abstracts/results
+    for limitation language. If still sparse, emit explicit evidence-gap bullets so downstream
+    drafting stays conservative.
+    """
+
+    limit_re = re.compile(
+        r"(?i)(?:limitation|limitations|challenge|risk|unsafe|security|attack|threat|failure|fails|fragile|uncertain|open\s+problem|future\s+work|caveat|downside)|受限|局限|风险|挑战|失败|安全"
+    )
+
     out: list[dict[str, Any]] = []
-    for pid in pids[:12]:
+    seen: set[str] = set()
+
+    def add(bullet: str, citations: list[str]) -> None:
+        b = re.sub(r"\s+", " ", str(bullet or "").strip())
+        if not b:
+            return
+        key = b.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append({"bullet": b, "citations": citations})
+
+    for pid in pids[:20]:
         note = notes_by_pid.get(pid) or {}
         bibkey = str(note.get("bibkey") or "").strip()
-        cite = f"@{bibkey}" if bibkey else ""
+        cite = [f"@{bibkey}"] if bibkey else cite_keys[:2]
+
         limitations = note.get("limitations") or []
-        if not isinstance(limitations, list):
-            continue
-        for lim in limitations[:2]:
-            lim = str(lim).strip()
-            if not lim:
-                continue
-            low = lim.lower()
-            if low.startswith("evidence level"):
-                continue
-            if low.startswith("abstract-level evidence"):
-                continue
-            if low.startswith("this work is mapped to:") or low.startswith("mapped to outline subsections:"):
-                continue
-            out.append(
-                {
-                    "bullet": lim,
-                    "citations": [cite] if cite else cite_keys[:2],
-                }
-            )
+        if isinstance(limitations, list):
+            for lim in limitations[:4]:
+                lim = str(lim).strip()
+                if not lim:
+                    continue
+                low = lim.lower()
+                if low.startswith("evidence level"):
+                    continue
+                if low.startswith("abstract-level evidence"):
+                    continue
+                if low.startswith("this work is mapped to:") or low.startswith("mapped to outline subsections:"):
+                    continue
+                add(lim, cite)
+
+        # Fallback: scan abstract + key_results for limitation language.
+        for raw in [note.get("abstract") or ""]:
+            for s in _split_sentences(str(raw)):
+                s = str(s).strip()
+                if s and limit_re.search(s):
+                    add(s, cite)
+
+        for raw in (note.get("key_results") or []) if isinstance(note.get("key_results"), list) else []:
+            for s in _split_sentences(str(raw)):
+                s = str(s).strip()
+                if s and limit_re.search(s):
+                    add(s, cite)
+
         if len(out) >= 4:
             break
 
-    if not out:
-        out.append(
-            {
-                "bullet": "No concrete limitations/failure modes were extractable from current notes; treat this as an evidence gap for the subsection.",
-                "citations": cite_keys[:2],
-            }
+    # Ensure downstream packs have at least two limitation hooks for conservative drafting.
+    if len(out) < 2:
+        add(
+            "Few explicit limitations/failure modes are present in the extracted notes for this subsection; treat conclusions as provisional and avoid strong claims.",
+            cite_keys[:2],
+        )
+    if len(out) < 2:
+        add(
+            "To strengthen limitation analysis, prefer full-text reading or richer extraction so failure modes can be stated with direct evidence.",
+            cite_keys[:2],
         )
 
     return out[:4]

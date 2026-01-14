@@ -129,6 +129,12 @@ def main() -> int:
         if sid:
             briefs_by_sec[sid] = rec
 
+    context_by_sub: dict[str, dict[str, Any]] = {}
+    for rec in _read_jsonl(workspace / "outline" / "writer_context_packs.jsonl"):
+        sid = str(rec.get("sub_id") or "").strip()
+        if sid:
+            context_by_sub[sid] = rec
+
     by_file: dict[str, list[tuple[str, str]]] = {}
     orphan: list[tuple[str, str]] = []
 
@@ -200,6 +206,70 @@ def main() -> int:
                 if isinstance(axes, list) and axes:
                     lines.append(f"  - axes: {', '.join(str(a) for a in axes[:6])}")
 
+                ctx = context_by_sub.get(sid) or {}
+                if isinstance(ctx, dict) and ctx:
+                    plan = ctx.get("paragraph_plan") or []
+                    if isinstance(plan, list) and plan:
+                        lines.append(f"  - paragraph_plan: {len(plan)} (intent sketch)")
+                        for p in plan[:8]:
+                            if not isinstance(p, dict):
+                                continue
+                            num = p.get("para")
+                            intent = _truncate(p.get("intent") or "", max_len=160)
+                            if not intent:
+                                continue
+                            prefix = f"p{num}" if str(num).strip() else "p?"
+                            lines.append(f"    - {prefix}: {intent}")
+
+                    comps = ctx.get("comparison_cards") or []
+                    if isinstance(comps, list) and comps:
+                        lines.append(f"  - comparison_cards: {len(comps)} (examples)")
+                        for c in comps[:3]:
+                            if not isinstance(c, dict):
+                                continue
+                            axis = _truncate(c.get("axis") or "", max_len=80)
+                            a = _truncate(c.get("A_label") or "", max_len=60)
+                            b = _truncate(c.get("B_label") or "", max_len=60)
+                            cites = c.get("citations") or []
+                            cite_str = ", ".join(str(x).lstrip("@").strip() for x in cites if str(x).strip())
+                            head = " | ".join([p for p in [axis, f"{a} vs {b}" if (a or b) else ""] if p])
+                            if cite_str:
+                                lines.append(f"    - {head} (cites: {cite_str})")
+                            else:
+                                lines.append(f"    - {head}")
+
+                    evals = ctx.get("evaluation_protocol") or []
+                    if isinstance(evals, list) and evals:
+                        lines.append(f"  - evaluation_protocol: {len(evals)} (examples)")
+                        for e in evals[:2]:
+                            if not isinstance(e, dict):
+                                continue
+                            bullet = _truncate(e.get("bullet") or "", max_len=240)
+                            if not bullet:
+                                continue
+                            cites = e.get("citations") or []
+                            cite_str = ", ".join(str(x).lstrip("@").strip() for x in cites if str(x).strip())
+                            if cite_str:
+                                lines.append(f"    - {bullet} (cites: {cite_str})")
+                            else:
+                                lines.append(f"    - {bullet}")
+
+                    lims = ctx.get("limitation_hooks") or []
+                    if isinstance(lims, list) and lims:
+                        lines.append(f"  - limitation_hooks: {len(lims)} (examples)")
+                        for l in lims[:2]:
+                            if not isinstance(l, dict):
+                                continue
+                            excerpt = _truncate(l.get("excerpt") or l.get("bullet") or l.get("text") or "", max_len=240)
+                            if not excerpt:
+                                continue
+                            cites = l.get("citations") or []
+                            cite_str = ", ".join(str(x).lstrip("@").strip() for x in cites if str(x).strip())
+                            if cite_str:
+                                lines.append(f"    - {excerpt} (cites: {cite_str})")
+                            else:
+                                lines.append(f"    - {excerpt}")
+
             if kind == "h2_lead" and sid:
                 brief = briefs_by_sec.get(sid) or {}
                 through = brief.get("throughline") or []
@@ -213,6 +283,7 @@ def main() -> int:
             allowed_map = rec.get("allowed_bibkeys_mapped") or []
             anchors = rec.get("anchor_facts") or []
             evidence_ids = rec.get("evidence_ids") or []
+            allowed_chapter = rec.get("allowed_bibkeys_chapter") or []
 
             if isinstance(allowed_sel, list) and allowed_sel:
                 sample = ", ".join(str(k) for k in allowed_sel[:12])
@@ -220,6 +291,8 @@ def main() -> int:
                 lines.append(f"  - allowed_bibkeys_selected: {sample}{suffix}")
             if isinstance(allowed_map, list) and allowed_map:
                 lines.append(f"  - allowed_bibkeys_mapped: {len(allowed_map)}")
+            if isinstance(allowed_chapter, list) and allowed_chapter:
+                lines.append(f"  - allowed_bibkeys_chapter: {len(allowed_chapter)}")
             if isinstance(evidence_ids, list) and evidence_ids:
                 lines.append(f"  - evidence_ids: {len(evidence_ids)}")
             if isinstance(anchors, list) and anchors:

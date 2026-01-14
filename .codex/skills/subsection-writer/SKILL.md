@@ -6,7 +6,7 @@ description: |
   **Use when**: `Approve C2` is recorded and evidence packs exist; you want evidence-first drafting without a monolithic one-shot draft.
   **Skip if**: `DECISIONS.md` approval is missing, or `outline/evidence_drafts.jsonl` is incomplete/scaffolded.
   **Network**: none.
-  **Guardrail**: do not invent facts/citations; no ellipsis/TODO/placeholder leakage; keep citations subsection-scoped; H3 body files must not contain headings.
+  **Guardrail**: do not invent facts/citations; no ellipsis/TODO/placeholder leakage; keep citations subsection- or chapter-scoped (prefer subsection); H3 body files must not contain headings.
 ---
 
 # Subsection Writer (Per-section drafting)
@@ -23,7 +23,7 @@ This skill is LLM-first. The helper script only writes `sections/sections_manife
 
 ```
 Need better overall flow?  → write chapter leads (H2)
-Need deeper subsection content? → use anchor sheet + evidence packs (H3)
+Need deeper subsection content? → use writer context packs (H3)
 Missing concrete numbers/benchmarks? → go upstream (evidence-draft / paper-notes)
 ```
 
@@ -35,6 +35,7 @@ Missing concrete numbers/benchmarks? → go upstream (evidence-draft / paper-not
 - `outline/subsection_briefs.jsonl` (rq/axes/clusters/paragraph_plan)
 - `outline/evidence_drafts.jsonl` (evidence packs: snippets + comparisons + eval + limitations)
 - `outline/anchor_sheet.jsonl` (selected anchor facts to prevent generic prose)
+- `outline/writer_context_packs.jsonl` (preferred: merged per-H3 drafting pack)
 - `outline/evidence_bindings.jsonl` (allowed citation scope per H3)
 - `citations/ref.bib` (valid citation keys)
 
@@ -46,7 +47,7 @@ Required:
 
 Required global sections:
 - `sections/abstract.md`
-- `sections/open_problems.md`
+- `sections/discussion.md`
 - `sections/conclusion.md`
 
 Required chapter-lead blocks (one per H2 chapter that has H3 subsections):
@@ -70,9 +71,12 @@ For each H2 chapter **with H3 subsections**:
 - extract `throughline` + `key_contrasts`
 
 For each H3 subsection:
-- read `outline/subsection_briefs.jsonl` (rq/axes/clusters/paragraph_plan)
-- read `outline/evidence_drafts.jsonl` (comparisons, eval, limitations)
-- read `outline/anchor_sheet.jsonl` and pick:
+- Prefer the matching record in `outline/writer_context_packs.jsonl` (rq/axes/paragraph_plan + comparison cards + eval + limitations + anchors + allowed cites).
+- If missing, fall back to:
+  - `outline/subsection_briefs.jsonl` (rq/axes/clusters/paragraph_plan)
+  - `outline/evidence_drafts.jsonl` (comparisons, eval, limitations)
+  - `outline/anchor_sheet.jsonl` (numeric/eval/limitation anchors)
+- When drafting, pick:
   - >=1 quantitative anchor (digits) if available
   - >=1 evaluation anchor (benchmark/dataset/metric)
   - >=1 limitation/failure hook
@@ -85,18 +89,43 @@ For each H2 chapter with H3 subsections, create `sections/S<sec_id>_lead.md`:
 - Body-only: MUST NOT contain headings (`#`, `##`, `###`).
 - 2–3 paragraphs (tight, high-signal).
 - Must preview the chapter’s comparison axes and how the H3s connect.
-- Must include >=2 citations (prefer prior surveys/benchmarks already in `ref.bib`).
+- Must include >=2 citations (prefer surveys/benchmarks already in `ref.bib`).
 - No new facts: don’t introduce new claims that are not later supported in H3.
+
+### 2b) Write front matter H2 sections (Introduction + Related Work)
+
+These are H2 sections without H3 subsections, so write body-only files (no headings; they are injected under the H2 title by `section-merger`):
+- `sections/S1.md` (Introduction)
+- `sections/S2.md` (Related Work)
+
+Requirements (strict mode; thresholds depend on `queries.md:draft_profile`):
+- Depth: >=6 substantive paragraphs (paragraphs with >=~200 chars after removing citations; avoid bullet-only structure).
+- Cite density (unique cites; min depends on `draft_profile`): `lite` Intro>=8 / Related>=10; `survey` Intro>=12 / Related>=15; `deep` Intro>=18 / Related>=22 (mix foundations + representative systems + eval/benchmark/security).
+- Paper-like structure: motivation → scope/definitions → why the taxonomy/axes → contributions → organization paragraph.
+
+Related Work policy:
+- Avoid a dedicated “Prior Surveys” mini-section; integrate survey citations as part of positioning vs adjacent lines of work.
+
+Optional style reference:
+- Skim `ref/agent-surveys/text/` to imitate typical front-matter structure and citation density.
+
+### 2c) Write Discussion (global)
+
+Write `sections/discussion.md` (MUST include a `## Discussion` heading).
+
+Targets:
+- 3–6 paragraphs that synthesize cross-cutting themes across chapters (not per-paper summaries).
+- Each paragraph should cite multiple works when making factual claims (prefer >=2 citations in synthesis paragraphs).
+- Include limitations/assumptions explicitly (benchmark dependence, abstract-only evidence, reproducibility gaps).
+- End with concrete, actionable future directions (avoid generic template bullets).
 
 ### 3) Write H3 body files (depth + evidence)
 
 For each H3 file `sections/S<sub_id>.md`:
 - Body-only: MUST NOT contain headings.
-- Evidence-first: >=3 unique citations, all present in `citations/ref.bib`.
-- Citation scope: citations must be allowed by `outline/evidence_bindings.jsonl` for that `sub_id`.
-- Depth target (survey-quality):
-  - 6–10 paragraphs.
-  - >=~5000 chars after removing citations.
+- Evidence-first: cite density depends on `draft_profile` (`lite`>=7, `survey`>=10, `deep`>=12 unique citations), all present in `citations/ref.bib`.
+- Citation scope: citations must be allowed by `outline/evidence_bindings.jsonl` for that `sub_id` (or, if needed, within the same H2 chapter’s mapped union); keep >=2 subsection-specific citations.
+- Depth target (depends on `draft_profile`; all sans cites): `lite`>=6 paragraphs & >=~5000 chars; `survey`>=9 & >=~9000; `deep`>=10 & >=~11000.
 - Must include:
   - >=2 explicit contrasts (whereas / in contrast / 相比 / 不同于)
   - >=1 evaluation anchor (benchmark/dataset/metric/protocol)
@@ -110,12 +139,13 @@ Delete or rewrite any sentence that is:
 - copy-pastable into other subsections
 - missing concrete nouns (benchmarks/datasets/tools/numbers)
 - not grounded by citations when it contains a factual claim
+- meta/process language that should not appear in a paper (e.g., “drafting policy”, “template-y”, “pipeline”, “quality gate”)
 
 ## Common failure modes (and fixes)
 
 - **Generic prose despite long paragraphs** → you skipped `outline/anchor_sheet.jsonl`; rewrite with >=1 cited numeric anchor + >=2 concrete comparisons.
 - **Citations missing in bib** → go upstream: ensure classics/surveys are in `papers/core_set.csv` and regenerate `citations/ref.bib`.
-- **Citations outside binding set** → fix `outline/mapping.tsv` then rerun `evidence-binder` (do not “free cite” across subsections).
+- **Citations outside binding set** → rewrite to stay within subsection/ chapter mapping; if still impossible, fix `outline/mapping.tsv` then rerun `evidence-binder` (avoid cross-chapter “free cite”).
 - **Quality gate fails after partial writing** → use `writer-selfloop` to rewrite only failing `sections/*.md` based on `output/QUALITY_GATE.md` (don’t rewrite the whole draft).
 
 ## Script

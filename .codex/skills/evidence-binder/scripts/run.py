@@ -83,8 +83,12 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, ensure_dir, now_iso_seconds, parse_semicolon_list, read_jsonl, read_tsv, write_jsonl
+    from tooling.quality_gate import _draft_profile, _pipeline_profile
 
     workspace = Path(args.workspace).resolve()
+
+    profile = _pipeline_profile(workspace)
+    draft_profile = _draft_profile(workspace)
 
     inputs = parse_semicolon_list(args.inputs) or [
         'outline/subsection_briefs.jsonl',
@@ -146,6 +150,14 @@ def main() -> int:
     # Selection params.
     k = 14
     max_per_paper = 3
+
+    if profile == "arxiv-survey":
+        if draft_profile == "deep":
+            k = 24
+        elif draft_profile == "lite":
+            k = 12
+        else:
+            k = 18
 
     flags: list[str] = []
     for brief in briefs:

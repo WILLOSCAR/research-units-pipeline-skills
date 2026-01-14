@@ -30,6 +30,37 @@ def _pipeline_profile(workspace: Path) -> str:
         return "default"
 
 
+def _draft_profile(workspace: Path) -> str:
+    """Return the draft strictness profile from `queries.md` (best-effort).
+
+    Supported values: `lite`, `survey`, `deep`.
+    """
+    profile = _pipeline_profile(workspace)
+    default = "survey" if profile == "arxiv-survey" else "default"
+
+    queries_path = workspace / "queries.md"
+    if not queries_path.exists():
+        return default
+
+    keys = {"draft_profile", "writing_profile", "quality_profile"}
+    try:
+        for raw in queries_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if not line.startswith("- ") or ":" not in line:
+                continue
+            key, value = line[2:].split(":", 1)
+            key = key.strip().lower().replace(" ", "_")
+            if key not in keys:
+                continue
+            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
+            if value in {"lite", "survey", "deep"}:
+                return value
+            return default
+    except Exception:
+        return default
+    return default
+
+
 def _check_placeholder_markers(text: str) -> bool:
     if not text:
         return False
@@ -193,6 +224,8 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
         return _check_evidence_drafts(workspace, outputs)
     if skill == "anchor-sheet":
         return _check_anchor_sheet(workspace, outputs)
+    if skill == "writer-context-pack":
+        return _check_writer_context_packs(workspace, outputs)
     if skill == "survey-visuals":
         return _check_survey_visuals(workspace, outputs)
     if skill == "transition-weaver":
@@ -287,6 +320,7 @@ def write_quality_report(*, workspace: Path, unit_id: str, skill: str, issues: l
     report_path = workspace / "output" / "QUALITY_GATE.md"
 
     now = datetime.now().replace(microsecond=0).isoformat()
+    status = "PASS" if not issues else "FAIL"
     lines: list[str] = [
         "# Quality gate report",
         "",
@@ -294,16 +328,27 @@ def write_quality_report(*, workspace: Path, unit_id: str, skill: str, issues: l
         f"- Unit: `{unit_id}`",
         f"- Skill: `{skill}`",
         "",
+        "## Status",
+        "",
+        f"- {status}",
+        "",
         "## Issues",
         "",
     ]
-    for issue in issues:
-        lines.append(f"- `{issue.code}`: {issue.message}")
+    if issues:
+        for issue in issues:
+            lines.append(f"- `{issue.code}`: {issue.message}")
+    else:
+        lines.append("- (none)")
+
     lines.append("")
     lines.append("## Next action")
     lines.append("")
-    for ln in _next_action_lines(skill=skill, unit_id=unit_id):
-        lines.append(ln)
+    if issues:
+        for ln in _next_action_lines(skill=skill, unit_id=unit_id):
+            lines.append(ln)
+    else:
+        lines.append("- Proceed to the next unit.")
     lines.append("")
 
     atomic_write_text(report_path, "\n".join(lines).rstrip() + "\n")
@@ -366,11 +411,11 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
         ],
         "subsection-writer": [
             "- Write per-unit prose files under `sections/` (small, verifiable units):",
-            "  - `sections/abstract.md` (`## Abstract`), `sections/open_problems.md`, `sections/conclusion.md`.",
+            "  - `sections/abstract.md` (`## Abstract`), `sections/discussion.md`, `sections/conclusion.md`.",
             "  - `sections/S<section_id>.md` for H2 sections without H3 (body only).",
             "  - `sections/S<sub_id>.md` for each H3 (body only; no headings).",
             "- Each H3 file should have >=3 unique citations and avoid ellipsis/TODO/template boilerplate.",
-            "- Keep H3 citations subsection-scoped: cite only keys mapped in `outline/evidence_bindings.jsonl` for that H3 (or fix mapping/bindings).",
+            "- Keep H3 citations subsection-first: cite keys mapped in `outline/evidence_bindings.jsonl` for that H3; limited reuse from sibling H3s in the same H2 chapter is allowed; avoid cross-chapter “free cite”.",
             "- If blocked, run `writer-selfloop`: read `output/QUALITY_GATE.md`, fix only the failing `sections/*.md`, then rerun the `subsection-writer` script until it passes.",
         ],
         "section-merger": [
@@ -1023,14 +1068,23 @@ def _check_mapping(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             else:
                 unknown += 1
 
-        per_subsection = 3
+        profile = _pipeline_profile(workspace)
+        per_subsection = 8 if profile == "arxiv-survey" else 3
+
         ok = sum(1 for _, c in counts.items() if c >= per_subsection)
         total = max(1, len(counts))
         if ok / total < 0.8:
+            low = sorted([(sid, c) for sid, c in counts.items() if c < per_subsection], key=lambda kv: (kv[1], kv[0]))
+            sample = ", ".join([f"{sid}({c})" for sid, c in low[:10]])
+            suffix = "..." if len(low) > 10 else ""
             issues.append(
                 QualityIssue(
                     code="mapping_low_coverage",
-                    message=f"Only {ok}/{len(counts)} subsections have >= {per_subsection} mapped papers; mapping should cover most subsections before evidence/drafting.",
+                    message=(
+                        f"Only {ok}/{len(counts)} subsections have >= {per_subsection} mapped papers; "
+                        f"low-coverage examples: {sample}{suffix}. "
+                        "Increase `--per-subsection` (survey default) or refine `outline/outline.yml` so each H3 can sustain evidence-first writing."
+                    ),
                 )
             )
         if unknown:
@@ -1674,6 +1728,15 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
         return out
 
     issues: list[QualityIssue] = []
+    profile = _pipeline_profile(workspace)
+    draft_profile = _draft_profile(workspace)
+    min_comparisons = 3
+    if profile == "arxiv-survey":
+        if draft_profile == "deep":
+            min_comparisons = 5
+        elif draft_profile != "lite":
+            min_comparisons = 4
+
     bad = 0
     missing_bib = 0
     blocking_missing = 0
@@ -1711,7 +1774,7 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
                 break
 
         comps = pack.get("concrete_comparisons") or []
-        if not isinstance(comps, list) or len([c for c in comps if isinstance(c, dict)]) < 3:
+        if not isinstance(comps, list) or len([c for c in comps if isinstance(c, dict)]) < min_comparisons:
             weak_comparisons += 1
             continue
 
@@ -1761,7 +1824,7 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
         issues.append(
             QualityIssue(
                 code="evidence_drafts_too_few_comparisons",
-                message=f"{weak_comparisons} evidence pack(s) have <3 concrete comparisons; expand comparisons per subsection before writing.",
+                message=f"{weak_comparisons} evidence pack(s) have <{min_comparisons} concrete comparisons; expand comparisons per subsection before writing.",
             )
         )
     if missing_bib:
@@ -1850,6 +1913,257 @@ def _check_anchor_sheet(workspace: Path, outputs: list[str]) -> list[QualityIssu
     return issues
 
 
+def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import load_yaml, read_jsonl
+
+    out_rel = outputs[0] if outputs else "outline/writer_context_packs.jsonl"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_writer_context_packs", message=f"`{out_rel}` does not exist.")]
+    raw = path.read_text(encoding="utf-8", errors="ignore")
+    if not raw.strip():
+        return [QualityIssue(code="empty_writer_context_packs", message=f"`{out_rel}` is empty.")]
+    if _check_placeholder_markers(raw) or "(placeholder)" in raw.lower():
+        return [
+            QualityIssue(
+                code="writer_context_packs_placeholders",
+                message=f"`{out_rel}` contains placeholder markers; regenerate after fixing briefs/evidence/anchors.",
+            )
+        ]
+
+    records = read_jsonl(path)
+    items = [r for r in records if isinstance(r, dict)]
+    if not items:
+        return [QualityIssue(code="invalid_writer_context_packs", message=f"`{out_rel}` has no JSON objects.")]
+
+    outline_path = workspace / "outline" / "outline.yml"
+    outline = load_yaml(outline_path) if outline_path.exists() else []
+    expected_subs: list[str] = []
+    if isinstance(outline, list):
+        for sec in outline:
+            if not isinstance(sec, dict):
+                continue
+            for sub in sec.get("subsections") or []:
+                if not isinstance(sub, dict):
+                    continue
+                sid = str(sub.get("id") or "").strip()
+                if sid:
+                    expected_subs.append(sid)
+    expected = set(expected_subs)
+
+    profile = _pipeline_profile(workspace)
+    draft_profile = _draft_profile(workspace)
+    if profile == "arxiv-survey":
+        if draft_profile == "deep":
+            min_plan = 10
+        elif draft_profile != "lite":
+            min_plan = 8
+        else:
+            min_plan = 6
+    else:
+        min_plan = 4
+
+    seen: set[str] = set()
+    bad = 0
+    missing_rq: list[str] = []
+    missing_axes: list[str] = []
+    short_plan: list[str] = []
+    empty_anchors: list[str] = []
+    sparse_anchors: list[str] = []
+    sparse_comparisons: list[str] = []
+    empty_eval_proto: list[str] = []
+    sparse_lim_hooks: list[str] = []
+    missing_allowed_bib: list[str] = []
+
+    if profile == "arxiv-survey":
+        min_comparisons = 4 if draft_profile != "lite" else 3
+        min_lim_hooks = 2 if draft_profile != "lite" else 1
+        min_anchors = 6 if draft_profile != "lite" else 3
+    else:
+        min_comparisons = 1
+        min_lim_hooks = 1
+        min_anchors = 1
+
+    for rec in items:
+        sub_id = str(rec.get("sub_id") or "").strip()
+        title = str(rec.get("title") or "").strip()
+        sec_id = str(rec.get("section_id") or "").strip()
+        sec_title = str(rec.get("section_title") or "").strip()
+        if not sub_id or not title or not sec_id or not sec_title:
+            bad += 1
+            continue
+        if expected and sub_id not in expected:
+            bad += 1
+            continue
+        if sub_id in seen:
+            bad += 1
+            continue
+        seen.add(sub_id)
+
+        rq = str(rec.get("rq") or "").strip()
+        axes = rec.get("axes") or []
+        plan = rec.get("paragraph_plan") or []
+        if not rq:
+            missing_rq.append(sub_id)
+        if not isinstance(axes, list) or not any(str(a).strip() for a in axes):
+            missing_axes.append(sub_id)
+        if not isinstance(plan, list) or len([p for p in plan if str(p).strip()]) < min_plan:
+            short_plan.append(sub_id)
+
+        anchors = rec.get("anchor_facts") or []
+        if not isinstance(anchors, list) or len([a for a in anchors if isinstance(a, dict) and str(a.get("text") or "").strip()]) < min_anchors:
+            sparse_anchors.append(sub_id)
+
+        comps = rec.get("comparison_cards") or []
+        if not isinstance(comps, list) or len([c for c in comps if isinstance(c, dict)]) < min_comparisons:
+            sparse_comparisons.append(sub_id)
+
+        eval_proto = rec.get("evaluation_protocol") or []
+        if not isinstance(eval_proto, list) or not eval_proto:
+            empty_eval_proto.append(sub_id)
+
+        lim_hooks = rec.get("limitation_hooks") or []
+        if not isinstance(lim_hooks, list) or len([l for l in lim_hooks if isinstance(l, dict) and str(l.get("excerpt") or l.get("text") or "").strip()]) < min_lim_hooks:
+            sparse_lim_hooks.append(sub_id)
+
+        allowed = rec.get("allowed_bibkeys_mapped") or []
+        if not isinstance(allowed, list) or not any(str(k).strip() for k in allowed):
+            missing_allowed_bib.append(sub_id)
+
+    issues: list[QualityIssue] = []
+    if expected and seen != expected:
+        missing = sorted([sid for sid in expected if sid not in seen])
+        extra = sorted([sid for sid in seen if sid not in expected])
+        msg_parts = []
+        if missing:
+            msg_parts.append(f"missing: {', '.join(missing[:6])}{'...' if len(missing) > 6 else ''}")
+        if extra:
+            msg_parts.append(f"extra: {', '.join(extra[:6])}{'...' if len(extra) > 6 else ''}")
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_outline_mismatch",
+                message=f"`{out_rel}` does not match outline H3 set ({'; '.join(msg_parts) or 'mismatch'}).",
+            )
+        )
+    if bad:
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_invalid_records",
+                message=f"`{out_rel}` has {bad} invalid record(s) (missing ids/titles, duplicate sub_id, or not in outline).",
+            )
+        )
+
+    total = max(1, len(items))
+    if missing_rq:
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_missing_rq",
+                message=(
+                    f"`{out_rel}` has {len(missing_rq)}/{len(items)} record(s) with empty `rq` "
+                    f"(e.g., {', '.join(missing_rq[:10])}{'...' if len(missing_rq) > 10 else ''}); "
+                    "fix `subsection-briefs` and regenerate."
+                ),
+            )
+        )
+    if missing_axes:
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_missing_axes",
+                message=(
+                    f"`{out_rel}` has {len(missing_axes)}/{len(items)} record(s) with empty `axes` "
+                    f"(e.g., {', '.join(missing_axes[:10])}{'...' if len(missing_axes) > 10 else ''}); "
+                    "fix `subsection-briefs` and regenerate."
+                ),
+            )
+        )
+    if short_plan:
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_short_plan",
+                message=(
+                    f"`{out_rel}` has {len(short_plan)}/{len(items)} record(s) with too-short `paragraph_plan` (<{min_plan}) "
+                    f"(e.g., {', '.join(short_plan[:10])}{'...' if len(short_plan) > 10 else ''}); "
+                    "fix `subsection-briefs` and regenerate."
+                ),
+            )
+        )
+
+    # Per-subsection sanity: missing anchors/comparisons makes drafting hollow.
+    if sparse_anchors and profile == "arxiv-survey":
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_sparse_anchors",
+                message=(
+                    f"Some writer context packs have too few `anchor_facts` (<{min_anchors}) ({len(sparse_anchors)}/{len(items)}) "
+                    f"(e.g., {', '.join(sparse_anchors[:10])}{'...' if len(sparse_anchors) > 10 else ''}); "
+                    "strengthen `anchor-sheet` / evidence packs before drafting."
+                ),
+            )
+        )
+    if sparse_comparisons and profile == "arxiv-survey":
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_sparse_comparisons",
+                message=(
+                    f"Some writer context packs have too few `comparison_cards` (<{min_comparisons}) ({len(sparse_comparisons)}/{len(items)}) "
+                    f"(e.g., {', '.join(sparse_comparisons[:10])}{'...' if len(sparse_comparisons) > 10 else ''}); "
+                    "strengthen `evidence-draft` excerpt-level comparisons (with citations) before drafting."
+                ),
+            )
+        )
+    if empty_eval_proto and profile == "arxiv-survey":
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_missing_eval_protocol",
+                message=(
+                    f"Some writer context packs lack `evaluation_protocol` ({len(empty_eval_proto)}/{len(items)}) "
+                    f"(e.g., {', '.join(empty_eval_proto[:10])}{'...' if len(empty_eval_proto) > 10 else ''}); "
+                    "ensure each subsection has at least one cite-backed evaluation anchor in `evidence-draft`."
+                ),
+            )
+        )
+    if sparse_lim_hooks and profile == "arxiv-survey":
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_missing_limitation_hooks",
+                message=(
+                    f"Some writer context packs have too few `limitation_hooks` (<{min_lim_hooks}) ({len(sparse_lim_hooks)}/{len(items)}) "
+                    f"(e.g., {', '.join(sparse_lim_hooks[:10])}{'...' if len(sparse_lim_hooks) > 10 else ''}); "
+                    "ensure each subsection has cite-backed limitations/failure modes in `evidence-draft` / `anchor-sheet`."
+                ),
+            )
+        )
+    if missing_allowed_bib and profile == "arxiv-survey":
+        issues.append(
+            QualityIssue(
+                code="writer_context_packs_missing_allowed_bibkeys",
+                message=(
+                    f"Some writer context packs have empty `allowed_bibkeys_mapped` ({len(missing_allowed_bib)}/{len(items)}) "
+                    f"(e.g., {', '.join(missing_allowed_bib[:10])}{'...' if len(missing_allowed_bib) > 10 else ''}); "
+                    "fix `section-mapper` / `evidence-binder` so each subsection has in-scope citations."
+                ),
+            )
+        )
+
+    # Keep a soft heuristic for non-survey profiles.
+    if profile != "arxiv-survey":
+        if (len(sparse_anchors) / total) >= 0.5:
+            issues.append(
+                QualityIssue(
+                    code="writer_context_packs_sparse_anchors",
+                    message=f"Many writer context packs lack `anchor_facts` ({len(sparse_anchors)}/{len(items)}); strengthen `anchor-sheet` / evidence packs before drafting.",
+                )
+            )
+        if (len(sparse_comparisons) / total) >= 0.5:
+            issues.append(
+                QualityIssue(
+                    code="writer_context_packs_sparse_comparisons",
+                    message=f"Many writer context packs lack `comparison_cards` ({len(sparse_comparisons)}/{len(items)}); strengthen `evidence-draft` concrete comparisons before drafting.",
+                )
+            )
+    return issues
+
+
 def _check_evidence_bindings(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     from tooling.common import load_yaml, read_jsonl
 
@@ -1903,19 +2217,37 @@ def _check_evidence_bindings(workspace: Path, outputs: list[str]) -> list[Qualit
                 if eid:
                     bank_ids.add(eid)
 
+    profile = _pipeline_profile(workspace)
+    min_ids = 10 if profile == "arxiv-survey" else 6
+
     bad = 0
     missing_bank = 0
+    bad_samples: list[tuple[str, int]] = []
     for sid, rec in by_sub.items():
         title = str(rec.get("title") or "").strip()
         eids = rec.get("evidence_ids") or []
-        if not title or not isinstance(eids, list) or len([e for e in eids if str(e).strip()]) < 6:
+        eid_count = len([e for e in eids if str(e).strip()]) if isinstance(eids, list) else 0
+        if not title or not isinstance(eids, list) or eid_count < min_ids:
             bad += 1
+            bad_samples.append((sid, eid_count))
             continue
         if bank_ids and any(str(e).strip() and str(e).strip() not in bank_ids for e in eids):
             missing_bank += 1
 
     if bad:
-        return [QualityIssue(code="evidence_bindings_incomplete", message=f"`{out_rel}` has {bad} record(s) missing title or with too few evidence_ids (<6).")]
+        bad_samples.sort(key=lambda kv: (kv[1], kv[0]))
+        sample = ", ".join([f"{sid}({n})" for sid, n in bad_samples[:10]])
+        suffix = "..." if len(bad_samples) > 10 else ""
+        return [
+            QualityIssue(
+                code="evidence_bindings_incomplete",
+                message=(
+                    f"`{out_rel}` has {bad} record(s) missing title or with too few evidence_ids (<{min_ids}); "
+                    f"examples: {sample}{suffix}. "
+                    "Increase binder selection or fix mapping/notes so each subsection has enough in-scope evidence."
+                ),
+            )
+        ]
     if missing_bank:
         return [QualityIssue(code="evidence_bindings_missing_bank_ids", message=f"`{out_rel}` references evidence_ids not found in `papers/evidence_bank.jsonl` ({missing_bank} subsection(s)).")]
 
@@ -2150,6 +2482,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
 
     expected_units: list[dict[str, str]] = []
     expected_leads: list[dict[str, str]] = []
+    sub_to_section: dict[str, str] = {}
     if isinstance(outline, list):
         for sec in outline:
             if not isinstance(sec, dict):
@@ -2168,7 +2501,17 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     sub_id = str(sub.get("id") or "").strip()
                     sub_title = str(sub.get("title") or "").strip()
                     if sub_id and sub_title:
-                        expected_units.append({"kind": "h3", "id": sub_id, "title": sub_title, "section_title": sec_title})
+                        expected_units.append(
+                            {
+                                "kind": "h3",
+                                "id": sub_id,
+                                "title": sub_title,
+                                "section_id": sec_id,
+                                "section_title": sec_title,
+                            }
+                        )
+                        if sec_id:
+                            sub_to_section[sub_id] = sec_id
             else:
                 if sec_id and sec_title:
                     expected_units.append({"kind": "h2", "id": sec_id, "title": sec_title, "section_title": sec_title})
@@ -2176,7 +2519,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
     # Required global sections (kept outside outline for consistency).
     required_globals = [
         ("abstract", "Abstract", base_dir / "abstract.md"),
-        ("open_problems", "Open Problems", base_dir / "open_problems.md"),
+        ("discussion", "Discussion", base_dir / "discussion.md"),
         ("conclusion", "Conclusion", base_dir / "conclusion.md"),
     ]
     optional_globals: list[tuple[str, str, Path]] = []
@@ -2236,8 +2579,28 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
             QualityIssue(
                 code="missing_evidence_bindings",
                 message="Missing `outline/evidence_bindings.jsonl`; run `evidence-binder` before subsection writing so citations can be scoped per H3.",
+                )
             )
-        )
+
+    # Allow limited “chapter-scoped” citation reuse: any bibkey mapped to a sibling H3 in the same H2 chapter
+    # is considered in-scope (prevents unnecessary BLOCKED loops when mapping is slightly under-specified),
+    # but each H3 should still cite some subsection-specific papers.
+    mapped_by_section: dict[str, set[str]] = {}
+    for sub_id, sec_id in sub_to_section.items():
+        allowed = mapped_by_sub.get(sub_id)
+        if not allowed or not sec_id:
+            continue
+        bucket = mapped_by_section.setdefault(sec_id, set())
+        bucket.update(allowed)
+
+    # Some papers are legitimately cross-cutting (foundations/benchmarks/surveys) and may be mapped to many subsections.
+    # Treat bibkeys mapped to multiple subsections as globally in-scope to reduce unnecessary writer BLOCKED loops.
+    mapped_counts: dict[str, int] = {}
+    for keys in mapped_by_sub.values():
+        for k in keys:
+            mapped_counts[k] = mapped_counts.get(k, 0) + 1
+    global_threshold = 3
+    mapped_global = {k for k, n in mapped_counts.items() if n >= global_threshold}
 
     def _extract_keys(text: str) -> set[str]:
         keys: set[str] = set()
@@ -2294,6 +2657,20 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 )
             )
             break
+        if re.search(
+            r"(?im)^(?:intent|rq|question|scope cues|evidence needs|expected cites|concrete comparisons|evaluation anchors|comparison axes)\s*[:：]",
+            text,
+        ):
+            issues.append(
+                QualityIssue(
+                    code="sections_contains_outline_meta",
+                    message=(
+                        f"`{rel}` contains outline/brief meta markers (Intent/RQ/Evidence needs/etc.). "
+                        "These belong in `outline/outline.yml` or briefs, not in final prose; rewrite to remove meta prefixes."
+                    ),
+                )
+            )
+            break
         if re.search(r"(?i)\babstracts are treated as verification targets\b", text) or re.search(r"(?i)\bthe main axes we track are\b", text):
             issues.append(
                 QualityIssue(
@@ -2317,33 +2694,50 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
 
             cite_keys = _extract_keys(text)
             profile = _pipeline_profile(workspace)
-            if profile == "arxiv-survey" and len(cite_keys) < 3:
-                issues.append(
-                    QualityIssue(
-                        code="sections_h3_sparse_citations",
-                        message=f"`{rel}` has <3 unique citations ({len(cite_keys)}); each H3 should be evidence-first (>=3) for survey-quality runs.",
+            draft_profile = _draft_profile(workspace)
+            if profile == "arxiv-survey":
+                if draft_profile == "deep":
+                    min_cites = 12
+                elif draft_profile == "lite":
+                    min_cites = 7
+                else:
+                    min_cites = 10
+                if len(cite_keys) < min_cites:
+                    issues.append(
+                        QualityIssue(
+                            code="sections_h3_sparse_citations",
+                            message=f"`{rel}` has <{min_cites} unique citations ({len(cite_keys)}); each H3 should be evidence-first for survey-quality runs.",
+                        )
                     )
-                )
 
             if profile == "arxiv-survey":
+                min_paragraphs = 6
+                min_chars = 5000
+                if draft_profile == "deep":
+                    min_paragraphs = 10
+                    min_chars = 11000
+                elif draft_profile != "lite":
+                    min_paragraphs = 9
+                    min_chars = 9000
+
                 paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
-                if len(paragraphs) < 6:
+                if len(paragraphs) < min_paragraphs:
                     issues.append(
                         QualityIssue(
                             code="sections_h3_too_few_paragraphs",
-                            message=f"`{rel}` has too few paragraphs ({len(paragraphs)}); for survey-quality runs aim for 6–10 paragraphs per H3 (thesis → contrasts → eval anchor → synthesis → limitations), not a short stub.",
+                            message=f"`{rel}` has too few paragraphs ({len(paragraphs)}); aim for {min_paragraphs}–{max(min_paragraphs, 12)} paragraphs per H3 for this draft profile.",
                         )
                     )
 
                 content = re.sub(r"\[@[^\]]+\]", "", text)
                 content = re.sub(r"\s+", " ", content).strip()
-                if len(content) < 5000:
+                if len(content) < min_chars:
                     issues.append(
                         QualityIssue(
                             code="sections_h3_too_short",
                             message=(
-                                f"`{rel}` looks too short ({len(content)} chars after removing citations). "
-                                "For survey-quality runs, expand with concrete comparisons + evaluation details + synthesis + limitations from the evidence pack."
+                                f"`{rel}` looks too short ({len(content)} chars after removing citations; min={min_chars}). "
+                                "Expand with concrete comparisons + evaluation details + synthesis + limitations from the evidence pack."
                             ),
                         )
                     )
@@ -2408,15 +2802,36 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                         )
                     )
             if mapped_by_sub.get(uid):
-                allowed = mapped_by_sub.get(uid) or set()
-                outside = sorted([k for k in cite_keys if k not in allowed])
+                allowed_sub = mapped_by_sub.get(uid) or set()
+                sec_id = sub_to_section.get(uid) or ""
+                allowed_chapter = mapped_by_section.get(sec_id, set()) if sec_id else set()
+
+                profile = _pipeline_profile(workspace)
+                if profile == "arxiv-survey":
+                    sub_specific = {k for k in cite_keys if k in allowed_sub}
+                    if len(sub_specific) < 2:
+                        issues.append(
+                            QualityIssue(
+                                code="sections_h3_sparse_subsection_cites",
+                                message=(
+                                    f"`{rel}` cites too few subsection-specific papers ({len(sub_specific)}). "
+                                    "Chapter-scoped reuse is allowed, but each H3 should still ground itself in >=2 papers mapped to that subsection."
+                                ),
+                            )
+                        )
+
+                outside = sorted([k for k in cite_keys if k not in allowed_sub and k not in allowed_chapter and k not in mapped_global])
                 if outside:
                     sample = ", ".join(outside[:8])
                     suffix = "..." if len(outside) > 8 else ""
                     issues.append(
                         QualityIssue(
                             code="sections_cites_outside_mapping",
-                            message=f"`{rel}` cites keys not mapped to subsection {uid} (e.g., {sample}{suffix}); keep citations subsection-scoped (or fix mapping/bindings).",
+                            message=(
+                                f"`{rel}` cites keys not mapped to subsection {uid}"
+                                + (f" (or its chapter {sec_id})" if sec_id else "")
+                                + f" (e.g., {sample}{suffix}); keep citations subsection- or chapter-scoped (or fix mapping/bindings)."
+                            ),
                         )
                     )
         elif kind == "h2_lead":
@@ -2448,11 +2863,11 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                         message=f"`{rel}` should start with `## Abstract` (or `## 摘要`).",
                     )
                 )
-            if uid == "open_problems" and not re.search(r"(?im)^##\s+(open problems|future directions|future work|开放问题|未来方向|未来工作)\b", text):
+            if uid == "discussion" and not re.search(r"(?im)^##\s+(discussion|discussion and future work|discussion & future work|讨论|讨论与未来工作|讨论与未来方向)\b", text):
                 issues.append(
                     QualityIssue(
-                        code="sections_open_problems_missing_heading",
-                        message=f"`{rel}` should include an `## Open Problems & Future Directions` heading (or equivalent).",
+                        code="sections_discussion_missing_heading",
+                        message=f"`{rel}` should include an `## Discussion` heading (or equivalent).",
                     )
                 )
             if uid == "conclusion" and not re.search(r"(?im)^##\s+(conclusion|结论)\b", text):
@@ -2463,14 +2878,85 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     )
                 )
         else:
-            # H2 body files: encourage at least one citation.
-            if kind == "h2" and "[@" not in text:
-                issues.append(
-                    QualityIssue(
-                        code="sections_h2_no_citations",
-                        message=f"`{rel}` contains no citations; H2 sections should be grounded with citations (or keep claims purely structural).",
+            # H2 body files.
+            if kind == "h2":
+                cite_keys = _extract_keys(text)
+                if "[@" not in text:
+                    issues.append(
+                        QualityIssue(
+                            code="sections_h2_no_citations",
+                            message=f"`{rel}` contains no citations; H2 sections should be grounded with citations (or keep claims purely structural).",
+                        )
                     )
-                )
+
+                # Front-matter strength (Intro + Related Work) is a common weak point: enforce cite density + depth.
+                if _pipeline_profile(workspace) == "arxiv-survey" and uid in {"1", "2"}:
+                    draft_profile = _draft_profile(workspace)
+                    if draft_profile == "deep":
+                        if uid == "1":
+                            min_cites = 18
+                            min_paras = 9
+                            min_chars = 3200
+                        else:
+                            min_cites = 22
+                            min_paras = 10
+                            min_chars = 3600
+                    elif draft_profile == "lite":
+                        if uid == "1":
+                            min_cites = 8
+                            min_paras = 4
+                            min_chars = 1400
+                        else:
+                            min_cites = 10
+                            min_paras = 5
+                            min_chars = 1600
+                    else:
+                        if uid == "1":
+                            min_cites = 12
+                            min_paras = 6
+                            min_chars = 2200
+                        else:
+                            min_cites = 15
+                            min_paras = 7
+                            min_chars = 2400
+
+                    content = re.sub(r"\[@[^\]]+\]", "", text)
+                    content = re.sub(r"\s+", " ", content).strip()
+
+                    paras = [p.strip() for p in re.split(r"\n\s*\n", re.sub(r"\[@[^\]]+\]", "", text)) if p.strip()]
+                    long_paras = [
+                        p
+                        for p in paras
+                        if len(re.sub(r"\s+", " ", p).strip()) >= 200 and not p.lstrip().startswith(("-", "*", "|", "```"))
+                    ]
+
+                    if len(set(cite_keys)) < min_cites:
+                        code = "sections_intro_sparse_citations" if uid == "1" else "sections_related_work_sparse_citations"
+                        label = "Introduction" if uid == "1" else "Related Work"
+                        issues.append(
+                            QualityIssue(
+                                code=code,
+                                message=f"`{rel}` ({label}) cites too few unique papers ({len(set(cite_keys))}; min={min_cites}). Increase concrete, cite-grounded positioning and coverage.",
+                            )
+                        )
+                    if len(content) < min_chars:
+                        code = "sections_intro_too_short" if uid == "1" else "sections_related_work_too_short"
+                        label = "Introduction" if uid == "1" else "Related Work"
+                        issues.append(
+                            QualityIssue(
+                                code=code,
+                                message=f"`{rel}` ({label}) looks too short ({len(content)} chars after removing citations; min={min_chars}). Expand motivation/scope/contributions and keep claims citation-grounded.",
+                            )
+                        )
+                    if len(long_paras) < min_paras:
+                        code = "sections_intro_too_few_paragraphs" if uid == "1" else "sections_related_work_too_few_paragraphs"
+                        label = "Introduction" if uid == "1" else "Related Work"
+                        issues.append(
+                            QualityIssue(
+                                code=code,
+                                message=f"`{rel}` ({label}) has too few substantive paragraphs ({len(long_paras)}; min={min_paras}). Avoid bullet-only structure; write full paragraphs with citations.",
+                            )
+                        )
 
     return issues
 
@@ -2797,13 +3283,11 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         issues.append(QualityIssue(code="draft_missing_introduction", message="Draft is missing an `Introduction/引言` section."))
     if not re.search(r"(?im)^##\s+(conclusion|结论)\b", text):
         issues.append(QualityIssue(code="draft_missing_conclusion", message="Draft is missing a `Conclusion/结论` section."))
-    if not re.search(r"(?im)^##\s+(open problems|future directions|future work|开放问题|未来方向|未来工作)\b", text) and not re.search(
-        r"(?im)^##\s+(discussion|discussion and future work|discussion & future work|讨论|讨论与未来工作)\b", text
-    ):
+    if not re.search(r"(?im)^##\s+(discussion|discussion and future work|discussion & future work|讨论|讨论与未来工作|讨论与未来方向)\b", text):
         issues.append(
             QualityIssue(
-                code="draft_missing_open_problems",
-                message="Draft is missing an `Open Problems & Future Directions` or `Discussion/Future Work` section.",
+                code="draft_missing_discussion",
+                message="Draft is missing a `Discussion` (or `Discussion & Future Work`) section.",
             )
         )
 
@@ -2815,7 +3299,7 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             issues.append(
                 QualityIssue(
                     code="draft_intro_too_short",
-                    message="Introduction looks too short (<~180 words); expand motivation, scope, contributions, and positioning vs. prior surveys.",
+                    message="Introduction looks too short (<~180 words); expand motivation, scope, contributions, and positioning vs. related work.",
                 )
             )
 

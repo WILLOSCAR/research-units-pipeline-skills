@@ -141,11 +141,14 @@ def run_one_unit(
                         message=f"Quality gate crashed: {type(exc).__name__}: {exc}",
                     )
                 ]
+            # Avoid confusing stale QUALITY_GATE.md after a successful run.
+            report_path = workspace / "output" / "QUALITY_GATE.md"
+            if issues or report_path.exists():
+                write_quality_report(workspace=workspace, unit_id=unit_id, skill=skill, issues=issues)
             if issues:
-                report_path = write_quality_report(workspace=workspace, unit_id=unit_id, skill=skill, issues=issues)
                 row["status"] = "BLOCKED"
                 table.save(units_path)
-                rel_report = str(report_path.relative_to(workspace))
+                rel_report = str((workspace / "output" / "QUALITY_GATE.md").relative_to(workspace))
                 update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED (quality gate: {rel_report})")
                 _refresh_status_checkpoint(status_path, table)
                 return RunResult(
