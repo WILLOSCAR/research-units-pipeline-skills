@@ -89,7 +89,10 @@ Targets:
   - Prefer integrating the added citations into an existing argument sentence, or rewrite as a short parenthetical `e.g., ...` clause tied to the subsection’s lens (no new facts).
   - Vary phrasing; avoid repeating the same opener stem across many H3s.
 - Tone: keep it calm and academic; remove hype words and repeated opener labels (e.g., literal `Key takeaway:` across many H3s).
-- Reduce repeated synthesis stems (e.g., many paragraphs starting with `Taken together, ...`); vary synthesis phrasing and keep it content-bearing.
+- **Reduce repeated synthesis stems** (e.g., many paragraphs starting with `Taken together, ...`); vary synthesis phrasing and keep it content-bearing.
+  - **CRITICAL**: Avoid using "Taken together" more than once in the entire draft.
+  - Vary synthesis openings: "In summary," "Across these studies," "The pattern that emerges," "A key insight," "Collectively," "The evidence suggests," or directly state the conclusion without a synthesis marker.
+  - Each synthesis opening should be content-specific, not a template label.
 
 Rewrite recipe for subsection openers (paper voice, no new facts):
 - Delete: `This subsection surveys/argues...` / `In this subsection, we...`

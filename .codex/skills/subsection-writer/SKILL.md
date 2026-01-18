@@ -157,12 +157,13 @@ For each H3 file `sections/S<sub_id>.md`:
   - Limitations/caveats (explicit): `lite`>=1, `survey`>=1, `deep`>=2 (limited/unclear/受限/待验证)
   - Anchor density (proxy): `lite`>=1, `survey`>=2, `deep`>=3 paragraphs that contain a citation **and** (a digit OR an eval token OR a limitation token)
   - Paragraph role mix (avoid long-but-flat prose): ensure multiple paragraphs are explicitly doing **contrast**, **evaluation anchoring**, and **limitations**, not just per-paper summaries.
-  - Paragraph-plan execution (avoid “长但空”): treat `paragraph_plan[].argument_role` as a checklist you actually execute.
+  - Paragraph-plan execution (avoid "长但空"): treat `paragraph_plan[].argument_role` as a checklist you actually execute.
     - Do the role self-check mentally after drafting (do **not** leave role labels in the prose):
-      - you can point to at least 1 paragraph that is primarily `evaluation_*` (protocol/metric/budget), not only “descriptions”
+      - you can point to at least 1 paragraph that is primarily `evaluation_*` (protocol/metric/budget), not only "descriptions"
       - at least 1 paragraph that is `cross_paper_synthesis` (>=2 citations in the same paragraph)
       - at least 1 paragraph that is `limitations_open_questions` (concrete failure/uncertainty + what to verify)
       - at least 1 paragraph that is `decision_guidance` (builder-facing decision rule, not generic summary)
+    - **CRITICAL**: Each paragraph should include "why this matters" or "what this reveals" context, not just "what people did". Bad: "Many systems adopt X." Good: "Many systems adopt X because it reduces Y, though this comes at the cost of Z."
   - >=1 cross-paper synthesis paragraph with >=2 citations in the same paragraph
   - If evidence packs contain quantitative snippets: >=1 **cited numeric anchor** (digit + citation in same paragraph)
   - No citation-only lines (a line that is only `[@...]`) and no trailing citation-dump paragraphs (ending with `[@a; @b; @c]` as the only citations)
@@ -183,21 +184,27 @@ Contract:
 - Source of truth: use the brief’s `thesis` (from `outline/subsection_briefs.jsonl` or `outline/writer_context_packs.jsonl`).
 - Under abstract-level evidence, keep commitment conservative (use “suggests / remains unclear / provisional” when needed) **without** repeating “abstract-only evidence” boilerplate; keep evidence-mode disclaimers in the front matter policy paragraph.
 
-#### Citation embedding (avoid “label-style” citations)
+#### Citation embedding (avoid "label-style" citations)
 
 Goal: make citations function like evidence, not tags.
 
 WRONG (end-of-sentence dump):
 `... improves robustness. [@A; @B; @C]`
 
+WRONG (list-style enumeration):
+`At the system level, evaluation is realized in a range of implementations (e.g., Li et al. [@Li2025From]; Ghose et al. [@Ghose2025Orfs]; Song et al. [@Song2026Envscaler]; Wu et al. [@Wu2025Meta]; You et al. [@You2025Datawiseagent]; and Xu et al. [@Xu2025Exemplar]).`
+
 BETTER (name the systems; embed cites where the claim is made):
 `Systems such as X [@A] and Y [@B] report ...; in contrast, Z [@C] ...`
 
+BETTER (integrate into argument):
+`Recent work on loop design spans diverse domains: Li et al. study X [@Li2025From], Ghose et al. focus on Y [@Ghose2025Orfs], while Song et al. emphasize Z [@Song2026Envscaler], suggesting that...`
+
 Rules of thumb:
 - Put the citation **inside the sentence** that contains the factual claim.
-- Mention at least one concrete noun per cite (system/method/benchmark), not just abstract “work”.
+- Mention at least one concrete noun per cite (system/method/benchmark), not just abstract "work".
 - When using multiple cites, prefer `X [@a], Y [@b], and Z [@c]` over a trailing bracket list.
-- Avoid citation-list sentences that carry no claim (e.g., “Notable lines of work include …”). If you must list works without adding new facts, make the list subordinate to a subsection-specific lens, usually as a short parenthetical `e.g., ...` clause.
+- **CRITICAL**: Avoid citation-list sentences that carry no claim (e.g., "Notable lines of work include …", "Concrete implementations include ...", "e.g., A et al.; B et al.; C et al."). If you must list works without adding new facts, integrate them into an argument sentence that explains what each work contributes or how they differ.
 
 #### Quantitative claims (avoid underspecified numbers)
 

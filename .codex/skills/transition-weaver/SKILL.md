@@ -20,9 +20,11 @@ Transitions should answer:
 
 Style targets (paper-like, still NO NEW FACTS):
 - Prefer explicit connectors: `Building on this, ...`, `However, ...`, `In contrast, ...`, `As a result, ...`
-- Avoid “Now we discuss / Next we introduce / In this section we ...” template framing.
+- Avoid "Now we discuss / Next we introduce / In this section we ..." template framing.
 - Avoid title narration once merged (the merger injects transitions into the paper body): prefer argument bridges over "From Section A to Section B" phrasing.
 - Keep transitions short (often 1 sentence) and concept-bearing: use `bridge_terms` / `contrast_hook` handles instead of repeating subsection titles.
+- **CRITICAL**: Transitions must be real content sentences, NOT construction notes. Bad example: "After X, Y makes the bridge explicit via function calling, tool schema, routing; tool interface (function calling, schemas, protocols), tool selection / routing policy, setting up a cleaner A-vs-B comparison." Good example: "While loop design determines what actions are possible, tool interfaces define how those actions are grounded in executable APIs and orchestration policies."
+- **CRITICAL**: Avoid meta-narrative about how sections are structured. Write about the CONTENT, not about "how we organize the content". Bad: "Y follows naturally by turning X's framing into...". Good: "The limitations of X motivate researchers to explore Y."
 
 ## Inputs
 

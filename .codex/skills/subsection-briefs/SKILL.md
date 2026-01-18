@@ -81,17 +81,18 @@ Optional context (if present): read `GOAL.md` to pin scope and audience, and use
 5. Propose 3–5 **axes**:
    - Prefer concrete, checkable phrases (e.g., representation, training signal, sampling/solver, compute, evaluation protocol, failure modes).
    - Use the subsection title + mapped-paper tags to specialize axes.
+   - **CRITICAL**: For each axis, include a brief note on "why this comparison matters" (e.g., "representation choice affects memory overhead and retrieval latency", "evaluation protocol determines whether claims are reproducible"). This helps writers understand the significance of the comparison, not just the fact that papers differ.
 6. Build 2–3 **clusters** of papers (2–5 papers each) and explain why they cluster (which axis/theme).
 7. Write a **thesis** (1 sentence; internal intent, not reader-facing):
    - Write it as a **content claim**, not meta-prose (avoid `This subsection ...` / `In this subsection ...`).
    - It should be executable as the end-of-paragraph-1 takeaway in C5 (no new facts; keep commitment conservative when evidence is abstract-level).
-8. Build an 8–10 paragraph **paragraph_plan** (plan paragraphs, not prose). Each paragraph must include a **connector contract** so the writer doesn’t produce “paragraph islands”:
+8. Build an 8–10 paragraph **paragraph_plan** (plan paragraphs, not prose). Each paragraph must include a **connector contract** so the writer doesn't produce "paragraph islands":
    - Para 1 (`setup_thesis`): setup + scope boundary + thesis/definitions.
-   - Para 2–4 (`cluster_A`): mechanism → implementation assumptions → evaluation/trade-offs (explicit eval anchor).
-   - Para 5–7 (`cluster_B`): contrast with A → implementation assumptions → evaluation/trade-offs.
+   - Para 2–4 (`cluster_A`): mechanism → implementation assumptions → evaluation/trade-offs (explicit eval anchor). **Include "why this matters" guidance** (e.g., "this matters because it affects cost/reliability/safety").
+   - Para 5–7 (`cluster_B`): contrast with A → implementation assumptions → evaluation/trade-offs. **Include limitation hooks** (e.g., "what failure modes does this approach expose?").
    - Para 8 (`cross_paper_synthesis`): explicit compare A vs B (later prose: same paragraph >=2 citations).
    - Para 9 (`decision_guidance`): decision checklist + evaluation signals + engineering constraints.
-   - Para 10 (`limitations_open_questions`): limitations + verification targets + concrete open question.
+   - Para 10 (`limitations_open_questions`): limitations + verification targets + concrete open question. **Be specific about what limitations to surface** (e.g., "benchmark dependence", "missing adversarial evaluation", "unclear generalization").
 8. Write `outline/subsection_briefs.jsonl`.
 
 ## Quality checklist
