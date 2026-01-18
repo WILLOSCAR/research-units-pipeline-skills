@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey-latex
-version: 1.9
+version: 2.1
 target_artifacts:
   - papers/retrieval_report.md
   - outline/taxonomy.yml
@@ -35,6 +35,7 @@ target_artifacts:
   - output/DRAFT.md
   - output/MERGE_REPORT.md
   - output/CITATION_BUDGET_REPORT.md
+  - output/CITATION_INJECTION_REPORT.md
   - output/AUDIT_REPORT.md
   - latex/main.tex
   - latex/main.pdf
@@ -83,6 +84,8 @@ required_skills:
 - outline-builder
 - section-mapper
 - outline-refiner
+optional_skills:
+- outline-budgeter
 produces:
 - outline/taxonomy.yml
 - outline/outline.yml
@@ -97,6 +100,8 @@ Notes:
 - Evidence-first expectation: each subsection should be written as an explicit RQ plus evidence needs (what results/benchmarks/limitations must be supported), not just generic scaffold bullets.
 - Paper-like default: `outline-builder` inserts a standard `Related Work` H2 section (no H3) before the taxonomy-driven chapters, so the final PDF has a conventional structure (Intro → Related Work → 3–4 core chapters → Discussion → Conclusion).
 - Coverage default: `section-mapper` uses a higher per-subsection mapping target for `arxiv-survey` (configurable via `queries.md` `per_subsection`) so later evidence binding and writing have enough in-scope citations to choose from.
+- Budget policy (paper-like): avoid H3 explosion; the outline gate uses `queries.md:draft_profile` to set max H3 (lite<=8, survey<=10, deep<=12).
+- If the outline is over-fragmented, use `outline-budgeter` (NO PROSE) to merge adjacent H3s into fewer, thicker units, then rerun `section-mapper` → `outline-refiner` before `Approve C2`.
 
 ## Stage 3 - Evidence pack (C3) [NO PROSE]
 required_skills:
@@ -154,6 +159,7 @@ required_skills:
 - transition-weaver
 - section-merger
 - citation-diversifier
+- citation-injector
 - draft-polisher
 - global-reviewer
 - pipeline-auditor
@@ -173,6 +179,7 @@ produces:
 - output/MERGE_REPORT.md
 - output/DRAFT.md
 - output/CITATION_BUDGET_REPORT.md
+- output/CITATION_INJECTION_REPORT.md
 - output/GLOBAL_REVIEW.md
 - output/AUDIT_REPORT.md
 - latex/main.tex
@@ -185,11 +192,23 @@ Notes:
   - Writer pass: write that section using only those citation IDs; avoid dumping the whole notes set into context (prevents “lost in the middle” + template filler).
 - Treat this stage as an iteration loop:
   - draft per H3 → logic-polish (thesis + connectors) → weave transitions → merge → de-template/cohere → global review → (if gaps) go back to C3/C4 to strengthen evidence packs → regenerate draft.
-- Depth target (survey-quality): each H3 should be **8–12 paragraphs** (aim ~1200–2000 words) with >=2 concrete contrasts + an evaluation anchor + a cross-paper synthesis paragraph + an explicit limitation (quality gates should block short stubs).
+- Depth target (profile-aware): each H3 should be “少而厚” (avoid stubs). Use `queries.md:draft_profile` as the contract:
+  - `lite`: >=6 paragraphs + >=7 unique cites
+  - `survey`: >=9 paragraphs + >=10 unique cites
+  - `deep`: >=10 paragraphs + >=12 unique cites
+  In all profiles, require >=2 concrete contrasts + evaluation anchoring + a cross-paper synthesis paragraph + an explicit limitation.
 - Coherence target (paper-like): for every H2 chapter with H3 subsections, write a short **chapter lead** block (`sections/S<sec_id>_lead.md`) that previews the comparison axes and how the H3s connect (no new headings; avoid generic glue).
+- Anti-template style contract (paper-like, not “outline narration”):
+  - Avoid meta openers like “This subsection surveys/argues …” and slide-like navigation (“Next, we move from … / We now turn to …”).
+  - Keep signposting light: avoid repeating a literal opener label across many subsections (e.g., `Key takeaway:`); vary opener phrasing and cadence.
+  - Tone target: calm, academic, understated; delete hype words (`clearly`, `obviously`) and “PPT speaker notes”.
+  - Keep evidence-policy disclaimers **once** in front matter (not repeated across H3s).
+  - If you cite numbers, include minimal evaluation context (task + metric + constraint/budget/cost) in the same paragraph.
 - PDF compile should run early/often to catch LaTeX failures, but compile success is not narrative quality.
-- `section-merger` produces a paper-like `output/DRAFT.md` by merging `sections/*.md` plus `outline/transitions.md`. Evidence-first visuals (`outline/tables.md`, `outline/timeline.md`, `outline/figures.md`) are **intermediate artifacts** by default and should be woven into prose intentionally (or kept out of the main draft) to avoid inflating the PDF ToC with short, reader-facing-empty sections.
+- `section-merger` produces a paper-like `output/DRAFT.md` by merging `sections/*.md` plus `outline/transitions.md` (within-chapter H3→H3 by default). Between-H2 transition insertion is optional: create `outline/transitions.insert_h2.ok` in the workspace if you want those narrator-style handoffs included. Evidence-first visuals (`outline/tables.md`, `outline/timeline.md`, `outline/figures.md`) are **intermediate artifacts** by default and should be woven into prose intentionally (or kept out of the main draft) to avoid inflating the PDF ToC with short, reader-facing-empty sections.
 - Citation scope policy: citations are subsection-first (from `outline/evidence_bindings.jsonl`), with limited reuse allowed within the same H2 chapter to reduce brittleness; avoid cross-chapter “free cite” drift.
+  - Controlled flexibility: bibkeys mapped to >= `queries.md:global_citation_min_subsections` subsections (default 3) are treated as cross-cutting/global; see `allowed_bibkeys_global` in writer packs / `sections_manifest.jsonl`.
+- If global unique citations are low, run `citation-diversifier` → `citation-injector` *before* `draft-polisher` (the polisher treats citation keys as immutable).
 - If you intentionally add/remove citations after an earlier polish run, reset the citation-anchoring baseline before rerunning `draft-polisher`:
   - delete `output/citation_anchors.prepolish.jsonl` (workspace-local), then rerun `draft-polisher`.
 - Recommended skills (toolkit, not a rigid one-shot chain):
@@ -205,5 +224,5 @@ Notes:
 - Citation coverage: expect a large, verifiable bibliography (e.g., ≥150 BibTeX entries) and high cite density:
   - Per-H3: `survey` profile expects >=10 unique citations per H3 (and deeper profiles may require more).
   - Front matter: `survey` profile expects Introduction>=12 and Related Work>=15 unique citations.
-  - Global: `pipeline-auditor` also gates on **unique citations across the full draft** (typically ~100+ for 8 H3 subsections); if it fails, add more in-scope citations using each H3’s `allowed_bibkeys_selected` / `allowed_bibkeys_mapped` from `outline/writer_context_packs.jsonl`.
+  - Global: `pipeline-auditor` also gates on **unique citations across the full draft** (typically ~100+ for 8 H3 subsections); if it fails, prefer `citation-diversifier` → `citation-injector` (in-scope, NO NEW FACTS) using each H3’s `allowed_bibkeys_selected` / `allowed_bibkeys_mapped` from `outline/writer_context_packs.jsonl`.
 - Anti-template: drafts containing ellipsis placeholders (`…`) or leaked scaffold instructions (e.g., "enumerate 2-4 ...") should block and be regenerated from improved outline/mapping/evidence artifacts.

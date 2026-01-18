@@ -61,6 +61,45 @@ def _draft_profile(workspace: Path) -> str:
     return default
 
 
+def _global_citation_min_subsections(workspace: Path) -> int:
+    """Return the minimum subsection-mapping count for treating a bibkey as globally in-scope.
+
+    Config (queries.md): `- global_citation_min_subsections: <int>`
+
+    Rationale: some works are legitimately cross-cutting (foundations/benchmarks/surveys).
+    This threshold lets the pipeline stay strict by default while allowing controlled flexibility.
+    """
+
+    default = 3
+    queries_path = workspace / 'queries.md'
+    if not queries_path.exists():
+        return default
+
+    keys = {'global_citation_min_subsections', 'global_citation_threshold'}
+    try:
+        for raw in queries_path.read_text(encoding='utf-8', errors='ignore').splitlines():
+            line = raw.strip()
+            if not line.startswith('- ') or ':' not in line:
+                continue
+            key, value = line[2:].split(':', 1)
+            key = key.strip().lower().replace(' ', '_')
+            if key not in keys:
+                continue
+            value = value.split('#', 1)[0].strip().strip('\"').strip("'").strip()
+            if not value:
+                return default
+            try:
+                n = int(value)
+            except Exception:
+                return default
+            if n <= 0:
+                return default
+            return n
+    except Exception:
+        return default
+    return default
+
+
 def _check_placeholder_markers(text: str) -> bool:
     if not text:
         return False
@@ -236,6 +275,8 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
         return _check_section_logic_polisher(workspace, outputs)
     if skill == "section-merger":
         return _check_merge_report(workspace, outputs)
+    if skill == "citation-injector":
+        return _check_citation_injection(workspace, outputs)
     if skill == "prose-writer":
         return _check_draft(workspace, outputs)
     if skill == "draft-polisher":
@@ -255,6 +296,32 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
     if skill == "tutorial-spec":
         return _check_tutorial_spec(workspace, outputs)
     return []
+
+
+def _check_citation_injection(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    report_rel = next((p for p in outputs if p.endswith("CITATION_INJECTION_REPORT.md")), "output/CITATION_INJECTION_REPORT.md")
+    report_path = workspace / report_rel
+    if not report_path.exists() or report_path.stat().st_size == 0:
+        return [QualityIssue(code="missing_citation_injection_report", message=f"`{report_rel}` is missing or empty.")]
+
+    text = report_path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not text:
+        return [QualityIssue(code="empty_citation_injection_report", message=f"`{report_rel}` is empty.")]
+    if _check_placeholder_markers(text) or "…" in text:
+        return [
+            QualityIssue(
+                code="citation_injection_report_placeholders",
+                message=f"`{report_rel}` contains placeholders/ellipsis; regenerate after fixing the injection step.",
+            )
+        ]
+    if re.search(r"(?im)^-\s*Status:\s*PASS\b", text):
+        return []
+    return [
+        QualityIssue(
+            code="citation_injection_failed",
+            message=f"`{report_rel}` is not PASS; add more in-scope unused citations (or expand C1/C2 mapping), then rerun citation injection.",
+        )
+    ]
 
 
 def _check_pdf_text_extractor(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
@@ -949,6 +1016,7 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     # Evidence-first Stage A: require verifiable subsection metadata for survey pipelines.
     profile = _pipeline_profile(workspace)
     if profile == "arxiv-survey":
+        draft_profile = _draft_profile(workspace)
         missing_meta = 0
         subs_total = 0
         for section in outline:
@@ -968,33 +1036,51 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 if not (has_intent and has_rq and has_evidence and has_expected):
                     missing_meta += 1
 
-        # Paper-like constraint: avoid too many H2 chapters (paper-like target: ~6–8 H2s).
+        # Paper-like constraint: avoid too many H2 chapters.
+        # Note: the final draft adds global H2 sections (Discussion + Conclusion) via `section-merger`,
+        # so the outline itself should budget fewer H2 chapters than the final ToC target.
         sec_total = 0
         for section in outline:
             if not isinstance(section, dict):
                 continue
             if str(section.get("title") or "").strip():
                 sec_total += 1
-        if sec_total > 8:
+
+        extra_global_h2 = 2  # Discussion + Conclusion are appended as global sections in C5.
+        max_final_h2 = 9 if draft_profile == "deep" else 8
+        max_outline_h2 = max(1, max_final_h2 - extra_global_h2)
+
+        if sec_total > max_outline_h2:
             return [
                 QualityIssue(
                     code="outline_too_many_sections",
                     message=(
                         f"Outline has too many top-level sections for paper-like readability ({sec_total}). "
-                        "Prefer <=8 H2 sections (Intro → Related Work → 3–4 core chapters). "
-                        "Merge/simplify the taxonomy so each chapter is thicker and each H3 can sustain deeper evidence-first prose."
+                        f"The final draft adds Discussion+Conclusion, so this would likely render as ~{sec_total + extra_global_h2} H2 sections. "
+                        f"Prefer <= {max_final_h2} final H2 sections (Intro → Related Work → 3–4 core chapters → Discussion → Conclusion). "
+                        "Merge/simplify the taxonomy so each chapter is thicker and each H3 can sustain deeper evidence-first prose. "
+                        "If you already have an outline but it is over-fragmented, use `outline-budgeter` (NO PROSE) to merge/simplify, then rerun `section-mapper` → `outline-refiner`."
                     ),
                 )
             ]
 
         # Paper-like constraint: avoid fragmenting the survey into too many tiny H3s.
-        if subs_total > 12:
+        if draft_profile == "deep":
+            max_h3 = 12
+        elif draft_profile == "lite":
+            max_h3 = 8
+        else:
+            max_h3 = 10
+
+        if subs_total > max_h3:
             return [
                 QualityIssue(
                     code="outline_too_many_subsections",
                     message=(
                         f"Outline has too many subsections for survey-quality writing ({subs_total}). "
-                        "Prefer <=12 H3 subsections (fewer, thicker sections). Merge/simplify the taxonomy/outline so each H3 can sustain deeper evidence-first prose."
+                        f"Prefer <= {max_h3} H3 subsections for this draft profile (fewer, thicker sections). "
+                        "Merge/simplify the taxonomy/outline so each H3 can sustain deeper evidence-first prose. "
+                        "Fix (skills-first): run `outline-budgeter` (NO PROSE) to merge adjacent H3s, then rerun `section-mapper` → `outline-refiner`."
                     ),
                 )
             ]
@@ -2625,6 +2711,19 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 if sec_id and sec_title:
                     expected_units.append({"kind": "h2", "id": sec_id, "title": sec_title, "section_title": sec_title})
 
+    # Title-aware H2 classification (avoid hard-coding numeric section ids like 1/2).
+    h2_title_by_id: dict[str, str] = {}
+    ordered_h2_ids: list[str] = []
+    if isinstance(outline, list):
+        for sec in outline:
+            if not isinstance(sec, dict):
+                continue
+            sec_id = str(sec.get("id") or "").strip()
+            sec_title = str(sec.get("title") or "").strip()
+            if sec_id and sec_title:
+                h2_title_by_id[sec_id] = sec_title
+                ordered_h2_ids.append(sec_id)
+
     # Required global sections (kept outside outline for consistency).
     required_globals = [
         ("abstract", "Abstract", base_dir / "abstract.md"),
@@ -2708,7 +2807,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
     for keys in mapped_by_sub.values():
         for k in keys:
             mapped_counts[k] = mapped_counts.get(k, 0) + 1
-    global_threshold = 3
+    global_threshold = _global_citation_min_subsections(workspace)
     mapped_global = {k for k, n in mapped_counts.items() if n >= global_threshold}
 
     def _extract_keys(text: str) -> set[str]:
@@ -2897,6 +2996,15 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                         )
                     )
 
+                # “Grad paragraph” micro-structure signals: contrast + evaluation anchor + limitation.
+                # Density (not just presence) helps prevent long-but-hollow prose.
+                contrast_re = r"(?i)\b(?:whereas|however|in\s+contrast|by\s+contrast|versus|vs\.)\b|相比|不同于|相较|对比|反之"
+                eval_re = (
+                    r"(?i)\b(?:benchmark|dataset|datasets|metric|metrics|evaluation|eval\.|protocol|human|ablation|"
+                    r"latency|cost|budget|token|tokens|throughput|compute)\b|评测|基准|数据集|指标|协议|人工|实验|成本|预算|延迟"
+                )
+                limitation_re = r"(?i)\b(?:limitation|limited|unclear|sensitive|caveat|downside|failure|risk|open\s+question|remains)\b|受限|尚不明确|缺乏|需要核验|局限|失败|风险|待验证"
+
                 if uid in numeric_available:
                     has_cited_numeric = any(re.search(r"\d", p) and "[@" in p for p in paragraphs)
                     if not has_cited_numeric:
@@ -2909,12 +3017,6 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                                 ),
                             )
                         )
-
-                # “Grad paragraph” micro-structure signals: contrast + evaluation anchor + limitation.
-                # Density (not just presence) helps prevent long-but-hollow prose.
-                contrast_re = r"(?i)\b(?:whereas|however|in\s+contrast|by\s+contrast|versus|vs\.)\b|相比|不同于|相较|对比|反之"
-                eval_re = r"(?i)\b(?:benchmark|dataset|datasets|metric|metrics|evaluation|eval\.|protocol|human|ablation)\b|评测|基准|数据集|指标|协议|人工|实验"
-                limitation_re = r"(?i)\b(?:limitation|limited|unclear|sensitive|caveat|downside|failure|risk|open\s+question|remains)\b|受限|尚不明确|缺乏|需要核验|局限|失败|风险|待验证"
 
                 if draft_profile == "deep":
                     min_contrast = 3
@@ -3085,10 +3187,24 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     )
 
                 # Front-matter strength (Intro + Related Work) is a common weak point: enforce cite density + depth.
-                if _pipeline_profile(workspace) == "arxiv-survey" and uid in {"1", "2"}:
+                sec_title = h2_title_by_id.get(uid, "")
+                t_norm = re.sub(r"\s+", " ", (sec_title or "")).strip().lower()
+                is_intro = bool(re.search(r"\b(introduction|intro)\b", t_norm) or re.search(r"(引言|简介|概述)", sec_title))
+                is_related = bool(
+                    re.search(r"\b(related work|related works|literature review|prior work|related surveys)\b", t_norm)
+                    or re.search(r"(相关工作|文献综述)", sec_title)
+                )
+                # Fallback: treat the first two H2 sections as front matter when titles are customized.
+                if ordered_h2_ids:
+                    if uid == ordered_h2_ids[0]:
+                        is_intro = True
+                    if len(ordered_h2_ids) > 1 and uid == ordered_h2_ids[1]:
+                        is_related = True
+
+                if _pipeline_profile(workspace) == "arxiv-survey" and (is_intro or is_related):
                     draft_profile = _draft_profile(workspace)
                     if draft_profile == "deep":
-                        if uid == "1":
+                        if is_intro:
                             min_cites = 18
                             min_paras = 9
                             min_chars = 3200
@@ -3097,7 +3213,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                             min_paras = 10
                             min_chars = 3600
                     elif draft_profile == "lite":
-                        if uid == "1":
+                        if is_intro:
                             min_cites = 8
                             min_paras = 4
                             min_chars = 1400
@@ -3106,7 +3222,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                             min_paras = 5
                             min_chars = 1600
                     else:
-                        if uid == "1":
+                        if is_intro:
                             min_cites = 12
                             min_paras = 6
                             min_chars = 2200
@@ -3114,6 +3230,17 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                             min_cites = 15
                             min_paras = 7
                             min_chars = 2400
+
+                    if is_intro:
+                        front_fix = (
+                            "Fix: expand motivation + scope boundary + one evidence-policy paragraph + organization preview; "
+                            "keep paper voice (avoid outline narration like 'This subsection...')."
+                        )
+                    else:
+                        front_fix = (
+                            "Fix: expand positioning vs adjacent lines of work + survey coverage + one evidence-policy paragraph + organization preview; "
+                            "avoid a dedicated 'Prior Surveys' mini-section by default; keep paper voice (no slide-like narration)."
+                        )
 
                     content = re.sub(r"\[@[^\]]+\]", "", text)
                     content = re.sub(r"\s+", " ", content).strip()
@@ -3126,30 +3253,39 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     ]
 
                     if len(set(cite_keys)) < min_cites:
-                        code = "sections_intro_sparse_citations" if uid == "1" else "sections_related_work_sparse_citations"
-                        label = "Introduction" if uid == "1" else "Related Work"
+                        code = "sections_intro_sparse_citations" if is_intro else "sections_related_work_sparse_citations"
+                        label = sec_title or ("Introduction" if is_intro else "Related Work")
                         issues.append(
                             QualityIssue(
                                 code=code,
-                                message=f"`{rel}` ({label}) cites too few unique papers ({len(set(cite_keys))}; min={min_cites}). Increase concrete, cite-grounded positioning and coverage.",
+                                message=(
+                                    f"`{rel}` ({label}) cites too few unique papers ({len(set(cite_keys))}; min={min_cites}). "
+                                    f"Increase concrete, cite-grounded positioning and coverage. {front_fix}"
+                                ),
                             )
                         )
                     if len(content) < min_chars:
-                        code = "sections_intro_too_short" if uid == "1" else "sections_related_work_too_short"
-                        label = "Introduction" if uid == "1" else "Related Work"
+                        code = "sections_intro_too_short" if is_intro else "sections_related_work_too_short"
+                        label = sec_title or ("Introduction" if is_intro else "Related Work")
                         issues.append(
                             QualityIssue(
                                 code=code,
-                                message=f"`{rel}` ({label}) looks too short ({len(content)} chars after removing citations; min={min_chars}). Expand motivation/scope/contributions and keep claims citation-grounded.",
+                                message=(
+                                    f"`{rel}` ({label}) looks too short ({len(content)} chars after removing citations; min={min_chars}). "
+                                    f"Expand motivation/scope/contributions and keep claims citation-grounded. {front_fix}"
+                                ),
                             )
                         )
                     if len(long_paras) < min_paras:
-                        code = "sections_intro_too_few_paragraphs" if uid == "1" else "sections_related_work_too_few_paragraphs"
-                        label = "Introduction" if uid == "1" else "Related Work"
+                        code = "sections_intro_too_few_paragraphs" if is_intro else "sections_related_work_too_few_paragraphs"
+                        label = sec_title or ("Introduction" if is_intro else "Related Work")
                         issues.append(
                             QualityIssue(
                                 code=code,
-                                message=f"`{rel}` ({label}) has too few substantive paragraphs ({len(long_paras)}; min={min_paras}). Avoid bullet-only structure; write full paragraphs with citations.",
+                                message=(
+                                    f"`{rel}` ({label}) has too few substantive paragraphs ({len(long_paras)}; min={min_paras}). "
+                                    f"Avoid bullet-only structure; write full paragraphs with citations. {front_fix}"
+                                ),
                             )
                         )
 
@@ -3185,11 +3321,23 @@ def _check_section_logic_polisher(workspace: Path, outputs: list[str]) -> list[Q
     else:
         causal_min, contrast_min, extension_min, impl_min = 2, 2, 2, 1
 
+    # Thesis/takeaway: require an explicit conclusion-first signal early, but
+    # avoid forcing generator-like meta openers ("This subsection ...").
     thesis_patterns = [
-        r"(?i)\bthis\s+subsection\s+(?:argues|shows|surveys|suggests|demonstrates|contends)\s+that\b",
-        r"(?i)\bin\s+this\s+subsection,\s*(?:we\s+)?(?:argue|show|survey|suggest)\s+that\b",
-        r"(?i)\bwe\s+(?:argue|show|suggest)\s+that\b",
-        r"(?:本小节|本节)(?:认为|指出|主张|讨论|表明)",
+        # Takeaway markers (preferred).
+        r"(?i)\b(key\s+takeaway|main\s+takeaway|takeaway)\b\s*[:\-]",
+        r"(?i)\b(a|an|one)\s+(?:central|core|key)\s+(?:tension|challenge|trade[-\s]?off|bottleneck|constraint)\s+is\b",
+        r"(?i)\bthe\s+(?:central|core|key)\s+(?:claim|point|tension|idea)\s+is\b",
+        r"(?i)\bthe\s+key\s+point\s+is\b",
+        r"(?i)\bour\s+(?:synthesis|review|survey)\s+(?:suggests|shows|finds|indicates)\s+that\b",
+        # Accept some academic thesis stems.
+        r"(?i)\bwe\s+(?:argue|show|find|suggest|observe|contend)\s+that\b",
+        r"(?i)\bthis\s+(?:section|subsection)\s+(?:shows|argues|concludes|highlights)\s+that\b",
+        # Content-claim verbs (more natural than explicit "takeaway:" labels).
+        r"(?i)\bdetermin(?:e|es|ed|ing)\b|\bdriv(?:e|es|en|ing)\b|\bshap(?:e|es|ed|ing)\b|\bconstrain(?:s|ed|ing)?\b|\bgovern(?:s|ed|ing)?\b|\bset(?:s)?\s+the\s+ceiling\b",
+        # Chinese cues.
+        r"(?:本小节|本节)(?:结论|核心观点|要点|认为|指出|主张|表明|决定|驱动|影响|约束|塑造|主导)",
+        r"(?:一个|一项|一個)(?:关键|核心)(?:挑战|矛盾|张力|張力|权衡|權衡|瓶颈|約束|约束)是",
     ]
 
     causal_re = re.compile(r"\b(therefore|thus|hence|as a result|consequently|accordingly)\b|因此|所以|从而|因而|由此", re.IGNORECASE)
@@ -3225,8 +3373,8 @@ def _check_section_logic_polisher(workspace: Path, outputs: list[str]) -> list[Q
                 QualityIssue(
                     code="sections_h3_missing_thesis_statement",
                     message=(
-                        f"`{rel}` is missing an explicit thesis signal in paragraph 1 "
-                        "(prefer: 'This subsection argues/shows/surveys that ...')."
+                        f"`{rel}` is missing an explicit thesis/takeaway signal in paragraph 1 "
+                        "(prefer a conclusion-first thesis sentence, e.g., 'A central tension is ...', 'We argue that ...', or 'The key point is ...')."
                     ),
                 )
             )
@@ -3370,7 +3518,7 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 code="draft_pipeline_voice_abstract_only",
                 message=(
                     "Draft contains pipeline-style evidence-mode boilerplate ('abstracts are treated as verification targets'). "
-                    "Move evidence caveats into a single, short 'Evidence note' (once), and keep subsections focused on concrete comparisons."
+                    "Move evidence caveats into a single, short evidence-policy paragraph (once, in front matter), and keep subsections focused on concrete comparisons."
                 ),
             )
         )

@@ -40,7 +40,18 @@ Required fields:
 - `throughline` (3–6 bullets)
 - `key_contrasts` (2–6 bullets; pull from each H3 `contrast_hook` when available)
 - `lead_paragraph_plan` (2–3 bullets; plan only, not prose)
+  - Each bullet should be chapter-specific and mention concrete handles (axes / contrast hooks / evaluation lens).
+  - Avoid generic glue like "Para 1: introduce the chapter" without naming what is being compared.
 - `bridge_terms` (5–12 tokens; union of H3 bridge terms)
+
+## How C5 uses this (chapter lead contract)
+
+The writer uses `outline/chapter_briefs.jsonl` to draft `sections/S<sec_id>_lead.md` (body-only; no headings).
+
+Contract (paper-like, no new facts):
+- Preview the chapter’s comparison axes (2–3) and how the H3s connect; do not restate the table of contents.
+- Reuse `key_contrasts` / `bridge_terms` as *handles* (not templates) so the chapter reads coherent without repeating "Taken together" everywhere.
+- Keep it grounded (>=2 citations later in C5; do not invent new papers here).
 
 ## Workflow
 
@@ -60,6 +71,7 @@ Required fields:
 - [ ] One record per H2-with-H3 chapter.
 - [ ] No placeholders (`TODO`/`…`/`(placeholder)`/template instructions).
 - [ ] `throughline` and `key_contrasts` are chapter-specific (not copy/paste generic).
+- [ ] `lead_paragraph_plan` bullets explicitly preview 2–3 comparison axes and how the H3 subsections partition them (no generic chapter-intro boilerplate).
 
 ## Script
 

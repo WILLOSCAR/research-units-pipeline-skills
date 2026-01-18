@@ -196,6 +196,9 @@ def main() -> int:
         mapped = [str(k).strip() for k in (pack.get("allowed_bibkeys_mapped") or []) if str(k).strip()]
         chapter = [str(k).strip() for k in (pack.get("allowed_bibkeys_chapter") or []) if str(k).strip()]
 
+        glob = [str(k).strip() for k in (pack.get("allowed_bibkeys_global") or []) if str(k).strip()]
+
+
         def _cands(keys: list[str]) -> list[str]:
             out: list[str] = []
             for k in keys:
@@ -211,6 +214,7 @@ def main() -> int:
         cand_sel = _cands(sel)
         cand_map = _cands([k for k in mapped if k not in cand_sel])
         cand_ch = _cands([k for k in chapter if k not in cand_sel and k not in cand_map])
+        cand_glob = _cands([k for k in glob if k not in cand_sel and k not in cand_map and k not in cand_ch])
 
         suggest: list[str] = []
         suggest.extend(cand_sel[:4])
@@ -218,6 +222,8 @@ def main() -> int:
             suggest.extend(cand_map[: 6 - len(suggest)])
         if len(suggest) < 6:
             suggest.extend(cand_ch[: 6 - len(suggest)])
+        if len(suggest) < 6:
+            suggest.extend(cand_glob[: 6 - len(suggest)])
 
         rows.append(
             {
@@ -268,7 +274,7 @@ def main() -> int:
             "",
             "- Prefer adding cite-embedding sentences that do not change claims:",
             "  - `Representative systems include X [@a], Y [@b], and Z [@c].`",
-            "  - `Several lines of work explore this design space [@a; @b; @c].`",
+            "  - `Recent work spans A [@a] and B [@b], with further variants in C [@c].`",
             "- Keep additions inside the same H3 (no cross-subsection citation drift).",
             "- After editing citations, rerun: `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor`.",
         ]

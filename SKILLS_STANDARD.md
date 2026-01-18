@@ -6,6 +6,25 @@ This repo is meant to work well across:
 
 The goal is **LLM-first semantic work + deterministic helper scripts**, with a clear artifact contract (`UNITS.csv`) and explicit human checkpoints (`DECISIONS.md`).
 
+## 0) Activation contract (skills-first UX)
+
+This repo is meant to be driven by **natural-language prompts** (not “run this python command”).
+
+Authoring rule of thumb:
+- A user should be able to say one sentence (e.g., “给我写一个 agent 的 latex-survey”) and the agent can route to a pipeline, create a workspace, and start executing units.
+- When you change a pipeline or add new skills, keep the “one-liner” prompts in `README.md` and `SKILL_INDEX.md` up to date.
+- Default HITL: keep a single human approval checkpoint for survey-like pipelines (C2: scope+outline). If you add more checkpoints, justify why.
+
+## 0b) Workspace contract (what must exist)
+
+Workspaces should be auditable and self-contained. Standard artifacts:
+- `STATUS.md`: current progress summary
+- `PIPELINE.lock.md`: the selected pipeline (single source of truth)
+- `GOAL.md`: topic/scope seed (used to draft queries + decisions)
+- `UNITS.csv`: execution contract (unit deps + acceptance + status)
+- `CHECKPOINTS.md`: checkpoint standards
+- `DECISIONS.md`: human sign-offs (checkboxes like `Approve C2`)
+
 ## 1) Skill bundle contract (Anthropic-style)
 
 Each skill is a folder under `.codex/skills/<skill>/` and must include:
@@ -46,6 +65,20 @@ Borrowing the best pattern from Anthropic’s `skills` repos:
   - deterministic transforms (MD→LaTeX conversion, dedupe/ranking)
 
 **Avoid** scripts that “replace” semantic work (taxonomy/outline/notes/writing). If a script exists for those, it must be clearly labeled **bootstrap only** and the workflow must still require LLM refinement before marking a unit `DONE`.
+
+## 2b) Paper Voice Contract (writing-stage skills)
+
+When a skill writes/edits prose (C5), prefer a “paper voice” contract over brittle style rules:
+
+- **No outline narration**: avoid `This subsection ...`, `In this subsection, we ...`, `Next, we move ...` (rewrite as content claims + argument bridges).
+- **Evidence policy once**: keep abstract/fulltext limitations in one short front-matter paragraph; don’t repeat “abstract-only” disclaimers in every H3.
+- **Light signposting**: avoid repeating a literal opener label across many subsections (e.g., `Key takeaway:`); vary opener phrasing and cadence.
+- **Soft academic tone**: calm, understated; avoid hype (`clearly`, `obviously`, `breakthrough`) and “PPT speaker notes”.
+- **Coherence without rigidity**: use connectors (contrast/causal/extension) as needed, but don’t force every paragraph to start with `However/Moreover`.
+- **Controlled citation scope**: subsection-first by default; allow chapter-scoped reuse; treat bibkeys mapped to >= `queries.md:global_citation_min_subsections` subsections (default 3) as cross-cutting/global (`allowed_bibkeys_global`) to reduce brittle writer BLOCKED loops.
+
+Implementation bias:
+- Prefer **skill guidance + auditor warnings with examples** over “hard blocks” on specific phrases.
 
 ## 3) Pipeline/Units contract (repo-specific)
 
@@ -90,3 +123,9 @@ For deterministic units (retrieval/dedupe/compile/format checks):
 Codex discovers skills under `.codex/skills/`. For Claude Code, keep `.claude/skills/` pointing at the same set (symlink or copy).
 
 Repo helper: `python scripts/validate_repo.py` checks pipeline↔template↔skill alignment.
+
+## 7) Offline-first conventions (optional)
+
+When network is unreliable/unavailable, prefer “record now, verify later” and keep the run auditable:
+- Citations: `citations/verified.jsonl` may include `verification_status=offline_generated` (recorded but not yet verified). Later, rerun `citation-verifier` online to upgrade to verified.
+- Fulltext: default surveys can run with `queries.md` `evidence_mode: abstract`. If you need fulltext, put PDFs under `papers/pdfs/` and run `pdf-text-extractor` with `--local-pdfs-only`.

@@ -21,6 +21,8 @@ Transitions should answer:
 Style targets (paper-like, still NO NEW FACTS):
 - Prefer explicit connectors: `Building on this, ...`, `However, ...`, `In contrast, ...`, `As a result, ...`
 - Avoid “Now we discuss / Next we introduce / In this section we ...” template framing.
+- Avoid title narration once merged (the merger injects transitions into the paper body): prefer argument bridges over "From Section A to Section B" phrasing.
+- Keep transitions short (often 1 sentence) and concept-bearing: use `bridge_terms` / `contrast_hook` handles instead of repeating subsection titles.
 
 ## Inputs
 
@@ -29,7 +31,7 @@ Style targets (paper-like, still NO NEW FACTS):
 
 ## Outputs
 
-- `outline/transitions.md`
+- `outline/transitions.md` (used by `section-merger`; keep paper voice)
 
 ## Workflow (NO NEW FACTS)
 
@@ -72,6 +74,10 @@ Style targets (paper-like, still NO NEW FACTS):
   - `python .codex/skills/transition-weaver/scripts/run.py --workspace workspaces/<ws>`
 
 ## Troubleshooting
+
+### Note: between-H2 transitions
+
+By default, `section-merger` inserts within-chapter H3→H3 transitions only (more paper-like; fewer narrator paragraphs). If you want between-H2 transitions inserted too, create `outline/transitions.insert_h2.ok` in the workspace.
 
 ### Issue: transitions read like templates
 

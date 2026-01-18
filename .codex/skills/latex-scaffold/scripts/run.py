@@ -32,11 +32,14 @@ def main() -> int:
     md = draft_path.read_text(encoding="utf-8", errors="ignore")
     title = _read_first_h1(md) or _read_goal(workspace) or "Survey"
     body = _markdown_to_latex(md)
+    use_ctex = _has_cjk(md)
 
     tex = "\n".join(
         [
-            r"\documentclass[UTF8,a4paper,11pt]{ctexart}",
+            (r"\documentclass[UTF8,a4paper,11pt]{ctexart}" if use_ctex else r"\documentclass[a4paper,11pt]{article}"),
             "",
+            # xelatex-friendly defaults; keep English-looking front matter unless CJK is present.
+            ("" if use_ctex else r"\usepackage{fontspec}"),
             r"\usepackage[a4paper,margin=1in]{geometry}",
             r"\usepackage{hyperref}",
             r"\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}",
@@ -90,6 +93,11 @@ def _read_goal(workspace: Path) -> str:
             continue
         return line
     return ""
+
+
+def _has_cjk(text: str) -> bool:
+    # If the draft contains CJK characters, prefer ctex so the PDF renders correctly.
+    return bool(re.search(r"[\u4e00-\u9fff]", text or ""))
 
 
 def _read_first_h1(md: str) -> str:

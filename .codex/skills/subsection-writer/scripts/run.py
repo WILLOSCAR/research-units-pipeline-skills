@@ -112,7 +112,7 @@ def main() -> int:
         parse_semicolon_list,
         upsert_checkpoint_block,
     )
-    from tooling.quality_gate import check_unit_outputs, write_quality_report
+    from tooling.quality_gate import check_unit_outputs, write_quality_report, _global_citation_min_subsections
 
     workspace = Path(args.workspace).resolve()
     unit_id = str(args.unit_id or "U100").strip() or "U100"
@@ -208,6 +208,20 @@ def main() -> int:
                     }
                 )
             anchors_by_sub[sid] = out
+
+
+    # Globally allowed citations (cross-cutting): mapped across multiple subsections.
+    mapped_counts: dict[str, int] = {}
+    for rec in bindings_by_sub.values():
+        mapped = rec.get("mapped_bibkeys") or []
+        if not isinstance(mapped, list):
+            continue
+        for bk in mapped:
+            bk = str(bk).strip()
+            if bk:
+                mapped_counts[bk] = mapped_counts.get(bk, 0) + 1
+    global_threshold = _global_citation_min_subsections(workspace)
+    allowed_global = sorted([k for k, n in mapped_counts.items() if n >= int(global_threshold)])
 
 
     # Chapter-scoped allowed citations: union of mapped bibkeys across sibling H3s in the same H2 section.
@@ -319,6 +333,9 @@ def main() -> int:
             sec_id = str(rec.get("section_id") or "").strip()
             if sec_id and allowed_by_section.get(sec_id):
                 rec["allowed_bibkeys_chapter"] = sorted(allowed_by_section.get(sec_id) or set())
+
+            if allowed_global:
+                rec["allowed_bibkeys_global"] = allowed_global
 
         _add_record({**rec, "generated_at": generated_at})
 

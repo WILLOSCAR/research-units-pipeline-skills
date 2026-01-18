@@ -221,6 +221,29 @@ def main() -> int:
                             prefix = f"p{num}" if str(num).strip() else "p?"
                             lines.append(f"    - {prefix}: {intent}")
 
+                    must_use = ctx.get("must_use") or {}
+                    if isinstance(must_use, dict) and must_use:
+                        ma = must_use.get("min_anchor_facts")
+                        mc = must_use.get("min_comparison_cards")
+                        ml = must_use.get("min_limitation_hooks")
+                        lines.append(f"  - must_use: anchors>={ma} comparisons>={mc} limitations>={ml}")
+
+                    pack_stats = ctx.get("pack_stats") or {}
+                    if isinstance(pack_stats, dict) and pack_stats:
+                        a_kept = (pack_stats.get("anchors") or {}).get("kept")
+                        c_kept = (pack_stats.get("comparisons") or {}).get("kept")
+                        e_kept = (pack_stats.get("evaluation_protocol") or {}).get("kept")
+                        l_kept = (pack_stats.get("limitation_hooks") or {}).get("kept")
+                        lines.append(f"  - pack_stats: anchors_kept={a_kept} comparisons_kept={c_kept} eval_kept={e_kept} limitation_kept={l_kept}")
+
+                    pack_warnings = ctx.get("pack_warnings") or []
+                    if isinstance(pack_warnings, list) and pack_warnings:
+                        lines.append("  - pack_warnings:")
+                        for w in pack_warnings[:4]:
+                            w = str(w or "").strip()
+                            if w:
+                                lines.append(f"    - {w}")
+
                     comps = ctx.get("comparison_cards") or []
                     if isinstance(comps, list) and comps:
                         lines.append(f"  - comparison_cards: {len(comps)} (examples)")
@@ -284,6 +307,7 @@ def main() -> int:
             anchors = rec.get("anchor_facts") or []
             evidence_ids = rec.get("evidence_ids") or []
             allowed_chapter = rec.get("allowed_bibkeys_chapter") or []
+            allowed_global = rec.get("allowed_bibkeys_global") or []
 
             if isinstance(allowed_sel, list) and allowed_sel:
                 sample = ", ".join(str(k) for k in allowed_sel[:12])
@@ -293,6 +317,8 @@ def main() -> int:
                 lines.append(f"  - allowed_bibkeys_mapped: {len(allowed_map)}")
             if isinstance(allowed_chapter, list) and allowed_chapter:
                 lines.append(f"  - allowed_bibkeys_chapter: {len(allowed_chapter)}")
+            if isinstance(allowed_global, list) and allowed_global:
+                lines.append(f"  - allowed_bibkeys_global: {len(allowed_global)} (threshold via queries.md global_citation_min_subsections)")
             if isinstance(evidence_ids, list) and evidence_ids:
                 lines.append(f"  - evidence_ids: {len(evidence_ids)}")
             if isinstance(anchors, list) and anchors:

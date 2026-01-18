@@ -152,16 +152,14 @@ def _is_allowed_cite(cite: str, *, bib_keys: set[str]) -> bool:
 def _trim(text: str, *, max_len: int = 280) -> str:
     text = re.sub(r"\s+", " ", (text or "").strip())
     if len(text) > int(max_len):
-        text = text[: int(max_len)].rstrip() + "…"
+        # Avoid adding ellipsis markers that may accidentally leak into prose.
+        text = text[: int(max_len)].rstrip()
     return text
 
 
 def _check_no_placeholders(records: list[dict[str, Any]]) -> None:
     raw = json.dumps(records, ensure_ascii=False)
     low = raw.lower()
-    if "…" in raw:
-        # ellipsis is allowed only as trimming marker at end; keep as non-blocking.
-        pass
     if "(placeholder)" in low:
         raise SystemExit("anchor_sheet contains placeholder markers")
     if re.search(r"(?i)\b(?:todo|tbd|fixme)\b", raw):

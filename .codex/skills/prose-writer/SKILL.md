@@ -71,23 +71,23 @@ Before writing, load the structural and coherence inputs: `outline/outline.yml` 
    - Write **6–10 paragraphs** per H3 following `paragraph_plan` (survey-quality default).
    - Aim for **~800–1400 words** per H3 (shorter only if the evidence pack is explicitly thin and you mark it as provisional).
    - Keep prose natural, but make every paragraph an argument: claim → cited evidence → synthesis.
-   - **Evidence note placement**: if the run is abstract-only, put a single short evidence note once (e.g., in the introduction or an “Evidence note” subsection). Do *not* repeat the same “abstract-only” disclaimer sentence in every H3; only mention verification needs when they are subsection-specific.
+   - **Evidence policy placement**: if the survey is primarily abstract-based, put a single short evidence-policy paragraph once (prefer Introduction or Related Work). Avoid execution-log phrasing like `this run ...`. Do *not* create a dedicated “Evidence note” heading by default, and do *not* repeat the same evidence-mode disclaimer sentence in every H3; only mention verification needs when they are subsection-specific.
    - Enforce `scope_rule` strictly to prevent silent drift; if you include an out-of-scope paper as a bridge, justify it once and keep it secondary.
 
 5. **Weave transitions (coherence)**
    - Between adjacent subsections/sections, add 1–2 transition sentences that reflect the taxonomy logic (not generic “Moreover/However”).
 
-6. **Integrate cross-cutting artifacts**
-   - Insert `outline/tables.md` (>=2 tables), `outline/timeline.md` (>=8 cited milestones), and `outline/figures.md` (>=2 specs) into the draft.
+6. **Integrate cross-cutting artifacts (optional)**
+   - Treat `outline/tables.md`, `outline/timeline.md`, and `outline/figures.md` as intermediate artifacts by default: weave them into the *relevant* prose sections (or include a short appendix), rather than dumping them as standalone top-level sections.
    - Prefer referencing tables in prose over restating an identical “axes list” sentence in every subsection.
 
 7. **Self-check + revise (hard fail signals)**
    - If the draft contains `...`, unicode ellipsis `…`, scaffold phrases (e.g., “enumerate 2-4 …”), or repeated boilerplate sentences, treat it as a pipeline failure signal and rewrite.
    - If tables contain truncation or instruction-like text, regenerate them upstream (C4) rather than patching them into the prose.
 
-## Anti-template bans (hard fail)
+## Anti-template smells (rewrite if repeated)
 
-Do not emit any of the following in final prose (rewrite upstream instead):
+These phrase families are a strong “generator voice” signal. If they appear, rewrite them into content claims (or delete) without adding new facts/citations:
 - “Scope and definitions … / Design space … / Evaluation practice …”
 - “enumerate 2-4 …”
 - “We use the following working claim …”
@@ -95,6 +95,7 @@ Do not emit any of the following in final prose (rewrite upstream instead):
 - “A useful way to compare approaches is …”
 - “abstracts are treated as verification targets …”
 - “The main axes we track are …”
+- Repeated opener labels across many subsections (e.g., literal `Key takeaway:`)
 
 ## Quality checklist
 

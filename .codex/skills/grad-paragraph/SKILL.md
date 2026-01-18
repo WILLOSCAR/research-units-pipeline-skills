@@ -6,7 +6,7 @@ description: |
   **Use when**: you are drafting `sections/S*.md` (H3 body) and want subsection-specific, evidence-bounded prose instead of templates.
   **Skip if**: evidence packs are missing/incomplete (fix `subsection-briefs`/`evidence-draft`/`evidence-binder` first), or `Approve C2` is not recorded in `DECISIONS.md`.
   **Network**: none.
-  **Guardrail**: do not invent facts or citations; no placeholders/ellipsis; keep claims conservative under abstract-only evidence.
+  **Guardrail**: do not invent facts or citations; no placeholders/ellipsis; keep claims conservative when evidence is abstract-level (avoid repeating evidence-mode boilerplate in every paragraph).
 ---
 
 # Grad Paragraph (survey paragraph micro-skill)
@@ -22,7 +22,8 @@ In one paragraph (typically 4–6 sentences), cover:
 - **Tension / question**: what this paragraph is trying to resolve (subsection-specific).
 - **Contrast**: compare at least two approaches/routes/clusters (A vs B) with explicit contrast words.
 - **Evaluation anchor**: name how comparisons are made (benchmark/dataset/metric/protocol), even if only abstract-level.
-- **Limitation / verification**: state what is uncertain or what would need full-text verification, without turning into boilerplate.
+- **Limitation / verification**: state what is uncertain (missing protocol details, incomparable benchmarks, unclear constraints) without turning into boilerplate.
+- If you include a **number**, also include: task type + metric definition + constraint (budget/cost/tool access), and cite it.
 
 ## Inputs (practical)
 
@@ -30,6 +31,11 @@ In one paragraph (typically 4–6 sentences), cover:
 - `outline/evidence_drafts.jsonl` (for evidence snippets + candidate comparisons)
 - `outline/evidence_bindings.jsonl` (allowed citations for this H3)
 - `citations/ref.bib`
+
+## Outputs
+
+- One paragraph (4–6 sentences) to paste into the target `sections/S<sub_id>.md` file.
+- Optional (when debugging): a 4-line plan (tension/contrast/eval/limitation) **kept out of the final prose**.
 
 ## Roles (two-pass is more reliable)
 
@@ -54,6 +60,13 @@ Rules:
 - Keep the paragraph **subsection-specific** (it should not be copy-pastable into other subsections).
 - Place citations inside the sentence they support (not only at paragraph end).
 - Do not mention pipeline internals (“working claim”, “axes we track”, “verification targets”).
+
+## Paper voice (avoid template cadence)
+
+- Keep tone calm and academic; avoid hype words (e.g., “clearly”, “obviously”, “breakthrough”).
+- Vary sentence openings; don’t start every paragraph with the same connector (“However/Moreover/Taken together”).
+- Avoid explicit labels like `Key takeaway:`; let the sentence carry the point.
+- Prefer concrete nouns + mid-sentence ties (`...; however, ...`) over “PPT narration” signposting.
 
 ## Checklist (quick self-audit)
 

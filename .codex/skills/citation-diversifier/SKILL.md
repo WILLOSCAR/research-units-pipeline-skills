@@ -21,7 +21,7 @@ This skill generates a deterministic, per-H3 “budget plan” of **in-scope cit
 
 - `output/DRAFT.md`
 - `outline/outline.yml`
-- `outline/writer_context_packs.jsonl` (source of `allowed_bibkeys_*`)
+- `outline/writer_context_packs.jsonl` (source of `allowed_bibkeys_{selected,mapped,chapter,global}`)
 - `citations/ref.bib`
 
 ## Outputs
@@ -32,11 +32,16 @@ This skill generates a deterministic, per-H3 “budget plan” of **in-scope cit
 
 1. Run the script to generate the report (reads `output/DRAFT.md`, `outline/outline.yml`, `outline/writer_context_packs.jsonl`, `citations/ref.bib`).
 2. For each failing/weak H3:
-   - pick 3–6 suggested keys from the report (prefer `allowed_bibkeys_selected`, then `allowed_bibkeys_mapped`)
-   - add **evidence-neutral** cite-embedding sentences (no new claims) such as:
-     - `Representative systems include X [@a], Y [@b], and Z [@c].`
-     - `Several lines of work explore this design space [@a; @b; @c; @d].`
-   - keep these additions *inside the same H3* (do not migrate citations across subsections)
+   - pick 3–6 suggested keys from the report (prefer `allowed_bibkeys_selected`, then `allowed_bibkeys_mapped`, then `allowed_bibkeys_chapter`; use `allowed_bibkeys_global` only for truly cross-cutting foundations/benchmarks/surveys)
+   - apply the budget **without adding new facts**:
+     - prefer a short, subsection-specific context clause (use the subsection title or its `contrast_hook`) rather than a generic “representative works include” list
+     - embed citations inside the sentence that introduces the concrete nouns (systems/methods/benchmarks)
+     - vary opener stems across H3s (avoid repeating the same 4-word prefix)
+   - keep additions *inside the same H3* (do not migrate citations across subsections)
+
+   Recommended (deterministic) application path:
+   - run `citation-injector` to apply this report automatically (NO NEW FACTS; keys stay in-scope)
+   - then run `draft-polisher` to smooth any injection sentences into paper voice (keys immutable)
 3. Rerun:
    - `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor`
    - If you intentionally changed citations after a previous polish run and anchoring blocks, delete `output/citation_anchors.prepolish.jsonl` and rerun `draft-polisher`.

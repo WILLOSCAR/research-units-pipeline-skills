@@ -11,6 +11,7 @@
 - max_results: ""
 - core_size: ""              # dedupe-rank will select this many papers into papers/core_set.csv (survey target: >=150)
 - per_subsection: ""         # section-mapper target papers per H3 (arxiv-survey default: 18)
+- global_citation_min_subsections: ""  # treat citations mapped to >=N subsections as globally allowed for citation-scope checks (default: 3)
 - draft_profile: ""         # lite | survey | deep (controls strict quality gates for C5 depth)
 - enrich_metadata: ""        # true|false; optional arXiv id_list backfill for offline imports (needs network)
 - evidence_mode: "abstract"   # abstract | fulltext

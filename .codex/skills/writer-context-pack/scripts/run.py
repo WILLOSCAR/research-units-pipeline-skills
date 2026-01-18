@@ -109,6 +109,7 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, write_jsonl
+    from tooling.quality_gate import _global_citation_min_subsections
 
     workspace = Path(args.workspace).resolve()
 
@@ -192,6 +193,22 @@ def main() -> int:
             if bk and (not bibkeys or bk in bibkeys):
                 bucket.add(bk)
 
+    # Global bibkeys: mapped across multiple subsections (cross-cutting foundations/benchmarks/surveys).
+    mapped_counts: dict[str, int] = {}
+    for rec in bindings_by_sub.values():
+        mapped = rec.get("mapped_bibkeys") or []
+        if not isinstance(mapped, list):
+            continue
+        for bk in mapped:
+            bk = str(bk).strip()
+            if not bk:
+                continue
+            if bibkeys and bk not in bibkeys:
+                continue
+            mapped_counts[bk] = mapped_counts.get(bk, 0) + 1
+    global_threshold = _global_citation_min_subsections(workspace)
+    mapped_global = sorted([k for k, n in mapped_counts.items() if n >= int(global_threshold)])
+
     # Trim policy (avoid silent truncation; keep long enough to preserve concrete detail).
     TRIM = {
         "default": 400,
@@ -201,6 +218,21 @@ def main() -> int:
         "eval_bullet": 320,
         "limitation_excerpt": 320,
     }
+
+    # Anti-template hints for C5 writers (keep paper prose; avoid “outline narration”).
+    DO_NOT_REPEAT = [
+        "This subsection surveys",
+        "This subsection argues",
+        "In this subsection",
+        "Next, we move from",
+        "We now turn to",
+        "this run",
+        "this run is",
+        "claims remain provisional under abstract-only evidence",
+        "abstract-only evidence",
+        "Key takeaway:",
+        "Main takeaway:",
+    ]
 
     records: list[dict[str, Any]] = []
     now = now_iso_seconds()
@@ -448,6 +480,11 @@ def main() -> int:
             "rq": rq,
             "thesis": thesis,
             "axes": axes,
+            # Transition handles (NO NEW FACTS): carried from subsection briefs so writers
+            # can keep connectors specific without leaking outline meta into the final draft.
+            "bridge_terms": [str(x).strip() for x in (brief.get("bridge_terms") or []) if str(x).strip()],
+            "contrast_hook": str(brief.get("contrast_hook") or "").strip(),
+            "required_evidence_fields": [str(x).strip() for x in (brief.get("required_evidence_fields") or []) if str(x).strip()],
             "paragraph_plan": paragraph_plan,
             "chapter_throughline": chapter.get("throughline") or [],
             "chapter_key_contrasts": chapter.get("key_contrasts") or [],
@@ -455,12 +492,14 @@ def main() -> int:
             "allowed_bibkeys_selected": selected,
             "allowed_bibkeys_mapped": mapped,
             "allowed_bibkeys_chapter": sorted(chapter_union.get(sec_id, set())),
+            "allowed_bibkeys_global": mapped_global,
             "evidence_ids": [str(e).strip() for e in (binding.get("evidence_ids") or []) if str(e).strip()],
             "anchor_facts": anchor_facts,
             "comparison_cards": comparison_cards,
             "evaluation_protocol": eval_proto,
             "limitation_hooks": lim_hooks,
             "must_use": must_use,
+            "do_not_repeat_phrases": DO_NOT_REPEAT,
             "pack_warnings": pack_warnings,
             "pack_stats": pack_stats,
             "generated_at": now,

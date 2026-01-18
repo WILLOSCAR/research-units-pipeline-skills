@@ -62,6 +62,8 @@ For a failing `sections/S<sub_id>.md`:
    - `evidence_ids`
    - `anchor_facts`
 2. Prefer `outline/writer_context_packs.jsonl` for this `sub_id` (single merged pack: rq/axes/paragraph_plan + comparisons + eval + limitations + anchors + allowed cites).
+   - Treat `must_use` as a hard checklist (min anchors / comparisons / limitation hooks); if you cannot satisfy it without guessing, fix upstream evidence.
+   - Use `pack_warnings` / `pack_stats` to detect when the pack is thin due to missing notes/fulltext (go back to C3/C4 instead of writing filler).
    - If missing, fall back to:
      - `outline/subsection_briefs.jsonl` (rq/axes/paragraph_plan)
      - `outline/evidence_drafts.jsonl` (comparisons/eval/limitations)
@@ -72,6 +74,7 @@ For a failing `sections/S<sub_id>.md`:
    - >=2 explicit contrasts (whereas/in contrast/相比/不同于)
    - >=1 evaluation anchor (benchmark/dataset/metric/protocol)
    - >=1 limitation/provisional sentence (limited/unclear/受限/待验证)
+   - Paragraph-plan execution: follow `paragraph_plan[].argument_role` and ensure you can point to evaluation / synthesis / limitation / decision paragraphs (do not leave role labels).
    - >=1 cross-paper synthesis paragraph with >=2 citations in the same paragraph
    - If the evidence pack contains digits: include >=1 cited numeric anchor (digit + citation in same paragraph)
 
@@ -86,6 +89,25 @@ For a missing/weak `sections/S<sec_id>_lead.md`:
 - Must preview the chapter’s comparison axes and how its H3 subsections connect.
 - Include >=2 citations (keys must exist in `citations/ref.bib`; keep it grounded and non-generic).
 
+
+### 2b) For a failing H2 body file: rewrite the front matter (Introduction / Related Work)
+
+Some H2 sections have **no H3 subsections** (common: Introduction + Related Work), so they are written as body-only files:
+- `sections/S<sec_id>.md` (no headings; `section-merger` injects them under the H2 heading)
+
+If `output/QUALITY_GATE.md` reports issues like `sections_intro_*` / `sections_related_work_*` for a `sections/S*.md` file:
+
+1) Identify which H2 it is by reading `outline/outline.yml` (match by `id` or title).
+2) Rewrite the file with paper-like front matter shape:
+   - Motivation + scope boundary (what counts as an “agent” in this survey, what does not).
+   - Evidence policy paragraph **once** (abstract vs fulltext coverage, reproducibility bias); do not repeat the same disclaimer in every H3.
+   - Positioning (Related Work): integrate surveys + adjacent lines of work, but avoid a dedicated “Prior Surveys” mini-section by default.
+   - Organization paragraph that previews the comparison axes (interface contract → planning/memory → adaptation/multi-agent → evaluation/risks).
+
+Notes:
+- H2 files are not subsection-scoped by `outline/evidence_bindings.jsonl`; citations must still exist in `citations/ref.bib`.
+- Keep paper voice: avoid narration templates (“This subsection…”, “Next, we move…”); use content claims + why-it-matters + organization.
+
 ### 3) Recheck (always)
 
 Rerun:
@@ -99,13 +121,24 @@ If it still fails, only touch the remaining failing files and repeat.
 ## Troubleshooting (by gate code)
 
 - `sections_missing_files`: create the missing `sections/*.md` first (don’t merge yet).
+- `sections_h2_no_citations`: add citations (or remove factual claims and keep it purely structural).
+- `sections_intro_sparse_citations` / `sections_intro_too_short` / `sections_intro_too_few_paragraphs`: expand the Introduction H2 body file (`sections/S<sec_id>.md`) with scope + positioning + organization, keeping claims citation-grounded.
+- `sections_related_work_sparse_citations` / `sections_related_work_too_short` / `sections_related_work_too_few_paragraphs`: expand the Related Work H2 body file (`sections/S<sec_id>.md`) with survey coverage + adjacent lines of work, keeping claims citation-grounded.
 - `sections_h3_too_short` / `sections_h3_too_few_paragraphs`: add concrete comparisons + eval protocol details + synthesis + limitation (don’t add fluff).
 - `sections_h3_missing_cited_numeric`: pick an anchor fact with digits from `outline/anchor_sheet.jsonl` and integrate it with citations.
 - `sections_h3_weak_anchor_density`: ensure multiple paragraphs are both cited and anchored (digit OR evaluation token OR limitation token), not just long descriptions.
+- `sections_h3_missing_thesis_statement`: rewrite paragraph 1 so it ends with a conclusion-first takeaway aligned to briefs `thesis` (avoid “This subsection …” meta narration).
+- `sections_h3_low_connector_density`: add explicit logical connectors (contrast/causal/extension/implication) and rerun `section-logic-polisher` until PASS.
 - `sections_h3_citation_dump_paragraphs`: rewrite paragraphs that end with `[@a; @b; @c]` as the only citations; embed citations inside the sentences they support.
 - `sections_citation_dump_line`: remove stand-alone citation-only lines; merge the citation into the claim sentence.
 - `sections_cites_outside_mapping`: you used citation keys outside the binding set → fix mapping/bindings or rewrite to stay in-scope.
 - `sections_h3_missing_contrast` / `sections_h3_missing_eval_anchor` / `sections_h3_missing_limitation`: add the missing micro-structure signals explicitly.
+
+Non-gated but high-impact polish (paper voice):
+- Remove outline narration (`This subsection ...`, `In this subsection, we ...`) and slide navigation (`We now turn to ...`); rewrite into content claims + argument bridges.
+- Keep evidence-policy limitations once in front matter; delete repeated “abstract-only/title-only” boilerplate inside H3 unless truly subsection-specific.
+- Avoid repeating literal opener labels across many H3s (e.g., `Key takeaway:`); vary opener phrasing and cadence.
+- Keep tone calm and academic; delete hype words and “PPT speaker notes”.
 
 ## Script (optional)
 

@@ -58,6 +58,40 @@ def _repeated_sentences(text: str, *, min_len: int = 90, min_repeats: int = 6) -
     return None
 
 
+def _examples(text: str, pattern: str, *, max_examples: int = 3, window: int = 90) -> list[str]:
+    """Return small context snippets around regex matches (deterministic, bounded)."""
+
+    out: list[str] = []
+    if not text:
+        return out
+    for m in re.finditer(pattern, text):
+        start = max(0, m.start() - int(window))
+        end = min(len(text), m.end() + int(window))
+        snippet = text[start:end].replace("\n", " ")
+        snippet = re.sub(r"\s+", " ", snippet).strip()
+        if snippet and snippet not in out:
+            out.append(snippet[:220])
+        if len(out) >= int(max_examples):
+            break
+    return out
+
+
+
+
+def _first_sentence_no_cites(text: str) -> str:
+    blob = re.sub(r"\[@[^\]]+\]", "", text or "")
+    blob = re.sub(r"\s+", " ", blob).strip()
+    if not blob:
+        return ""
+    # Cheap sentence split; good enough for opener-stem warnings.
+    parts = re.split(r"(?<=[.!?])\s+", blob)
+    return (parts[0] if parts else blob).strip()
+
+
+def _stem(text: str, *, n_words: int = 4) -> str:
+    words = [w for w in re.findall(r"[A-Za-z0-9']+", (text or "").lower()) if w]
+    return " ".join(words[: int(n_words)])
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", required=True)
@@ -95,10 +129,11 @@ def main() -> int:
     bindings_path = workspace / bindings_rel
     bib_path = workspace / bib_rel
 
-    issues: list[str] = []
+    blocking: list[str] = []
+    warnings: list[str] = []
 
     if not draft_path.exists() or draft_path.stat().st_size == 0:
-        issues.append(f"missing draft: `{draft_rel}`")
+        blocking.append(f"missing draft: `{draft_rel}`")
         report = "\n".join([
             "# Audit report",
             "",
@@ -117,11 +152,60 @@ def main() -> int:
 
     # Placeholder leakage.
     if "…" in draft:
-        issues.append("draft contains unicode ellipsis (…)")
+        blocking.append("draft contains unicode ellipsis (…)")
     if re.search(r"(?m)\.\.\.+", draft):
-        issues.append("draft contains truncation dots (...)")
+        blocking.append("draft contains truncation dots (...)")
     if re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", draft):
-        issues.append("draft contains TODO/TBD/FIXME placeholders")
+        blocking.append("draft contains TODO/TBD/FIXME placeholders")
+
+    # Evidence-policy disclaimer spam: keep this once in front matter, not repeated per H3.
+    evidence_disclaimer_details: list[tuple[str, int, list[str]]] = []
+    evidence_disclaimer_n = 0
+    for label, pat in [
+        ("abstract-only/level evidence", r"(?i)\babstract(?:-|\s+)(?:only|level)\s+evidence\b"),
+        ("title-only evidence", r"(?i)\btitle(?:-|\s+)only\s+evidence\b"),
+        ("claims remain provisional", r"(?i)\bclaims?\s+remain\s+provisional\b"),
+    ]:
+        n = len(re.findall(pat, draft))
+        if n:
+            evidence_disclaimer_details.append((label, n, _examples(draft, pat)))
+            evidence_disclaimer_n += n
+    if evidence_disclaimer_n > 2:
+        warnings.append(
+            f"evidence-policy disclaimer repeated too often ({evidence_disclaimer_n}×); keep it once (prefer Intro/Related Work)"
+        )
+
+    # "PPT narration" navigation phrases: prefer argument bridges over slide-like narration.
+    narration_patterns: list[tuple[str, str]] = [
+        ("next, we move from", r"(?i)\bnext,\s+we\s+move\s+from\b"),
+        ("we now turn/move to", r"(?i)\bwe\s+now\s+(?:turn|move)\s+to\b"),
+        ("in the next section/subsection", r"(?i)\bin\s+the\s+next\s+(?:section|subsection)\b"),
+        ("this section/subsection surveys/argues", r"(?i)\bthis\s+(?:section|subsection)\s+(?:surveys|argues|shows|highlights)\b"),
+    ]
+    narration_details: list[tuple[str, int, list[str]]] = []
+    narration_hits = 0
+    for label, pat in narration_patterns:
+        n = len(re.findall(pat, draft))
+        if n:
+            narration_details.append((label, n, _examples(draft, pat)))
+            narration_hits += n
+    if narration_hits >= 5:
+        warnings.append(f"too many narration-style navigation phrases ({narration_hits}×); rewrite as argument bridges")
+
+    # Repeated opener labels (e.g., "Key takeaway:") are a strong generator-voice signal.
+    takeaway_pat = r"(?im)\b(key\s+takeaway|main\s+takeaway)\b\s*[:\-]"
+    takeaway_n = len(re.findall(takeaway_pat, draft))
+    takeaway_examples = _examples(draft, takeaway_pat) if takeaway_n else []
+    if takeaway_n > 1:
+        warnings.append(
+            f"repeated takeaway-style opener label ({takeaway_n}×); avoid 'Key takeaway:' spam and vary openers"
+        )
+
+    # Suspicious model naming (often hallucinated / underspecified).
+    gpt5_pat = r"(?i)\bgpt[\s\-]?5\b"
+    gpt5_examples = _examples(draft, gpt5_pat) if re.search(gpt5_pat, draft) else []
+    if gpt5_examples:
+        warnings.append("suspicious model name 'GPT-5' appears; avoid ambiguous naming unless the cited paper uses it")
 
     # Bib health.
     bib_keys: list[str] = []
@@ -131,9 +215,9 @@ def main() -> int:
         bib_keys = re.findall(r"(?im)^@\w+\s*\{\s*([^,\s]+)\s*,", bib_text)
         dup_bib = len(bib_keys) - len(set(bib_keys))
         if dup_bib:
-            issues.append(f"ref.bib has duplicate bibkeys ({dup_bib})")
+            blocking.append(f"ref.bib has duplicate bibkeys ({dup_bib})")
     else:
-        issues.append(f"missing ref.bib: `{bib_rel}`")
+        blocking.append(f"missing ref.bib: `{bib_rel}`")
 
     bib_set = set(bib_keys)
 
@@ -142,7 +226,7 @@ def main() -> int:
     missing_in_bib = sorted([k for k in cited if bib_set and k not in bib_set])
     if missing_in_bib:
         sample = ", ".join(missing_in_bib[:10])
-        issues.append(f"draft cites keys missing from ref.bib (e.g., {sample})")
+        blocking.append(f"draft cites keys missing from ref.bib (e.g., {sample})")
 
     # Coverage by subsection titles.
     outline = load_yaml(outline_path) if outline_path.exists() else []
@@ -196,13 +280,78 @@ def main() -> int:
             "body": body,
         }
 
+
+
+    # Template phrase family stats (non-blocking; helps de-templating without brittle hard blocks).
+    template_family_details: list[tuple[str, int, list[str]]] = []
+
+    def _add_family(label: str, pat: str, *, warn_at: int) -> None:
+        n = len(re.findall(pat, draft))
+        if not n:
+            return
+        exs = _examples(draft, pat, max_examples=3)
+        template_family_details.append((label, n, exs))
+        if n >= int(warn_at):
+            warnings.append(f"template phrase family repeated ({n}×): {label}")
+
+    # Common generator-voice families.
+    _add_family(
+        "transition title narration (e.g., 'From X to Y ...')",
+        r"(?im)^from\s+[^\n]{3,80}\s+to\s+[^\n]{3,80}",
+        warn_at=3,
+    )
+    _add_family(
+        "injection-like 'representative works include …' opener",
+        r"(?im)^(?:a\s+few\s+representative\s+references\s+include|representative\s+works\s+(?:in\s+this\s+space\s+)?include|notable\s+(?:lines\s+of\s+work|work\s+in\s+this\s+area)\s+include|recent\s+work\s+in\s+this\s+area\s+includes)\b[^\n]{0,140}\[@",
+        warn_at=4,
+    )
+    _add_family(
+        "subsection narration ('This subsection …')",
+        r"(?i)\bthis\s+(?:section|subsection)\s+(?:surveys|argues|shows|highlights|demonstrates|contends)\b",
+        warn_at=2,
+    )
+    _add_family(
+        "PPT-like navigation ('We now turn to …' / 'In the next section …')",
+        r"(?i)\b(?:we\s+now\s+(?:turn|move)\s+to|next,\s+we\s+move\s+from|in\s+the\s+next\s+(?:section|subsection))\b",
+        warn_at=3,
+    )
+    _add_family(
+        "pipeline voice ('this run')",
+        r"(?i)\bthis\s+run\b",
+        warn_at=1,
+    )
+
+    # Repeated H3 opener stems (soft warning): avoid using the exact same first-sentence stem everywhere.
+    opener_stems: dict[str, int] = {}
+    opener_examples: dict[str, list[str]] = {}
+    for sid, rec in found.items():
+        body = str(rec.get("body") or "")
+        paras = _split_paragraphs(body)
+        first_para = paras[0] if paras else body
+        first_sent = _first_sentence_no_cites(first_para)
+        stem = _stem(first_sent, n_words=4)
+        if not stem:
+            continue
+        opener_stems[stem] = opener_stems.get(stem, 0) + 1
+        exs = opener_examples.setdefault(stem, [])
+        if first_sent and first_sent not in exs:
+            exs.append(first_sent[:160])
+
+    rep_stems = [(s, n) for s, n in opener_stems.items() if n >= 3]
+    rep_stems.sort(key=lambda kv: (-kv[1], kv[0]))
+    for stem, n in rep_stems[:3]:
+        template_family_details.append((f"repeated H3 opener stem: `{stem} ...`", n, opener_examples.get(stem, [])[:3]))
+    if rep_stems:
+        stem0, n0 = rep_stems[0]
+        warnings.append(f"repeated H3 opener stem across subsections ({n0}×): '{stem0} ...' (vary openers)")
+
     missing_h3 = []
     if expected:
         for _, sid in expected.items():
             if sid not in found:
                 missing_h3.append(sid)
         if missing_h3:
-            issues.append(f"draft missing some H3 subsections from outline (e.g., {', '.join(missing_h3[:6])})")
+            blocking.append(f"draft missing some H3 subsections from outline (e.g., {', '.join(missing_h3[:6])})")
 
     # Per-H3 cite density (hard target for survey-like drafts).
     low_cite: list[str] = []
@@ -211,7 +360,7 @@ def main() -> int:
         if len(uniq) < 3:
             low_cite.append(f"{sid}({len(uniq)})")
     if low_cite:
-        issues.append(f"some H3 have <3 unique citations: {', '.join(low_cite[:10])}")
+        blocking.append(f"some H3 have <3 unique citations: {', '.join(low_cite[:10])}")
 
     # Global cite coverage (encourage using more of the bibliography, not just a small subset).
     if profile == "arxiv-survey" and expected:
@@ -236,7 +385,7 @@ def main() -> int:
             min_unique = min(min_unique, len(bib_keys))
 
         if len(cited) < min_unique:
-            issues.append(
+            blocking.append(
                 f"unique citations too low ({len(cited)}; target >= {min_unique} for {draft_profile} profile)"
                 + (f" [struct={min_unique_struct}, frac={min_unique_frac}, bib={len(bib_keys)}]" if bib_keys else "")
             )
@@ -266,13 +415,15 @@ def main() -> int:
                 max_uncited = 0.20
 
         if rate > max_uncited:
-            issues.append(f"too many uncited content paragraphs ({uncited}/{content_paras} = {rate:.1%}; max={max_uncited:.0%})")
+            blocking.append(
+                f"too many uncited content paragraphs ({uncited}/{content_paras} = {rate:.1%}; max={max_uncited:.0%})"
+            )
 
     # Boilerplate repetition.
     rep = _repeated_sentences(draft)
     if rep:
         example, count = rep
-        issues.append(f"repeated boilerplate sentence ({count}×): `{example}`")
+        warnings.append(f"repeated boilerplate sentence ({count}×): `{example}`")
 
     # Evidence-binding compliance (soft but informative).
     bindings: dict[str, dict[str, Any]] = {}
@@ -299,7 +450,7 @@ def main() -> int:
                 f"| {sid} | {len(cites)} | {in_sel}/{len(cites)} | {in_map}/{len(cites)} |"
             )
 
-    status = "PASS" if not issues else "FAIL"
+    status = "PASS" if not blocking else "FAIL"
 
     lines: list[str] = [
         "# Audit report",
@@ -315,10 +466,53 @@ def main() -> int:
         "",
     ]
 
-    if issues:
+    if blocking:
         lines.append("## Blocking issues")
-        for it in issues:
+        for it in blocking:
             lines.append(f"- {it}")
+        lines.append("")
+
+    if warnings:
+        lines.append("## Warnings (non-blocking)")
+        for it in warnings:
+            lines.append(f"- {it}")
+        lines.append("")
+
+    if template_family_details:
+        lines.append("## Template phrase family stats (for fixing)")
+        for label, n, exs in template_family_details:
+            lines.append(f"- {label}: {n}×")
+            for ex in (exs or [])[:3]:
+                if ex:
+                    lines.append(f"  - {ex}")
+        lines.append("")
+
+    if evidence_disclaimer_n > 2 and evidence_disclaimer_details:
+        lines.append("## Evidence-policy disclaimer examples (for fixing)")
+        for label, n, exs in evidence_disclaimer_details:
+            lines.append(f"- {label}: {n}×")
+            for ex in exs[:3]:
+                lines.append(f"  - {ex}")
+        lines.append("")
+
+    if narration_hits >= 5 and narration_details:
+        lines.append("## Narration-style phrase examples (for fixing)")
+        for label, n, exs in narration_details:
+            lines.append(f"- {label}: {n}×")
+            for ex in exs[:3]:
+                lines.append(f"  - {ex}")
+        lines.append("")
+
+    if takeaway_n > 1 and takeaway_examples:
+        lines.append("## Repeated opener label examples (for fixing)")
+        for ex in takeaway_examples[:3]:
+            lines.append(f"- {ex}")
+        lines.append("")
+
+    if gpt5_examples:
+        lines.append("## Suspicious model naming examples (for fixing)")
+        for ex in gpt5_examples[:3]:
+            lines.append(f"- {ex}")
         lines.append("")
 
     if unknown_h3:

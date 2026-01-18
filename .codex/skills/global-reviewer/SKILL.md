@@ -58,6 +58,7 @@ Include a top bullet:
 
 - Did the outline or claim-matrix leak prompt scaffolds (ellipsis / enumerate instructions / “scope/design space/evaluation practice”)?
 - Did writer copy placeholder bullets into prose?
+- Did evidence-policy disclaimers leak everywhere (e.g., repeated “abstract-only evidence”)? Evidence policy should appear **once** in front matter, not in every H3.
 - Do paper notes contain concrete evidence fields (metrics/datasets/compute/failure modes) or only title-level metadata?
 
 ### B. Narrative and argument chain
@@ -65,6 +66,7 @@ Include a top bullet:
 - For each subsection: write one thesis that is unique to that subsection (would not be true elsewhere).
 - Provide 2 contrast sentences (A vs B) with citations.
 - Provide 1 failure mode / counterexample with citations.
+- Flag “generator voice”: narration-style navigation and repeated opener stems (e.g., many subsections start with the same `Key takeaway:` label); recommend rewrites as argument bridges.
 
 ### C. Scope and taxonomy consistency
 
@@ -75,6 +77,7 @@ Include a top bullet:
 
 - Produce a small claim-evidence table (5–10 rows): `claim | section | papers | evidence_field | evidence_level`.
 - Flag paragraphs with weak/irrelevant citations.
+- Flag underspecified quantitative claims (numbers without task/metric/benchmark/budget context) and ambiguous model naming (e.g., “GPT-5” unless the cited work uses that label).
 
 ### E. Tables and structural outputs
 
@@ -87,6 +90,7 @@ Include a top bullet:
 - Unify terminology (glossary-driven search/replace).
 - Add 1–2 sentence transitions between major sections.
 - Tighten scope statements and conclusion RQ closure.
+- Remove slide-like narration phrases and repeated disclaimers (without changing citation keys).
 
 ## Helper script
 

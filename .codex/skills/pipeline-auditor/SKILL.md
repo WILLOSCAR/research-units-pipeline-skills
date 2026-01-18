@@ -35,6 +35,9 @@ Outputs are deterministic and auditable.
 
 - **Placeholder leakage** in `output/DRAFT.md`: ellipsis, TODO markers, scaffold tags.
 - **Outline alignment**: section/subsection order and presence compared to `outline/outline.yml`.
+- **Narration-style template phrases**: flags slide-like navigation (“Next, we move from…”, “We now turn to…”) and repeated opener labels (e.g., `Key takeaway:`) that should be rewritten as content claims / argument bridges.
+- **Evidence-policy disclaimer spam**: flags repeated “abstract-only/title-only evidence” disclaimers; keep evidence policy once in front matter.
+- **Pipeline voice leakage**: flags phrases like `this run` that read like execution logs; rewrite as survey methodology (no pipeline/jargon).
 - **Citation health** (if `citations/ref.bib` exists): undefined keys, duplicate keys, basic formatting red flags.
 - **Evidence binding hygiene** (if `outline/evidence_bindings.jsonl` exists): citations used per H3 should stay within the bound evidence set.
 - **H3 parsing boundary**: treat new `##` headings as boundaries so tables/figures/open-problems sections are not accidentally attributed to the last H3.
@@ -67,13 +70,35 @@ Outputs are deterministic and auditable.
 **Fix**:
 - Regenerate citations with `citation-verifier` (ensure `citations/ref.bib` includes every cited key), then rerun.
 
+### Issue: audit fails due to evidence-policy disclaimer spam
+
+**Fix** (skills-first):
+- Keep evidence-policy limitations **once** in front matter (Introduction or Related Work).
+- Remove repeated “abstract-only/title-only evidence” boilerplate from H3 sections (use `draft-polisher` to de-template without changing citation keys).
+
+Note:
+- In the default auditor behavior, these style findings may be reported as **warnings** (non-blocking) with examples; treat them as polish tasks if you want ref-like “paper voice”.
+
+### Issue: audit fails due to narration-style navigation phrases
+
+**Fix**:
+- Replace slide-like narration (“Next, we move from…”, “We now turn to…”) with argument bridges that restate the lens/contrast (no new facts).
+- Apply the edits in place (typically via `draft-polisher`), then rerun auditor.
+
+### Issue: audit fails due to suspicious model naming (e.g., “GPT-5”)
+
+**Fix**:
+- Replace ambiguous names with the cited paper’s naming, or a neutral phrase (“a proprietary frontier model”), and add minimal evaluation context if a number is kept (task + metric + constraint/budget/cost).
+
 ### Issue: audit fails due to "unique citations too low" (survey/deep profiles)
 
 **Fix** (skills-first; avoid ad-hoc retrieval at this stage):
 - Run `citation-diversifier` to generate a per-H3 plan of *unused, in-scope* citation keys (writes `output/CITATION_BUDGET_REPORT.md`).
-- Add 3–6 additional citations per H3, preferring keys in `outline/writer_context_packs.jsonl:allowed_bibkeys_selected` that are **not already used elsewhere** in the draft (to increase global unique-cite coverage).
+- Apply the plan:
+  - Preferred: run `citation-injector` (edits `output/DRAFT.md` and writes `output/CITATION_INJECTION_REPORT.md`).
+  - Manual fallback: add 3–6 citations per H3, preferring keys in `outline/writer_context_packs.jsonl:allowed_bibkeys_selected` that are **not already used elsewhere** in the draft.
 - Keep all added citation keys within the subsection’s allowed scope (`outline/evidence_bindings.jsonl` / `allowed_bibkeys_mapped`); avoid cross-chapter “free cites”.
-- Add citations via evidence-neutral phrasing (so you don't invent claims), e.g.:
-  - `Representative works in this space include ... [@A; @B; @C].`
-- Then rerun `section-merger` → `draft-polisher` → `global-reviewer` → auditor.
+- Add citations via evidence-neutral phrasing (so you don't invent claims), and embed cites per-work (avoid trailing dumps), e.g.:
+  - `Representative works in this space include Smith et al. [@A], Chen et al. [@B], and Kumar et al. [@C].`
+- Then rerun `draft-polisher` → `global-reviewer` → auditor.
   - If `draft-polisher` blocks due to anchoring drift after you intentionally added citations, delete `output/citation_anchors.prepolish.jsonl` and rerun to reset the baseline.

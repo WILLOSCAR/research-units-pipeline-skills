@@ -60,6 +60,9 @@ Recommended minimums per H3 (adjust for `queries.md:draft_profile`):
 - >=1 limitation/failure hook (concrete, not generic “future work”)
 - If digits exist in the evidence pack: include >=1 cited numeric anchor (digit + citation in the same paragraph)
 
+Note:
+- Anchor text is trimmed for readability and **does not** include ellipsis markers (to reduce accidental leakage into prose).
+
 ## Script
 
 ### Quick Start

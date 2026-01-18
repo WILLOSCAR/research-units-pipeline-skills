@@ -182,6 +182,9 @@ def main() -> int:
 
     transitions_text = _read_text(workspace / "outline" / "transitions.md")
     h3_trans, h2_trans = _parse_transitions(transitions_text)
+    # By default, do not inject between-H2 narrator transitions into the paper body.
+    # If you really want H2->H2 transitions inserted, create: outline/transitions.insert_h2.ok
+    insert_h2_transitions = (workspace / "outline" / "transitions.insert_h2.ok").exists()
 
     out_lines: list[str] = [f"# {title}", ""]
 
@@ -219,7 +222,7 @@ def main() -> int:
             out_lines.append(_read_text(workspace / body_rel).strip())
             out_lines.append("")
 
-        if idx + 1 < len(outline_sections):
+        if insert_h2_transitions and idx + 1 < len(outline_sections):
             nxt_title = outline_sections[idx + 1]["title"]
             t = h2_trans.get((sec_title, nxt_title), "").strip()
             if t:

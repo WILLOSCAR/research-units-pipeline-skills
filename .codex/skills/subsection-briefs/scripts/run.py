@@ -272,14 +272,26 @@ def _thesis_statement(*, sub_title: str, axes: list[str], evidence_summary: dict
     axes_phrase = a1 if not a2 else f"{a1} and {a2}"
 
     has_fulltext = int(evidence_summary.get("fulltext", 0) or 0) > 0
+    seed = f"thesis:{title}:{axes_phrase}:{'fulltext' if has_fulltext else 'abstract'}"
+
+    # The thesis is an internal execution hint for C5 writers; avoid "This subsection ..." meta-prose
+    # because it creates repetitive, generator-like openers in the final draft.
     if has_fulltext:
-        return (
-            f"This subsection argues that design choices in {title} induce decision-relevant trade-offs—especially in {axes_phrase}—"
-            "and that these trade-offs should be compared under consistent evaluation protocols."
-        )
-    return (
-        f"This subsection surveys {title} and argues that comparisons should emphasize {axes_phrase} while explicitly flagging which claims remain provisional under abstract-only evidence."
-    )
+        options = [
+            f"Design choices in {title} create decision-relevant trade-offs—especially in {axes_phrase}—and meaningful comparisons depend on consistent evaluation protocols.",
+            f"The core tension in {title} lies in {axes_phrase}, and the literature is most informative when methods are compared under shared evaluation settings.",
+            f"Work on {title} suggests that {axes_phrase} drives many downstream trade-offs, making protocol-aligned evaluation a first-class design constraint.",
+            f"In {title}, decisions about {axes_phrase} often dominate practical outcomes, so synthesis should stay grounded in protocol-consistent comparisons.",
+        ]
+        return _pick(seed, options)
+
+    options = [
+        f"{title} methods emphasize {axes_phrase} trade-offs, but synthesis is clearest when claims are tied to explicit evaluation settings and reporting conventions.",
+        f"For {title}, {axes_phrase} is a recurring axis of variation, so comparisons should foreground evaluation protocol choices and failure-mode assumptions.",
+        f"{title} highlights a tension around {axes_phrase}, motivating a protocol-aware synthesis rather than per-paper summaries.",
+        f"In {title}, differences in {axes_phrase} frequently imply different evaluation setups, so the key is to compare under consistent protocols where possible.",
+    ]
+    return _pick(seed, options)
 
 
 def _choose_axes(*, sub_title: str, goal: str, evidence_needs: list[str], outline_axes: list[str]) -> list[str]:
@@ -772,7 +784,7 @@ def _paragraph_plan(
     )
     lim_prefix = _pick(
         f"{sub_id}:lim",
-        ["Despite these advances,", "However, these routes remain limited by", "A key limitation is that", "This raises the question of whether"],
+        ["Despite these advances,", "However, these routes remain limited in practice, since", "A key limitation is that", "This raises the question of whether"],
     )
 
     plan = [
@@ -791,7 +803,7 @@ def _paragraph_plan(
             "intent": "Explain cluster A: core mechanism/architecture and what decision it makes in the agent loop.",
             "focus": [f"cluster: {c1}", "mechanism / architecture", "assumptions"],
             "connector_to_prev": "grounding",
-            "connector_phrase": f"{_pick(f'{sub_id}:p2', ['To ground this thesis,', 'To make this concrete,'])} we first examine {c1} approaches and the agent-loop decision they make.",
+            "connector_phrase": f"{_pick(f'{sub_id}:p2', ['To ground this thesis,', 'To make this concrete,'])} {c1} approaches provide a natural starting point because they make the agent-loop decision explicit.",
             "use_clusters": [c1] if c1 else [],
         },
         {
@@ -809,7 +821,7 @@ def _paragraph_plan(
             "intent": "Cluster A evaluation/trade-offs: where it works, costs (compute/latency), and typical failure modes.",
             "focus": [f"cluster: {c1}", "evaluation anchor", "efficiency", "failure modes"],
             "connector_to_prev": "evaluation",
-            "connector_phrase": f"{eval_prefix} summarize what protocols/metrics are used and where {c1} fails or becomes costly.",
+            "connector_phrase": f"{eval_prefix} protocols and metrics clarify where {c1} works, and where it fails or becomes costly.",
             "use_clusters": [c1] if c1 else [],
         },
         {
@@ -836,7 +848,7 @@ def _paragraph_plan(
             "intent": "Cluster B evaluation/trade-offs: where it works, costs, and failure modes (mirror A).",
             "focus": [f"cluster: {c2}", "evaluation anchor", "efficiency", "failure modes"],
             "connector_to_prev": "evaluation",
-            "connector_phrase": f"{eval_prefix} contrast B’s evaluation evidence with A under comparable settings (when available).",
+            "connector_phrase": f"{eval_prefix} when comparable settings exist, evaluation evidence for B can be contrasted against A to surface the trade-offs.",
             "use_clusters": [c2] if c2 else ([c1] if c1 else []),
         },
         {
@@ -854,7 +866,7 @@ def _paragraph_plan(
             "intent": "Decision guidance: when to choose which route (criteria + evaluation signals + engineering constraints).",
             "focus": ["decision checklist", "evaluation protocol", "practical constraints"],
             "connector_to_prev": "consequence",
-            "connector_phrase": f"{causal_prefix} propose a decision checklist that maps evaluation signals and constraints to route selection.",
+            "connector_phrase": f"{causal_prefix} a decision checklist can map evaluation signals and constraints to route selection.",
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
         {
@@ -863,7 +875,7 @@ def _paragraph_plan(
             "intent": "Limitations + verification targets; end with a concrete open question to hand off.",
             "focus": ["limitations", f"evidence mode: {mode}", "what needs verification", "open question"],
             "connector_to_prev": "limitations",
-            "connector_phrase": f"{lim_prefix} key claims hinge on assumptions that should be stress-tested; end with a concrete verification target.",
+            "connector_phrase": f"{lim_prefix} key claims hinge on assumptions that merit stress-testing, which motivates concrete verification targets.",
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
     ]

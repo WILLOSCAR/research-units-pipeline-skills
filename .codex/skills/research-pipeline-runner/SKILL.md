@@ -11,15 +11,32 @@ description: |
 
 # Research Pipeline Runner
 
-Use this skill to run the repo’s **UNITS + checkpoints** workflow end-to-end, while keeping semantic work LLM-driven (scripts are helpers, not the author).
+Goal: let a user trigger a full pipeline with one natural-language request, while keeping the run auditable (Units + artifacts + checkpoints).
+
+This skill is **coordination**:
+- semantic work is done by the relevant skills’ `SKILL.md`
+- scripts are deterministic helpers (scaffold/validate/compile), not the author
+
+## Inputs
+
+- User goal (one sentence is enough), e.g.:
+  - “给我写一个 agent 的 latex-survey”
+- Optional:
+  - explicit pipeline path (e.g., `pipelines/arxiv-survey-latex.pipeline.md`)
+  - constraints (time window, language: EN/中文, evidence_mode: abstract/fulltext)
+
+## Outputs
+
+- A workspace under `workspaces/<name>/` containing:
+  - `STATUS.md`, `GOAL.md`, `PIPELINE.lock.md`, `UNITS.csv`, `CHECKPOINTS.md`, `DECISIONS.md`
+  - pipeline-specific artifacts (papers/outline/sections/output/latex)
 
 ## Non-negotiables
 
 - Use `UNITS.csv` as the execution contract; one unit at a time.
 - Respect checkpoints (`CHECKPOINTS.md`): **no long prose** until required approvals are recorded in `DECISIONS.md` (survey default: `C2`).
 - Stop at HUMAN checkpoints and wait for explicit sign-off.
-- Never create workspace artifacts (`STATUS.md`, `UNITS.csv`, `DECISIONS.md`, etc.) in the repo root; always use `workspaces/<name>/`.
-- Treat skill scripts as **helpers** (deterministic tasks / scaffolding). For semantic units, the “real work” is done by following the relevant `SKILL.md` and refining outputs until quality gates pass.
+- Never create workspace artifacts in the repo root; always use `workspaces/<name>/`.
 
 ## Decision tree: pick a pipeline
 
@@ -31,15 +48,29 @@ User goal → choose:
 - Systematic review/系统综述 → `pipelines/systematic-review.pipeline.md`
 - Peer review/审稿 → `pipelines/peer-review.pipeline.md`
 
-## Recommended run loop (human-like)
+## Recommended run loop (skills-first)
 
-1. Create a workspace under `workspaces/` and kick off the pipeline.
-2. Run units in `--strict` mode so “scaffolds that look finished” don’t silently pass.
-3. Treat each blocked unit as a mini writing loop:
-   - read the unit’s `SKILL.md`
-   - refine the artifacts until they look like real work (not templates)
-   - then mark the unit `DONE` and continue
-4. Stop once for the human checkpoint (survey default: `C2`), then proceed to writing after approval.
+1) Initialize workspace (C0):
+- create `workspaces/<name>/`
+- write `GOAL.md`, lock pipeline (`PIPELINE.lock.md`), seed `queries.md`
+
+2) Execute units sequentially:
+- follow each unit’s `SKILL.md` to produce the declared outputs
+- only mark `DONE` when acceptance criteria are satisfied and outputs exist
+
+3) Stop at HUMAN checkpoints:
+- default survey checkpoint is `C2` (scope + outline)
+- write a concise approval request in `DECISIONS.md` and wait
+
+4) Writing-stage self-loop (when drafts look thin/template-y):
+- prefer local fixes over rewriting everything:
+  - `writer-context-pack` (C4→C5 bridge) makes packs debuggable
+  - `subsection-writer` writes per-file units
+  - `writer-selfloop` fixes only failing `sections/*.md`
+  - `draft-polisher` removes generator voice without changing citation keys
+
+5) Finish:
+- merge → audit → (optional) LaTeX scaffold/compile
 
 ## Practical commands (optional helpers)
 
@@ -52,24 +83,12 @@ User goal → choose:
 
 - **HUMAN approval required**: summarize produced artifacts, ask for approval, then record it and resume.
 - **Quality gate blocked** (`output/QUALITY_GATE.md` exists): treat current outputs as scaffolding; refine per the unit’s `SKILL.md`; mark `DONE`; resume.
-- **No network**: ask the user for an export; use `arxiv-search` offline import.
-- **Weak coverage** (mapping/notes): broaden queries or reduce/merge subsections before writing.
+- **No network**: use offline imports (`papers/imports/` or `arxiv-search --input`).
+- **Weak coverage**: broaden queries or reduce/merge subsections (`outline-budgeter`) before writing.
 
 ## Quality checklist
 
 - [ ] `UNITS.csv` statuses reflect actual outputs (no `DONE` without outputs).
-- [ ] No prose is written unless `DECISIONS.md` explicitly approves it for the relevant checkpoint/sections.
+- [ ] No prose is written unless `DECISIONS.md` explicitly approves it.
 - [ ] The run stops at HUMAN checkpoints with clear next questions.
-- [ ] In `--strict` mode, scaffold/stub outputs do not get marked `DONE` without LLM refinement.
-
-## Troubleshooting
-
-### Issue: run stops at a HUMAN unit
-
-**Fix**:
-- Summarize the relevant artifacts and write a concise approval request into `DECISIONS.md`; do not proceed until approved.
-
-### Issue: strict mode blocks on scaffolding/ellipsis
-
-**Fix**:
-- Treat current artifact as a draft scaffold; refine it following the skill’s `SKILL.md` until placeholders are gone, then mark the unit `DONE`.
+- [ ] In strict mode, scaffold/stub outputs do not get marked `DONE` without refinement.

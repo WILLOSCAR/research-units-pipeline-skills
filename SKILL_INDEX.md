@@ -2,6 +2,20 @@
 
 > 目标：让用户在 30 秒内找到合适的 skill（按 Stage / 触发词 / 输入输出索引）。
 
+## 一句话启用（对话触发 Pipeline）
+
+把下面这句话丢给 Codex（或 Claude Code）即可：
+
+> 给我写一个 agent 的 latex-survey
+
+可选（更稳）：显式指定 pipeline 文件（避免 router 选错）：
+
+> 用 `pipelines/arxiv-survey-latex.pipeline.md` 给我写一个 agent 的 latex-survey（启用 strict 质量门；C2 自动同意）
+
+常用对话控制：
+- “继续跑 / 继续执行 / 继续” → 继续执行 `UNITS.csv` 里的下一个可运行 unit
+- “C2 同意，继续” → 通过大纲审批后进入写作阶段（如果你希望停在 C2，就不要同意）
+
 ## 0-6 Stages（通用）
 
 ### Stage 0 — Init（C0）
@@ -23,6 +37,7 @@
 
 - `taxonomy-builder`：核心集合 → `outline/taxonomy.yml`（≥2 层、可映射）
 - `outline-builder`：taxonomy → `outline/outline.yml`（bullets-only）
+- `outline-budgeter`（可选）：合并过碎大纲，控制 H2/H3 预算（paper-like 6–8 个 H2；少而厚）→ `outline/outline.yml` + `outline/OUTLINE_BUDGET_REPORT.md`
 - `section-mapper`：core set → `outline/mapping.tsv`（小节覆盖率）
 - `outline-refiner`：planner pass 诊断（覆盖率/复用热点/轴是否泛化）→ `outline/coverage_report.md` + `outline/outline_state.jsonl`
 - `concept-graph`：教程概念依赖图 → `outline/concept_graph.yml`
@@ -68,6 +83,7 @@
 - `global-reviewer`：全局一致性回看（术语/章节呼应/结论回扣 RQ），输出 `output/GLOBAL_REVIEW.md`
 - `pipeline-auditor`：回归审计（PASS/FAIL）：ellipsis/模板句/引用健康/证据绑定 → `output/AUDIT_REPORT.md`
 - `citation-diversifier`：引用预算与去重增密（NO NEW FACTS）：按 H3 给出未使用且 in-scope 的可加 citation keys → `output/CITATION_BUDGET_REPORT.md`
+- `citation-injector`：按预算把 in-scope 引用“安全注入”进 draft（NO NEW FACTS；避免 citation dump）→ `output/CITATION_INJECTION_REPORT.md`
 - `tutorial-spec`：教程规格说明 → `output/TUTORIAL_SPEC.md`（C1）
 - `tutorial-module-writer`：模块化教程内容 → `output/TUTORIAL.md`（C3）
 - `protocol-writer`：系统综述协议 → `output/PROTOCOL.md`（C1）
@@ -89,6 +105,7 @@
 - “去重 / 排序 / core set / 精选论文” → `dedupe-rank`
 - “taxonomy / 分类 / 主题树 / 综述结构” → `taxonomy-builder`
 - “outline / 大纲 / bullets-only” → `outline-builder`
+- “outline budget / 大纲预算 / 合并小节 / H3 太多” → `outline-budgeter`
 - “mapping / 映射 / coverage / 覆盖率” → `section-mapper`
 - “planner pass / coverage report / 大纲诊断 / 复用热点 / axes 泛化” → `outline-refiner`
 - “pdf / fulltext / 下载 / 抽取全文” → `pdf-text-extractor`
@@ -113,6 +130,7 @@
 - “引用锚定 / 引用漂移 / citation anchoring” → `citation-anchoring`
 - “audit / regression / 质量回归 / 证据绑定检查” → `pipeline-auditor`
 - “引用太少 / unique citations too low / citation budget / 增加引用” → `citation-diversifier`
+- “引用注入 / apply citation budget / inject citations / 按预算加引用” → `citation-injector`
 - “过渡句 / transitions / 章节承接” → `transition-weaver`
 - “LaTeX / PDF / 编译” → `latex-scaffold`, `latex-compile-qa`
 - “系统综述 / PRISMA / protocol” → `protocol-writer`, `screening-manager`, `extraction-form`, `bias-assessor`, `synthesis-writer`
@@ -127,6 +145,7 @@
 - `papers/core_set.csv` → `taxonomy-builder`, `section-mapper`, `pdf-text-extractor`, `paper-notes`
 - `outline/taxonomy.yml` → `outline-builder`
 - `outline/outline.yml` → `section-mapper`, `table-schema`, `transition-weaver`, `prose-writer`
+- `outline/OUTLINE_BUDGET_REPORT.md` → `outline-refiner`（可选：解释大纲 merge 变更）
 - `outline/mapping.tsv` → `pdf-text-extractor`, `paper-notes`
 - `papers/paper_notes.jsonl` → `citation-verifier`
 - `papers/evidence_bank.jsonl` → `evidence-binder`, `evidence-draft`（可选增强）
@@ -141,6 +160,7 @@
 - `outline/transitions.md` → `section-merger`（自动插入过渡句）
 - `sections/sections_manifest.jsonl` → `section-merger`
 - `output/DRAFT.md` → `draft-polisher`, `global-reviewer`
+- `output/CITATION_BUDGET_REPORT.md` → `citation-injector`
 - `output/citation_anchors.prepolish.jsonl` → `draft-polisher`（baseline）, `citation-anchoring`
 
 ## 输出文件 → Skill
@@ -167,6 +187,8 @@
 - `outline/timeline.md`, `outline/figures.md` → `survey-visuals`
 - `outline/transitions.md` → `transition-weaver`
 - `output/DRAFT.md` → `prose-writer`, `draft-polisher`
+- `output/CITATION_BUDGET_REPORT.md` → `citation-diversifier`
+- `output/CITATION_INJECTION_REPORT.md` → `citation-injector`
 - `output/citation_anchors.prepolish.jsonl` → `draft-polisher`（baseline）, `citation-anchoring`
 - `output/GLOBAL_REVIEW.md` → `global-reviewer`
 - `output/AUDIT_REPORT.md` → `pipeline-auditor`

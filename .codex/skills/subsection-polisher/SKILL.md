@@ -11,30 +11,51 @@ description: |
 
 # Subsection Polisher (local, pre-merge)
 
-Purpose: upgrade one `sections/S<sub_id>.md` (H3 body-only) so it looks like real survey prose **before** you merge into `output/DRAFT.md`.
+Purpose: upgrade one `sections/S<sub_id>.md` (H3 body-only) so it reads like survey prose **before** you merge into `output/DRAFT.md`.
 
-This is intentionally local: fix one unit at a time, then rerun `subsection-writer` gates.
+This is intentionally local: fix one unit at a time, then rerun gates so you converge without rewriting the whole draft.
 
-## Capability checklist
+## Inputs
 
-A polished H3 unit should:
-- have 6–10 paragraphs (survey-quality; not 1–2 paragraph stubs)
-- include explicit contrast language (A vs B)
-- include at least one evaluation anchor (benchmark/dataset/metric/protocol)
-- include at least one limitation/provisional sentence
-- contain no pipeline voice / scaffold remnants
+- One target file under `sections/`: `sections/S<sub_id>.md` (H3 body-only)
+- Preferred context: `outline/writer_context_packs.jsonl`
+- Fallback context: `outline/subsection_briefs.jsonl` + `outline/evidence_drafts.jsonl`
+- `citations/ref.bib`
 
-## Roles
+## Output
 
-- **Editor**: rewrites for clarity and flow.
-- **Skeptic**: deletes any sentence that is generic or copy-pastable into other subsections.
+- Updated `sections/S<sub_id>.md` (same path; citation keys unchanged)
 
-## Workflow (per subsection)
+## Paper voice constraints (soft, not robotic)
 
-1) Read the subsection’s `paragraph_plan` + evidence snippets in `outline/evidence_drafts.jsonl`.
-2) Rewrite each paragraph using `grad-paragraph` micro-structure (tension → contrast → eval anchor → limitation).
-3) Keep citation keys unchanged and subsection-scoped.
-4) Rerun `subsection-writer` (it will block until all `sections/*.md` pass gates).
+- Delete outline narration: `This subsection ...`, `In this subsection, we ...`, `Next, we ...`, `We now turn to ...`.
+- Keep signposting light: avoid repeating the same opener stem across many subsections (including literal `Key takeaway:` labels).
+- Keep evidence-policy disclaimers out of H3 prose; keep them once in front matter, unless the caveat is truly subsection-specific.
+- Use calm academic tone; avoid hype (`clearly`, `obviously`, `breakthrough`) and avoid “PPT speaker notes”.
+
+## Workflow (one subsection)
+
+1) **Load the plan + evidence**
+- Read the subsection’s record in `outline/writer_context_packs.jsonl` (preferred) or the matching brief in `outline/subsection_briefs.jsonl` + evidence pack in `outline/evidence_drafts.jsonl`.
+- From that pack/brief, list: 2–3 concrete contrasts, 1 evaluation anchor (benchmark/dataset/metric/protocol), and 1 limitation you will explicitly mention.
+
+2) **Opener pass (paragraph 1)**
+- Remove any narration opener.
+- Write a short, content-bearing setup and end paragraph 1 with the brief’s `thesis` (or a faithful paraphrase with the same commitment level).
+
+3) **Paragraph pass (argument > listing)**
+- Rewrite paragraph-by-paragraph using `grad-paragraph` micro-structure (tension → contrast → evaluation anchor → limitation).
+- Ensure at least one cross-paper synthesis paragraph with >=2 citations in the same paragraph.
+- Keep citations embedded inside the sentences they support; avoid trailing citation dumps.
+- Keep citation keys unchanged and valid in `citations/ref.bib`.
+
+4) **Rhythm pass (make it feel written)**
+- Vary paragraph openings; don’t start every paragraph with `However/Moreover/Taken together`.
+- Prefer mid-sentence ties (`...; however, ...`) and concrete nouns (systems/benchmarks/protocols) over generic glue.
+
+5) **Recheck**
+- Run `section-logic-polisher` and fix FAILs (no new citations; keep keys stable).
+- Run `subsection-writer` gates; if the file still fails, fix only what the report flags.
 
 ## Troubleshooting
 
@@ -43,3 +64,9 @@ A polished H3 unit should:
 **Cause**: evidence packs are title-only / abstract-only without concrete comparison snippets.
 
 **Fix**: strengthen upstream evidence (`paper-notes` → `evidence-draft`) rather than writing filler prose.
+
+### Issue: the subsection passes gates but still feels “generated”
+
+**Fix**:
+- Remove repeated opener stems and slide-like navigation phrases.
+- Replace generic summary sentences with subsection-specific contrasts (A vs B) and one explicit evaluation anchor.

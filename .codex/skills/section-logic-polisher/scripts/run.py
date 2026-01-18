@@ -70,12 +70,31 @@ def _has_thesis(paragraph: str) -> bool:
         return False
 
     thesis_patterns = [
-        r"(?i)\bthis\s+subsection\s+(?:argues|shows|surveys|suggests|demonstrates|contends)\s+that\b",
-        r"(?i)\bin\s+this\s+subsection,\s*(?:we\s+)?(?:argue|show|survey|suggest)\s+that\b",
-        r"(?i)\bwe\s+(?:argue|show|suggest)\s+that\b",
-        r"(?:本小节|本节)(?:认为|指出|主张|讨论|表明)",
+        # Conclusion-first / takeaway markers (avoid repetitive "This subsection ..." meta-prose).
+        r"(?i)\b(key\s+takeaway|main\s+takeaway|takeaway)\b\s*[:\-]",
+        r"(?i)\b(a|an|one)\s+(?:central|core|key)\s+(?:tension|challenge|trade[-\s]?off|bottleneck|constraint)\s+is\b",
+        r"(?i)\bthe\s+(?:central|core|key)\s+(?:claim|point|tension|idea)\s+is\b",
+        r"(?i)\bthe\s+key\s+point\s+is\b",
+        r"(?i)\bour\s+(?:synthesis|review|survey)\s+(?:suggests|shows|finds|indicates)\s+that\b",
+        r"(?i)\bwe\s+(?:argue|show|find|suggest|observe|contend)\s+that\b",
+        r"(?i)\bthis\s+(?:section|subsection)\s+(?:shows|argues|concludes|highlights)\s+that\b",
+        # Content-claim verbs (more natural than explicit "takeaway:" labels).
+        r"(?i)\bdetermin(?:e|es|ed|ing)\b|\bdriv(?:e|es|en|ing)\b|\bshap(?:e|es|ed|ing)\b|\bconstrain(?:s|ed|ing)?\b|\bgovern(?:s|ed|ing)?\b|\bset(?:s)?\s+the\s+ceiling\b",
+        # Chinese thesis/takeaway cues.
+        r"(?:本小节|本节)(?:结论|核心观点|要点|认为|指出|主张|表明|决定|驱动|影响|约束|塑造|主导)",
+        r"(?:一个|一项|一個)(?:关键|核心)(?:挑战|矛盾|张力|權衡|权衡|瓶颈|约束|約束)是",
     ]
     return any(re.search(pat, p) for pat in thesis_patterns)
+
+
+def _has_template_subsection_opener(paragraph: str) -> bool:
+    """Detect generator-like openers that hurt "paper feel"."""
+
+    p = re.sub(r"\[@[^\]]+\]", "", paragraph or "")
+    p = re.sub(r"\s+", " ", p).strip()
+    if not p:
+        return False
+    return bool(re.search(r"(?i)\bthis\s+subsection\s+(?:argues|shows|surveys|suggests|demonstrates|contends)\b", p))
 
 
 def _connector_counts(text: str) -> Counts:
@@ -127,10 +146,13 @@ def main() -> int:
     prof = _draft_profile(workspace)
     thresh = _thresholds(prof)
 
-    rows: list[tuple[str, bool, Counts, bool]] = []
+    # rows: (rel, thesis_ok, connectors_ok, template_ok, counts)
+    rows: list[tuple[str, bool, bool, bool, Counts]] = []
     for p in _h3_files(workspace):
         text = p.read_text(encoding="utf-8", errors="ignore")
-        thesis_ok = _has_thesis(_first_paragraph(text))
+        first_p = _first_paragraph(text)
+        thesis_ok = _has_thesis(first_p)
+        template_ok = not _has_template_subsection_opener(first_p)
         counts = _connector_counts(text)
         connectors_ok = (
             counts.causal >= thresh.causal
@@ -138,10 +160,9 @@ def main() -> int:
             and counts.extension >= thresh.extension
             and counts.implication >= thresh.implication
         )
-        ok = thesis_ok and connectors_ok
-        rows.append((p.relative_to(workspace).as_posix(), thesis_ok, counts, ok))
+        rows.append((p.relative_to(workspace).as_posix(), thesis_ok, connectors_ok, template_ok, counts))
 
-    fail = [r for r in rows if not r[3]]
+    fail = [r for r in rows if not (r[1] and r[2])]
     status = "PASS" if (rows and not fail) else "FAIL"
 
     lines: list[str] = [
@@ -162,25 +183,38 @@ def main() -> int:
         "",
         "## Per-section (H3)",
         "",
-        "| File | Thesis | causal | contrast | extension | implication | Status |",
-        "|---|---:|---:|---:|---:|---:|---|",
+        "| File | Thesis | Connectors | Template opener | causal | contrast | extension | implication | Status |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
 
-    for rel, thesis_ok, c, ok in rows:
+    for rel, thesis_ok, connectors_ok, template_ok, c in rows:
+        ok = thesis_ok and connectors_ok
         lines.append(
-            f"| `{rel}` | {'Y' if thesis_ok else 'N'} | {c.causal} | {c.contrast} | {c.extension} | {c.implication} | {'PASS' if ok else 'FAIL'} |"
+            f"| `{rel}` | {'Y' if thesis_ok else 'N'} | {'Y' if connectors_ok else 'N'} | {'Y' if template_ok else 'N'} | {c.causal} | {c.contrast} | {c.extension} | {c.implication} | {'PASS' if ok else 'FAIL'} |"
         )
 
     if not rows:
         lines.extend(["", "- No H3 section files found under `sections/` (expected `S<sec>_<sub>.md`)."])
 
+    template_bad = [r[0] for r in rows if not r[3]]
+    if template_bad:
+        lines.extend(
+            [
+                "",
+                "## Paper voice warnings (non-blocking)",
+                "",
+                "- Some H3 files start with generator-like meta openers (e.g., `This subsection ...`). Rewrite the first sentence into a content claim (no narration).",
+                *[f"- `{rel}`" for rel in template_bad],
+            ]
+        )
+
     if fail:
         lines.extend(
             [
                 "",
-                "## How to fix (LLM-first)",
+                "## How to fix (blocking)",
                 "",
-                "- Add a thesis sentence to the end of paragraph 1 (prefer `This subsection argues that ...`).",
+                "- Make paragraph 1 conclusion-first with a clear thesis sentence (keep signposting light; avoid repeated opener labels).",
                 "- Rewrite paragraph openings to include explicit logical connectors (causal/contrast/extension/implication).",
                 "- Do not add new citation keys; keep scope within the subsection.",
             ]

@@ -44,12 +44,23 @@ This is a local polish pass: de-template + coherence + terminology + redundancy 
 - If a sentence sounds stronger than the evidence level (abstract-only), rewrite it into a qualified statement.
 - When in doubt, check the subsection’s evidence pack in `outline/evidence_drafts.jsonl` and keep claims aligned to snippets.
 
-4) **No pipeline voice**
+4) **Quantitative claim hygiene**
+- If you keep a number, ensure the sentence also states (without guessing): task type + metric definition + relevant constraint (budget/cost/tool access), and the citation is embedded in that sentence.
+- Avoid ambiguous model naming (e.g., “GPT-5”) unless the cited paper uses that exact label; otherwise use the paper’s naming or a neutral description.
+
+5) **No pipeline voice**
 - Remove scaffolding phrases like:
   - “We use the following working claim …”
   - “The main axes we track are …”
   - “abstracts are treated as verification targets …”
+  - “this run is …” (rewrite as survey methodology: “This survey is …”)
   - “Scope and definitions / Design space / Evaluation practice …”
+  - “Next, we move from …”
+  - “We now turn to …”
+  - “In the next section/subsection …”
+- Also remove generator-like thesis openers that read like outline narration:
+  - “This subsection surveys …”
+  - “This subsection argues …”
 
 ## Three passes (recommended)
 
@@ -61,9 +72,29 @@ Role split:
 
 Targets:
 - Each H3 reads like: tension → contrast → evidence → limitation.
-- Remove repeated “disclaimer paragraphs”; keep evidence-level note in one place.
+- Remove repeated “disclaimer paragraphs”; keep evidence-policy in **one** place (prefer a single paragraph in Introduction or Related Work titled implicitly as “evidence policy” / “method note”).
 - Use `outline/outline.yml` (if present) to avoid heading drift during edits.
 - If present, use `outline/subsection_briefs.jsonl` to keep each H3’s scope/RQ consistent while improving flow.
+- Do a quick “pattern sweep” (semantic, not mechanical):
+   - delete outline narration: `This subsection ...`, `In this subsection ...`
+   - delete slide navigation: `Next, we move from ...`, `We now turn to ...`, `In the next section ...`
+   - replace with: content claims + argument bridges + organization sentences (no new facts/citations)
+- If `citation-injector` was used, smooth any mechanical "representative works include ..." sentences:
+  - Keep the citation keys unchanged.
+  - Rewrite them into subsection-specific, argument-bearing context (no generic list-dump tone).
+  - Vary phrasing; avoid repeating the same opener stem across many H3s.
+- Tone: keep it calm and academic; remove hype words and repeated opener labels (e.g., literal `Key takeaway:` across many H3s).
+
+Rewrite recipe for subsection openers (paper voice, no new facts):
+- Delete: `This subsection surveys/argues...` / `In this subsection, we...`
+- Replace with a compact opener that does 2–3 of these (no labels; vary across subsections):
+  - **Content claim**: the subsection-specific tension/trade-off (optionally with 1–2 embedded citations)
+  - **Why it matters**: link the claim to evaluation/engineering constraints (benchmark/protocol/cost/tool access)
+  - **Preview**: what you will contrast next and on what lens (A vs B; then evaluation anchors; then limitations)
+- Example skeletons (paraphrase; don’t reuse verbatim):
+  - Tension-first: `A central tension is ...; ...; we contrast ...`
+  - Decision-first: `For builders, the crux is ...; ...`
+  - Lens-first: `Seen through the lens of ..., ...`
 
 ### Pass 2 — Terminology normalization
 

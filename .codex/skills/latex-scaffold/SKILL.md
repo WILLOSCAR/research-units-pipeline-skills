@@ -53,6 +53,7 @@ This is a deterministic conversion step; prose quality should already be address
 ### Notes
 
 - The generated `latex/main.tex` includes a table of contents (tocdepth=2) for readability.
+- Language default: the scaffold uses `article` (English-looking front matter). If the draft contains CJK characters, it switches to `ctexart` so the PDF renders correctly.
 - Conversion rules (high level):
   - Headings `##/###/####` → `\section/\subsection/\subsubsection` (strips leading numeric prefixes like `1.2`).
   - `## Abstract` → `abstract` environment.

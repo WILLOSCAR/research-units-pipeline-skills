@@ -721,7 +721,7 @@ def _limitations_from_notes(pids: list[str], *, notes_by_pid: dict[str, dict[str
     """
 
     limit_re = re.compile(
-        r"(?i)(?:limitation|limitations|challenge|risk|unsafe|security|attack|threat|failure|fails|fragile|uncertain|open\s+problem|future\s+work|caveat|downside)|受限|局限|风险|挑战|失败|安全"
+        r"(?i)\b(?:limitation|limitations|challenge|risk|unsafe|security|attack|threat|failure|fails|fragile|uncertain|open\s+problem|future\s+work|caveat|downside)\b|受限|局限|风险|挑战|失败|安全"
     )
 
     out: list[dict[str, Any]] = []

@@ -28,6 +28,7 @@ flowchart LR
   subgraph "C2 - Structure [NO PROSE]"
     TB[taxonomy-builder]
     OB[outline-builder]
+    OBU[outline-budgeter]:::optional
     SM[section-mapper]
     OR[outline-refiner]
     PR2[pipeline-router]
@@ -59,6 +60,7 @@ flowchart LR
     TW[transition-weaver]
     MG[section-merger]
     CD[citation-diversifier]
+    CI[citation-injector]
     DP[draft-polisher]
     GR[global-reviewer]
     PA[pipeline-auditor]
@@ -66,9 +68,10 @@ flowchart LR
     LCQ[latex-compile-qa]:::optional
   end
 
-  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> WCP --> CMR --> TS --> TF --> SV --> SW --> SLP --> TW --> MG --> CD --> DP --> GR --> PA
+  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> WCP --> CMR --> TS --> TF --> SV --> SW --> SLP --> TW --> MG --> CD --> CI --> DP --> GR --> PA
   KX -.-> LE
   SSH -.-> TB
+  OB -.-> OBU -.-> SM
   PA -.-> LS -.-> LCQ
 ```
 
@@ -94,6 +97,7 @@ flowchart LR
   subgraph "C2 - Structure [NO PROSE]"
     TB[taxonomy-builder]
     OB[outline-builder]
+    OBU[outline-budgeter]:::optional
     SM[section-mapper]
     OR[outline-refiner]
     PR2[pipeline-router]
@@ -125,6 +129,7 @@ flowchart LR
     TW[transition-weaver]
     MG[section-merger]
     CD[citation-diversifier]
+    CI[citation-injector]
     DP[draft-polisher]
     GR[global-reviewer]
     PA[pipeline-auditor]
@@ -132,9 +137,10 @@ flowchart LR
     LCQ[latex-compile-qa]
   end
 
-  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> WCP --> CMR --> TS --> TF --> SV --> SW --> SLP --> TW --> MG --> CD --> DP --> GR --> PA --> LS --> LCQ
+  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> WCP --> CMR --> TS --> TF --> SV --> SW --> SLP --> TW --> MG --> CD --> CI --> DP --> GR --> PA --> LS --> LCQ
   KX -.-> LE
   SSH -.-> TB
+  OB -.-> OBU -.-> SM
 ```
 
 ## lit-snapshot (C0–C2)

@@ -35,12 +35,14 @@ Manual / LLM-first (in place):
 1. Run the checker script to surface the exact failing files and why.
 2. For each failing H3 file:
    - **Thesis**: ensure the first paragraph ends with a clear thesis sentence.
-     - Prefer: `This subsection argues/shows/surveys that ...` (commitment level must match evidence; be conservative under abstract-only evidence).
+     - Prefer a **conclusion-first takeaway** (content claim, not meta-prose). Avoid repetitive openers like `This subsection argues/surveys ...`.
+     - Minimal shape (3 sentences): 1) viewpoint 2) why it matters 3) how the subsection is organized.
      - Use the brief’s `thesis` as the source of truth (from `outline/subsection_briefs.jsonl`; paraphrase is OK, same meaning).
-   - **Flow**: ensure paragraph 2..N start with a logical connector phrase.
-     - Prefer the brief’s `paragraph_plan[].connector_phrase` (from `outline/subsection_briefs.jsonl`; adapt for grammar, keep meaning).
+   - **Flow**: ensure the subsection contains explicit logical connectors across paragraph boundaries (they can be paragraph-initial or mid-sentence).
+     - Treat `paragraph_plan[].connector_phrase` as semantic intent, not a literal template; paraphrase and vary wording.
+     - Avoid “PPT narration” connectors (`Next, we ...`); prefer argument ties (`In contrast, ...`, `This suggests ...`, `As a result, ...`).
      - If available, prefer the merged pack (`outline/writer_context_packs.jsonl`) so your edits stay aligned with `must_use` (anchors/comparisons/limitations).
-     - Aim to include causal + contrast + extension connectors across the subsection.
+     - Aim to include causal + contrast + extension signals, but don’t start every paragraph with the same stem (e.g., “However”).
    - **Guardrails**: do not add/remove citation keys; do not introduce new factual claims.
 3. Re-run the checker until `output/SECTION_LOGIC_REPORT.md` is PASS, then proceed to `transition-weaver` and `section-merger`.
 
@@ -77,11 +79,12 @@ Manual / LLM-first (in place):
 ### Issue: report says thesis missing but the subsection has an intro sentence
 
 Fix:
-- The checker looks for an explicit thesis signal (e.g., `This subsection argues that ...`) in the first paragraph.
-- Add a single thesis sentence at the end of paragraph 1 (copy from briefs; do not add new facts/citations).
+- The checker looks for an explicit thesis/takeaway signal in the first paragraph (not just topic setup).
+- Add a single takeaway sentence at the end of paragraph 1 (copy from briefs; do not add new facts/citations).
 
 ### Issue: connector density fails but the prose reads fine
 
 Fix:
-- Expand connector vocabulary (causal/contrast/extension/implication) and ensure some appear explicitly.
-- Prefer short connector stems; don’t add long filler sentences.
+- This check is a proxy for “paragraph islands”. If it FAILs, add a few explicit connector signals (contrast/causal/extension/implication).
+- Keep it natural: connectors can be mid-sentence (`...; however, ...`), and you don’t need to start every paragraph with a connector word.
+- Prefer short ties; don’t add long filler sentences.
