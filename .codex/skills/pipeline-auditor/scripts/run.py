@@ -321,6 +321,22 @@ def main() -> int:
         warn_at=1,
     )
 
+    _add_family(
+        "synthesis opener (Taken together, ...)",
+        r"(?im)^taken together,",
+        warn_at=4,
+    )
+    _add_family(
+        "meta survey-guidance phrasing (survey ... should ...)",
+        r"(?i)\bsurvey\s+(?:synthesis|comparisons?)\s+should\b",
+        warn_at=3,
+    )
+    _add_family(
+        "injection-like enumerator (Work on ... includes ... [@])",
+        r"(?im)^(?:concrete\s+(?:examples|instances)\s+(?:in|for)|work\s+on|recent\s+systems\s+for|examples\s+that\s+illustrate|representative\s+systems\s+for)\b[^\n]{0,160}\binclude\b[^\n]{0,160}\[@",
+        warn_at=4,
+    )
+
     # Repeated H3 opener stems (soft warning): avoid using the exact same first-sentence stem everywhere.
     opener_stems: dict[str, int] = {}
     opener_examples: dict[str, list[str]] = {}
@@ -418,6 +434,36 @@ def main() -> int:
             blocking.append(
                 f"too many uncited content paragraphs ({uncited}/{content_paras} = {rate:.1%}; max={max_uncited:.0%})"
             )
+
+    # Numeric claim context (non-blocking): when a paragraph cites metric-like numbers,
+    # also state minimal evaluation context (task/metric/budget/benchmark) in the same paragraph.
+    eval_tok = r"(?i)(?:benchmark|dataset|datasets|metric|metrics|protocol|evaluation|eval\.|latency|cost|budget|token|tokens|throughput|compute|score|accuracy|exact|success)"
+    metric_hint = r"(?i)(?:percent|accuracy|exact|f1|score|success(?:\s+rate)?|pass@|win\s+rate|\d+(?:\.\d+)?\s*%)"
+
+    missing_numeric_ctx: list[str] = []
+    for para in paras_all:
+        if para.startswith(("#", "|", "```")):
+            continue
+        if len(para) < 240:
+            continue
+        if "\n|" in para:
+            continue
+        if "[@" not in para:
+            continue
+        if not re.search(r"\d", para):
+            continue
+        if not re.search(metric_hint, para):
+            continue
+        if re.search(eval_tok, para):
+            continue
+        missing_numeric_ctx.append(para)
+
+    if len(missing_numeric_ctx) >= 2:
+        warnings.append(
+            f"numeric paragraphs lack explicit eval context ({len(missing_numeric_ctx)}×); add task/metric/budget/benchmark wording or drop the number"
+        )
+        exs = [re.sub(r"\s+", " ", p).strip()[:220] for p in missing_numeric_ctx[:3]]
+        template_family_details.append(("numeric claim missing eval context", len(missing_numeric_ctx), exs))
 
     # Boilerplate repetition.
     rep = _repeated_sentences(draft)

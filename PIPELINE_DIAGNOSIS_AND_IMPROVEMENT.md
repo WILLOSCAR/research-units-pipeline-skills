@@ -13,15 +13,18 @@ Last updated: 2026-01-18
 建议保留一个“可复现”的 E2E workspace 作为回归基线（不要把它当交付物）。
 注意：如果你刚升级了 anti-template / auditor gates，旧 workspace 可能会在新 gate 下 FAIL——这属于预期（说明标准变严格了），回归基线应在下一次 E2E 跑通后更新。
 
-- `workspaces/e2e-agent-survey-skilllogic-20260117-004215/`
-  - Draft：`workspaces/e2e-agent-survey-skilllogic-20260117-004215/output/DRAFT.md`
-  - PDF：`workspaces/e2e-agent-survey-skilllogic-20260117-004215/latex/main.pdf`
-  - Audit：`workspaces/e2e-agent-survey-skilllogic-20260117-004215/output/AUDIT_REPORT.md`
+- `workspaces/e2e-agent-survey-latex-verify-20260118-182656/`（E2E verify；`draft_profile: lite`；abstract-first）
+  - Draft：`workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/DRAFT.md`
+  - PDF：`workspaces/e2e-agent-survey-latex-verify-20260118-182656/latex/main.pdf`
+  - Audit：`workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/AUDIT_REPORT.md`（unique cites=101；ref.bib=220；pages=23）
+  - Citation injection：`workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/CITATION_INJECTION_REPORT.md`（before=57 → after=101；target>=66）
 
-- `workspaces/e2e-agent-survey-latex-test-20260118-011714/`（E2E smoke；`draft_profile: lite`；abstract-first）
-  - Draft：`workspaces/e2e-agent-survey-latex-test-20260118-011714/output/DRAFT.md`
-  - PDF：`workspaces/e2e-agent-survey-latex-test-20260118-011714/latex/main.pdf`
-  - Audit：`workspaces/e2e-agent-survey-latex-test-20260118-011714/output/AUDIT_REPORT.md`（unique cites=101；ref.bib=220；pages=23）
+Notes:
+- 为了保持 repo 干净，旧回归 workspaces 已移动到 `/tmp/workspaces-archive-20260118-182656/`（如需回看可去该目录）。
+- 本次 verify rerun 后，`pipeline-auditor` 不再提示：
+  - transition title narration（"From X to Y ..."）
+  - injection-like enumerator / "representative works include" opener
+  说明 C5 的自动生成过渡句/引用注入更接近 paper voice。
 
 E2E smoke 中暴露/验证的关键点（用于反向改 skills/pipeline，而不是改这次产物）：
 - U040 曾因 `tooling/quality_gate.py` 的 `draft_profile` 未定义而 crash（已修复；属于硬 bug）。

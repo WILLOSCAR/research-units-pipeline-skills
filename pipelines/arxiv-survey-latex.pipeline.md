@@ -147,7 +147,7 @@ produces:
 Notes:
 - `evidence-draft` turns paper notes into per-subsection evidence packs (claim candidates + concrete comparisons + eval protocol + limitations) that the writer must follow.
 - `claim-matrix-rewriter` makes `outline/claim_evidence_matrix.md` a projection/index of evidence packs (not an outline expansion), so writer guidance stays evidence-first.
-- `writer-context-pack` builds a deterministic per-H3 drafting pack (briefs + evidence + anchors + allowed cites), reducing hollow writing and making C5 more debuggable.
+- `writer-context-pack` builds a deterministic per-H3 drafting pack (briefs + evidence + anchors + allowed cites), reducing hollow writing and making C5 more debuggable; it also emits an `opener_mode` hint per H3 to encourage varied, paper-like subsection openers (less “generator voice”).
 - `table-schema` defines comparison table questions/columns and the evidence fields each column must be grounded in.
 - `table-filler` fills `outline/tables.md` from evidence packs; if fields are missing it must surface them explicitly (do not write long prose in cells).
 - `citation-verifier` must produce LaTeX-safe BibTeX (escape `& % $ # _`, handle common `X^N` patterns) so `latex-compile-qa` does not fail on `.bbl` errors.

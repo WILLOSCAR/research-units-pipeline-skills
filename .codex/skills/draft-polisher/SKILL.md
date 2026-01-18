@@ -53,11 +53,14 @@ This is a local polish pass: de-template + coherence + terminology + redundancy 
   - “We use the following working claim …”
   - “The main axes we track are …”
   - “abstracts are treated as verification targets …”
+  - “Method note (evidence policy): …” (avoid labels; rewrite as plain survey methodology)
   - “this run is …” (rewrite as survey methodology: “This survey is …”)
   - “Scope and definitions / Design space / Evaluation practice …”
   - “Next, we move from …”
   - “We now turn to …”
+  - “From <X> to <Y>, ...” (title narration; rewrite as an argument bridge)
   - “In the next section/subsection …”
+  - “Therefore/As a result, survey synthesis/comparisons should …” (rewrite as literature-facing observation)
 - Also remove generator-like thesis openers that read like outline narration:
   - “This subsection surveys …”
   - “This subsection argues …”
@@ -72,18 +75,21 @@ Role split:
 
 Targets:
 - Each H3 reads like: tension → contrast → evidence → limitation.
-- Remove repeated “disclaimer paragraphs”; keep evidence-policy in **one** place (prefer a single paragraph in Introduction or Related Work titled implicitly as “evidence policy” / “method note”).
+- Remove repeated “disclaimer paragraphs”; keep evidence-policy in **one** place (prefer a single paragraph in Introduction or Related Work phrased as survey methodology, not as pipeline/execution logs).
 - Use `outline/outline.yml` (if present) to avoid heading drift during edits.
 - If present, use `outline/subsection_briefs.jsonl` to keep each H3’s scope/RQ consistent while improving flow.
 - Do a quick “pattern sweep” (semantic, not mechanical):
    - delete outline narration: `This subsection ...`, `In this subsection ...`
    - delete slide navigation: `Next, we move from ...`, `We now turn to ...`, `In the next section ...`
+   - delete title narration: `From <X> to <Y>, ...`
    - replace with: content claims + argument bridges + organization sentences (no new facts/citations)
-- If `citation-injector` was used, smooth any mechanical "representative works include ..." sentences:
+- If `citation-injector` was used, smooth any budget-injection sentences so they read paper-like:
   - Keep the citation keys unchanged.
-  - Rewrite them into subsection-specific, argument-bearing context (no generic list-dump tone).
+  - Avoid list-injection stems (e.g., “A few representative references include …”, “Notable lines of work include …”, “Concrete examples ... include ...”).
+  - Prefer integrating the added citations into an existing argument sentence, or rewrite as a short parenthetical `e.g., ...` clause tied to the subsection’s lens (no new facts).
   - Vary phrasing; avoid repeating the same opener stem across many H3s.
 - Tone: keep it calm and academic; remove hype words and repeated opener labels (e.g., literal `Key takeaway:` across many H3s).
+- Reduce repeated synthesis stems (e.g., many paragraphs starting with `Taken together, ...`); vary synthesis phrasing and keep it content-bearing.
 
 Rewrite recipe for subsection openers (paper voice, no new facts):
 - Delete: `This subsection surveys/argues...` / `In this subsection, we...`

@@ -34,10 +34,13 @@ This is a **low-risk edit pass**:
 
 ## Injection rules (NO NEW FACTS)
 
-- Prefer **existence/representativeness** claims, not performance claims:
-  - OK: “Representative systems include X [@a], Y [@b], and Z [@c].”
-  - OK: “Recent work spans A [@a] and B [@b], with variants in C [@c].”
+- Prefer evidence-neutral grounding / pointers, not performance claims:
+  - OK: `Concretely, prior work instantiates <topic> in several systems (e.g., Smith et al. [@a]; Jones et al. [@b]; Lee et al. [@c]).`
+  - OK: `For concrete implementations of <topic>, see Smith et al. [@a], Jones et al. [@b], and Lee et al. [@c].`
   - Avoid: introducing new numbers, benchmarks, or superiority claims.
+- Avoid “citation-budget voice” that reads like list injection:
+  - Avoid: `A few representative references include ...`, `Notable lines of work include ...`, `Concrete examples ... include ...`.
+  - If you must list works, keep it subsection-specific (use the H3 title or `contrast_hook`) and prefer a short parenthetical `e.g., ...` clause.
 - Embed citations **per work**, not as a single trailing cluster:
   - BAD (dump): `... [@a; @b; @c]`
   - GOOD: `A [@a], B [@b], and C [@c]`

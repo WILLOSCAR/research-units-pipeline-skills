@@ -95,6 +95,11 @@ These phrase families are a strong “generator voice” signal. If they appear,
 - “A useful way to compare approaches is …”
 - “abstracts are treated as verification targets …”
 - “The main axes we track are …”
+- “This subsection surveys/argues …” / “In this subsection …”
+- Slide navigation: “Next, we move from …” / “We now turn to …”
+- Injection-like enumerators: “A few representative references include …” / “Notable lines of work include …” / “Concrete examples ... include ...”
+- Meta process advice: `survey synthesis/comparisons should ...`
+- Repeated synthesis openers (e.g., `Taken together, ...` at the start of many paragraphs)
 - Repeated opener labels across many subsections (e.g., literal `Key takeaway:`)
 
 ## Quality checklist

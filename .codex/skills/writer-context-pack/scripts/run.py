@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -50,6 +51,13 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
 def _bib_keys(bib_path: Path) -> set[str]:
     text = bib_path.read_text(encoding="utf-8", errors="ignore") if bib_path.exists() else ""
     return set(re.findall(r"(?im)^@\w+\s*\{\s*([^,\s]+)\s*,", text))
+
+
+def _stable_choice(key: str, options: list[str]) -> str:
+    if not options:
+        return ""
+    digest = hashlib.sha1((key or "").encode("utf-8", errors="ignore")).hexdigest()
+    return options[int(digest[:8], 16) % len(options)]
 
 
 def _iter_outline_subsections(outline: Any) -> list[dict[str, str]]:
@@ -228,6 +236,26 @@ def main() -> int:
         "We now turn to",
         "this run",
         "this run is",
+        "Method note (evidence policy):",
+        "A few representative references include",
+        "Notable lines of work include",
+        "Concrete examples include",
+        "Concrete examples in",
+        "Concrete examples for",
+        "Work in this area includes",
+        "Recent systems for",
+        "Examples that illustrate",
+        "Representative systems for",
+        "Concrete systems include",
+        "Recent systems include",
+        "Examples include",
+        "Representative systems include",
+        "Therefore, survey synthesis should",
+        "Therefore, survey comparisons should",
+        "As a result, survey comparisons should",
+        "survey synthesis should",
+        "survey comparisons should",
+        "Taken together,",
         "claims remain provisional under abstract-only evidence",
         "abstract-only evidence",
         "Key takeaway:",
@@ -472,6 +500,14 @@ def main() -> int:
             "trim_policy": TRIM,
         }
 
+        opener_mode = _stable_choice(f"opener:{sid}", ["tension-first", "decision-first", "lens-first"]) or "tension-first"
+        opener_hint = {
+            "tension-first": "Start with the subsection’s central tension/trade-off; end paragraph 1 with the thesis.",
+            "decision-first": "Start with a builder/research decision; state what it depends on; end paragraph 1 with the thesis.",
+            "lens-first": "Start by naming the lens (interface/protocol/threat model); state what it reveals; end paragraph 1 with the thesis.",
+        }.get(opener_mode, "")
+
+
         record = {
             "sub_id": sid,
             "title": title,
@@ -479,6 +515,8 @@ def main() -> int:
             "section_title": sec_title,
             "rq": rq,
             "thesis": thesis,
+            "opener_mode": opener_mode,
+            "opener_hint": opener_hint,
             "axes": axes,
             # Transition handles (NO NEW FACTS): carried from subsection briefs so writers
             # can keep connectors specific without leaking outline meta into the final draft.

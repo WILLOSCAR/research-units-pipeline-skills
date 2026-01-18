@@ -108,7 +108,7 @@ Requirements (strict mode; thresholds depend on `queries.md:draft_profile`):
 - Cite density (unique cites; min depends on `draft_profile`): `lite` Intro>=8 / Related>=10; `survey` Intro>=12 / Related>=15; `deep` Intro>=18 / Related>=22 (mix foundations + representative systems + eval/benchmark/security).
 - Paper-like structure: motivation → scope/definitions → why the taxonomy/axes → contributions → organization paragraph.
 - Evidence policy: add **one** dedicated paragraph describing the evidence policy/limitations (e.g., abstract vs fulltext coverage, reproducibility bias). Do not repeat this disclaimer in every subsection.
-  - Phrase it as survey methodology (paper voice), not as execution logs: avoid `this run ...` / `abstract-first run ...`; prefer `This survey is primarily abstract-based ...` or `Our evidence policy is ...`.
+  - Phrase it as survey methodology (paper voice), not as execution logs: avoid `this run ...` / `abstract-first run ...` and avoid labels like `Method note (evidence policy): ...`. Prefer a plain paragraph starter such as `Evidence policy:` or `Our evidence policy:` (e.g., `This survey is primarily abstract-based ...`).
 
 Paper voice guardrail (anti-template):
 - Avoid “outline narration” phrases anywhere in the draft:
@@ -116,6 +116,7 @@ Paper voice guardrail (anti-template):
   - `In this subsection, we ...`
   - `Next, we move from ...`
   - `We now turn to ...`
+  - `From <X> to <Y>, ...` (title narration; rewrite as an argument bridge)
 - Replace them with argument-bearing sentences:
   - Opener (no labels; vary across sections): `A central tension is ...` / `In practice, ...` / `One recurring pattern is ...` / `The key point is ...`
   - Bridge (argument, not navigation): `This framing makes it easier to compare ...` / `This contrast matters because ...` / `With this boundary in place, we can examine ...`
@@ -124,6 +125,8 @@ Paper voice guardrail (anti-template):
 Tone target (paper-like, soft):
 - Calm, academic, understated; avoid hype (`clearly`, `obviously`, `breakthrough`) and avoid “PPT speaker notes”.
 - Avoid repeating the same opener stem across many sections (even if it’s “good” once).
+- Avoid repeating synthesis openers like `Taken together, ...` across many H3s; vary synthesis phrasing and keep it content-bearing.
+- Avoid meta phrasing like `survey synthesis/comparisons should ...`; rewrite as literature-facing observations (e.g., `Across studies, ...` / `These results suggest ...`).
 
 Related Work policy:
 - Avoid a dedicated “Prior Surveys” mini-section; integrate survey citations as part of positioning vs adjacent lines of work.
@@ -172,6 +175,7 @@ Contract:
 - The **last sentence of paragraph 1** should be a conclusion-first takeaway aligned to the brief’s `thesis`.
 - Avoid generator-like meta openers (especially `This subsection argues/shows/surveys ...`); those read like outline narration.
 - Recommended opener options (choose one; keep signposting light; don’t reuse the same phrasing everywhere):
+  - If the writer pack provides `opener_mode` / `opener_hint`, follow it for this subsection (deterministic variation helps avoid repeated opener stems).
   - **Tension-first**: state the trade-off/tension → why it matters → what you will contrast.
   - **Decision-first**: state the engineering/research decision → what it depends on → what evidence lenses you use.
   - **Lens-first**: name the lens (interface/protocol/threat model) → what it reveals → what you will compare next.
@@ -193,6 +197,7 @@ Rules of thumb:
 - Put the citation **inside the sentence** that contains the factual claim.
 - Mention at least one concrete noun per cite (system/method/benchmark), not just abstract “work”.
 - When using multiple cites, prefer `X [@a], Y [@b], and Z [@c]` over a trailing bracket list.
+- Avoid citation-list sentences that carry no claim (e.g., “Notable lines of work include …”). If you must list works without adding new facts, make the list subordinate to a subsection-specific lens, usually as a short parenthetical `e.g., ...` clause.
 
 #### Quantitative claims (avoid underspecified numbers)
 
@@ -221,7 +226,11 @@ Avoid slide-like navigation narration (it reads auto-generated). Rewrite these i
 - BAD: `Next, we move from Introduction to Related Work...`
 - BAD: `We now turn to X...`
 - BAD: `In the next section/subsection, we discuss...`
-Tip: don’t start every paragraph with `However/Moreover` — use mid-sentence ties (`...; however, ...`) and concrete nouns to keep flow natural.
+Tip: don’t start every paragraph with `However/Moreover/Taken together` — use mid-sentence ties (`...; however, ...`) and concrete nouns to keep flow natural.
+Also avoid process-advice phrasing like `survey synthesis/comparisons should ...` inside body prose; rewrite it as literature-facing observation (no new facts):
+- BAD: `Therefore, survey comparisons should ...`
+- BETTER: `Across studies, evaluation protocols vary in ...`, `The literature suggests ... but remains unclear ...`
+
 
 Self-check (before moving on): run `section-logic-polisher` to verify thesis + connector density, then patch only the failing files.
 

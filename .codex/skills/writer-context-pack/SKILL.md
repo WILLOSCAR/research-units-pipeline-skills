@@ -38,6 +38,7 @@ JSONL, one object per H3 subsection.
 Required keys:
 - `sub_id`, `title`, `section_id`, `section_title`
 - `rq`, `thesis`, `axes`, `paragraph_plan`
+- `opener_mode`, `opener_hint` (paper-voice hint to vary subsection openers without template labels)
 - `bridge_terms`, `contrast_hook`, `required_evidence_fields` (copied from subsection briefs; transition/evidence handles; NO NEW FACTS)
 - `chapter_synthesis_mode` (copied from chapter briefs; helps avoid template-y “Taken together…” repeats)
 - `allowed_bibkeys_{selected,mapped,chapter,global}`
@@ -62,6 +63,8 @@ Treat each pack as an executable checklist, not optional context:
 - **Comparisons are must-use**: reuse `comparison_cards` to write explicit A-vs-B contrast sentences (avoid “A then B” separate summaries).
 - **Thesis is must-use**: the first paragraph should end with the `thesis` statement (or a faithful paraphrase with the same commitment level).
   - Prefer a content claim; avoid generator-like meta openers (`This subsection ...`) and avoid repeating literal opener labels (e.g., `Key takeaway:`) across many H3s.
+- **Opener mode (anti-template)**: use `opener_mode` / `opener_hint` to vary how paragraph 1 frames the subsection (tension-first vs decision-first vs lens-first).
+  - Do not copy labels into the prose; keep signposting light and content-bearing.
 - **Anti-template**: treat `do_not_repeat_phrases` as a hard “paper voice” constraint:
   - do not emit these phrases verbatim
   - rewrite into argument bridges / content claims (no outline narration)

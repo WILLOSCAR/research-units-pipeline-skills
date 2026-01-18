@@ -4,15 +4,11 @@ This file tracks *pipeline/skills* improvement work (not per-workspace artifacts
 
 ## Canonical E2E Run (for regression)
 
-- `workspaces/e2e-agent-survey-skilllogic-20260117-004215/`
-  - Draft: `workspaces/e2e-agent-survey-skilllogic-20260117-004215/output/DRAFT.md`
-  - PDF: `workspaces/e2e-agent-survey-skilllogic-20260117-004215/latex/main.pdf`
-  - Audit: `workspaces/e2e-agent-survey-skilllogic-20260117-004215/output/AUDIT_REPORT.md`
-
-- `workspaces/e2e-agent-survey-latex-test-20260118-011714/` (E2E smoke; `draft_profile: lite`; abstract-first)
-  - Draft: `workspaces/e2e-agent-survey-latex-test-20260118-011714/output/DRAFT.md`
-  - PDF: `workspaces/e2e-agent-survey-latex-test-20260118-011714/latex/main.pdf`
-  - Audit: `workspaces/e2e-agent-survey-latex-test-20260118-011714/output/AUDIT_REPORT.md` (unique cites=101; pages=23)
+- `workspaces/e2e-agent-survey-latex-verify-20260118-182656/` (E2E verify; `draft_profile: lite`; abstract-first)
+  - Draft: `workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/DRAFT.md`
+  - PDF: `workspaces/e2e-agent-survey-latex-verify-20260118-182656/latex/main.pdf`
+  - Audit: `workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/AUDIT_REPORT.md` (unique cites=101; pages=23)
+  - Citation injection: `workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/CITATION_INJECTION_REPORT.md` (before=57; after=101; target>=66)
 
 ## What’s Still Weak (Writer-facing)
 
@@ -64,13 +60,14 @@ This file tracks *pipeline/skills* improvement work (not per-workspace artifacts
 
 - De-templated two common generator-voice sources seen in E2E smoke audits:
   - `transition-weaver/scripts/run.py`: removed the 'From X to Y ...' title-narration variant; transitions default to argument-bridge phrasing.
-  - `citation-injector/scripts/run.py`: injection sentences now use subsection handles (`contrast_hook`/title) and avoid repeating 'Representative works include ...' stems.
+  - `citation-injector/scripts/run.py`: injection sentences now use subsection handles (`contrast_hook`/title) and avoid the common “enumerator” stems (`Work on ... includes ...`, `Concrete examples ... include ...`) by default (paper-like `e.g., ...` parentheticals).
 - De-narrated between-H2 transitions in the merged draft (paper voice):
   - `.codex/skills/section-merger/scripts/run.py`: between-H2 transition insertion is **off by default** (avoids narrator paragraphs); enable only with `outline/transitions.insert_h2.ok`.
 - pipeline-auditor: warn on pipeline voice leakage:
   - `.codex/skills/pipeline-auditor/scripts/run.py`: flags `this run` as a generator/pipeline-voice smell (non-blocking; includes examples).
 - writer-context-pack: strengthened anti-template hints:
-  - `.codex/skills/writer-context-pack/scripts/run.py`: added `this run` to `do_not_repeat_phrases` so C5 writers avoid execution-log phrasing.
+  - `.codex/skills/writer-context-pack/scripts/run.py`: expanded `do_not_repeat_phrases` to cover common generator-voice stems (pipeline voice, injection-enumerator openers, repeated synthesis openers like `Taken together,`).
+  - `.codex/skills/writer-context-pack/scripts/run.py`: emits `opener_mode` / `opener_hint` per H3 to nudge varied, paper-like paragraph-1 framing (tension-first vs decision-first vs lens-first).
 - Standardized remaining short SKILL.md files to match the repo standard (clear Inputs/Outputs):
   - `.codex/skills/citation-anchoring/SKILL.md`, `.codex/skills/redundancy-pruner/SKILL.md`, `.codex/skills/terminology-normalizer/SKILL.md`, `.codex/skills/research-pipeline-runner/SKILL.md`, `.codex/skills/grad-paragraph/SKILL.md`
 
