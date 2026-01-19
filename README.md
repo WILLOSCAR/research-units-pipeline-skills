@@ -40,7 +40,24 @@
 
 English version: [`README.en.md`](README.en.md).
 
+
+## codex 参考配置
+
+```toml
+
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+unified_exec = true
+shell_snapshot = true
+steer = true
+```
+
+
 ## 一句话启用（推荐：对话里跑 Pipeline）
+启动 codex
+> codex --sandbox workspace-write --ask-for-approval never 
 
 把下面这句话丢给 Codex（或 Claude Code）即可：
 
