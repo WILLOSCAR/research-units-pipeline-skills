@@ -1,0 +1,9 @@
+## Discussion
+
+A consistent lesson across the design space is that “agent quality” is inseparable from interfaces and protocols. Loop semantics, tool schemas, routing policies, and logging assumptions jointly determine what failures are observable and what comparisons are legitimate. This suggests that future agent papers should treat protocol artifacts (tool inventory, budget model, permission policy, logging spec) as first-class contributions, not as appendix details [@Mohammadi2025Evaluation; @Dong2025Bench].
+
+A second lesson is that cost and reliability are coupled. Many improvements that look like “better reasoning” are actually better budget allocation: fewer redundant tool calls, better routing, or more selective planning/search. Conversely, stronger planning can still be brittle and expensive under realistic tool-use tasks, so evaluation should routinely report both outcome and resource usage rather than single success numbers [@Liu2025Costbench; @Nakano2025Guided].
+
+Security and governance are not optional add-ons for deployed agents. Tool access creates a broad attack surface, and defenses often require system-level controls (sandboxing, monitoring) that change the feasible action space and thus the evaluation objective. The field would benefit from shared threat-model templates and benchmark releases that encode realistic tool behaviors and adversarial strategies [@Zhang2025Security; @Kale2025Reliable; @Fu2025Eval].
+
+Finally, the current evidence base remains heterogeneous. Even within the same benchmark family, protocol details (tool versions, budgets, logging) vary enough to make synthesis fragile. The most actionable research direction is therefore methodological: build benchmarks and reporting standards that make protocols reproducible and enable ablations that separate policy changes from protocol engineering.

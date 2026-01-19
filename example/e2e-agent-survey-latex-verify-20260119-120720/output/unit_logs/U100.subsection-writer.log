@@ -1,0 +1,13 @@
+# Unit log
+- unit_id: U100
+- skill: subsection-writer
+- exit: 2
+- cmd: /home/rjs/miniconda3/envs/agent/bin/python /home/rjs/Workspace/codebase/research-units-pipeline-skills/.codex/skills/subsection-writer/scripts/run.py --workspace /home/rjs/Workspace/codebase/research-units-pipeline-skills/workspaces/e2e-agent-survey-latex-verify-20260119-120720 --unit-id U100 --inputs outline/outline.yml;outline/chapter_briefs.jsonl;outline/subsection_briefs.jsonl;outline/anchor_sheet.jsonl;outline/writer_context_packs.jsonl;outline/evidence_drafts.jsonl;outline/evidence_bindings.jsonl;citations/ref.bib;DECISIONS.md --outputs sections/sections_manifest.jsonl;sections/abstract.md;sections/discussion.md;sections/conclusion.md --checkpoint C5
+
+## stdout
+
+(empty)
+
+## stderr
+
+(empty)

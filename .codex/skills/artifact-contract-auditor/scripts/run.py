@@ -72,6 +72,7 @@ def main() -> int:
     from tooling.common import atomic_write_text, ensure_dir
 
     workspace = Path(args.workspace).resolve()
+    current_unit_id = (args.unit_id or "").strip()
 
     units_path = workspace / "UNITS.csv"
     if not units_path.exists():
@@ -99,9 +100,19 @@ def main() -> int:
         unit_id = (row.get("unit_id") or "").strip()
         skill = (row.get("skill") or "").strip()
         status = (row.get("status") or "").strip().upper()
-
-        if status not in done_status:
+        # When this auditor runs via the executor, its own unit row is marked DOING
+        # (the runner updates status before launching the script). Treat the
+        # current unit as effectively 'done' for completeness calculation so a
+        # finished pipeline can reach PASS.
+        if unit_id == current_unit_id:
+            if status not in done_status and status != "DOING":
+                pipeline_complete = False
+        elif status not in done_status:
             pipeline_complete = False
+
+        # Never treat the auditor's own outputs as missing, since it writes them.
+        if unit_id == current_unit_id:
+            continue
 
         if status != "DONE":
             continue
@@ -115,8 +126,13 @@ def main() -> int:
                 missing_done_outputs.append((unit_id, skill, rel))
 
     missing_targets: list[str] = []
+    self_report_rel = "output/CONTRACT_REPORT.md"
     for rel, optional in target_artifacts:
         if optional:
+            continue
+        # This auditor produces the contract report; ignore its own target in the
+        # pre-write missing-target scan.
+        if rel == self_report_rel:
             continue
         if not (workspace / rel).exists():
             missing_targets.append(rel)

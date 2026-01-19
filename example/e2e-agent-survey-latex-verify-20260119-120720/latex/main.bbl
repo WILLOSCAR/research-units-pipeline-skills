@@ -1,0 +1,899 @@
+\begin{thebibliography}{111}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[An et~al.(2025)An, Zhang, Du, Zhou, Li, Lin, and Ji]{An2025Ipiguard}
+Hengyu An, Jinghuai Zhang, Tianyu Du, Chunyi Zhou, Qingming Li, Tao Lin, and
+  Shouling Ji.
+\newblock Ipiguard: A novel tool dependency graph-based defense against
+  indirect prompt injection in llm agents.
+\newblock \emph{arXiv preprint arXiv:2508.15310v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2508.15310v1}.
+
+\bibitem[Belle et~al.(2025)Belle, Barnes, Amayuelas, Bercovich, Wang, and
+  Wang]{Belle2025Agents}
+Nikolas Belle, Dakota Barnes, Alfonso Amayuelas, Ivan Bercovich, Xin~Eric Wang,
+  and William Wang.
+\newblock Agents of change: Self-evolving llm agents for strategic planning.
+\newblock \emph{arXiv preprint arXiv:2506.04651v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.04651v2}.
+
+\bibitem[Bonagiri et~al.(2025)Bonagiri, Kumaragurum, Nguyen, and
+  Plaut]{Bonagiri2025Check}
+Vamshi~Krishna Bonagiri, Ponnurangam Kumaragurum, Khanh Nguyen, and Benjamin
+  Plaut.
+\newblock Check yourself before you wreck yourself: Selectively quitting
+  improves llm agent safety.
+\newblock \emph{arXiv preprint arXiv:2510.16492v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.16492v2}.
+
+\bibitem[Cao et~al.(2025)Cao, Li, Zhao, Yuan, Hegde, Chen, Ruan, Griggs, Liu,
+  Tang, Liaw, Moritz, Zaharia, Gonzalez, and Stoica]{Cao2025Skyrl}
+Shiyi Cao, Dacheng Li, Fangzhou Zhao, Shuo Yuan, Sumanth~R. Hegde, Connor Chen,
+  Charlie Ruan, Tyler Griggs, Shu Liu, Eric Tang, Richard Liaw, Philipp Moritz,
+  Matei Zaharia, Joseph~E. Gonzalez, and Ion Stoica.
+\newblock Skyrl-agent: Efficient rl training for multi-turn llm agent.
+\newblock \emph{arXiv preprint arXiv:2511.16108v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2511.16108v1}.
+
+\bibitem[Chen et~al.(2025{\natexlab{a}})Chen, Liu, Zhang, Prabhakar, Liu,
+  Heinecke, Savarese, Zhong, and Xiong]{Chen2025Grounded}
+Arthur Chen, Zuxin Liu, Jianguo Zhang, Akshara Prabhakar, Zhiwei Liu, Shelby
+  Heinecke, Silvio Savarese, Victor Zhong, and Caiming Xiong.
+\newblock Grounded test-time adaptation for llm agents.
+\newblock \emph{arXiv preprint arXiv:2511.04847v3}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2511.04847v3}.
+
+\bibitem[Chen et~al.(2025{\natexlab{b}})Chen, Yao, Zou, Hua, Lyu, Ye, Li, and
+  Wang]{Chen2025Towards}
+Chaoran Chen, Bingsheng Yao, Ruishi Zou, Wenyue Hua, Weimin Lyu, Yanfang Ye,
+  Toby Jia-Jun Li, and Dakuo Wang.
+\newblock Towards a design guideline for rpa evaluation: A survey of large
+  language model-based role-playing agents.
+\newblock \emph{arXiv preprint arXiv:2502.13012v3}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2502.13012v3}.
+
+\bibitem[Chen and Cong(2025)]{Chen2025Agentguard}
+Jizhou Chen and Samuel~Lee Cong.
+\newblock Agentguard: Repurposing agentic orchestrator for safety evaluation of
+  tool orchestration.
+\newblock \emph{arXiv preprint arXiv:2502.09809v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2502.09809v1}.
+
+\bibitem[Cheng et~al.(2025)Cheng, Moakhar, Fan, Hosseini, Faghih, Sodagar,
+  Wang, and Feizi]{Cheng2025Your}
+Yize Cheng, Arshia~Soltani Moakhar, Chenrui Fan, Parsa Hosseini, Kazem Faghih,
+  Zahra Sodagar, Wenxiao Wang, and Soheil Feizi.
+\newblock Your llm agents are temporally blind: The misalignment between tool
+  use decisions and human time perception.
+\newblock \emph{arXiv preprint arXiv:2510.23853v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.23853v2}.
+
+\bibitem[Choi et~al.(2025)Choi, Kim, Ong, Jang, Kim, Kim, and
+  Yoon]{Choi2025Reactree}
+Jae-Woo Choi, Hyungmin Kim, Hyobin Ong, Minsu Jang, Dohyung Kim, Jaehong Kim,
+  and Youngwoo Yoon.
+\newblock Reactree: Hierarchical llm agent trees with control flow for
+  long-horizon task planning.
+\newblock \emph{arXiv preprint arXiv:2511.02424v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2511.02424v1}.
+
+\bibitem[Chuang et~al.(2025)Chuang, Tu, Dai, Vasani, Yao, Tessler, Yang, Shah,
+  Hawkins, Hu, and Rogers]{Chuang2025Debate}
+Yun-Shiuan Chuang, Ruixuan Tu, Chengtao Dai, Smit Vasani, Binwei Yao,
+  Michael~Henry Tessler, Sijia Yang, Dhavan Shah, Robert Hawkins, Junjie Hu,
+  and Timothy~T. Rogers.
+\newblock Debate: A large-scale benchmark for role-playing llm agents in
+  multi-agent, long-form debates.
+\newblock \emph{arXiv preprint arXiv:2510.25110v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.25110v1}.
+
+\bibitem[de~Carvalho~Silva and Macharet(2025)]{Silva2025Agents}
+João~Vitor de~Carvalho~Silva and Douglas~G. Macharet.
+\newblock Can llm agents solve collaborative tasks? a study on urgency-aware
+  planning and coordination.
+\newblock \emph{arXiv preprint arXiv:2508.14635v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2508.14635v1}.
+
+\bibitem[Dong et~al.(2025)Dong, Huang, Wu, and Tsai]{Dong2025Bench}
+Jia-Kai Dong, I-Wei Huang, Chun-Tin Wu, and Yi-Tien Tsai.
+\newblock Msc-bench: A rigorous benchmark for multi-server tool orchestration.
+\newblock \emph{arXiv preprint arXiv:2510.19423v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.19423v1}.
+
+\bibitem[Du et~al.(2024)Du, Wei, and Zhang]{Du2024Anytool}
+Yu~Du, Fangyun Wei, and Hongyang Zhang.
+\newblock Anytool: Self-reflective, hierarchical agents for large-scale api
+  calls.
+\newblock \emph{arXiv preprint arXiv:2402.04253v1}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2402.04253v1}.
+
+\bibitem[Einwiller et~al.(2025)Einwiller, Dastidar, Romazanov, Hautli-Janisz,
+  Granitzer, and Lemmerich]{Einwiller2025Benevolent}
+Andreas Einwiller, Kanishka~Ghosh Dastidar, Artur Romazanov, Annette
+  Hautli-Janisz, Michael Granitzer, and Florian Lemmerich.
+\newblock Benevolent dictators? on llm agent behavior in dictator games.
+\newblock \emph{arXiv preprint arXiv:2511.08721v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2511.08721v1}.
+
+\bibitem[Fang et~al.(2025)Fang, Yao, Wang, Ma, Wang, and Chua]{Fang2025Should}
+Junfeng Fang, Zijun Yao, Ruipeng Wang, Haokai Ma, Xiang Wang, and Tat-Seng
+  Chua.
+\newblock We should identify and mitigate third-party safety risks in
+  mcp-powered agent systems.
+\newblock \emph{arXiv preprint arXiv:2506.13666v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.13666v1}.
+
+\bibitem[Feng et~al.(2025)Feng, Xue, Liu, and An]{Feng2025Group}
+Lang Feng, Zhenghai Xue, Tingcong Liu, and Bo~An.
+\newblock Group-in-group policy optimization for llm agent training.
+\newblock \emph{arXiv preprint arXiv:2505.10978v3}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2505.10978v3}.
+
+\bibitem[Fu et~al.(2024)Fu, Li, Wang, Liu, Gupta, Berg-Kirkpatrick, and
+  Fernandes]{Fu2024Imprompter}
+Xiaohan Fu, Shuheng Li, Zihan Wang, Yihao Liu, Rajesh~K. Gupta, Taylor
+  Berg-Kirkpatrick, and Earlence Fernandes.
+\newblock Imprompter: Tricking llm agents into improper tool use.
+\newblock \emph{arXiv preprint arXiv:2410.14923v2}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2410.14923v2}.
+
+\bibitem[Fu et~al.(2025)Fu, Yuan, and Wang]{Fu2025Eval}
+Yuchuan Fu, Xiaohan Yuan, and Dongxia Wang.
+\newblock Ras-eval: A comprehensive benchmark for security evaluation of llm
+  agents in real-world environments.
+\newblock \emph{arXiv preprint arXiv:2506.15253v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.15253v1}.
+
+\bibitem[Fumero et~al.(2025)Fumero, Huang, Boffa, Giordano, Mellia, Houidi, and
+  Rossi]{Fumero2025Cybersleuth}
+Stefano Fumero, Kai Huang, Matteo Boffa, Danilo Giordano, Marco Mellia,
+  Zied~Ben Houidi, and Dario Rossi.
+\newblock Cybersleuth: Autonomous blue-team llm agent for web attack forensics.
+\newblock \emph{arXiv preprint arXiv:2508.20643v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2508.20643v1}.
+
+\bibitem[Gasmi et~al.(2025)Gasmi, Guesmi, Belhadj, and
+  Bennaceur]{Gasmi2025Bridging}
+Tarek Gasmi, Ramzi Guesmi, Ines Belhadj, and Jihene Bennaceur.
+\newblock Bridging ai and software security: A comparative vulnerability
+  assessment of llm agent deployment paradigms.
+\newblock \emph{arXiv preprint arXiv:2507.06323v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.06323v1}.
+
+\bibitem[Ghose et~al.(2025)Ghose, Kahng, Kundu, and Wang]{Ghose2025Orfs}
+Amur Ghose, Andrew~B. Kahng, Sayak Kundu, and Zhiang Wang.
+\newblock Orfs-agent: Tool-using agents for chip design optimization.
+\newblock \emph{arXiv preprint arXiv:2506.08332v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.08332v2}.
+
+\bibitem[Hadeliya et~al.(2025)Hadeliya, Jauhar, Sakpal, and
+  Cruz]{Hadeliya2025When}
+Tsimur Hadeliya, Mohammad~Ali Jauhar, Nidhi Sakpal, and Diogo Cruz.
+\newblock When refusals fail: Unstable safety mechanisms in long-context llm
+  agents.
+\newblock \emph{arXiv preprint arXiv:2512.02445v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2512.02445v1}.
+
+\bibitem[Hahm et~al.(2025)Hahm, Jin, Choi, Ahn, and Lee]{Hahm2025Enhancing}
+Dongyoon Hahm, Woogyeol Jin, June~Suk Choi, Sungsoo Ahn, and Kimin Lee.
+\newblock Enhancing llm agent safety via causal influence prompting.
+\newblock \emph{arXiv preprint arXiv:2507.00979v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.00979v1}.
+
+\bibitem[Hao et~al.(2026)Hao, Xu, Wen, Xu, Liu, Zhao, Wang, Chen, Wang, Chen,
+  Peng, Zhao, Zhuang, and Zhang]{Hao2026From}
+Bingguang Hao, Zengzhuang Xu, Yuntao Wen, Xinyi Xu, Yang Liu, Tong Zhao, Maolin
+  Wang, Long Chen, Dong Wang, Yicheng Chen, Cunyin Peng, Xiangyu Zhao, Chenyi
+  Zhuang, and Ji~Zhang.
+\newblock From failure to mastery: Generating hard samples for tool-use agents.
+\newblock \emph{arXiv preprint arXiv:2601.01498v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.01498v1}.
+
+\bibitem[Hao and Xie(2025)]{Hao2025Multi}
+Yuzhi Hao and Danyang Xie.
+\newblock A multi-llm-agent-based framework for economic and public policy
+  analysis.
+\newblock \emph{arXiv preprint arXiv:2502.16879v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2502.16879v1}.
+
+\bibitem[Hatalis et~al.(2025)Hatalis, Christou, and
+  Kondapalli]{Hatalis2025Review}
+Kostas Hatalis, Despina Christou, and Vyshnavi Kondapalli.
+\newblock Review of case-based reasoning for llm agents: Theoretical
+  foundations, architectural components, and cognitive integration.
+\newblock \emph{arXiv preprint arXiv:2504.06943v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2504.06943v2}.
+
+\bibitem[He et~al.(2025)He, Li, Chen, Liu, Chen, Sui, Chen, Zhu, Luo, Yang, and
+  Hooi]{He2025Enabling}
+Yufei He, Ruoyu Li, Alex Chen, Yue Liu, Yulin Chen, Yuan Sui, Cheng Chen,
+  Yi~Zhu, Luca Luo, Frank Yang, and Bryan Hooi.
+\newblock Enabling self-improving agents to learn at test time with
+  human-in-the-loop guidance.
+\newblock \emph{arXiv preprint arXiv:2507.17131v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.17131v2}.
+
+\bibitem[Hong et~al.(2025)Hong, Dragan, and Levine]{Hong2025Planning}
+Joey Hong, Anca Dragan, and Sergey Levine.
+\newblock Planning without search: Refining frontier llms with offline
+  goal-conditioned rl.
+\newblock \emph{arXiv preprint arXiv:2505.18098v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2505.18098v2}.
+
+\bibitem[Hu et~al.(2025)Hu, Liu, Li, and Wang]{Hu2025Training}
+Hanjiang Hu, Changliu Liu, Na~Li, and Yebin Wang.
+\newblock Training task reasoning llm agents for multi-turn task planning via
+  single-turn reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2509.20616v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2509.20616v2}.
+
+\bibitem[Huang et~al.(2025)Huang, Yang, Ji, Alba, Zhang, and
+  An]{Huang2025Retrieval}
+Jingyi Huang, Yuyi Yang, Mengmeng Ji, Charles Alba, Sheng Zhang, and Ruopeng
+  An.
+\newblock Use of retrieval-augmented large language model agent for long-form
+  covid-19 fact-checking.
+\newblock \emph{arXiv preprint arXiv:2512.00007v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2512.00007v1}.
+
+\bibitem[Ji et~al.(2025)Ji, Wang, Li, Ma, Gao, Wu, Yan, Tian, and
+  Wang]{Ji2025Taxonomy}
+Zimo Ji, Xunguang Wang, Zongjie Li, Pingchuan Ma, Yudong Gao, Daoyuan Wu,
+  Xincheng Yan, Tian Tian, and Shuai Wang.
+\newblock Taxonomy, evaluation and exploitation of ipi-centric llm agent
+  defense frameworks.
+\newblock \emph{arXiv preprint arXiv:2511.15203v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2511.15203v1}.
+
+\bibitem[Jia and Li(2025)]{Jia2025Autotool}
+Jingyi Jia and Qinbin Li.
+\newblock Autotool: Efficient tool selection for large language model agents.
+\newblock \emph{arXiv preprint arXiv:2511.14650v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2511.14650v1}.
+
+\bibitem[Kale et~al.(2025)Kale, Zhang, Zhu, Aich, Rodriguez, Team, Knight, and
+  Wang]{Kale2025Reliable}
+Neil Kale, Chen Bo~Calvin Zhang, Kevin Zhu, Ankit Aich, Paula Rodriguez,
+  Scale~Red Team, Christina~Q. Knight, and Zifan Wang.
+\newblock Reliable weak-to-strong monitoring of llm agents.
+\newblock \emph{arXiv preprint arXiv:2508.19461v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2508.19461v1}.
+
+\bibitem[Kamath et~al.(2025)Kamath, Zhang, Xu, Ugare, Singh, and
+  Misailovic]{Kamath2025Enforcing}
+Adharsh Kamath, Sishen Zhang, Calvin Xu, Shubham Ugare, Gagandeep Singh, and
+  Sasa Misailovic.
+\newblock Enforcing temporal constraints for llm agents.
+\newblock \emph{arXiv preprint arXiv:2512.23738v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2512.23738v1}.
+
+\bibitem[Kim et~al.(2026)Kim, Ren, Hao, Sun, Wang, Ma, Ye, Han, Yin, Ji, Shen,
+  Fan, Yao, and Guo]{Kim2026Beyond}
+Doyoung Kim, Zhiwei Ren, Jie Hao, Zhongkai Sun, Lichao Wang, Xiyao Ma, Zack Ye,
+  Xu~Han, Jun Yin, Heng Ji, Wei Shen, Xing Fan, Benjamin Yao, and Chenlei Guo.
+\newblock Beyond perfect apis: A comprehensive evaluation of llm agents under
+  real-world api complexity.
+\newblock \emph{arXiv preprint arXiv:2601.00268v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.00268v1}.
+
+\bibitem[Kim(2025)]{Kim2025Bridging}
+Myung~Ho Kim.
+\newblock Bridging symbolic control and neural reasoning in llm agents: The
+  structured cognitive loop.
+\newblock \emph{arXiv preprint arXiv:2511.17673v3}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2511.17673v3}.
+
+\bibitem[Kiruluta(2025)]{Kiruluta2025Novel}
+Andrew Kiruluta.
+\newblock A novel architecture for symbolic reasoning with decision trees and
+  llm agents.
+\newblock \emph{arXiv preprint arXiv:2508.05311v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2508.05311v1}.
+
+\bibitem[Li et~al.(2025{\natexlab{a}})Li, Shi, Zhang, Li, Jin, Li, Zhang, Li,
+  Liu, Zhang, Tao, Dong, Zhu, and Tao]{Li2025Graphcodeagent}
+Jia Li, Xianjie Shi, Kechi Zhang, Ge~Li, Zhi Jin, Lei Li, Huangzhao Zhang, Jia
+  Li, Fang Liu, Yuwei Zhang, Zhengwei Tao, Yihong Dong, Yuqi Zhu, and Chongyang
+  Tao.
+\newblock Graphcodeagent: Dual graph-guided llm agent for retrieval-augmented
+  repo-level code generation.
+\newblock \emph{arXiv preprint arXiv:2504.10046v2}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2504.10046v2}.
+
+\bibitem[Li et~al.(2026)Li, Ren, Cheng, and Gong]{Li2026Autonomous}
+Weitang Li, Jiajun Ren, Lixue Cheng, and Cunxi Gong.
+\newblock Autonomous quantum simulation through large language model agents.
+\newblock \emph{arXiv preprint arXiv:2601.10194v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.10194v1}.
+
+\bibitem[Li et~al.(2025{\natexlab{b}})Li, Li, Wu, Liao, Hao, Shao, Xu, and
+  Li]{Li2025Agentswift}
+Yu~Li, Lehui Li, Zhihao Wu, Qingmin Liao, Jianye Hao, Kun Shao, Fengli Xu, and
+  Yong Li.
+\newblock Agentswift: Efficient llm agent design via value-guided hierarchical
+  search.
+\newblock \emph{arXiv preprint arXiv:2506.06017v2}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2506.06017v2}.
+
+\bibitem[Li et~al.(2024)Li, Wen, Wang, Li, Yuan, Liu, Liu, Xu, Wang, Sun, Kong,
+  Wang, Geng, Luan, Jin, Ye, Xiong, Zhang, Li, Xu, Li, Li, Liu, Zhang, and
+  Liu]{Li2024Personal}
+Yuanchun Li, Hao Wen, Weijun Wang, Xiangyu Li, Yizhen Yuan, Guohong Liu,
+  Jiacheng Liu, Wenxing Xu, Xiang Wang, Yi~Sun, Rui Kong, Yile Wang, Hanfei
+  Geng, Jian Luan, Xuefeng Jin, Zilong Ye, Guanjing Xiong, Fan Zhang, Xiang Li,
+  Mengwei Xu, Zhijun Li, Peng Li, Yang Liu, Ya-Qin Zhang, and Yunxin Liu.
+\newblock Personal llm agents: Insights and survey about the capability,
+  efficiency and security.
+\newblock \emph{arXiv preprint arXiv:2401.05459v2}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2401.05459v2}.
+
+\bibitem[Li et~al.(2025{\natexlab{c}})Li, Liu, Wang, Zhang, Ma, and
+  Tan]{Li2025Draft}
+Yuanhao Li, Mingshan Liu, Hongbo Wang, Yiding Zhang, Yifei Ma, and Wei Tan.
+\newblock Draft-rl: Multi-agent chain-of-draft reasoning for reinforcement
+  learning-enhanced llms.
+\newblock \emph{arXiv preprint arXiv:2511.20468v1}, 2025{\natexlab{c}}.
+\newblock URL \url{http://arxiv.org/abs/2511.20468v1}.
+
+\bibitem[Li et~al.(2025{\natexlab{d}})Li, Das, and Shirado]{Li2025What}
+Yuxuan Li, Sauvik Das, and Hirokazu Shirado.
+\newblock What makes llm agent simulations useful for policy? insights from an
+  iterative design engagement in emergency preparedness.
+\newblock \emph{arXiv preprint arXiv:2509.21868v1}, 2025{\natexlab{d}}.
+\newblock URL \url{http://arxiv.org/abs/2509.21868v1}.
+
+\bibitem[Li et~al.(2025{\natexlab{e}})Li, Cui, Liao, and
+  Xing]{Li2025Dissonances}
+Zichuan Li, Jian Cui, Xiaojing Liao, and Luyi Xing.
+\newblock Les dissonances: Cross-tool harvesting and polluting in pool-of-tools
+  empowered llm agents.
+\newblock \emph{arXiv preprint arXiv:2504.03111v3}, 2025{\natexlab{e}}.
+\newblock URL \url{http://arxiv.org/abs/2504.03111v3}.
+
+\bibitem[Lichkovski et~al.(2025)Lichkovski, Müller, Ibrahim, and
+  Mhundwa]{Lichkovski2025Agent}
+Ilija Lichkovski, Alexander Müller, Mariam Ibrahim, and Tiwai Mhundwa.
+\newblock Eu-agent-bench: Measuring illegal behavior of llm agents under eu
+  law.
+\newblock \emph{arXiv preprint arXiv:2510.21524v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.21524v1}.
+
+\bibitem[Liu et~al.(2025{\natexlab{a}})Liu, Qian, Su, Zong, Huang, He, and
+  Fung]{Liu2025Costbench}
+Jiayu Liu, Cheng Qian, Zhaochen Su, Qing Zong, Shijue Huang, Bingxiang He, and
+  Yi~R. Fung.
+\newblock Costbench: Evaluating multi-turn cost-optimal planning and adaptation
+  in dynamic environments for llm tool-use agents.
+\newblock \emph{arXiv preprint arXiv:2511.02734v1}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2511.02734v1}.
+
+\bibitem[Liu et~al.(2025{\natexlab{b}})Liu, Garcia, Parllaku, Upadhyay, Shah,
+  and Roth]{Liu2025Toolscope}
+Marianne~Menglin Liu, Daniel Garcia, Fjona Parllaku, Vikas Upadhyay, Syed
+  Fahad~Allam Shah, and Dan Roth.
+\newblock Toolscope: Enhancing llm agent tool use through tool merging and
+  context-aware filtering.
+\newblock \emph{arXiv preprint arXiv:2510.20036v1}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2510.20036v1}.
+
+\bibitem[Liu et~al.(2026)Liu, Zhang, Ma, Deng, Zhu, Li, Li, Shen, and
+  Du]{Liu2026Agents}
+Shuang Liu, Ruijia Zhang, Ruoyun Ma, Yujia Deng, Lanyi Zhu, Jiayu Li, Zelong
+  Li, Zhibin Shen, and Mengnan Du.
+\newblock Llm agents in law: Taxonomy, applications, and challenges.
+\newblock \emph{arXiv preprint arXiv:2601.06216v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.06216v1}.
+
+\bibitem[Liu et~al.(2025{\natexlab{c}})Liu, Yang, Yin, Li, Wang, and
+  Zhu]{Liu2025Aligning}
+Tianming Liu, Jirong Yang, Yafeng Yin, Manzi Li, Linghao Wang, and Zheng Zhu.
+\newblock Aligning llm agents with human learning and adjustment behavior: a
+  dual agent approach.
+\newblock \emph{arXiv preprint arXiv:2511.00993v1}, 2025{\natexlab{c}}.
+\newblock URL \url{http://arxiv.org/abs/2511.00993v1}.
+
+\bibitem[Liu et~al.(2025{\natexlab{d}})Liu, Liu, Dai, Yu, Yu, and
+  Yang]{Liu2025Mcpagentbench}
+Wenrui Liu, Zixiang Liu, Elsie Dai, Wenhan Yu, Lei Yu, and Tong Yang.
+\newblock Mcpagentbench: A real-world task benchmark for evaluating llm agent
+  mcp tool use.
+\newblock \emph{arXiv preprint arXiv:2512.24565v2}, 2025{\natexlab{d}}.
+\newblock URL \url{http://arxiv.org/abs/2512.24565v2}.
+
+\bibitem[Lumer et~al.(2025)Lumer, Gulati, Subbiah, Basavaraju, and
+  Burke]{Lumer2025Memtool}
+Elias Lumer, Anmol Gulati, Vamse~Kumar Subbiah, Pradeep~Honaganahalli
+  Basavaraju, and James~A. Burke.
+\newblock Memtool: Optimizing short-term memory management for dynamic tool
+  calling in llm agent multi-turn conversations.
+\newblock \emph{arXiv preprint arXiv:2507.21428v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.21428v1}.
+
+\bibitem[Luo et~al.(2025)Luo, Dai, Liu, Banerjee, Sun, Chen, and
+  Xiao]{Luo2025Agrail}
+Weidi Luo, Shenghong Dai, Xiaogeng Liu, Suman Banerjee, Huan Sun, Muhao Chen,
+  and Chaowei Xiao.
+\newblock Agrail: A lifelong agent guardrail with effective and adaptive safety
+  detection.
+\newblock \emph{arXiv preprint arXiv:2502.11448v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2502.11448v2}.
+
+\bibitem[Mohammadi et~al.(2025)Mohammadi, Li, Lo, and
+  Yip]{Mohammadi2025Evaluation}
+Mahmoud Mohammadi, Yipeng Li, Jane Lo, and Wendy Yip.
+\newblock Evaluation and benchmarking of llm agents: A survey.
+\newblock \emph{arXiv preprint arXiv:2507.21504v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.21504v1}.
+
+\bibitem[Mudur et~al.(2025)Mudur, Cui, Venugopalan, Raccuglia, Brenner, and
+  Norgaard]{Mudur2025Feabench}
+Nayantara Mudur, Hao Cui, Subhashini Venugopalan, Paul Raccuglia, Michael~P.
+  Brenner, and Peter Norgaard.
+\newblock Feabench: Evaluating language models on multiphysics reasoning
+  ability.
+\newblock \emph{arXiv preprint arXiv:2504.06260v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2504.06260v1}.
+
+\bibitem[Nakano et~al.(2025)Nakano, Fayyazi, Yang, and Zuzak]{Nakano2025Guided}
+Katsuaki Nakano, Reza Fayyazi, Shanchieh~Jay Yang, and Michael Zuzak.
+\newblock Guided reasoning in llm-driven penetration testing using structured
+  attack trees.
+\newblock \emph{arXiv preprint arXiv:2509.07939v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2509.07939v2}.
+
+\bibitem[Nitin et~al.(2025)Nitin, Ray, and Moghaddam]{Nitin2025Faultline}
+Vikram Nitin, Baishakhi Ray, and Roshanak~Zilouchian Moghaddam.
+\newblock Faultline: Automated proof-of-vulnerability generation using llm
+  agents.
+\newblock \emph{arXiv preprint arXiv:2507.15241v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.15241v1}.
+
+\bibitem[Papadakis et~al.(2025)Papadakis, Dimitriou, Filandrianos, Lymperaiou,
+  Thomas, and Stamou]{Papadakis2025Atlas}
+Charidimos Papadakis, Angeliki Dimitriou, Giorgos Filandrianos, Maria
+  Lymperaiou, Konstantinos Thomas, and Giorgos Stamou.
+\newblock Atlas: Adaptive trading with llm agents through dynamic prompt
+  optimization and multi-agent coordination.
+\newblock \emph{arXiv preprint arXiv:2510.15949v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.15949v2}.
+
+\bibitem[Plaat et~al.(2025)Plaat, van Duijn, van Stein, Preuss, van~der Putten,
+  and Batenburg]{Plaat2025Agentic}
+Aske Plaat, Max van Duijn, Niki van Stein, Mike Preuss, Peter van~der Putten,
+  and Kees~Joost Batenburg.
+\newblock Agentic large language models, a survey.
+\newblock \emph{arXiv preprint arXiv:2503.23037v3}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2503.23037v3}.
+
+\bibitem[Rosario et~al.(2025)Rosario, Krawiecka, and
+  de~Witt]{Rosario2025Architecting}
+Ron F.~Del Rosario, Klaudia Krawiecka, and Christian~Schroeder de~Witt.
+\newblock Architecting resilient llm agents: A guide to secure
+  plan-then-execute implementations.
+\newblock \emph{arXiv preprint arXiv:2509.08646v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2509.08646v1}.
+
+\bibitem[Sarkar and Sarkar(2025)]{Sarkar2025Survey}
+Anjana Sarkar and Soumyendu Sarkar.
+\newblock Survey of llm agent communication with mcp: A software design pattern
+  centric review.
+\newblock \emph{arXiv preprint arXiv:2506.05364v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.05364v1}.
+
+\bibitem[Sarukkai et~al.(2025)Sarukkai, Gupta, Hong, Gharbi, and
+  Fatahalian]{Sarukkai2025Context}
+Vishnu Sarukkai, Asanshay Gupta, James Hong, Michaël Gharbi, and Kayvon
+  Fatahalian.
+\newblock In-context distillation with self-consistency cascades: A simple,
+  training-free way to reduce llm agent costs.
+\newblock \emph{arXiv preprint arXiv:2512.02543v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2512.02543v1}.
+
+\bibitem[Schick et~al.(2023)Schick, Dwivedi-Yu, Dessì, Raileanu, Lomeli,
+  Zettlemoyer, Cancedda, and Scialom]{Schick2023Toolformer}
+Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli,
+  Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom.
+\newblock Toolformer: Language models can teach themselves to use tools.
+\newblock \emph{arXiv preprint arXiv:2302.04761v1}, 2023.
+\newblock URL \url{http://arxiv.org/abs/2302.04761v1}.
+
+\bibitem[Sha et~al.(2025)Sha, Tian, Xu, Cui, Meng, and Wang]{Sha2025Agent}
+Zeyang Sha, Hanling Tian, Zhuoer Xu, Shiwen Cui, Changhua Meng, and Weiqiang
+  Wang.
+\newblock Agent safety alignment via reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2507.08270v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.08270v1}.
+
+\bibitem[Shang et~al.(2024)Shang, Li, Zhao, Ma, Liu, Xu, and
+  Li]{Shang2024Agentsquare}
+Yu~Shang, Yu~Li, Keyu Zhao, Likai Ma, Jiahe Liu, Fengli Xu, and Yong Li.
+\newblock Agentsquare: Automatic llm agent search in modular design space.
+\newblock \emph{arXiv preprint arXiv:2410.06153v3}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2410.06153v3}.
+
+\bibitem[Shen et~al.(2024)Shen, Li, Chen, Yan, Quan, Chen, Zhang, and
+  Huang]{Shen2024Small}
+Weizhou Shen, Chenliang Li, Hongzhan Chen, Ming Yan, Xiaojun Quan, Hehong Chen,
+  Ji~Zhang, and Fei Huang.
+\newblock Small llms are weak tool learners: A multi-llm agent.
+\newblock \emph{arXiv preprint arXiv:2401.07324v3}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2401.07324v3}.
+
+\bibitem[Shi et~al.(2025)Shi, He, Wang, Li, Wu, Guo, and Song]{Shi2025Progent}
+Tianneng Shi, Jingxuan He, Zhun Wang, Hongwei Li, Linyu Wu, Wenbo Guo, and Dawn
+  Song.
+\newblock Progent: Programmable privilege control for llm agents.
+\newblock \emph{arXiv preprint arXiv:2504.11703v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2504.11703v2}.
+
+\bibitem[Shi et~al.(2024)Shi, Xu, Zhuang, Yu, Zhang, Wu, Zhu, Ho, Yang, and
+  Wang]{Shi2024Ehragent}
+Wenqi Shi, Ran Xu, Yuchen Zhuang, Yue Yu, Jieyu Zhang, Hang Wu, Yuanda Zhu,
+  Joyce Ho, Carl Yang, and May~D. Wang.
+\newblock Ehragent: Code empowers large language models for few-shot complex
+  tabular reasoning on electronic health records.
+\newblock \emph{arXiv preprint arXiv:2401.07128v3}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2401.07128v3}.
+
+\bibitem[Shinn et~al.(2023)Shinn, Cassano, Berman, Gopinath, Narasimhan, and
+  Yao]{Shinn2023Reflexion}
+Noah Shinn, Federico Cassano, Edward Berman, Ashwin Gopinath, Karthik
+  Narasimhan, and Shunyu Yao.
+\newblock Reflexion: Language agents with verbal reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2303.11366v4}, 2023.
+\newblock URL \url{http://arxiv.org/abs/2303.11366v4}.
+
+\bibitem[Song et~al.(2026)Song, Chang, Dong, Zhu, Dou, and
+  Wen]{Song2026Envscaler}
+Xiaoshuai Song, Haofei Chang, Guanting Dong, Yutao Zhu, Zhicheng Dou, and
+  Ji-Rong Wen.
+\newblock Envscaler: Scaling tool-interactive environments for llm agent via
+  programmatic synthesis.
+\newblock \emph{arXiv preprint arXiv:2601.05808v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.05808v1}.
+
+\bibitem[Tao et~al.(2026)Tao, Ma, Huang, and Jiang]{Tao2026Membox}
+Dehao Tao, Guoliang Ma, Yongfeng Huang, and Minghu Jiang.
+\newblock Membox: Weaving topic continuity into long-range memory for llm
+  agents.
+\newblock \emph{arXiv preprint arXiv:2601.03785v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.03785v1}.
+
+\bibitem[Tawosi et~al.(2025)Tawosi, Alamir, Liu, and Veloso]{Tawosi2025Meta}
+Vali Tawosi, Salwa Alamir, Xiaomo Liu, and Manuela Veloso.
+\newblock Meta-rag on large codebases using code summarization.
+\newblock \emph{arXiv preprint arXiv:2508.02611v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2508.02611v1}.
+
+\bibitem[Tennant et~al.(2024)Tennant, Hailes, and Musolesi]{Tennant2024Moral}
+Elizaveta Tennant, Stephen Hailes, and Mirco Musolesi.
+\newblock Moral alignment for llm agents.
+\newblock \emph{arXiv preprint arXiv:2410.01639v4}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2410.01639v4}.
+
+\bibitem[Van et~al.(2025)Van, Verma, Zhao, and Wu]{Van2025Survey}
+Minh-Hao Van, Prateek Verma, Chen Zhao, and Xintao Wu.
+\newblock A survey of ai for materials science: Foundation models, llm agents,
+  datasets, and tools.
+\newblock \emph{arXiv preprint arXiv:2506.20743v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.20743v1}.
+
+\bibitem[Verma(2026)]{Verma2026Active}
+Nikhil Verma.
+\newblock Active context compression: Autonomous memory management in llm
+  agents.
+\newblock \emph{arXiv preprint arXiv:2601.07190v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.07190v1}.
+
+\bibitem[Wang et~al.(2023{\natexlab{a}})Wang, Xie, Jiang, Mandlekar, Xiao, Zhu,
+  Fan, and Anandkumar]{Wang2023Voyager}
+Guanzhi Wang, Yuqi Xie, Yunfan Jiang, Ajay Mandlekar, Chaowei Xiao, Yuke Zhu,
+  Linxi Fan, and Anima Anandkumar.
+\newblock Voyager: An open-ended embodied agent with large language models.
+\newblock \emph{arXiv preprint arXiv:2305.16291v2}, 2023{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2305.16291v2}.
+
+\bibitem[Wang et~al.(2023{\natexlab{b}})Wang, Ma, Feng, Zhang, Yang, Zhang,
+  Chen, Tang, Chen, Lin, Zhao, Wei, and Wen]{Wang2023Survey}
+Lei Wang, Chen Ma, Xueyang Feng, Zeyu Zhang, Hao Yang, Jingsen Zhang, Zhiyuan
+  Chen, Jiakai Tang, Xu~Chen, Yankai Lin, Wayne~Xin Zhao, Zhewei Wei, and
+  Ji-Rong Wen.
+\newblock A survey on large language model based autonomous agents.
+\newblock \emph{arXiv preprint arXiv:2308.11432v7}, 2023{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2308.11432v7}.
+
+\bibitem[Wang et~al.(2025)Wang, Li, Keshava, Wallis, Balashankar, Stone, and
+  Rutishauser]{Wang2025Adversarial}
+Zizhao Wang, Dingcheng Li, Vaishakh Keshava, Phillip Wallis, Ananth
+  Balashankar, Peter Stone, and Lukas Rutishauser.
+\newblock Adversarial reinforcement learning for large language model agent
+  safety.
+\newblock \emph{arXiv preprint arXiv:2510.05442v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.05442v1}.
+
+\bibitem[Warnakulasuriya et~al.(2025)Warnakulasuriya, Dissanayake, Silva,
+  Cranefield, Savarimuthu, Ranathunga, and
+  de~Silva]{Warnakulasuriya2025Evolution}
+Kavindu Warnakulasuriya, Prabhash Dissanayake, Navindu~De Silva, Stephen
+  Cranefield, Bastin Tony~Roy Savarimuthu, Surangika Ranathunga, and Nisansa
+  de~Silva.
+\newblock Evolution of cooperation in llm-agent societies: A preliminary study
+  using different punishment strategies.
+\newblock \emph{arXiv preprint arXiv:2504.19487v3}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2504.19487v3}.
+
+\bibitem[Wu et~al.(2025{\natexlab{a}})Wu, Luo, Qu, and Wang]{Wu2025Meta}
+Chunlong Wu, Ye~Luo, Zhibo Qu, and Min Wang.
+\newblock Meta-policy reflexion: Reusable reflective memory and rule
+  admissibility for resource-efficient llm agent.
+\newblock \emph{arXiv preprint arXiv:2509.03990v2}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2509.03990v2}.
+
+\bibitem[Wu et~al.(2025{\natexlab{b}})Wu, Li, and Li]{Wu2025Agents}
+Haolun Wu, Zhenkun Li, and Lingyao Li.
+\newblock Can llm agents really debate? a controlled study of multi-agent
+  debate in logical reasoning.
+\newblock \emph{arXiv preprint arXiv:2511.07784v1}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2511.07784v1}.
+
+\bibitem[Wu et~al.(2024{\natexlab{a}})Wu, Li, Nan, and Wang]{Wu2024Federated}
+Panlong Wu, Kangshuo Li, Junbao Nan, and Fangxin Wang.
+\newblock Federated in-context llm agent learning.
+\newblock \emph{arXiv preprint arXiv:2412.08054v1}, 2024{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2412.08054v1}.
+
+\bibitem[Wu et~al.(2025{\natexlab{c}})Wu, Wang, Mei, Cai, Fu, Yang, Wen, Yang,
+  Shen, Wang, and Shi]{Wu2025Evolver}
+Rong Wu, Xiaoman Wang, Jianbiao Mei, Pinlong Cai, Daocheng Fu, Cheng Yang,
+  Licheng Wen, Xuemeng Yang, Yufan Shen, Yuxin Wang, and Botian Shi.
+\newblock Evolver: Self-evolving llm agents through an experience-driven
+  lifecycle.
+\newblock \emph{arXiv preprint arXiv:2510.16079v1}, 2025{\natexlab{c}}.
+\newblock URL \url{http://arxiv.org/abs/2510.16079v1}.
+
+\bibitem[Wu et~al.(2024{\natexlab{b}})Wu, Zhao, Huang, Huang, Yasunaga, Cao,
+  Ioannidis, Subbian, Leskovec, and Zou]{Wu2024Avatar}
+Shirley Wu, Shiyu Zhao, Qian Huang, Kexin Huang, Michihiro Yasunaga, Kaidi Cao,
+  Vassilis~N. Ioannidis, Karthik Subbian, Jure Leskovec, and James Zou.
+\newblock Avatar: Optimizing llm agents for tool usage via contrastive
+  reasoning.
+\newblock \emph{arXiv preprint arXiv:2406.11200v3}, 2024{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2406.11200v3}.
+
+\bibitem[Xi et~al.(2026)Xi, Liang, Liu, Zhang, Peng, Nan, Nayim, Zhang,
+  Mundada, Qin, Huang, and Zhou]{Xi2026Toolgym}
+Ziqiao Xi, Shuang Liang, Qi~Liu, Jiaqing Zhang, Letian Peng, Fang Nan, Meshal
+  Nayim, Tianhui Zhang, Rishika Mundada, Lianhui Qin, Biwei Huang, and Kun
+  Zhou.
+\newblock Toolgym: an open-world tool-using environment for scalable agent
+  testing and data curation.
+\newblock \emph{arXiv preprint arXiv:2601.06328v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.06328v1}.
+
+\bibitem[Xia et~al.(2025)Xia, Shen, Wu, Yu, Kim, Rossi, Yao, and
+  McAuley]{Xia2025Sand}
+Yu~Xia, Yiran Shen, Junda Wu, Tong Yu, Sungchul Kim, Ryan~A. Rossi, Lina Yao,
+  and Julian McAuley.
+\newblock Sand: Boosting llm agents with self-taught action deliberation.
+\newblock \emph{arXiv preprint arXiv:2507.07441v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2507.07441v2}.
+
+\bibitem[Xu et~al.(2025{\natexlab{a}})Xu, Ma, Song, Jiang, Tu, and
+  Zhou]{Xu2025Exemplar}
+Jingao Xu, Shuoyoucheng Ma, Xin Song, Rong Jiang, Hongkui Tu, and Bin Zhou.
+\newblock Exemplar-guided planing: Enhanced llm agent for kgqa.
+\newblock \emph{arXiv preprint arXiv:2510.15283v1}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2510.15283v1}.
+
+\bibitem[Xu et~al.(2025{\natexlab{b}})Xu, Liang, Mei, Gao, Tan, and
+  Zhang]{Xu2025Agentic}
+Wujiang Xu, Zujie Liang, Kai Mei, Hang Gao, Juntao Tan, and Yongfeng Zhang.
+\newblock A-mem: Agentic memory for llm agents.
+\newblock \emph{arXiv preprint arXiv:2502.12110v11}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2502.12110v11}.
+
+\bibitem[Xuan et~al.(2026)Xuan, Zeng, Qi, Xiao, Wang, and
+  Yokoya]{Xuan2026Confidence}
+Weihao Xuan, Qingcheng Zeng, Heli Qi, Yunze Xiao, Junjue Wang, and Naoto
+  Yokoya.
+\newblock The confidence dichotomy: Analyzing and mitigating miscalibration in
+  tool-use agents.
+\newblock \emph{arXiv preprint arXiv:2601.07264v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.07264v1}.
+
+\bibitem[Yang et~al.(2025{\natexlab{a}})Yang, Xu, Zeng, Guo, Jiang, Lu, Liu,
+  Xiang, Jiang, Xing, and Yan]{Yang2025Proagent}
+Bufang Yang, Lilin Xu, Liekang Zeng, Yunqi Guo, Siyang Jiang, Wenrui Lu, Kaiwei
+  Liu, Hancheng Xiang, Xiaofan Jiang, Guoliang Xing, and Zhenyu Yan.
+\newblock Proagent: Harnessing on-demand sensory contexts for proactive llm
+  agent systems.
+\newblock \emph{arXiv preprint arXiv:2512.06721v1}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2512.06721v1}.
+
+\bibitem[Yang et~al.(2025{\natexlab{b}})Yang, Xu, Zeng, Liu, Jiang, Lu, Chen,
+  Jiang, Xing, and Yan]{Yang2025Contextagent}
+Bufang Yang, Lilin Xu, Liekang Zeng, Kaiwei Liu, Siyang Jiang, Wenrui Lu,
+  Hongkai Chen, Xiaofan Jiang, Guoliang Xing, and Zhenyu Yan.
+\newblock Contextagent: Context-aware proactive llm agents with open-world
+  sensory perceptions.
+\newblock \emph{arXiv preprint arXiv:2505.14668v2}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2505.14668v2}.
+
+\bibitem[Yao et~al.(2022)Yao, Zhao, Yu, Du, Shafran, Narasimhan, and
+  Cao]{Yao2022React}
+Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan,
+  and Yuan Cao.
+\newblock React: Synergizing reasoning and acting in language models.
+\newblock \emph{arXiv preprint arXiv:2210.03629v3}, 2022.
+\newblock URL \url{http://arxiv.org/abs/2210.03629v3}.
+
+\bibitem[Yao et~al.(2023)Yao, Yu, Zhao, Shafran, Griffiths, Cao, and
+  Narasimhan]{Yao2023Tree}
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Thomas~L. Griffiths, Yuan
+  Cao, and Karthik Narasimhan.
+\newblock Tree of thoughts: Deliberate problem solving with large language
+  models.
+\newblock \emph{arXiv preprint arXiv:2305.10601v2}, 2023.
+\newblock URL \url{http://arxiv.org/abs/2305.10601v2}.
+
+\bibitem[Ye(2025{\natexlab{a}})]{Ye2025Task}
+Ye~Ye.
+\newblock Task memory engine (tme): Enhancing state awareness for multi-step
+  llm agent tasks.
+\newblock \emph{arXiv preprint arXiv:2504.08525v4}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2504.08525v4}.
+
+\bibitem[Ye(2025{\natexlab{b}})]{Ye2025Taska}
+Ye~Ye.
+\newblock Task memory engine: Spatial memory for robust multi-step llm agents.
+\newblock \emph{arXiv preprint arXiv:2505.19436v1}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2505.19436v1}.
+
+\bibitem[Yim et~al.(2024)Yim, Chan, Shi, Deng, Fan, Zheng, and
+  Song]{Yim2024Evaluating}
+Yauwai Yim, Chunkit Chan, Tianyu Shi, Zheye Deng, Wei Fan, Tianshi Zheng, and
+  Yangqiu Song.
+\newblock Evaluating and enhancing llms agent based on theory of mind in
+  guandan: A multi-player cooperative game under imperfect information.
+\newblock \emph{arXiv preprint arXiv:2408.02559v1}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2408.02559v1}.
+
+\bibitem[Yu et~al.(2026)Yu, Yao, Xie, Tan, Feng, Li, and Wu]{Yu2026Agentic}
+Yi~Yu, Liuyi Yao, Yuexiang Xie, Qingquan Tan, Jiaqi Feng, Yaliang Li, and
+  Libing Wu.
+\newblock Agentic memory: Learning unified long-term and short-term memory
+  management for large language model agents.
+\newblock \emph{arXiv preprint arXiv:2601.01885v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.01885v1}.
+
+\bibitem[Zahedifar et~al.(2025)Zahedifar, Mirghasemi, Baghshah, and
+  Taheri]{Zahedifar2025Agent}
+Rasoul Zahedifar, Sayyed~Ali Mirghasemi, Mahdieh~Soleymani Baghshah, and
+  Alireza Taheri.
+\newblock Llm-agent-controller: A universal multi-agent large language model
+  system as a control engineer.
+\newblock \emph{arXiv preprint arXiv:2505.19567v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2505.19567v1}.
+
+\bibitem[Zhang et~al.(2024{\natexlab{a}})Zhang, He, Qian, Li, Li, Qin, Kang,
+  Ma, Liu, Lin, Rajmohan, Zhang, and Zhang]{Zhang2024Large}
+Chaoyun Zhang, Shilin He, Jiaxu Qian, Bowen Li, Liqun Li, Si~Qin, Yu~Kang,
+  Minghua Ma, Guyue Liu, Qingwei Lin, Saravan Rajmohan, Dongmei Zhang, and
+  Qi~Zhang.
+\newblock Large language model-brained gui agents: A survey.
+\newblock \emph{arXiv preprint arXiv:2411.18279v12}, 2024{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2411.18279v12}.
+
+\bibitem[Zhang et~al.(2025{\natexlab{a}})Zhang, Zhoubian, Cai, Li, Yang, Wang,
+  Dong, Hu, Tang, and Yue]{Zhang2025Datascibench}
+Dan Zhang, Sining Zhoubian, Min Cai, Fengzu Li, Lekang Yang, Wei Wang, Tianjiao
+  Dong, Ziniu Hu, Jie Tang, and Yisong Yue.
+\newblock Datascibench: An llm agent benchmark for data science.
+\newblock \emph{arXiv preprint arXiv:2502.13897v1}, 2025{\natexlab{a}}.
+\newblock URL \url{http://arxiv.org/abs/2502.13897v1}.
+
+\bibitem[Zhang et~al.(2025{\natexlab{b}})Zhang, Li, Luo, Liu, Li, and
+  Xu]{Zhang2025Security}
+Dongsen Zhang, Zekun Li, Xu~Luo, Xuannan Liu, Peipei Li, and Wenjun Xu.
+\newblock Mcp security bench (msb): Benchmarking attacks against model context
+  protocol in llm agents.
+\newblock \emph{arXiv preprint arXiv:2510.15994v1}, 2025{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2510.15994v1}.
+
+\bibitem[Zhang et~al.(2026)Zhang, Yu, Yang, Wu, Huang, Li, and
+  Yan]{Zhang2026Evoroute}
+Guibin Zhang, Haiyang Yu, Kaiming Yang, Bingli Wu, Fei Huang, Yongbin Li, and
+  Shuicheng Yan.
+\newblock Evoroute: Experience-driven self-routing llm agent systems.
+\newblock \emph{arXiv preprint arXiv:2601.02695v1}, 2026.
+\newblock URL \url{http://arxiv.org/abs/2601.02695v1}.
+
+\bibitem[Zhang et~al.(2025{\natexlab{c}})Zhang, Su, Chen, Bertino, Zhang, and
+  Li]{Zhang2025Agents}
+Kaiyuan Zhang, Zian Su, Pin-Yu Chen, Elisa Bertino, Xiangyu Zhang, and Ninghui
+  Li.
+\newblock Llm agents should employ security principles.
+\newblock \emph{arXiv preprint arXiv:2505.24019v1}, 2025{\natexlab{c}}.
+\newblock URL \url{http://arxiv.org/abs/2505.24019v1}.
+
+\bibitem[Zhang et~al.(2025{\natexlab{d}})Zhang, Iturburu, Villamizar, Liu,
+  Salmeron, Dyke, and Ramirez]{Zhang2025Large}
+Xin Zhang, Lissette Iturburu, Juan~Nicolas Villamizar, Xiaoyu Liu, Manuel
+  Salmeron, Shirley~J. Dyke, and Julio Ramirez.
+\newblock Large language model agent for structural drawing generation using
+  react prompt engineering and retrieval augmented generation.
+\newblock \emph{arXiv preprint arXiv:2507.19771v1}, 2025{\natexlab{d}}.
+\newblock URL \url{http://arxiv.org/abs/2507.19771v1}.
+
+\bibitem[Zhang et~al.(2025{\natexlab{e}})Zhang, Bajaj, Handa, Liu, Raj, Chen,
+  Wang, Liu, Basque, Nath, Juneja, Chapre, Shoshitaishvili, Doupé, Baral, and
+  Wang]{Zhang2025Buildbench}
+Zehua Zhang, Ati~Priya Bajaj, Divij Handa, Siyu Liu, Arvind~S Raj, Hongkai
+  Chen, Hulin Wang, Yibo Liu, Zion~Leonahenahe Basque, Souradip Nath, Vishal
+  Juneja, Nikhil Chapre, Yan Shoshitaishvili, Adam Doupé, Chitta Baral, and
+  Ruoyu Wang.
+\newblock Buildbench: Benchmarking llm agents on compiling real-world
+  open-source software.
+\newblock \emph{arXiv preprint arXiv:2509.25248v1}, 2025{\natexlab{e}}.
+\newblock URL \url{http://arxiv.org/abs/2509.25248v1}.
+
+\bibitem[Zhang et~al.(2024{\natexlab{b}})Zhang, Cui, Lu, Zhou, Yang, Wang, and
+  Huang]{Zhang2024Agent}
+Zhexin Zhang, Shiyao Cui, Yida Lu, Jingzhuo Zhou, Junxiao Yang, Hongning Wang,
+  and Minlie Huang.
+\newblock Agent-safetybench: Evaluating the safety of llm agents.
+\newblock \emph{arXiv preprint arXiv:2412.14470v2}, 2024{\natexlab{b}}.
+\newblock URL \url{http://arxiv.org/abs/2412.14470v2}.
+
+\bibitem[Zhao et~al.(2025)Zhao, Shen, Zhang, Gao, Liu, Ma, Zheng, Lin, Zhang,
+  and Chen]{Zhao2025Achieving}
+Haiteng Zhao, Junhao Shen, Yiming Zhang, Songyang Gao, Kuikun Liu, Tianyou Ma,
+  Fan Zheng, Dahua Lin, Wenwei Zhang, and Kai Chen.
+\newblock Achieving olympia-level geometry large language model agent via
+  complexity boosting reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2512.10534v2}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2512.10534v2}.
+
+\bibitem[Zhong et~al.(2025)Zhong, Raghunathan, and
+  Carlini]{Zhong2025Impossiblebench}
+Ziqian Zhong, Aditi Raghunathan, and Nicholas Carlini.
+\newblock Impossiblebench: Measuring llms' propensity of exploiting test cases.
+\newblock \emph{arXiv preprint arXiv:2510.20270v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2510.20270v1}.
+
+\bibitem[Zhou and Wang(2025)]{Zhou2025Reasoning}
+Xingfu Zhou and Pengfei Wang.
+\newblock Reasoning-style poisoning of llm agents via stealthy style transfer:
+  Process-level attacks and runtime monitoring in rsv space.
+\newblock \emph{arXiv preprint arXiv:2512.14448v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2512.14448v1}.
+
+\bibitem[Zhou et~al.(2024)Zhou, Zanette, Pan, Levine, and
+  Kumar]{Zhou2024Archer}
+Yifei Zhou, Andrea Zanette, Jiayi Pan, Sergey Levine, and Aviral Kumar.
+\newblock Archer: Training language model agents via hierarchical multi-turn
+  rl.
+\newblock \emph{arXiv preprint arXiv:2402.19446v1}, 2024.
+\newblock URL \url{http://arxiv.org/abs/2402.19446v1}.
+
+\bibitem[Zhou et~al.(2025)Zhou, Levine, Weston, Li, and
+  Sukhbaatar]{Zhou2025Self}
+Yifei Zhou, Sergey Levine, Jason Weston, Xian Li, and Sainbayar Sukhbaatar.
+\newblock Self-challenging language model agents.
+\newblock \emph{arXiv preprint arXiv:2506.01716v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2506.01716v1}.
+
+\bibitem[Zhu et~al.(2025)Zhu, Liu, Li, Tian, Yang, Zhang, Han, Xie, Cui, Zhang,
+  Ma, Yu, Ramesh, Wu, Liu, Lu, Zou, and You]{Zhu2025Where}
+Kunlun Zhu, Zijia Liu, Bingxuan Li, Muxin Tian, Yingxuan Yang, Jiaxun Zhang,
+  Pengrui Han, Qipeng Xie, Fuyang Cui, Weijia Zhang, Xiaoteng Ma, Xiaodong Yu,
+  Gowtham Ramesh, Jialian Wu, Zicheng Liu, Pan Lu, James Zou, and Jiaxuan You.
+\newblock Where llm agents fail and how they can learn from failures.
+\newblock \emph{arXiv preprint arXiv:2509.25370v1}, 2025.
+\newblock URL \url{http://arxiv.org/abs/2509.25370v1}.
+
+\end{thebibliography}

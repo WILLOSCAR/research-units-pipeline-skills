@@ -298,6 +298,8 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
         return _check_latex_scaffold(workspace, outputs)
     if skill == "latex-compile-qa":
         return _check_latex_compile_qa(workspace, outputs)
+    if skill == "artifact-contract-auditor":
+        return _check_contract_report(workspace, outputs)
     if skill == "protocol-writer":
         return _check_protocol(workspace, outputs)
     if skill == "tutorial-spec":
@@ -2803,7 +2805,7 @@ def _check_writer_selfloop(workspace: Path, outputs: list[str]) -> list[QualityI
             )
         ]
 
-    if re.search(r"(?im)^-\\s*Status:\\s*PASS\\b", text):
+    if re.search(r"(?im)^-\s*Status:\s*PASS\b", text):
         return []
 
     return [
@@ -4468,3 +4470,30 @@ def _check_latex_compile_qa(workspace: Path, outputs: list[str]) -> list[Quality
         )
 
     return issues
+
+def _check_contract_report(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    out_rel = next((p for p in outputs if p.endswith('CONTRACT_REPORT.md')), 'output/CONTRACT_REPORT.md')
+    path = workspace / out_rel
+    if not path.exists() or path.stat().st_size == 0:
+        return [QualityIssue(code='missing_contract_report', message=f'`{out_rel}` is missing or empty.')]
+
+    text = path.read_text(encoding='utf-8', errors='ignore').strip()
+    if not text:
+        return [QualityIssue(code='empty_contract_report', message=f'`{out_rel}` is empty.')]
+    if _check_placeholder_markers(text) or '…' in text:
+        return [QualityIssue(code='contract_report_placeholders', message=f'`{out_rel}` contains placeholders/ellipsis; regenerate after fixing missing artifacts.')]
+
+    ok_status = bool(re.search(r'(?im)^-\s*Status:\s*PASS\b', text))
+    ok_complete = bool(re.search(r'(?im)^-\s*Pipeline complete \(units\):\s*yes\b', text))
+    if ok_status and ok_complete:
+        return []
+
+    return [
+        QualityIssue(
+            code='contract_report_not_pass',
+            message=(
+                f'`{out_rel}` is not PASS (or pipeline not complete). '
+                'Fix missing artifacts / unit statuses and rerun `artifact-contract-auditor`.'
+            ),
+        )
+    ]

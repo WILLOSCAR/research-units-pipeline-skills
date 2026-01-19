@@ -80,7 +80,7 @@ C5: sections/*.md → output/DRAFT.md → latex/main.pdf                  # 写�
 ```
 你：给我写一个 agent 的 latex-survey
 
-↓ [C0-C1] 检索 200+ 篇论文 → 去重到 150+ 核心集 arxiv 会补全 meta 信息
+↓ [C0-C1] 检索 800+ 篇论文 → 去重到 150+ 核心集 arxiv 会补全 meta 信息
 ↓ [C2] 构建 taxonomy + outline + mapping（NO PROSE）→ 停在 C2 等审批
 
 你：C2 同意，继续
