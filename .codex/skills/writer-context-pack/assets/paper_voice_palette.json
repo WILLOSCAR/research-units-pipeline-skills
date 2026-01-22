@@ -1,0 +1,157 @@
+{
+  "version": "0.2",
+  "notes": [
+    "This palette is a soft writing guide for survey prose (paper voice).",
+    "writer-context-pack will load this file (or workspace override: outline/paper_voice_palette.json) and copy it into each per-H3 writer pack.",
+    "Keep this palette small and composable: it should guide rewrites, not force templates."
+  ],
+  "forbidden_pipeline_voice": [
+    "this run",
+    "this run is",
+    "pipeline",
+    "workspace",
+    "unit",
+    "quality gate",
+    "evidence pack",
+    "evidence packs",
+    "writer context pack",
+    "Method note (evidence policy):"
+  ],
+  "high_risk_templates": [
+    "This subsection surveys",
+    "This subsection argues",
+    "In this subsection",
+    "Next, we move from",
+    "We now turn to",
+    "A few representative references include",
+    "Notable lines of work include",
+    "Concrete examples include",
+    "Work in this area includes",
+    "Recent systems include",
+    "Examples include",
+    "Representative systems include",
+    "Therefore, survey synthesis should",
+    "Therefore, survey comparisons should",
+    "As a result, survey comparisons should",
+    "survey synthesis should",
+    "survey comparisons should",
+    "Taken together,",
+    "claims remain provisional under abstract-only evidence",
+    "abstract-only evidence",
+    "Key takeaway:",
+    "Main takeaway:"
+  ],
+  "opener_archetypes": {
+    "tension-first": [
+      "A key tension is",
+      "The central trade-off is",
+      "A recurring constraint is"
+    ],
+    "decision-first": [
+      "For system builders, the crux is",
+      "A practical decision is",
+      "One design choice is"
+    ],
+    "lens-first": [
+      "Seen through the lens of",
+      "From the perspective of",
+      "Under an interface contract,"
+    ]
+  },
+  "synthesis_stems": [
+    "Across these studies,",
+    "Collectively,",
+    "In summary,",
+    "The evidence suggests that",
+    "A consistent theme is that"
+  ],
+  "rewrite_rules": [
+    {
+      "avoid_stem": "This subsection surveys",
+      "prefer_stem": "A key tension is"
+    },
+    {
+      "avoid_stem": "In this subsection",
+      "prefer_stem": "We focus on"
+    },
+    {
+      "avoid_stem": "Next, we move",
+      "prefer_stem": "Having established"
+    },
+    {
+      "avoid_stem": "We now turn",
+      "prefer_stem": "We then examine"
+    },
+    {
+      "avoid_stem": "survey comparisons should",
+      "prefer_stem": "Across protocols, we observe"
+    }
+  ],
+  "discourse_stem_watchlist": [
+    "Additionally,",
+    "Moreover,",
+    "Furthermore,",
+    "This suggests",
+    "Taken together,"
+  ],
+  "discourse_stem_rewrites": {
+    "Additionally,": [
+      "More importantly,",
+      "At the same time,",
+      "A second consideration is"
+    ],
+    "This suggests": [
+      "This pattern indicates",
+      "These results point to",
+      "A plausible explanation is"
+    ],
+    "Taken together,": [
+      "Across these studies,",
+      "Collectively,",
+      "The evidence suggests"
+    ]
+  },
+  "role_cards": {
+    "section_author": {
+      "mission": "Write one subsection as an argument (not a topic list), using in-scope citations as evidence.",
+      "do": [
+        "State a concrete tension/trade-off early and commit to a thesis.",
+        "Make at least two explicit A-vs-B contrasts (mechanism -> outcome) instead of per-paper summaries.",
+        "When citing numbers, add minimal context (task + metric + constraint) in the same paragraph.",
+        "End with a limitation that changes interpretation (protocol mismatch, unclear threat model, missing ablations)."
+      ],
+      "avoid": [
+        "Outline narration (This subsection..., In this subsection...).",
+        "Slide navigation (Next, we move..., We now turn...).",
+        "Meta survey advice (survey comparisons should...).",
+        "Cite dumps (a trailing [@a; @b; @c] without a claim)."
+      ]
+    },
+    "evidence_steward": {
+      "mission": "Keep claims auditable: citations support the sentence that needs them, and scope stays local.",
+      "do": [
+        "Embed citations inside claim sentences; name concrete nouns (system/benchmark/protocol) near each cite.",
+        "Prefer subsection-scoped citations; use chapter/global only when truly cross-cutting.",
+        "Downgrade overconfident claims when evidence is thin; convert unknowns into verification targets (once, not spam)."
+      ],
+      "avoid": [
+        "Out-of-scope citations to make a paragraph sound stronger.",
+        "Repeating evidence-policy disclaimers in every subsection.",
+        "Ambiguous model naming (e.g., GPT-5) unless the cited work uses it."
+      ]
+    },
+    "style_harmonizer": {
+      "mission": "Make the prose read like a paper: calm, specific, and varied in rhythm without sounding templated.",
+      "do": [
+        "Vary opener cadence across sections (tension-first / decision-first / lens-first) without reusing the same stem.",
+        "Prefer argument bridges over navigation; keep signposting light and content-bearing.",
+        "Reduce slash-enumerations (A/B/C axis labels) by rewriting into natural prose."
+      ],
+      "avoid": [
+        "Repeated discourse stems (Additionally, This suggests, Taken together) across many paragraphs.",
+        "Pipeline words (workspace/unit/quality gate/evidence pack) in reader-facing text.",
+        "PPT speaker-note tone (Now we..., The remainder of...)."
+      ]
+    }
+  }
+}

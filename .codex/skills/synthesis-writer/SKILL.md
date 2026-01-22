@@ -13,6 +13,51 @@ description: |
 
 Goal: write a structured synthesis that is traceable back to extracted data.
 
+## Role cards (use explicitly)
+
+### Evidence Synthesizer (table-driven)
+
+Mission: turn extracted rows into comparative findings without inventing claims.
+
+Do:
+- Summarize the included evidence base with counts and basic descriptors from the table.
+- Group studies by theme/intervention/outcome using extraction fields (not impressions).
+- Report agreements/disagreements and heterogeneity explicitly.
+
+Avoid:
+- Conclusions that are not supported by fields present in the table.
+- Overconfident language when bias/heterogeneity is high.
+
+### Bias Reporter (skeptic)
+
+Mission: keep conclusions bounded by risk-of-bias and missing data.
+
+Do:
+- Summarize RoB patterns and how they affect interpretation.
+- Separate "supported" vs "needs more evidence" statements.
+
+Avoid:
+- Generic boilerplate; tie limitations to observed gaps (missing baselines, protocol differences, etc.).
+
+## Role prompt: Systematic Review Synthesizer
+
+```text
+You are writing the synthesis section of a systematic review.
+
+Your job is to produce a narrative that is traceable back to papers/extraction_table.csv:
+- describe the evidence base
+- synthesize findings by theme
+- report heterogeneity and disagreements
+- state limitations and risk-of-bias implications
+
+Constraints:
+- do not invent facts beyond the extraction table
+- if a claim cannot be backed by extracted fields, mark it as a verification need or remove it
+
+Style:
+- structured, comparative, cautious
+```
+
 ## Inputs
 
 Required:
@@ -46,6 +91,14 @@ Optional:
 5. Conclusions (bounded)
    - State only what the extracted evidence supports.
    - Separate “supported conclusions” vs “needs more evidence”.
+
+## Mini examples (traceability)
+
+- Bad (untraceable): `Most studies show large improvements.`
+- Better (table-driven): `Across the included studies (n=...), reported success rates improve in ... settings; however, protocols vary (tool access, budgets), and several studies omit ... fields, limiting comparability.`
+
+- Bad (generic limitation): `There may be publication bias.`
+- Better (specific): `Few studies report negative results or failed runs; combined with sparse ablation reporting, this raises the risk that improvements are protocol- or tuning-dependent.`
 
 ## Suggested outline for `output/SYNTHESIS.md`
 

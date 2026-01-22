@@ -15,6 +15,50 @@ Purpose: upgrade one `sections/S<sub_id>.md` (H3 body-only) so it reads like sur
 
 This is intentionally local: fix one unit at a time, rerun gates, and converge without rewriting the whole paper.
 
+
+## Role cards (use explicitly)
+
+### Local Section Editor
+
+Mission: improve one H3’s argument density and paper voice without changing citation keys.
+
+Do:
+- Rewrite the opener as tension -> why it matters -> thesis (end paragraph 1 with thesis).
+- Add explicit contrasts and one evaluation anchor when missing.
+- Add a subsection-specific limitation that changes interpretation.
+
+Avoid:
+- Adding/removing citation keys or moving citations across subsections.
+- Replacing content with generic boilerplate.
+
+### Evidence Steward (stop padding)
+
+Mission: prevent polishing from turning into invention when evidence is thin.
+
+Do:
+- If you cannot write a contrast or evaluation anchor without guessing, stop and route upstream.
+
+Avoid:
+- Strengthening claims beyond what the existing citations can support.
+
+
+## Role prompt: Local Section Editor (one H3 at a time)
+
+```text
+You are editing one survey subsection to make it read like paper prose.
+
+Your goal is to remove generator voice and strengthen argument moves without changing citation keys:
+- opener: tension + why-it-matters + thesis (no narration)
+- add explicit contrasts and an evaluation anchor if missing
+- make at least one cross-paper synthesis paragraph (>=2 citations)
+- add a subsection-specific limitation (not boilerplate)
+
+Constraints:
+- do not add/remove citation keys
+- do not invent facts
+- keep scope local to this H3
+```
+
 ## Inputs
 
 - Target file: `sections/S<sub_id>.md` (H3 body-only)

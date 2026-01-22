@@ -514,6 +514,11 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
             "- Ensure all required `sections/*.md` exist (see `output/MERGE_REPORT.md` for missing paths), then rerun merge.",
             "- After merge, polish/review the combined `output/DRAFT.md` (then run `pipeline-auditor` before LaTeX).",
         ],
+        "post-merge-voice-gate": [
+            "- Open `output/POST_MERGE_VOICE_REPORT.md` and fix the earliest responsible artifact it points to.",
+            "- If the report says `source: transitions`: rewrite `outline/transitions.md` as content-bearing argument bridges (no planner talk, no A/B/C slash labels), then rerun `section-merger` and this gate.",
+            "- If the report says `source: draft`: route to `writer-selfloop` / `subsection-polisher` / `draft-polisher` for the flagged section, then rerun `section-merger` and this gate.",
+        ],
         "prose-writer": [
             "- Treat any leaked scaffold text (`…`, `enumerate 2-4 ...`, 'Scope and definitions ...') as a HARD FAIL: fix outline/claims first, then draft.",
             "- For each subsection, write a unique thesis + 2 contrast sentences (A vs B) + 1 failure mode, each backed by citations.",
@@ -1723,6 +1728,46 @@ def _check_subsection_briefs(workspace: Path, outputs: list[str]) -> list[Qualit
                 message=f"`{out_rel}` has {bad} subsection brief(s) missing required fields or lacking axes/clusters/plan depth.",
             )
         )
+
+    # Writing-quality canary: repeated tensions almost always become repeated subsection openers later.
+    # Keep this check lightweight (no semantics), but block obvious duplicates in strict runs.
+    if profile == "arxiv-survey":
+        def _norm_sentence(s: str) -> str:
+            s = re.sub(r"\[@[^\]]+\]", "", s or "")
+            s = re.sub(r"\s+", " ", s).strip().lower()
+            return s
+
+        tension_to_ids: dict[str, list[str]] = {}
+        for sid, rec in by_id.items():
+            t = _norm_sentence(str(rec.get("tension_statement") or ""))
+            if not t:
+                continue
+            tension_to_ids.setdefault(t, []).append(sid)
+        dup_tensions = [ids for _, ids in tension_to_ids.items() if len(ids) >= 2]
+        if dup_tensions:
+            sample = ", ".join([",".join(ids[:3]) + ("..." if len(ids) > 3 else "") for ids in dup_tensions[:3]])
+            issues.append(
+                QualityIssue(
+                    code="subsection_briefs_repeated_tension",
+                    message=(
+                        f"`{out_rel}` contains repeated `tension_statement` across subsections (e.g., {sample}). "
+                        "Rewrite tensions to be subsection-specific (this prevents repeated H3 openers / generator voice in C5)."
+                    ),
+                )
+            )
+
+        # Explicit refinement marker: treat bootstrap outputs as scaffolds until reviewed/refined.
+        refined_marker = workspace / "outline" / "subsection_briefs.refined.ok"
+        if not issues and not refined_marker.exists():
+            issues.append(
+                QualityIssue(
+                    code="subsection_briefs_not_refined",
+                    message=(
+                        f"`{out_rel}` exists but is not marked refined. "
+                        "After you manually refine briefs (especially unique tension/thesis), create `outline/subsection_briefs.refined.ok`."
+                    ),
+                )
+            )
     return issues
 
 
@@ -1834,6 +1879,20 @@ def _check_chapter_briefs(workspace: Path, outputs: list[str]) -> list[QualityIs
                 message=f"`{out_rel}` has {bad} chapter brief(s) missing required fields (subsections/throughline/lead plan/bridge terms).",
             )
         )
+
+    profile = _pipeline_profile(workspace)
+    if profile == "arxiv-survey" and not issues:
+        refined_marker = workspace / "outline" / "chapter_briefs.refined.ok"
+        if not refined_marker.exists():
+            issues.append(
+                QualityIssue(
+                    code="chapter_briefs_not_refined",
+                    message=(
+                        f"`{out_rel}` exists but is not marked refined. "
+                        "After you manually refine chapter throughlines (avoid generic glue), create `outline/chapter_briefs.refined.ok`."
+                    ),
+                )
+            )
 
     return issues
 
@@ -2033,6 +2092,19 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
                 message=f"`{out_rel}` has {bad} invalid pack(s) (missing required blocks or missing sub_id/title).",
             )
         )
+
+    if profile == "arxiv-survey" and not issues:
+        refined_marker = workspace / "outline" / "evidence_drafts.refined.ok"
+        if not refined_marker.exists():
+            issues.append(
+                QualityIssue(
+                    code="evidence_drafts_not_refined",
+                    message=(
+                        f"`{out_rel}` exists but is not marked refined. "
+                        "After you confirm packs are complete (no `blocking_missing`) and subsection-specific, create `outline/evidence_drafts.refined.ok`."
+                    ),
+                )
+            )
     return issues
 
 
@@ -2116,6 +2188,20 @@ def _check_anchor_sheet(workspace: Path, outputs: list[str]) -> list[QualityIssu
                 message=f"`{out_rel}` has {bad} invalid record(s) (missing sub_id/title or missing citation-backed anchors).",
             )
         )
+
+    profile = _pipeline_profile(workspace)
+    if profile == "arxiv-survey" and not issues:
+        refined_marker = workspace / "outline" / "anchor_sheet.refined.ok"
+        if not refined_marker.exists():
+            issues.append(
+                QualityIssue(
+                    code="anchor_sheet_not_refined",
+                    message=(
+                        f"`{out_rel}` exists but is not marked refined. "
+                        "After you verify anchors are subsection-specific and cite-backed, create `outline/anchor_sheet.refined.ok`."
+                    ),
+                )
+            )
     return issues
 
 
@@ -2457,6 +2543,19 @@ def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[Qua
                     message=f"Many writer context packs lack `comparison_cards` ({len(sparse_comparisons)}/{len(items)}); strengthen `evidence-draft` concrete comparisons before drafting.",
                 )
             )
+
+    if profile == "arxiv-survey" and not issues:
+        refined_marker = workspace / "outline" / "writer_context_packs.refined.ok"
+        if not refined_marker.exists():
+            issues.append(
+                QualityIssue(
+                    code="writer_context_packs_not_refined",
+                    message=(
+                        f"`{out_rel}` exists but is not marked refined. "
+                        "After you spot-check packs for scope/citation constraints and anti-template guidance, create `outline/writer_context_packs.refined.ok`."
+                    ),
+                )
+            )
     return issues
 
 
@@ -2553,6 +2652,19 @@ def _check_evidence_bindings(workspace: Path, outputs: list[str]) -> list[Qualit
         report = report_path.read_text(encoding="utf-8", errors="ignore").strip()
         if report and (_check_placeholder_markers(report) or "…" in report):
             return [QualityIssue(code="evidence_binding_report_placeholders", message=f"`{report_rel}` contains placeholders; regenerate binder report.")]
+
+    if profile == "arxiv-survey":
+        refined_marker = workspace / "outline" / "evidence_bindings.refined.ok"
+        if not refined_marker.exists():
+            return [
+                QualityIssue(
+                    code="evidence_bindings_not_refined",
+                    message=(
+                        f"`{out_rel}` exists but is not marked refined. "
+                        "After you verify `binding_gaps` / `tag mix` are subsection-specific, create `outline/evidence_bindings.refined.ok`."
+                    ),
+                )
+            ]
 
     return []
 
@@ -2715,6 +2827,8 @@ def _check_transitions(workspace: Path, outputs: list[str]) -> list[QualityIssue
     banned: list[tuple[str, str]] = [
         (r"(?i)\bafter\b[^\n]{0,180}\bmakes\s+the\s+bridge\s+explicit\s+via\b", "transitions_planner_talk_after_via"),
         (r"(?i)\bfollows\s+naturally\s+by\s+turning\b", "transitions_planner_talk_turning"),
+        (r"(?i)\bthe\s+remaining\s+uncertainty\s+is\b", "transitions_planner_talk_remaining_uncertainty"),
+        (r"(?i)\bto\s+keep\s+the\s+chapter(?:'|’)?s\b", "transitions_planner_talk_keep_chapter"),
     ]
     for pat, code in banned:
         if re.search(pat, text):
@@ -2736,6 +2850,22 @@ def _check_transitions(workspace: Path, outputs: list[str]) -> list[QualityIssue
                 message=(
                     f"`{out_rel}` contains semicolon-style enumerations; "
                     "rewrite each transition as a single content sentence (no list-like construction notes)."
+                ),
+            )
+        ]
+
+    # Slash-list axis markers (A / B / C) read like planning notes once injected into the draft.
+    # We only block the high-signal triple-token form to avoid over-constraining legitimate terms.
+    if re.search(
+        r"\b[A-Za-z][A-Za-z0-9_-]{1,18}\s*/\s*[A-Za-z][A-Za-z0-9_-]{1,18}\s*/\s*[A-Za-z][A-Za-z0-9_-]{1,18}\b",
+        text,
+    ):
+        return [
+            QualityIssue(
+                code="transitions_slash_list_axes",
+                message=(
+                    f"`{out_rel}` contains slash-list axis markers (A/B/C); "
+                    "rewrite into natural prose (use 'and/or', avoid axis-label strings)."
                 ),
             )
         ]
@@ -3147,7 +3277,11 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 )
             )
             break
-        if re.search(r"(?i)\babstracts are treated as verification targets\b", text) or re.search(r"(?i)\bthe main axes we track are\b", text):
+        if (
+            re.search(r"(?i)\babstracts are treated as verification targets\b", text)
+            or re.search(r"(?i)\bthe main axes we track are\b", text)
+            or re.search(r"(?i)\bevidence\s+packs?\b", text)
+        ):
             issues.append(
                 QualityIssue(
                     code="sections_contains_pipeline_voice",

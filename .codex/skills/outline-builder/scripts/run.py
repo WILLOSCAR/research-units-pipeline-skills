@@ -156,11 +156,11 @@ def _subsection_bullets(*, parent: str, title: str, hint: str = "") -> list[str]
         bullets.append(f"Scope cues: {hint_short}")
     bullets.extend(
         [
-            "Evidence needs: mechanism/architecture; data/training setup; evaluation protocol (datasets/metrics/human); efficiency/compute; failure modes/limitations.",
+            "Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics, human evaluation), compute and latency constraints, and failure modes and limitations.",
             "Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.",
             "Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.",
-            "Evaluation anchors: name 1–3 benchmarks/datasets/metrics/protocols that will appear in the subsection.",
-            "Comparison axes: mechanism; data; evaluation; efficiency; limitations (refine with evidence in later stages).",
+            "Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.",
+            "Comparison axes: choose 3-5 concrete axes specific to this subsection (avoid repeating the same generic axes across all H3).",
         ]
     )
     return bullets

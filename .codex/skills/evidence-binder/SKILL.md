@@ -15,6 +15,10 @@ Goal: convert a paper-level pool into a **subsection-addressable evidence plan**
 
 This skill is the bridge from “Evidence Bank” → “Writer”: the writer should only use evidence IDs bound to the current subsection.
 
+Why this matters for writing quality:
+- Weak/undifferentiated bindings force the writer to either pad prose or cite out-of-scope.
+- Treat `binding_gaps` as a routing signal: fix upstream evidence/mapping instead of "writing around" missing evidence.
+
 ## Inputs
 
 - `outline/subsection_briefs.jsonl`
@@ -27,7 +31,7 @@ This skill is the bridge from “Evidence Bank” → “Writer”: the writer s
 
 - `outline/evidence_bindings.jsonl` (1 JSONL record per subsection)
 - `outline/evidence_binding_report.md` (summary; bullets + small tables)
-  - Includes a `gaps` column so missing evidence types are visible per subsection.
+  - Includes `gaps` (missing required evidence fields) and `tag mix` (selected evidence tags) so subsection-specific evidence needs are visible.
 
 ## Output format (`outline/evidence_bindings.jsonl`)
 
@@ -38,7 +42,7 @@ JSONL (one object per H3 subsection). Best-effort fields (keep deterministic):
 - `mapped_bibkeys` (bibkeys mapped to this subsection)
 - `bibkeys` (a selected subset to encourage subsection-first citations)
 - `evidence_ids` (selected evidence items from `papers/evidence_bank.jsonl`)
-- `evidence_counts` (small summary by claim_type / evidence_level)
+- `evidence_counts` (small summary by claim_type / tag / evidence_level)
 - `binding_rationale` (short bullets; why the selected evidence covers this subsection’s axes / desired tags)
 - `binding_gaps` (list[str]; required evidence fields not covered by selected evidence; drives the evidence self-loop upstream)
 
@@ -60,6 +64,15 @@ JSONL (one object per H3 subsection). Best-effort fields (keep deterministic):
 ## Freeze policy
 
 - If `outline/evidence_bindings.refined.ok` exists, the script will not overwrite `outline/evidence_bindings.jsonl`.
+- Treat this marker as an explicit refinement/completion signal (especially in strict runs): only create it after you have checked `binding_gaps` and `tag mix` look subsection-specific.
+
+## Heterogeneity sanity check (avoid recipe-like bindings)
+
+A common hidden failure mode is *mechanical uniformity*: every H3 ends up with the same `claim_type`/`tag mix`, which hides what each subsection is actually missing and pushes the writer toward generic prose.
+
+Before you mark bindings as refined:
+- Scan `outline/evidence_binding_report.md`: different H3 should show meaningfully different `tag mix` / `claim_type` balance.
+- If most H3 look identical, treat it as a binder smell: tighten `required_evidence_fields`, adjust selection rationale, or enrich the evidence bank, then rerun.
 
 ## Script
 

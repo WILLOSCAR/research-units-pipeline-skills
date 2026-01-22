@@ -36,6 +36,20 @@ def _tokenize(text: str) -> set[str]:
         toks.add(t)
     return toks
 
+def _need_tag(field: str) -> str | None:
+    low = str(field or '').lower()
+    if any(w in low for w in ['benchmark', 'benchmarks', 'dataset', 'datasets', 'metric', 'metrics', 'evaluation', 'protocol']):
+        return 'evaluation'
+    if any(w in low for w in ['tool', 'tools', 'api', 'function', 'schema', 'mcp', 'interface']):
+        return 'tooling'
+    if any(w in low for w in ['memory', 'retrieval', 'rag', 'cache']):
+        return 'memory'
+    if any(w in low for w in ['security', 'attack', 'threat', 'guardrail', 'sandbox', 'injection', 'jailbreak']):
+        return 'security'
+    if any(w in low for w in ['compute', 'cost', 'latency', 'token', 'budget', 'efficien']):
+        return 'numbers'
+    return None
+
 
 def _score_item(item: dict[str, Any], *, want: set[str]) -> float:
     kind = str(item.get('claim_type') or '').strip().lower()
@@ -65,7 +79,9 @@ def _score_item(item: dict[str, Any], *, want: set[str]) -> float:
 
     # Light keyword overlap against the snippet itself.
     snip_toks = _tokenize(snippet)
-    score += 0.06 * len(snip_toks & want)
+    # Slightly stronger than before: subsection-specific title/axes terms should matter,
+    # otherwise selection collapses into a near-constant "result-heavy" recipe.
+    score += 0.10 * len(snip_toks & want)
 
     return score
 
@@ -184,6 +200,27 @@ def main() -> int:
         if any(k in joined for k in ['compute', 'cost', 'latency', 'token', 'budget', 'efficien']):
             want_tags.add('numbers')
 
+        # Tag targets: derive a small "coverage budget" from required_evidence_fields to avoid
+        # a constant per-subsection recipe (and make subsection-specific needs visible).
+        required_tag_counts: dict[str, int] = {}
+        for field in required_fields:
+            tag = _need_tag(str(field or ''))
+            if not tag:
+                continue
+            required_tag_counts[tag] = required_tag_counts.get(tag, 0) + 1
+
+        tag_target: dict[str, int] = {}
+        for tag in sorted(want_tags):
+            # Default: cover each desired tag at least once when possible.
+            n = 1
+            # If multiple required fields map to the same tag, prefer >=2 supporting items.
+            if required_tag_counts.get(tag, 0) >= 2:
+                n = 2
+            # Some tags are typically under-specified with only one snippet.
+            if tag in {'evaluation', 'security', 'numbers'} and required_tag_counts.get(tag, 0) >= 1:
+                n = max(n, 2)
+            tag_target[tag] = n
+
         pids = pids_by_sub.get(sid) or []
         if not pids:
             # Fallback: use cluster paper_ids if mapping is missing.
@@ -230,20 +267,30 @@ def main() -> int:
             used_paper[pid] = used_paper.get(pid, 0) + 1
             used_kind[kind] = used_kind.get(kind, 0) + 1
 
-        # Seed diversity: try to ensure at least 1 method + 2 results + 1 limitation if available.
-        for kind in ['method', 'result', 'result', 'limitation']:
+        # Seed: keep a minimal "writeable" mix (contrast + mechanism + limitation),
+        # but let subsection-specific tag targets shape the rest.
+        for kind in ['result', 'result', 'method', 'limitation']:
             for _, _, it in scored:
                 if str(it.get('claim_type') or '').strip().lower() != kind:
                     continue
                 pick(it)
                 break
 
-        # Subsection-specific tag coverage: prefer at least one item per desired tag when available.
-        for tag in sorted(want_tags):
+        # Subsection-specific tag coverage: satisfy tag targets when available.
+        for tag in sorted(tag_target.keys()):
+            target_n = int(tag_target.get(tag, 0) or 0)
+            if target_n <= 0:
+                continue
+            picked_n = 0
             for _, _, it in scored:
                 tags = set([str(t).strip().lower() for t in (it.get('tags') or []) if str(t).strip()])
-                if tag in tags:
-                    pick(it)
+                if tag not in tags:
+                    continue
+                before = len(selected)
+                pick(it)
+                if len(selected) > before:
+                    picked_n += 1
+                if picked_n >= target_n:
                     break
 
         for _, _, it in scored:
@@ -283,20 +330,6 @@ def main() -> int:
                     continue
                 selected_tags[t] = selected_tags.get(t, 0) + 1
 
-        def _need_tag(field: str) -> str | None:
-            low = str(field or '').lower()
-            if any(w in low for w in ['benchmark', 'benchmarks', 'dataset', 'datasets', 'metric', 'metrics', 'evaluation', 'protocol']):
-                return 'evaluation'
-            if any(w in low for w in ['tool', 'tools', 'api', 'function', 'schema', 'mcp', 'interface']):
-                return 'tooling'
-            if any(w in low for w in ['memory', 'retrieval', 'rag', 'cache']):
-                return 'memory'
-            if any(w in low for w in ['security', 'attack', 'threat', 'guardrail', 'sandbox', 'injection', 'jailbreak']):
-                return 'security'
-            if any(w in low for w in ['compute', 'cost', 'latency', 'token', 'budget', 'efficien']):
-                return 'numbers'
-            return None
-
         binding_gaps: list[str] = []
         for field in required_fields:
             tag = _need_tag(str(field or ''))
@@ -329,6 +362,7 @@ def main() -> int:
                 'evidence_counts': {
                     'selected_total': len(eids),
                     'by_claim_type': by_kind,
+                    'by_tag': selected_tags,
                     'by_evidence_level': by_lvl,
                 },
                 'binding_rationale': binding_rationale,
@@ -349,8 +383,8 @@ def main() -> int:
         '',
         '## Per-subsection stats',
         '',
-        '| Subsection | evidence_ids | claim_type mix | evidence_level mix | gaps |',
-        '|---|---:|---|---|---|',
+        '| Subsection | evidence_ids | claim_type mix | tag mix | evidence_level mix | gaps |',
+        '|---|---:|---|---|---|---|',
     ]
 
     for rec in sorted(records, key=lambda r: tuple(int(p) for p in str(r.get('sub_id') or '0').split('.') if p.isdigit())):
@@ -358,13 +392,19 @@ def main() -> int:
         title = str(rec.get('title') or '').strip()
         cnt = rec.get('evidence_counts') or {}
         by_kind = cnt.get('by_claim_type') or {}
+        by_tag = cnt.get('by_tag') or {}
         by_lvl = cnt.get('by_evidence_level') or {}
         kind_txt = ', '.join([f"{k}={v}" for k, v in sorted(by_kind.items())]) if isinstance(by_kind, dict) else '—'
+        tag_txt = '—'
+        if isinstance(by_tag, dict) and by_tag:
+            top = sorted(by_tag.items(), key=lambda kv: (-kv[1], kv[0]))[:4]
+            tag_txt = ', '.join([f"{k}={v}" for k, v in top if v])
+            tag_txt = tag_txt if tag_txt else '—'
         lvl_txt = ', '.join([f"{k}={v}" for k, v in sorted(by_lvl.items())]) if isinstance(by_lvl, dict) else '—'
         gaps = rec.get('binding_gaps') or []
         gaps_txt = ', '.join([str(g).strip() for g in gaps if str(g).strip()]) if isinstance(gaps, list) else ''
         gaps_txt = gaps_txt if gaps_txt else '—'
-        lines.append(f"| {sid} {title} | {cnt.get('selected_total', 0)} | {kind_txt} | {lvl_txt} | {gaps_txt} |")
+        lines.append(f"| {sid} {title} | {cnt.get('selected_total', 0)} | {kind_txt} | {tag_txt} | {lvl_txt} | {gaps_txt} |")
 
     if flags:
         lines.extend(['', '## Flags', ''])

@@ -13,6 +13,49 @@ description: |
 
 Goal: define an executable tutorial scope so downstream planning can be deterministic.
 
+## Role cards (use explicitly)
+
+### Curriculum Designer (scope guardian)
+
+Mission: define what the tutorial will and will not do so planning and writing do not drift.
+
+Do:
+- Specify audience and prerequisites precisely.
+- Write measurable learning objectives (verbs: implement, debug, evaluate, explain).
+- Define explicit non-goals to prevent scope creep.
+
+Avoid:
+- Vague objectives ("understand", "get familiar").
+- A running example that is too large to finish end-to-end.
+
+### Instructor (teaching loop)
+
+Mission: pick a running example and outputs that can be verified by exercises later.
+
+Do:
+- Choose a consistent running example that reappears in every module.
+- State expected deliverables (format, language, approximate length).
+
+Avoid:
+- Blog-post style prose without checkpoints/exercises.
+
+## Role prompt: Tutorial Spec Author
+
+```text
+You are defining the spec for a tutorial.
+
+Your job is to lock scope and teaching intent before writing content:
+- audience + prerequisites
+- measurable learning objectives
+- non-goals
+- running example (simple but non-trivial)
+- deliverable format and constraints
+
+Style:
+- structured, low prose
+- every item should be testable later via an exercise
+```
+
 ## Inputs
 
 Required:
@@ -43,6 +86,14 @@ Optional:
 3. Propose a running example that can survive the whole tutorial (simple but non-trivial).
 4. Write `output/TUTORIAL_SPEC.md` using the template above.
 5. Ensure every learning objective is measurable (can be verified by an exercise later).
+
+## Mini examples (measurable objectives)
+
+- Vague: `Understand tool calling.`
+- Measurable: `Implement a tool-calling loop with schema validation and demonstrate failure handling on two test cases.`
+
+- Vague: `Learn evaluation.`
+- Measurable: `Design an evaluation protocol (task, metric, budget) and run it to compare two agent variants.`
 
 ## Definition of Done
 

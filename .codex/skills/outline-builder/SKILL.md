@@ -15,6 +15,26 @@ Convert a taxonomy into a **checkable, mappable outline** (bullets only).
 
 Bullets should describe *what the section must cover*, not draft prose.
 
+## Role cards (prompt-level guidance)
+
+Use these roles explicitly while drafting the outline. They guide decisions, not phrasing; avoid producing copyable prose sentences.
+
+- **Outline Architect**
+  - Mission: design a paper-like ToC (few, thick chapters) that a reader would expect.
+  - Do: budget H2/H3 counts; ensure each H3 is writeable (has a real comparison lens + evaluation angle).
+  - Avoid: H3 explosion (many tiny buckets) and generic axis lists repeated everywhere.
+
+- **Writer Proxy**
+  - Mission: simulate the downstream writer and ask: “Could I draft this H3 without guessing?”
+  - Do: make each H3’s bullets encode tension + contrasts + evaluation anchors + failure modes.
+  - Avoid: bullets that sound like narration (“This subsection…”) or slide transitions (“Next, we…”).
+
+- **Scope Guardian**
+  - Mission: prevent silent scope drift.
+  - Do: make in/out scope cues explicit in bullets (especially for boundaries like single-agent vs multi-agent, tool use vs RAG, etc.).
+  - Avoid: leaving scope implicit and hoping the writer fixes it in prose.
+
+
 ## When to use
 
 - You have a taxonomy and need an outline for mapping papers and building evidence.
@@ -98,6 +118,15 @@ Optional style calibration (recommended for paper-like structure):
 - The script generates a baseline bullets-only outline and never overwrites non-placeholder work.
 - Paper-like default: it inserts `Introduction` and `Related Work` as fixed H2 sections before taxonomy-driven chapters.
 - In `pipeline.py --strict` it will be blocked only if placeholder markers (TODO/TBD/FIXME/(placeholder)) remain.
+
+### Refinement marker (recommended; completion signal)
+
+When you are satisfied with the outline (and after C2 approval if applicable), create:
+- `outline/outline.refined.ok`
+
+This is an explicit "I reviewed/refined this" signal:
+- makes it harder for a scaffold-y outline to silently pass in strict runs
+- documents that bullets were rewritten into subsection-specific, checkable requirements
 
 ## Troubleshooting
 

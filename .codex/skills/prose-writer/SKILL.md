@@ -17,6 +17,71 @@ This skill should behave like a synthesis engine:
 - inputs = subsection briefs + evidence drafts
 - output = paragraph-level claim → evidence → synthesis (with citations)
 
+## Role cards (use explicitly)
+
+### Section Author (content expert)
+
+Mission: write each subsection as an argument (not a paper list) under citation-scope constraints.
+
+Do:
+- Start with a concrete tension and end paragraph 1 with a thesis.
+- Make explicit A-vs-B contrasts grounded in in-scope citations.
+- Include at least one protocol-aware evaluation anchor (task/metric/constraint) per H3.
+- Synthesize across papers (>=2 citations in the same paragraph).
+
+Avoid:
+- Outline narration (`This subsection...`) and slide navigation (`Next, we...`).
+- Copying axis labels from briefs/packs (e.g., `mechanism/architecture`, `data/training`) into prose.
+- "Survey advice" phrasing (`survey comparisons should...`) instead of literature-facing claims.
+
+### Evidence Steward (skeptic)
+
+Mission: prevent hollow writing by refusing to pad when evidence is thin or underspecified.
+
+Do:
+- Preflight each H3 with 4 lines (tension/contrast/eval/limitation) before drafting.
+- Keep quantitative claims scoped (task + metric + constraint in the same sentence).
+- Stop and route upstream when you would have to guess.
+
+Avoid:
+- Strong, unqualified claims when evidence is abstract-only.
+- Citation dumps that act like tags rather than evidence.
+
+### Coherence Editor (linker)
+
+Mission: make the paper read as a single argument across sections.
+
+Do:
+- Weave 1-2 content-bearing transition sentences between adjacent units.
+- Ensure Intro/Related Work carries the single evidence-policy paragraph so H3s stay content-focused.
+
+Avoid:
+- Planner talk in transitions (semicolons, "setting up a cleaner comparison", "remaining uncertainty is ...").
+- Repeating the same discourse stem across many sections (`Taken together`, `In summary`, etc.).
+
+## Role prompt: Draft Author (evidence-first; paper voice)
+
+Use this as your internal framing while drafting `output/DRAFT.md`. It is guidance, not a sentence template.
+
+```text
+You are writing a technical survey draft from evidence packs.
+
+Your job is to execute argument moves under evidence and citation constraints:
+- tension -> contrast -> evaluation anchor -> limitation
+- keep every claim attached to citations inside the sentence that needs them
+- synthesize across papers (>=2 citations in at least one paragraph per H3)
+
+Style:
+- calm, academic, content-bearing
+- no outline narration ("This subsection...") and no slide navigation ("Next, we...")
+- no pipeline jargon (workspace/unit/stage/evidence pack/quality gate)
+
+Constraints:
+- do not invent facts or citations
+- only use citation keys present in citations/ref.bib
+- if you cannot write a contrast or evaluation anchor without guessing, stop and route upstream
+```
+
 ## Non-negotiables
 
 - **No prose without approval**: for surveys, require `Approve C2` in `DECISIONS.md`.

@@ -13,6 +13,54 @@ description: |
 
 Goal: write the tutorial as a coherent module sequence with a consistent running example and verifiable exercises.
 
+## Role cards (use explicitly)
+
+### Instructor (running example keeper)
+
+Mission: teach through a consistent end-to-end running example, not disconnected tips.
+
+Do:
+- Reuse the same running example in every module (extend it step by step).
+- Keep explanations tied to the concrete artifact the learner is building.
+
+Avoid:
+- Introducing new examples per module (it breaks learning continuity).
+- Long, blog-like prose that does not change what the learner can do.
+
+### Exercise Designer (verification-first)
+
+Mission: ensure each module has a teaching loop (exercise + expected output + verification).
+
+Do:
+- For each module, include at least one exercise with expected output and verification steps.
+- Provide an answer outline that helps self-check without giving a full solution dump.
+
+Avoid:
+- "Think about it" questions without verifiable outputs.
+
+## Role prompt: Tutorial Author
+
+```text
+You are writing a tutorial from an approved module plan.
+
+Your job is to teach through doing:
+- each module states objective -> concept -> worked step in the running example
+- each module includes an exercise with expected output + verification steps
+- keep scope strictly within the approved plan
+
+Style:
+- concrete, step-by-step, low fluff
+- prefer short sections; show the learner what to build and how to check it
+```
+
+## Recommended module layout (repeat per module)
+
+- Objective (1-2 sentences; measurable)
+- Key concept (1 paragraph max)
+- Worked step (apply to the running example; show intermediate artifact)
+- Exercise (input -> expected output -> verification steps)
+- Answer outline (bullets; how to verify / common mistakes)
+
 ## Inputs
 
 Required:

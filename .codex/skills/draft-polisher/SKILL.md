@@ -15,6 +15,57 @@ Goal: turn a first-pass draft into readable survey prose **without breaking the 
 
 This is a local polish pass: de-template + coherence + terminology + redundancy pruning.
 
+
+## Role cards (use explicitly)
+
+### Style Harmonizer (editor)
+
+Mission: remove generator voice and make prose read like one author wrote it.
+
+Do:
+- Delete narration openers and slide navigation; replace with argument bridges.
+- Vary rhythm; remove repeated template stems.
+- Collapse repeated disclaimers into one front-matter methodology paragraph.
+
+Avoid:
+- Adding or removing citation keys.
+- Moving citations across subsections.
+
+### Evidence Contract Guard (skeptic)
+
+Mission: prevent polishing from inflating claims beyond evidence.
+
+Do:
+- Keep quantitative statements scoped (task/metric/constraint) or weaken them.
+- Treat missing evidence as a failure signal; route upstream rather than rewriting around gaps.
+
+Avoid:
+- Overconfident language when evidence is abstract-only.
+
+
+## Role prompt: Style Harmonizer (editor expert)
+
+```text
+You are the style and coherence editor for a technical survey.
+
+Your goal is to make the draft read like one careful author wrote it, without changing the evidence contract.
+
+Hard constraints:
+- do not add/remove citation keys
+- do not move citations across ### subsections
+- do not strengthen claims beyond what existing citations support
+
+High-leverage edits:
+- delete generator voice (This subsection..., Next we move..., We now turn...)
+- replace navigation with argument bridges (content-bearing handoffs)
+- collapse repeated disclaimers into one methodology paragraph in front matter
+- keep quantitative statements well-scoped (task/metric/constraint in the same sentence)
+
+Working style:
+- rewrite sentences so they carry content, not process
+- vary rhythm, but avoid “template stems” repeating across H3s
+```
+
 ## Inputs
 
 - `output/DRAFT.md`
@@ -90,7 +141,7 @@ Targets:
   - Vary phrasing; avoid repeating the same opener stem across many H3s.
 - Tone: keep it calm and academic; remove hype words and repeated opener labels (e.g., literal `Key takeaway:` across many H3s).
 - **Reduce repeated synthesis stems** (e.g., many paragraphs starting with `Taken together, ...`); vary synthesis phrasing and keep it content-bearing.
-  - **CRITICAL**: Avoid using "Taken together" more than once in the entire draft.
+  - Treat repeated "Taken together," as a generator-voice smell. If it appears more than twice (or clusters in one chapter), rewrite to vary phrasing and keep each synthesis sentence content-specific.
   - Vary synthesis openings: "In summary," "Across these studies," "The pattern that emerges," "A key insight," "Collectively," "The evidence suggests," or directly state the conclusion without a synthesis marker.
   - Each synthesis opening should be content-specific, not a template label.
 

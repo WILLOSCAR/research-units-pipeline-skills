@@ -91,7 +91,37 @@ Borrowing the best pattern from Anthropic’s `skills` repos:
   - compilation (LaTeX build, QA reports)
   - deterministic transforms (MD→LaTeX conversion, dedupe/ranking)
 
+Authoring rule (skills-first):
+- The primary workflow must be readable and executable from `SKILL.md` alone (LLM-first). If a script exists, treat it as **optional validation/scaffolding**, not the main instruction path.
+- Avoid writing skills that *require* users to run `python .../run.py` as step 1; prefer “write/inspect artifacts” first, then offer scripts as an optional deterministic check.
+
 **Avoid** scripts that “replace” semantic work (taxonomy/outline/notes/writing). If a script exists for those, it must be clearly labeled **bootstrap only** and the workflow must still require LLM refinement before marking a unit `DONE`.
+
+## 2a) Role-based prompting (Anthropic-style, prompt-level guidance)
+
+When a skill is semantic (structure, writing, editing), prefer **role cards** over “pipeline narration”.
+
+Why:
+- Role cards reduce ambiguity (“what am I trying to accomplish?”) without forcing templates (“how do I phrase it?”).
+- They make skills composable: each skill owns one cognitive job and hands off a clean artifact.
+
+### Core roles (survey pipelines)
+
+- **Outline Architect** (C2, 规划专家): designs a paper-like ToC (few, thick sections) and ensures every H3 is *writeable* (has a real comparison lens, not a topic bucket).
+- **Evidence Curator** (C3/C4, 证据策展): turns papers/notes into *contrastable evidence* (claims, evaluation anchors, limitations) and exposes gaps early (so writing does not become padding).
+- **Section Author** (C5, 小节内容专家): executes argument moves (tension -> contrast -> evaluation -> limitation) with in-scope citations; avoids “outline narration”.
+- **Coherence Editor** (C5, 章节衔接/结构编辑): connects sections (chapter leads, transitions) and removes generator voice without changing claims/citations.
+- **Consistency Reviewer** (C5, 审稿视角/一致性审计): audits for scope drift, citation hygiene, and claim->evidence plausibility; routes upstream instead of “writing around” missing evidence.
+
+### Role card template (recommended in writing/structure skills)
+
+Include a short `## Role cards` section with 2–4 roles. Each role should state:
+- Mission (one sentence)
+- Do (2–4 bullets; concrete actions)
+- Avoid (2–4 bullets; high-signal failure smells)
+
+Guideline:
+- Role cards should guide *decisions* and *argument moves*, not provide reusable sentence templates.
 
 ## 2b) Paper Voice Contract (writing-stage skills)
 
@@ -149,6 +179,30 @@ C2-C4 outputs must be **structured, non-narrative** to prevent "middle-state lea
 **18 skills enforce this**: subsection-briefs, evidence-draft, evidence-binder, anchor-sheet, writer-context-pack, claim-matrix-rewriter, table-schema, chapter-briefs, transition-weaver (output only), and others in C2-C4.
 
 **Rationale**: Intermediate artifacts are **writing substrate**, not drafts. Prose generation happens only in C5 after human approval.
+
+## 2d) Refinement markers (`*.refined.ok`)
+
+Some semantic artifacts are often *bootstrapped* by helper scripts (or generated quickly on first pass). In strict runs, we treat these as **scaffolds** until an explicit refinement marker exists.
+
+Why:
+- Prevents “bootstrap outputs” from silently passing into downstream writing (a major source of hollow/templated prose).
+- Creates an auditable, low-friction signal that the artifact was actually reviewed/refined.
+- Also doubles as a freeze marker so scripts don’t overwrite refined work.
+
+How:
+- After you manually refine an artifact and it passes the skill checklist, create an empty marker file next to it (same folder).
+- The strict quality gate blocks until the marker exists (when the pipeline profile is `arxiv-survey*`).
+
+Common markers for `arxiv-survey*`:
+- `outline/subsection_briefs.refined.ok`
+- `outline/chapter_briefs.refined.ok`
+- `outline/evidence_bindings.refined.ok`
+- `outline/evidence_drafts.refined.ok`
+- `outline/anchor_sheet.refined.ok`
+- `outline/writer_context_packs.refined.ok`
+
+Guardrail:
+- Do not create a refinement marker until the artifact is subsection-specific (no repeated tensions, no generic axis bundles) and contains no placeholders.
 
 ## 3) Pipeline/Units contract (repo-specific)
 

@@ -75,6 +75,40 @@ Recommended rerun chain (minimal):
 - Summary counts: subsections with `blocking_missing`, with `binding_gaps`, and common failure reasons.
 - Per-subsection TODO: the smallest upstream fix path (skills + artifacts) to make the subsection writeable.
 
+## Status semantics (unblock rules)
+
+This skill is the *prewrite router* for evidence quality. Treat its `Status:` line as the unblock contract:
+
+- `PASS`: no `blocking_missing` and no `binding_gaps` -> proceed to C5 writing.
+- `OK`: no `blocking_missing`, but some `binding_gaps` -> you may draft, but expect weaker specificity; prefer fixing gaps first.
+- `FAIL`: missing inputs OR any `blocking_missing` -> do not write filler prose; fix upstream and rerun C3/C4.
+
+## Routing matrix (symptom -> root cause -> upstream fix)
+
+Use this as a *semantic routing table* (not a script checklist). The goal is to fix the earliest broken intermediate artifact.
+
+| Symptom (where you see it) | Likely root cause | Inspect first | Smallest upstream fix chain |
+|---|---|---|---|
+| `evidence_drafts.blocking_missing: no usable citation keys` | mapped papers lack `bibkey` / bibkeys not in `citations/ref.bib` | `papers/paper_notes.jsonl` (bibkey fields), `citations/ref.bib` | C3 `paper-notes` (ensure bibkeys) -> C4 `citation-verifier` -> rerun `evidence-binder` -> rerun `evidence-draft` |
+| `blocking_missing: title-only evidence` | retrieval/metadata lacks abstracts (or aggressive filtering) | `papers/papers_raw.jsonl` abstracts, `papers/paper_notes.jsonl` evidence_level | C1 `literature-engineer` (enrich metadata) OR C3 `pdf-text-extractor` (fulltext) -> rerun `paper-notes` |
+| `blocking_missing: no evidence snippets extractable` | notes are too thin / evidence bank empty for mapped papers | `papers/evidence_bank.jsonl` (counts), `papers/paper_notes.jsonl` | C3 `paper-notes` (richer extraction; prefer fulltext when possible) -> rerun C4 packs |
+| `blocking_missing: no concrete evaluation tokens` | notes/bank did not extract benchmarks/metrics/budgets | `papers/paper_notes.jsonl` (metrics/benchmarks fields), `outline/anchor_sheet.jsonl` | C3 `paper-notes` (extract eval anchors) -> rerun `anchor-sheet` + `evidence-draft` |
+| `evidence pack comparisons` are sparse (signals: comparisons low) | clusters are not contrastable OR mapping coverage too weak | `outline/subsection_briefs.jsonl` (clusters), `outline/mapping.tsv` | C2 `section-mapper` (coverage) OR C3 `subsection-briefs` (better clusters) -> rerun `evidence-draft` |
+| `bindings.binding_gaps` mentions benchmarks/metrics/protocol | binder cannot find evaluation-tagged evidence for this subsection | `outline/evidence_binding_report.md` (tag mix), `papers/evidence_bank.jsonl` tags | C3 `paper-notes` (tag/evidence extraction) OR C2 expand mapping for that subsection -> rerun `evidence-binder` |
+| `binding_gaps` mentions security/threat model/attacks | mapped set lacks security-focused works or notes lack threat-model detail | `outline/mapping.tsv`, `papers/paper_notes.jsonl` | C2 expand mapping (+ C1 queries if needed) OR C3 enrich notes -> rerun binder/packs |
+| `binding report` looks mechanically uniform across H3 (same mix, low tag variance) | binder selection too recipe-like OR evidence bank tags too coarse | `outline/evidence_binding_report.md` (tag mix), evidence bank tags | tighten `required_evidence_fields` + improve evidence bank tags, then rerun binder; avoid writing around non-specific bindings |
+
+## Interface with the writer self-loop (avoid writing around evidence)
+
+- If `writer-selfloop` is FAIL due to missing anchors/comparisons and the corresponding writer pack has `pack_warnings`, **stop** and run this evidence self-loop: the section is telling you the pack is not writeable.
+- Prefer fixing evidence gaps once, upstream, rather than patching every H3 with generic filler.
+
+## What this skill does NOT do
+
+- It does not edit `papers/*`, `outline/*`, or `sections/*`.
+- It does not invent new facts/citations.
+- It does not "relax" quality by changing thresholds; it routes you to the earliest artifact to fix.
+
 ## Script
 
 ### Quick Start

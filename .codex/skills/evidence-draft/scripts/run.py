@@ -518,7 +518,7 @@ def _comparisons(
 ) -> list[dict[str, Any]]:
     axes = [a for a in axes if a]
     if not axes:
-        axes = ["mechanism/architecture", "evaluation protocol", "compute/efficiency"]
+        axes = ["core mechanism and system architecture", "evaluation protocol", "compute and efficiency"]
 
     labels: list[str] = []
     a_pids: list[str] = []

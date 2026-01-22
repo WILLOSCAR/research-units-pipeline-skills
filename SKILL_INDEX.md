@@ -73,6 +73,7 @@
 **Paper Voice Skills** (enforce generator-voice-free prose):
 - `transition-weaver`：生成 H2/H3 过渡句映射（不新增事实/引用；输出 content sentences only）→ `outline/transitions.md`
 - `section-logic-polisher`：写作逻辑自检（thesis + 连接词密度 + paragraph islands），在 merge 前做局部修复 → `output/SECTION_LOGIC_REPORT.md`
+- `post-merge-voice-gate`：合并后口吻门（把 transitions 视为“注入正文的高频文本源”）：拦截 planner talk / slash-list，并路由回最早责任产物（通常是 `outline/transitions.md`）→ `output/POST_MERGE_VOICE_REPORT.md`
 - `draft-polisher`：对 `output/DRAFT.md` 做去套话 + 连贯性润色（不改变 citation keys 与语义；去 planner talk）
 - `global-reviewer`：全局一致性回看（术语/章节呼应/结论回扣 RQ；generator voice 检测），输出 `output/GLOBAL_REVIEW.md`
 - `pipeline-auditor`：回归审计（PASS/FAIL）：ellipsis/模板句/引用健康/证据绑定/pipeline voice → `output/AUDIT_REPORT.md`
@@ -80,8 +81,10 @@
 **Core Writing Skills**:
 - `grad-paragraph`：研究生段落 micro-skill（张力→对比→评测锚点→限制），用于写出"像综述"的正文段落（通常嵌入 `sections/S*.md` 的写作流程）
 - `snapshot-writer`：写 1 页 snapshot（bullets-first + paper pointers；不需要 evidence packs/BibTeX）→ `output/SNAPSHOT.md`（用于 `lit-snapshot`）
+- `front-matter-writer`：写 front matter（Abstract/Introduction/Related Work/Discussion/Conclusion；paper voice；单次 evidence policy；高引用密度）→ `sections/abstract.md` + `sections/S*.md`
+- `chapter-lead-writer`：写每个含 H3 的 H2 章节导读（不加新事实；不写旁白；2–3 段预告对比轴）→ `sections/S<sec_id>_lead.md`
 - `subsection-writer`：按 H2/H3 拆分写作到 `sections/`（可独立 QA；evidence-bounded）→ `sections/sections_manifest.jsonl` + `sections/S*.md`
-- `writer-selfloop`：写作自循环（严格 sections gate → 写 `output/WRITER_SELFLOOP_TODO.md`；只改失败小节直到 PASS）→ 更新 `sections/*.md`
+- `writer-selfloop`：写作自循环（严格 sections gate → `output/WRITER_SELFLOOP_TODO.md`；FAIL code 路由到最早责任产物；只改失败小节直到 PASS）→ 更新 `sections/*.md`
 - `subsection-polisher`：局部小节润色（pre-merge；结构化段落 + 去模板；不改 citation keys）
 - `section-merger`：把 `sections/` + `outline/transitions.md` 按 `outline/outline.yml` 合并 → `output/DRAFT.md` + `output/MERGE_REPORT.md`
 - `prose-writer`：从已批准的 outline+evidence 写 `output/DRAFT.md`（仅用已验证 citation keys）

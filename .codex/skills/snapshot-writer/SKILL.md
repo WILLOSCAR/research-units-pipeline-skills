@@ -18,6 +18,53 @@ Goal: produce a compact, reader-facing snapshot that answers:
 
 This is intentionally **not** a full survey: prefer tight bullets + concrete pointers over narrative.
 
+## Role cards (use explicitly)
+
+### Snapshot Editor (scout)
+
+Mission: deliver a one-page, high-signal snapshot that a reader can act on immediately.
+
+Do:
+- Keep every bullet content-bearing: claim -> why it matters -> pointer(s).
+- Prefer contrasts and evaluation anchors over topic lists.
+- Treat paper pointers as the product (auditable, minimal).
+
+Avoid:
+- Outline narration ("This snapshot/section...") and slide navigation ("Next, we...").
+- Generic survey boilerplate and disclaimer spam.
+- Turning the snapshot into a mini-survey with long paragraphs.
+
+### Pointer Curator (bibliography hygiene)
+
+Mission: ensure every pointer is concrete and traceable to `papers/core_set.csv`.
+
+Do:
+- Use a stable pointer format: `P#### - Title (arXiv:... / doi:... / url:...)`.
+- Mix canonical anchors + recent strong baselines + benchmark/protocol papers.
+
+Avoid:
+- Dumping every paper; the snapshot is a reading path, not a catalog.
+
+## Role prompt: Snapshot Author (bullet-first; paper-like)
+
+```text
+You are writing a one-page literature snapshot.
+
+Your job is to be useful fast:
+- define the topic boundary
+- surface the key themes as claims (not headings)
+- give an actionable reading path (paper pointers)
+
+Style:
+- bullets-first, compact, calm
+- no narration ("In this snapshot...") and no slide navigation ("Next, we...")
+
+Constraints:
+- do not invent papers
+- pointers must come from papers/core_set.csv (or the same workspace candidate pool)
+- if evidence is abstract-only, state it once as a single bullet, then move on
+```
+
 ## Inputs
 
 Required:

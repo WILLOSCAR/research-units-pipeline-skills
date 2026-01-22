@@ -9,16 +9,15 @@ description: |
   **Guardrail**: NO NEW FACTS; do not invent citations; only inject keys present in `citations/ref.bib`; keep injected citations within each H3’s allowed scope (via the budget report); avoid citation-dump paragraphs (embed cites per work).
 ---
 
-# Citation Injector (apply budget → paper-voice edits)
+# Citation Injector (LLM-first edits; budget-as-constraints)
 
 Purpose: make the pipeline converge when the draft is:
 - locally citation-dense but **globally under-cited** (too few unique keys), or
 - overly reusing the same citations across many subsections.
 
-This is a **low-risk** pass:
-- you add references, not new results
-- wording stays evidence-neutral
-- citations read like part of the argument (not a budget dump)
+This skill is intentionally **LLM-first**:
+- you edit `output/DRAFT.md` using the budget report as constraints
+- the helper script is **validation-only** (it never injects prose)
 
 ## Inputs
 
@@ -30,7 +29,7 @@ This is a **low-risk** pass:
 ## Outputs
 
 - `output/DRAFT.md` (updated in place)
-- `output/CITATION_INJECTION_REPORT.md` (PASS/FAIL + what was injected)
+- `output/CITATION_INJECTION_REPORT.md` (PASS/FAIL + what you changed)
 
 ## Non-negotiables (NO NEW FACTS)
 
@@ -63,12 +62,12 @@ Use these as *sentence intentions* (paraphrase; do not copy verbatim).
 
 ## Anti-patterns (high-signal “budget dump” voice)
 
-Avoid these stems:
+Avoid these stems (they read like automated injection):
 - `A few representative references include ...`
 - `Notable lines of work include ...`
 - `Concrete examples include ...`
 
-If the script inserts something like this, rewrite it immediately using the patterns above (keep citation keys unchanged).
+If your draft contains these, rewrite them immediately using the patterns above (keep citation keys unchanged).
 
 ## Placement guidance
 
@@ -79,30 +78,36 @@ If the script inserts something like this, rewrite it immediately using the patt
 ## Workflow
 
 1) Read the budget report (`output/CITATION_BUDGET_REPORT.md`)
-- If `Gap: 0`, do nothing and mark PASS.
-- Otherwise, for each H3 with suggested keys, pick 3–6 keys (prefer unused-in-selected).
+- If `Gap: 0`, do nothing: write a short PASS report and move on.
+- Otherwise, for each H3 with suggested keys, pick 3-6 keys (prefer unused globally).
 
-2) Place injections in the right subsection
+2) Inject in the right subsection
 - Use `outline/outline.yml` to confirm H3 ordering and ensure the injected sentence lands inside the correct `###` subsection.
 
-2b) Inject with paper voice
-- Use author handles (from `citations/ref.bib`) sparingly; do not turn injections into bibliography narration.
+3) Inject with paper voice
 - Prefer one short, axis-anchored sentence over a long enumerator sentence.
+- Keep injections evidence-neutral (NO NEW FACTS) and avoid new numbers.
+- Before you commit an injected key, confirm it exists in `citations/ref.bib`.
 
-3) Verify:
-- Recompute global unique citations; confirm target is met.
-- Run `draft-polisher` to smooth any residual injection voice (citation keys must remain unchanged).
+4) Write `output/CITATION_INJECTION_REPORT.md`
+- Record which H3s you touched and which keys were added.
+- Mark `- Status: PASS` only when the global target is met.
+
+5) Verify
+- Rerun the validator script (below) to recheck the global target.
+- Then run `draft-polisher` to smooth any residual injection voice (citation keys must remain unchanged).
 
 ## Done criteria
 
 - `output/CITATION_INJECTION_REPORT.md` exists and is `- Status: PASS`.
 - `pipeline-auditor` no longer FAILs on “unique citations too low”.
 
-## Script
+## Script (optional; validation only)
+
+You usually do not run this manually; it exists so a pipeline runner can deterministically validate the target.
 
 ### Quick Start
 
-- `python .codex/skills/citation-injector/scripts/run.py --help`
 - `python .codex/skills/citation-injector/scripts/run.py --workspace workspaces/<ws>`
 
 ### All Options
@@ -110,12 +115,10 @@ If the script inserts something like this, rewrite it immediately using the patt
 - `--workspace <dir>`
 - `--unit-id <U###>` (optional; for logs)
 - `--inputs <semicolon-separated>` (rare override; prefer defaults)
-- `--outputs <semicolon-separated>` (rare override; default writes `output/CITATION_INJECTION_REPORT.md`)
+- `--outputs <semicolon-separated>` (rare override; default validates `output/CITATION_INJECTION_REPORT.md`)
 - `--checkpoint <C#>` (optional)
 
 ### Examples
 
-- Apply a budget report to raise global unique citations:
-  - Ensure `output/CITATION_BUDGET_REPORT.md` exists, then run:
+- After you manually inject citations and write the report:
   - `python .codex/skills/citation-injector/scripts/run.py --workspace workspaces/<ws>`
-

@@ -15,6 +15,24 @@ Produce consistent, searchable paper notes that later steps (claims, visuals, wr
 
 This is still **NO PROSE**: keep notes as bullets / short fields, not narrative paragraphs.
 
+## Role cards (prompt-level guidance)
+
+- **Close Reader**
+  - Mission: extract what is *specific* and *checkable* (setup, method, metrics, limits).
+  - Do: name concrete tasks/benchmarks and what the paper actually measures.
+  - Avoid: generic summary boilerplate that could fit any paper.
+
+- **Results Recorder**
+  - Mission: capture evaluation anchors that later writing needs.
+  - Do: record task + metric + constraints (budget/tool access) whenever available.
+  - Avoid: copying numbers without the evaluation setting that makes them meaningful.
+
+- **Limitation Logger**
+  - Mission: capture the caveats that change interpretation.
+  - Do: write paper-specific limitations (protocol mismatch, missing ablations, threat model gaps).
+  - Avoid: repeated generic limitations like “may not generalize” without specifics.
+
+
 ## When to use
 
 - After you have a core set (and ideally a mapping) and need evidence-ready notes.
@@ -45,7 +63,7 @@ Uses: `outline/mapping.tsv`, `papers/fulltext_index.jsonl`.
    - pinned classics (ReAct/Toolformer/Reflexion… if in scope)
 3. For high-priority papers, capture:
    - 3–6 summary bullets (what’s new, what problem setting, what’s the loop)
-   - `method` (mechanism / architecture; what differs from baselines)
+   - `method` (mechanism and architecture; what differs from baselines)
    - `key_results` (benchmarks/metrics; include numbers if available)
    - `limitations` (specific assumptions/failure modes; avoid generic boilerplate)
 4. For long-tail papers:

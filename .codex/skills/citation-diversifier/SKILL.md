@@ -9,44 +9,73 @@ description: |
   **Guardrail**: NO NEW FACTS; do not invent citations; only use keys already present in `citations/ref.bib`; keep citations within each H3’s allowed scope (`outline/writer_context_packs.jsonl` / `outline/evidence_bindings.jsonl`).
 ---
 
-# Citation Diversifier (Budget + Plan) [NO NEW FACTS]
+# Citation Diversifier (budget-as-constraints) [NO NEW FACTS]
 
 Purpose: fix a common survey failure mode:
-- the draft *compiles* but is under-cited or reuses the same small set of citations everywhere
-- `pipeline-auditor` fails on **global unique citations too low**
+- the draft reads under-cited (or reuses the same few citations everywhere)
+- the pipeline fails the **global unique-citation** gate
 
-This skill generates a deterministic, per-H3 “budget plan” of **in-scope citation keys that are not yet used elsewhere** in the draft.
+This skill does **not** change prose by itself.
+It produces a constraint sheet: `output/CITATION_BUDGET_REPORT.md`.
 
 ## Inputs
 
 - `output/DRAFT.md`
-- `outline/outline.yml`
-- `outline/writer_context_packs.jsonl` (source of `allowed_bibkeys_{selected,mapped,chapter,global}`)
+- `outline/outline.yml` (H3 ids/titles; used to allocate budgets per subsection)
+- `outline/writer_context_packs.jsonl` (source of `allowed_bibkeys_{selected,mapped,chapter,global}` per H3)
 - `citations/ref.bib`
 
-## Outputs
+## Output
 
 - `output/CITATION_BUDGET_REPORT.md`
 
+## Non-negotiables (NO NEW FACTS)
+
+- Only propose citation keys that exist in `citations/ref.bib`.
+- Only propose keys that are **in-scope** for the target H3 (prefer subsection-first scope; use chapter/global only when truly cross-cutting).
+- Do not propose “padding citations” that would require adding new claims or new numbers.
+
+## What a good budget report looks like (contract)
+
+The report should feel like a *constraint sheet*, not a random list:
+- It states the global gap (how many unique keys are missing).
+- For each H3, it proposes a small budget (typically 3–8 keys) drawn from that H3’s allowed sets.
+- It gives a placement hint (where in the subsection those keys can be embedded without adding new facts).
+
+Recommended prioritization (scope-safe):
+- `allowed_bibkeys_selected` → `allowed_bibkeys_mapped` → `allowed_bibkeys_chapter`
+- Use `allowed_bibkeys_global` only for:
+  - benchmarks/protocol papers
+  - widely-used datasets/suites
+  - cross-cutting surveys/method papers referenced across chapters
+
+## How this connects to writing (LLM-first)
+
+After you generate the budget report:
+- Apply it using `citation-injector` (LLM edits to `output/DRAFT.md`, NO NEW FACTS).
+- Then run `draft-polisher` to remove any “budget dump voice” while keeping citation keys unchanged.
+
+Important: `citation-injector` is **LLM-first**. Its script is validation-only.
+
 ## Workflow
 
-1. Run the script to generate the report (reads `output/DRAFT.md`, `outline/outline.yml`, `outline/writer_context_packs.jsonl`, `citations/ref.bib`).
-2. For each failing/weak H3:
-   - pick 3–6 suggested keys from the report (prefer `allowed_bibkeys_selected`, then `allowed_bibkeys_mapped`, then `allowed_bibkeys_chapter`; use `allowed_bibkeys_global` only for truly cross-cutting foundations/benchmarks/surveys)
-   - apply the budget **without adding new facts**:
-     - prefer a short, subsection-specific context clause (use the subsection title or its `contrast_hook`) rather than a generic “representative works include” list
-     - embed citations inside the sentence that introduces the concrete nouns (systems/methods/benchmarks)
-     - vary opener stems across H3s (avoid repeating the same 4-word prefix)
-   - keep additions *inside the same H3* (do not migrate citations across subsections)
+1) Diagnose the global situation
+- Read `output/DRAFT.md` and estimate the “unique-key gap” (or use `pipeline-auditor`’s FAIL reason).
 
-   Recommended (deterministic) application path:
-   - run `citation-injector` to apply this report automatically (NO NEW FACTS; keys stay in-scope)
-   - then run `draft-polisher` to smooth any injection sentences into paper voice (keys immutable)
-3. Rerun:
-   - `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor`
-   - If you intentionally changed citations after a previous polish run and anchoring blocks, delete `output/citation_anchors.prepolish.jsonl` and rerun `draft-polisher`.
+2) Allocate budgets per H3 (scope-first)
+- Use `outline/outline.yml` to enumerate H3s in paper order.
+- For each H3, read its allowed key sets from `outline/writer_context_packs.jsonl`.
+- Pick a small set of *unused* keys that strengthen positioning without requiring new claims.
 
-## Script
+3) Write `output/CITATION_BUDGET_REPORT.md`
+Required structure:
+- `- Status: PASS|FAIL`
+- `## Summary` (gap + strategy)
+- `## Per-subsection budgets` (H3 id/title → suggested keys → placement hint)
+
+## Script (optional; deterministic report generator)
+
+If you want a deterministic first-pass budget report, run the helper script. Treat it as a baseline and refine the plan as needed.
 
 ### Quick Start
 
@@ -56,10 +85,10 @@ This skill generates a deterministic, per-H3 “budget plan” of **in-scope cit
 ### All Options
 
 - `--workspace <dir>`
-- `--unit-id <U###>`
-- `--inputs <semicolon-separated>`
-- `--outputs <semicolon-separated>`
-- `--checkpoint <C#>`
+- `--unit-id <U###>` (optional)
+- `--inputs <semicolon-separated>` (rare override; prefer defaults)
+- `--outputs <semicolon-separated>` (rare override; default writes `output/CITATION_BUDGET_REPORT.md`)
+- `--checkpoint <C#>` (optional)
 
 ### Examples
 
@@ -68,6 +97,5 @@ This skill generates a deterministic, per-H3 “budget plan” of **in-scope cit
 
 ## Done criteria
 
-- `output/CITATION_BUDGET_REPORT.md` exists
-- After applying the plan, `pipeline-auditor` passes the global unique-citation gate
-- Added citations stay in-scope (no `sections_cites_outside_mapping` regressions)
+- `output/CITATION_BUDGET_REPORT.md` exists and has actionable, in-scope budgets.
+- After applying the plan via `citation-injector`, `pipeline-auditor` no longer FAILs on global unique citations.

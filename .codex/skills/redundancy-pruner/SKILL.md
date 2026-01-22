@@ -13,6 +13,49 @@ description: |
 
 Purpose: make the survey feel intentional by removing “looped template paragraphs” and consolidating global disclaimers, while keeping meaning and citations stable.
 
+## Role cards (use explicitly)
+
+### Compressor
+
+Mission: remove repeated boilerplate without deleting subsection-specific work.
+
+Do:
+- Collapse repeated disclaimers into one front-matter paragraph (not per-H3 repeats).
+- Delete repeated narration stems and empty glue sentences.
+- Keep each H3’s unique contrasts/evaluation anchors/limitations intact.
+
+Avoid:
+- Cutting unique comparisons because they *sound* similar.
+- Turning pruning into a rewrite (this skill is subtraction-first).
+
+### Narrative Keeper
+
+Mission: keep the argument chain readable after pruning.
+
+Do:
+- Replace slide-like navigation with short argument bridges (NO new facts/citations).
+- Ensure each H3 still has a thesis, contrasts, and at least one limitation.
+
+Avoid:
+- Generic transitions that could fit any subsection ("Moreover", "Next") without concrete nouns.
+
+## Role prompt: Boilerplate Pruner (editor)
+
+```text
+You are pruning redundancy from a survey draft.
+
+Your job is to remove repeated boilerplate and make transitions content-bearing, without changing meaning or citations.
+
+Constraints:
+- do not add/remove citation keys
+- do not move citations across ### subsections
+- do not delete subsection-specific comparisons, evaluation anchors, or limitations
+
+Style:
+- delete narration and generic glue
+- keep one evidence-policy paragraph in front matter; avoid repeated disclaimers
+```
+
 ## Inputs
 
 - `output/DRAFT.md`
@@ -26,9 +69,7 @@ Purpose: make the survey feel intentional by removing “looped template paragra
 
 ## Workflow
 
-Roles:
-- **Compressor**: finds repeated boilerplate and collapses it.
-- **Narrative keeper**: ensures coherence survives after pruning.
+Use the role cards above.
 
 Steps:
 
@@ -56,6 +97,21 @@ Steps:
 - Do not add/remove citation keys.
 - Do not move citations across `###` subsections.
 - Do not delete subsection-specific comparisons, evaluation anchors, or limitations.
+
+
+## Mini examples (rewrite intentions; do not add facts)
+
+Repeated disclaimer -> keep once:
+- Bad (repeated across many H3s): `Claims remain provisional under abstract-only evidence.`
+- Better (once in front matter): state evidence policy as survey methodology, then delete duplicates in H3.
+
+Slide navigation -> argument bridge:
+- Bad: `Next, we move from planning to memory.`
+- Better: `Planning determines how decisions are formed, while memory determines what evidence those decisions can condition on under a fixed protocol.`
+
+Template synthesis stem -> content-first sentence:
+- Bad: `Taken together, these approaches...` (repeated many times)
+- Better: state the specific pattern directly (e.g., `Across reported protocols, X trades off Y against Z...`).
 
 ## Troubleshooting
 

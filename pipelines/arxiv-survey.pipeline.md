@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey
-version: 2.4
+version: 2.9
 target_artifacts:
   - papers/retrieval_report.md
   - outline/taxonomy.yml
@@ -31,10 +31,13 @@ target_artifacts:
   - output/SCHEMA_NORMALIZATION_REPORT.md
   - output/EVIDENCE_SELFLOOP_TODO.md
   - output/WRITER_SELFLOOP_TODO.md
+  - output/FRONT_MATTER_REPORT.md
+  - output/CHAPTER_LEADS_REPORT.md
   - output/SECTION_LOGIC_REPORT.md
   - output/GLOBAL_REVIEW.md
   - output/DRAFT.md
   - output/MERGE_REPORT.md
+  - output/POST_MERGE_VOICE_REPORT.md
   - output/CITATION_BUDGET_REPORT.md
   - output/CITATION_INJECTION_REPORT.md
   - output/AUDIT_REPORT.md
@@ -117,6 +120,10 @@ Notes:
 - `queries.md` can set `draft_profile: "lite"|"survey"|"deep"` to control writing gate strictness (default: `survey`).
 - If `evidence_mode: "fulltext"`, `pdf-text-extractor` can be tuned via `fulltext_max_papers`, `fulltext_max_pages`, `fulltext_min_chars`.
 - `subsection-briefs` converts each H3 into a verifiable writing card (scope_rule/rq/axes/clusters/paragraph_plan) so writing does not copy outline scaffolds.
+- Strict-mode refinement markers (recommended): treat briefs as *contracts*, not scaffolds. After you manually refine them, create:
+  - `outline/subsection_briefs.refined.ok`
+  - `outline/chapter_briefs.refined.ok`
+  In strict runs, these markers are used as explicit “reviewed/refined” signals so bootstrap JSONL can’t silently pass into C5 writing.
 
 ## Stage 4 - Citations + evidence packs (C4) [NO PROSE]
 required_skills:
@@ -149,14 +156,23 @@ Notes:
 - `claim-matrix-rewriter` makes `outline/claim_evidence_matrix.md` a projection/index of evidence packs (not an outline expansion), so writer guidance stays evidence-first.
 - `writer-context-pack` builds a deterministic per-H3 drafting pack (briefs + evidence + anchors + allowed cites), reducing hollow writing and making C5 more debuggable.
 - Optional: `table-schema` + `table-filler` + `survey-visuals` can produce tables/timelines/figure specs as intermediate artifacts, but they are not inserted into the PDF by default.
+- Strict-mode refinement markers (recommended): after you spot-check and refine C4 artifacts, create:
+  - `outline/evidence_bindings.refined.ok`
+  - `outline/evidence_drafts.refined.ok`
+  - `outline/anchor_sheet.refined.ok`
+  - `outline/writer_context_packs.refined.ok`
+  In strict runs, these markers make “LLM refined the substrate” explicit and prevent scaffold-y packs/bindings from silently passing into writing.
 
 ## Stage 5 - Draft (C5) [PROSE AFTER C2]
 required_skills:
+- front-matter-writer
+- chapter-lead-writer
 - subsection-writer
 - writer-selfloop
 - section-logic-polisher
 - transition-weaver
 - section-merger
+- post-merge-voice-gate
 - citation-diversifier
 - citation-injector
 - draft-polisher
@@ -179,6 +195,7 @@ produces:
 - output/SECTION_LOGIC_REPORT.md
 - output/MERGE_REPORT.md
 - output/DRAFT.md
+- output/POST_MERGE_VOICE_REPORT.md
 - output/CITATION_BUDGET_REPORT.md
 - output/CITATION_INJECTION_REPORT.md
 - output/GLOBAL_REVIEW.md
@@ -187,10 +204,12 @@ produces:
 
 Notes:
 - Writing self-loop gate: `subsection-writer` ensures the full `sections/` file set exists (and emits `sections/sections_manifest.jsonl`); `writer-selfloop` blocks until depth/citation-scope/paper-voice checks pass, writing `output/WRITER_SELFLOOP_TODO.md` (PASS/FAIL).
+- Triage rule (prevents “写作补洞”): if `writer-selfloop` FAILs because a subsection cannot meet `must_use` *in-scope* (thin packs / missing anchors / out-of-scope citation pressure), stop and rerun the evidence loop (`evidence-selfloop` + upstream C2/C3/C4) instead of padding prose.
 - WebWeaver-style “planner vs writer” split (single agent, two passes):
   - Planner pass: for each section/subsection, pick the exact citation IDs to use from the evidence bank (`outline/evidence_drafts.jsonl`) and keep scope consistent with the outline.
   - Writer pass: write that section using only those citation IDs; avoid dumping the whole notes set into context.
 - Treat this stage as an iteration loop: draft per H3 → logic-polish (thesis + connectors) → weave transitions → merge → de-template/cohere → global review → (if gaps) back to C3/C4 → regenerate.
+- Post-merge voice gate: `post-merge-voice-gate` treats `outline/transitions.md` as a high-frequency injection source. If it FAILs, fix the *source* (usually transitions via `transition-weaver`, or the owning `sections/*.md`) and re-merge; do not “patch around it” in `draft-polisher`.
 - Depth target (profile-aware): each H3 should be “少而厚” (avoid stubs). Use `queries.md:draft_profile` as the contract:
   - `lite`: >=6 paragraphs + >=7 unique cites
   - `survey`: >=9 paragraphs + >=10 unique cites

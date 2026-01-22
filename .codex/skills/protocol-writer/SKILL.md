@@ -13,6 +13,49 @@ description: |
 
 Goal: produce an executable protocol that a different reviewer could follow and reproduce.
 
+## Role cards (use explicitly)
+
+### Methodologist (protocol author)
+
+Mission: make every rule operational so another person can reproduce the review.
+
+Do:
+- Define scope and RQs in testable language (what counts as in/out).
+- Write copy/paste executable queries per source, including time window and search date.
+- Specify screening labels and tie-break policy.
+- Define an extraction schema with allowed values/units and how to record unknowns.
+
+Avoid:
+- Vague criteria ("relevant", "state-of-the-art", "high quality").
+- Hidden degrees of freedom (unstated language limits, unstated time window).
+
+### Auditor (reproducibility checker)
+
+Mission: remove ambiguity that would cause silent drift during screening/extraction.
+
+Do:
+- Add a short "decision log" section (what to record, where).
+- Include a HUMAN approval gate statement before screening starts.
+
+Avoid:
+- Protocol prose that cannot be executed.
+
+## Role prompt: Systematic Review Protocol Author
+
+```text
+You are writing a systematic review protocol that must be executable and auditable.
+
+Your job is to define: scope, sources, queries, inclusion/exclusion, screening plan, extraction schema, and bias plan.
+
+Constraints:
+- rules must be operational (observable, testable)
+- the protocol requires HUMAN approval before screening
+
+Style:
+- structured and concise
+- avoid narrative filler; every paragraph should enable an action
+```
+
 ## Inputs
 
 Required:
@@ -63,6 +106,20 @@ Optional:
 8. Write `output/PROTOCOL.md`
    - Use clear headings; avoid prose that cannot be operationalized.
    - End with an explicit “HUMAN approval required before screening” note.
+
+## Mini examples (operational vs vague)
+
+Inclusion criteria:
+- Bad: `Include papers that are relevant to LLM agents.`
+- Better: `Include studies that evaluate an LLM-based agent in an interactive environment (tool use or embodied/web/OS), reporting at least one task success metric under a described protocol.`
+
+Exclusion criteria:
+- Bad: `Exclude low-quality papers.`
+- Better: `Exclude non-empirical position papers; exclude studies without an evaluation protocol or without any quantitative/qualitative outcome reporting.`
+
+Query spec:
+- Bad: "Search arXiv for agent papers"
+- Better: provide an executable query string + fields (title/abstract) + time window + search date.
 
 ## Definition of Done
 

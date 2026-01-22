@@ -291,14 +291,14 @@ def _thesis_statement(*, sub_title: str, axes: list[str], evidence_summary: dict
         options = [
             f"Design choices in {title} create decision-relevant trade-offs—especially in {axes_phrase}—and meaningful comparisons depend on consistent evaluation protocols.",
             f"The core tension in {title} lies in {axes_phrase}, and the literature is most informative when methods are compared under shared evaluation settings.",
-            f"Work on {title} suggests that {axes_phrase} drives many downstream trade-offs, making protocol-aligned evaluation a first-class design constraint.",
-            f"In {title}, decisions about {axes_phrase} often dominate practical outcomes, so synthesis should stay grounded in protocol-consistent comparisons.",
+            f"Across reported systems in {title}, variation in {axes_phrase} drives downstream trade-offs, making protocol-aligned evaluation a first-class design constraint.",
+            f"In {title}, decisions about {axes_phrase} often dominate practical outcomes; protocol-consistent comparisons make these trade-offs interpretable.",
         ]
         return _pick(seed, options)
 
     options = [
         f"{title} methods emphasize {axes_phrase} trade-offs, but synthesis is clearest when claims are tied to explicit evaluation settings and reporting conventions.",
-        f"For {title}, {axes_phrase} is a recurring axis of variation, so comparisons should foreground evaluation protocol choices and failure-mode assumptions.",
+        f"For {title}, {axes_phrase} is a recurring axis of variation, and results are easiest to interpret when protocols and failure assumptions are explicit.",
         f"{title} highlights a tension around {axes_phrase}, motivating a protocol-aware synthesis rather than per-paper summaries.",
         f"In {title}, differences in {axes_phrase} frequently imply different evaluation setups, so the key is to compare under consistent protocols where possible.",
     ]
@@ -313,12 +313,32 @@ def _tension_statement(*, sub_title: str, axes: list[str], goal: str) -> str:
     """
 
     title = re.sub(r"\s+", " ", (sub_title or "").strip())
-    joined = " ".join([title.lower(), (goal or "").lower()] + [str(a or "").lower() for a in (axes or [])])
+    # Title-first heuristics: axes/required-fields often contain generic tokens (e.g., "protocol"),
+    # which can collapse many subsections into the same tension statement.
+    joined = " ".join([title.lower(), (goal or "").lower()])
 
-    if any(k in joined for k in ["tool", "function", "api", "schema", "mcp", "protocol", "interface"]):
+    if any(k in joined for k in ["safety", "security", "attack", "threat", "guardrail", "sandbox", "injection", "governance"]):
         return (
-            f"In {title}, a practical tension is expressivity versus control: richer interfaces expand capability "
-            "but make behavior harder to constrain and verify."
+            f"In {title}, a key tension is capability versus safety: stronger agent actions increase utility "
+            "but widen the attack surface and raise containment requirements."
+        )
+
+    if any(k in joined for k in ["benchmark", "benchmarks", "evaluation", "metric", "metrics", "dataset", "datasets"]):
+        return (
+            f"In {title}, a recurring tension is coverage versus comparability: broader suites capture more behaviors "
+            "but make head-to-head comparison fragile when protocols and constraints differ."
+        )
+
+    if any(k in joined for k in ["self-improvement", "self improvement", "adaptation", "self-play", "self play", "reflection", "fine-tune", "finetune"]):
+        return (
+            f"In {title}, the core trade-off is adaptability versus stability: systems that change themselves can improve over time "
+            "but risk drifting, overfitting, or becoming harder to evaluate and control."
+        )
+
+    if any(k in joined for k in ["multi-agent", "multi agent", "coordination", "debate", "swarm", "collaboration"]):
+        return (
+            f"In {title}, the central trade-off is specialization versus coordination: dividing labor can boost performance "
+            "but adds communication overhead and stability risks."
         )
 
     if any(k in joined for k in ["plan", "planning", "reason", "search", "tree", "deliberation"]):
@@ -327,25 +347,22 @@ def _tension_statement(*, sub_title: str, axes: list[str], goal: str) -> str:
             "but increases latency and budget sensitivity."
         )
 
-    if any(k in joined for k in ["memory", "retrieval", "rag", "cache", "long-horizon"]):
+    if any(k in joined for k in ["memory", "retrieval", "rag", "cache", "long-horizon", "long horizon"]):
         return (
             f"In {title}, the core tension is persistence versus freshness: retaining more context helps long-horizon tasks "
             "but raises staleness, contamination, and verification challenges."
         )
 
-    if any(k in joined for k in ["multi-agent", "coordination", "debate", "swarm", "collaboration"]):
+    if any(k in joined for k in ["tool", "tools", "function", "api", "schema", "mcp", "interface", "orchestration", "routing", "router"]):
         return (
-            f"In {title}, the central trade-off is specialization versus coordination: dividing labor can boost performance "
-            "but adds communication overhead and stability risks."
+            f"In {title}, a practical tension is expressivity versus control: richer interfaces expand capability "
+            "but make behavior harder to constrain and verify."
         )
 
-    if any(k in joined for k in ["safety", "security", "attack", "threat", "guardrail", "sandbox", "injection"]):
-        return (
-            f"In {title}, a key tension is capability versus safety: stronger agent actions increase utility "
-            "but widen the attack surface and raise containment requirements."
-        )
-
-    axes_hint = ", ".join([a for a in (axes or [])[:2] if str(a).strip()])
+    # Fallback: paraphrase axes to reduce slash-style leakage.
+    axes_hint = ", ".join(
+        [re.sub(r"\s*/\s*", " and ", str(a).strip()) for a in (axes or [])[:2] if str(a).strip()]
+    )
     axes_hint = axes_hint or "mechanism and evaluation"
     return (
         f"A central tension in {title} is the trade-off between {axes_hint} and what can be evaluated reliably under realistic constraints."
@@ -476,25 +493,25 @@ def _choose_axes(*, sub_title: str, goal: str, evidence_needs: list[str], outlin
 
     # Final fallback: stable generic set.
     for a in [
-        "mechanism / architecture",
-        "data / training setup",
+        "core mechanism and system architecture",
+        "training and data setup",
         "evaluation protocol",
-        "compute / efficiency",
-        "failure modes / limitations",
+        "compute and efficiency",
+        "failure modes and limitations",
     ]:
         add(a)
 
     generic = {
-        "mechanism / architecture",
-        "data / training setup",
+        "core mechanism and system architecture",
+        "training and data setup",
         "evaluation protocol",
         "evaluation protocol (benchmarks / metrics / human)",
         "evaluation protocol (datasets / metrics / human)",
-        "compute / efficiency",
-        "efficiency / compute",
-        "failure modes / limitations",
-        "failure modes/limitations",
-        "failure modes / limitations.",
+        "compute and efficiency",
+        "efficiency and compute",
+        "failure modes and limitations",
+        "failure modes and limitations",
+        "failure modes and limitations.",
     }
 
     # Reorder: keep non-generic axes first so heuristics aren't crowded out by scaffold-y outline axes.
@@ -636,7 +653,7 @@ def _required_evidence_fields(*, sub_title: str, axes: list[str], goal: str) -> 
     if any(t in joined for t in ["data", "training", "supervision", "sft", "rl", "preference"]):
         add("training signal / supervision")
     if any(t in joined for t in ["failure", "limit", "robust", "error"]):
-        add("failure modes / limitations")
+        add("failure modes and limitations")
     if any(t in joined for t in ["security", "attack", "threat", "guardrail", "sandbox", "injection"]):
         add("threat model")
         add("defense surface")
@@ -897,19 +914,19 @@ def _paragraph_plan(
         {
             "para": 2,
             "argument_role": "mechanism_cluster_A",
-            "intent": "Explain cluster A: core mechanism/architecture and what decision it makes in the agent loop.",
-            "focus": [f"cluster: {c1}", "mechanism / architecture", "assumptions"],
+            "intent": "Explain cluster A: core mechanism and system architecture and what decision it makes in the agent loop.",
+            "focus": [f"cluster: {c1}", "core mechanism and system architecture", "assumptions"],
             "connector_to_prev": "grounding",
-            "connector_phrase": f"Grounding: {c1} as baseline",
+            "connector_phrase": f"baseline route ({c1})",
             "use_clusters": [c1] if c1 else [],
         },
         {
             "para": 3,
             "argument_role": "implementation_cluster_A",
-            "intent": "Cluster A implementation details: data/training signals and interface contract (tools/memory) that constrain behavior.",
-            "focus": [f"cluster: {c1}", "data / training setup", "interface contract", f"axes: {axes_hint}"],
+            "intent": "Cluster A implementation details: training and data signals and interface contract (tools/memory) that constrain behavior.",
+            "focus": [f"cluster: {c1}", "training and data setup", "interface contract", f"axes: {axes_hint}"],
             "connector_to_prev": "elaboration",
-            "connector_phrase": "Elaboration: interface + training assumptions",
+            "connector_phrase": "implementation assumptions (interface + training)",
             "use_clusters": [c1] if c1 else [],
         },
         {
@@ -918,25 +935,25 @@ def _paragraph_plan(
             "intent": "Cluster A evaluation/trade-offs: where it works, costs (compute/latency), and typical failure modes.",
             "focus": [f"cluster: {c1}", "evaluation anchor", "efficiency", "failure modes"],
             "connector_to_prev": "evaluation",
-            "connector_phrase": "Evaluation lens: protocol + failure modes",
+            "connector_phrase": "evaluation anchor (task/metric/constraint) + failure modes",
             "use_clusters": [c1] if c1 else [],
         },
         {
             "para": 5,
             "argument_role": "contrast_cluster_B",
-            "intent": "Explain cluster B (contrast with A): core mechanism/architecture and what it optimizes for.",
-            "focus": [f"cluster: {c2}", f"contrast with {c1}", "mechanism / architecture"],
+            "intent": "Explain cluster B (contrast with A): core mechanism and system architecture and what it optimizes for.",
+            "focus": [f"cluster: {c2}", f"contrast with {c1}", "core mechanism and system architecture"],
             "connector_to_prev": "contrast",
-            "connector_phrase": f"Contrast: {c2} vs {c1}",
+            "connector_phrase": f"contrast route ({c2} vs {c1})",
             "use_clusters": [c2] if c2 else ([c1] if c1 else []),
         },
         {
             "para": 6,
             "argument_role": "implementation_cluster_B",
-            "intent": "Cluster B implementation details: data/training and interface assumptions (mirror A for comparability).",
-            "focus": [f"cluster: {c2}", "data / training setup", "interface contract", f"axes: {axes_hint}"],
+            "intent": "Cluster B implementation details: training and data and interface assumptions (mirror A for comparability).",
+            "focus": [f"cluster: {c2}", "training and data setup", "interface contract", f"axes: {axes_hint}"],
             "connector_to_prev": "elaboration",
-            "connector_phrase": "Implementation contrast: assumptions shift",
+            "connector_phrase": "contrast implementation assumptions (B)",
             "use_clusters": [c2] if c2 else ([c1] if c1 else []),
         },
         {
@@ -945,7 +962,7 @@ def _paragraph_plan(
             "intent": "Cluster B evaluation/trade-offs: where it works, costs, and failure modes (mirror A).",
             "focus": [f"cluster: {c2}", "evaluation anchor", "efficiency", "failure modes"],
             "connector_to_prev": "evaluation",
-            "connector_phrase": "Evaluation contrast: apples-to-apples where possible",
+            "connector_phrase": "contrast evaluation anchor + trade-offs (B)",
             "use_clusters": [c2] if c2 else ([c1] if c1 else []),
         },
         {
@@ -954,7 +971,7 @@ def _paragraph_plan(
             "intent": "Cross-paper synthesis: compare clusters along the main axes (include >=2 citations in one paragraph).",
             "focus": [f"compare {c1} vs {c2}", "multiple citations in one paragraph", f"axes: {axes_hint}"],
             "connector_to_prev": "synthesis",
-            "connector_phrase": f"Synthesis: {c1} vs {c2} along {axes_hint}",
+            "connector_phrase": f"cross-paper synthesis ({c1} vs {c2})",
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
         {
@@ -963,7 +980,7 @@ def _paragraph_plan(
             "intent": "Decision guidance: when to choose which route (criteria + evaluation signals + engineering constraints).",
             "focus": ["decision checklist", "evaluation protocol", "practical constraints"],
             "connector_to_prev": "consequence",
-            "connector_phrase": "Implication: decision checklist",
+            "connector_phrase": "decision guidance / criteria",
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
         {
@@ -972,7 +989,7 @@ def _paragraph_plan(
             "intent": "Limitations + verification targets; end with a concrete open question to hand off.",
             "focus": ["limitations", f"evidence mode: {mode}", "what needs verification", "open question"],
             "connector_to_prev": "limitations",
-            "connector_phrase": "Limitations: verification targets",
+            "connector_phrase": "limitations + verification targets",
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
     ]

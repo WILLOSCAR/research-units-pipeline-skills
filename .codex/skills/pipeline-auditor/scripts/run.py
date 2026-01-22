@@ -207,6 +207,31 @@ def main() -> int:
     if gpt5_examples:
         warnings.append("suspicious model name 'GPT-5' appears; avoid ambiguous naming unless the cited paper uses it")
 
+    # Discourse-marker overuse (non-blocking): a common generator-voice regression.
+    discourse_patterns: list[tuple[str, str, int]] = [
+        ("this suggests", r"(?i)\bthis suggests\b", 6),
+        ("additionally", r"(?i)\badditionally\b", 6),
+    ]
+    for label, pat, warn_at in discourse_patterns:
+        n = len(re.findall(pat, draft))
+        if n >= warn_at:
+            warnings.append(f"overused discourse stem {label} ({n}x); vary connectors and prefer content-bearing subjects over This ...")
+
+    # Slash-style axis copying (A/B) reads like design-space notes once it accumulates.
+    slash_pat = r"\b[A-Za-z][A-Za-z0-9_-]{1,18}/[A-Za-z][A-Za-z0-9_-]{1,18}\b"
+    slash_n = len(re.findall(slash_pat, draft))
+    if slash_n >= 40:
+        warnings.append(
+            f"high slash-enumeration density ({slash_n}x A/B tokens); rewrite axis labels into natural prose (use and/or) instead of copying brief-style strings"
+        )
+
+    # Pipeline/meta jargon leakage.
+    packs_pat = r"(?i)\bevidence\s+packs?\b"
+    packs_n = len(re.findall(packs_pat, draft))
+    if packs_n:
+        warnings.append(f"pipeline jargon evidence pack(s) appears in prose ({packs_n}x); rewrite as survey methodology or remove")
+
+
     # Bib health.
     bib_keys: list[str] = []
     dup_bib = 0

@@ -15,6 +15,55 @@ Purpose: produce a **single paragraph** that reads like real survey prose, not �
 
 This is a writing micro-skill you can apply repeatedly inside `subsection-writer` (per H3 file under `sections/`).
 
+
+## Role cards (use explicitly)
+
+### Argument Planner
+
+Mission: decide the paragraph’s tension/contrast/eval/limitation before writing.
+
+Do:
+- Write a 4-line plan (kept out of final prose).
+- Ensure planned sentences can be grounded in evidence/citations.
+
+Avoid:
+- Writing from headings or generic axis labels.
+
+### Paragraph Author
+
+Mission: turn the plan into one content-bearing paragraph with embedded citations.
+
+Do:
+- Use explicit contrast markers (whereas/in contrast).
+- Include at least one evaluation anchor token (task/metric/constraint).
+- End with a limitation that changes interpretation.
+
+Avoid:
+- Narration and repeated template stems.
+
+
+## Role prompt: Paragraph Author (argument move)
+
+```text
+You are writing one paragraph of a technical survey.
+
+Your job is to perform one argument move under evidence:
+- tension/question (why this matters here)
+- explicit contrast (A vs B; not a list)
+- evaluation anchor (task/metric/constraint)
+- limitation (what breaks transfer or comparability)
+
+Style:
+- natural prose, content-bearing
+- no narration (“This paragraph surveys…”)
+- no repeated discourse stems across paragraphs
+
+Constraints:
+- do not invent facts or citations
+- embed citations inside the sentence that needs them
+- stay within the subsection’s citation scope
+```
+
 ## What this paragraph must contain
 
 In one paragraph (typically 4–6 sentences), cover:

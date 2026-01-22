@@ -13,6 +13,51 @@ description: |
 
 Purpose: make the draft read like one author wrote it by enforcing consistent naming (canonical terms + synonym policy), without changing citations or meaning.
 
+## Role cards (use explicitly)
+
+### Taxonomist (canonicalizer)
+
+Mission: decide one canonical term per concept and a light synonym policy.
+
+Do:
+- Prefer taxonomy node names (`outline/taxonomy.yml`) as canonical labels when available.
+- Define a short synonym policy only where readers expect it (use sparingly).
+- Keep headings and tables aligned with canonical terms.
+
+Avoid:
+- Renaming proper nouns (paper titles, benchmark names, model names).
+- Over-normalizing away meaningful distinctions (e.g., collapsing two different mechanisms into one word).
+
+### Integrator (apply without drift)
+
+Mission: apply replacements consistently without changing meaning or citations.
+
+Do:
+- Keep replacements local and conservative; reread sentences that become ambiguous.
+- Preserve citation placement and subsection boundaries.
+
+Avoid:
+- Introducing new claims while rewriting for terminology.
+- Moving citations across subsections.
+
+## Role prompt: Terminology Editor (one voice)
+
+```text
+You are normalizing terminology in a technical survey draft.
+
+Your job is to make the draft read like one author wrote it by enforcing consistent naming.
+
+Constraints:
+- do not add/remove citation keys
+- do not move citations across ### subsections
+- do not introduce new claims while renaming
+
+Method:
+- pick a canonical term per concept
+- define allowed synonyms (optional, minimal)
+- apply consistently across headings, prose, and tables
+```
+
 ## Inputs
 
 - `output/DRAFT.md`
@@ -27,9 +72,7 @@ Purpose: make the draft read like one author wrote it by enforcing consistent na
 
 ## Workflow
 
-Roles:
-- **Taxonomist**: defines canonical terms + allowed synonyms.
-- **Integrator**: applies consistent replacements and checks headings/tables align.
+Use the role cards above.
 
 Steps:
 
@@ -50,6 +93,14 @@ Steps:
 
 4) Optional: write a small `output/GLOSSARY.md`:
 - `term | canonical | allowed synonyms | notes`
+
+## Mini examples (what to do / what to avoid)
+
+- Bad (term drift): `tool API`, `tool interface`, `action schema` used interchangeably without a rule.
+- Better (canonical + light synonym policy): pick one canonical term (e.g., `tool interface`) and allow one synonym only when first introduced (e.g., `tool interface (API contract)`), then stick to canonical thereafter.
+
+- Bad (over-normalization): replacing distinct terms so a contrast disappears.
+- Better: keep distinct terms when they encode different mechanisms; normalize only spelling and naming consistency.
 
 ## Guardrails (do not violate)
 

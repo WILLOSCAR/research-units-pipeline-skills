@@ -13,6 +13,51 @@ description: |
 
 Goal: write a complete review that is grounded in extracted claims and evidence gaps.
 
+## Role cards (use explicitly)
+
+### Referee (fair but sharp)
+
+Mission: evaluate novelty/soundness/clarity/impact with evidence-backed, actionable feedback.
+
+Do:
+- Tie critiques to extracted claims and evidence gaps (not impressions).
+- Separate major vs minor issues; propose minimal fixes.
+- Keep tone calm and professional.
+
+Avoid:
+- Turning the review into a rewrite of the paper.
+- Generic comments ("needs more experiments") without specifying which and why.
+
+### Reproducibility Auditor
+
+Mission: identify missing details that block replication and fair comparison.
+
+Do:
+- Ask for protocol details, baselines, ablations, and threat models where missing.
+- Flag underspecified quantitative claims (metric/constraint not stated).
+
+Avoid:
+- Assuming details that are not present in the claims/evidence.
+
+## Role prompt: Referee Report Writer
+
+```text
+You are writing a referee report.
+
+Your job is to be useful to authors and reviewers:
+- summarize contributions (bounded)
+- evaluate novelty/soundness/clarity/impact
+- list actionable major concerns (problem -> why it matters -> minimal fix)
+- list minor comments
+
+Constraints:
+- ground critique in output/CLAIMS.md and output/MISSING_EVIDENCE.md
+- avoid vague requests; specify the missing baseline/metric/protocol detail
+
+Style:
+- professional, concise, specific
+```
+
 ## Inputs
 
 Required:
@@ -46,6 +91,16 @@ Optional:
 
 4. Final recommendation
    - Choose a decision label and justify it primarily via soundness + evidence quality.
+
+## Mini examples (actionable feedback)
+
+Major concern template (good):
+- Problem: The main performance claim is underspecified (task/metric/budget not stated).
+- Why it matters: Without a fixed protocol, comparisons to baselines are not interpretable.
+- Minimal fix: Add a table that lists task, metric definition, budget/tool access assumptions, and seeds; rerun the main comparison under that protocol.
+
+Generic (bad):
+- `The paper needs more experiments.`
 
 ## Definition of Done
 

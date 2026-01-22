@@ -85,5 +85,11 @@ Note:
 - Explicit IO:
   - `python .codex/skills/anchor-sheet/scripts/run.py --workspace workspaces/<ws> --inputs "outline/evidence_drafts.jsonl;citations/ref.bib" --outputs "outline/anchor_sheet.jsonl"`
 
-Freeze policy:
-- Create `outline/anchor_sheet.refined.ok` to prevent regeneration.
+### Refinement marker (recommended; prevents churn)
+
+When you are satisfied with anchor facts (and they are actually subsection-specific), create:
+- `outline/anchor_sheet.refined.ok`
+
+This is an explicit "I reviewed/refined this" signal:
+- prevents scripts from regenerating and undoing your work
+- (in strict runs) can be used as a completion signal before writing

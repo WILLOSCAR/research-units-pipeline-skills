@@ -46,9 +46,11 @@ Required keys:
 - `anchor_facts` (trimmed)
 - `comparison_cards` (trimmed)
 - `must_use` (writer contract; minima derived from pack richness + `draft_profile`)
-- `do_not_repeat_phrases` (anti-template hints; phrases that should not appear in paper prose)
+- `do_not_repeat_phrases` (rewrite triggers; high-signal generator stems to avoid repeating verbatim)
 - `pack_warnings` (list; why this pack may still draft hollow if not fixed upstream)
 - `paper_voice_palette` (positive paper-voice phrase palette + rewrite stems; avoids "generator voice" without brittle hard blocks)
+  - Source: workspace override `outline/paper_voice_palette.json` (if present), else repo default `.codex/skills/writer-context-pack/assets/paper_voice_palette.json`.
+  - Includes `role_cards` (section author / evidence steward / style harmonizer). Treat them as role cues and rewrite intentions, not sentence templates.
 - `pack_stats` (object; raw/kept/dropped counts + trim policy so truncation/drop is not silent)
 
 Trim policy:
@@ -67,10 +69,10 @@ Treat each pack as an executable checklist, not optional context:
   - Prefer a content claim; avoid generator-like meta openers (`This subsection ...`) and avoid repeating literal opener labels (e.g., `Key takeaway:`) across many H3s.
 - **Opener mode (anti-template)**: use `opener_mode` / `opener_hint` to vary how paragraph 1 frames the subsection (tension-first vs decision-first vs lens-first).
   - Do not copy labels into the prose; keep signposting light and content-bearing.
-- **Anti-template**: treat `do_not_repeat_phrases` as a hard “paper voice” constraint:
-  - do not emit these phrases verbatim
-  - rewrite into argument bridges / content claims (no outline narration)
-  - don’t replace them with a new repeated stem; keep phrasing varied and paper-like
+- **Anti-template**: treat `do_not_repeat_phrases` as rewrite triggers (paper voice hygiene):
+  - if a listed phrase appears, rewrite it into a content claim / argument bridge (no outline narration)
+  - avoid swapping in a new repeated stem; keep phrasing varied and paper-like
+  - exception: a phrase may appear once if it is truly subsection-specific (not a reusable stem)
 - **Micro-structure**: if prose starts drifting into flat summaries, apply `grad-paragraph` repeatedly (tension → contrast → evaluation anchor → limitation).
 - **Citation scope**: prefer `allowed_bibkeys_selected` (then `allowed_bibkeys_mapped`, then `allowed_bibkeys_chapter`). `allowed_bibkeys_global` is reserved for cross-cutting works mapped across many subsections (foundations/benchmarks/surveys): use it sparingly and still keep >=2 subsection-specific citations per H3.
 
@@ -142,5 +144,11 @@ Better (literature-facing observation):
 - Explicit IO:
   - `python .codex/skills/writer-context-pack/scripts/run.py --workspace workspaces/<ws> --inputs "outline/outline.yml;outline/subsection_briefs.jsonl;outline/chapter_briefs.jsonl;outline/evidence_drafts.jsonl;outline/anchor_sheet.jsonl;outline/evidence_bindings.jsonl;citations/ref.bib" --outputs "outline/writer_context_packs.jsonl"`
 
-Freeze policy:
-- Create `outline/writer_context_packs.refined.ok` to prevent regeneration.
+### Refinement marker (recommended; prevents churn)
+
+When you are satisfied with writer packs (and they are consistent with briefs/bindings), create:
+- `outline/writer_context_packs.refined.ok`
+
+This is an explicit "I reviewed/refined this" signal:
+- prevents scripts from regenerating and undoing your work
+- (in strict runs) can be used as a completion signal before writing

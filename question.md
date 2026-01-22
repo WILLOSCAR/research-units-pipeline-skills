@@ -1,224 +1,228 @@
 # Pipeline / Skills Improvement Backlog (arxiv-survey-latex)
 
-Last updated: 2026-01-19
+Last updated: 2026-01-21
 
 本文件只跟踪 **pipeline + skills 的结构性改进**（不是某次 draft 的内容修修补补）。
 
-诊断主文档：`PIPELINE_DIAGNOSIS_AND_IMPROVEMENT.md`
+主诊断文档：`PIPELINE_DIAGNOSIS_AND_IMPROVEMENT.md`
 
-回归基线 workspace（用于复现问题与验证改进，不是交付物）：
-- `workspaces/e2e-agent-survey-latex-verify-20260118-182656/`
-
-对标材料（写法/结构基准）：
-- `ref/agent-surveys/STYLE_REPORT.md`
+回归与对标锚点（用于复现问题与验证改进；不改 workspace 产物）：
+- 回归基线 workspace：`workspaces/e2e-agent-survey-latex-verify-20260119-120720/`
+- 对标材料：`ref/agent-surveys/STYLE_REPORT.md`
 
 ---
 
-## P0 — 必须先修（可信 + 可审计 + 不再一眼自动化）
+## 0) 上一版内容 Summary（change log 视角；作为新起点）
 
-### P0-1 合同闭环：DONE 必须意味着“产物存在”
+上一版的 question.md 本质上是把诊断结论“任务化”，按优先级拆成 P0/P1/P2 三层：
 
-Status: DONE (2026-01-19) — `global-reviewer`/`section-logic-polisher` 报告必落盘；新增 `artifact-contract-auditor` → `output/CONTRACT_REPORT.md`.
+- P0（可信 + 可审计 + 不再一眼自动化）：合同闭环、失败沉淀、transition 去 planner talk、DECISIONS 绑定 workspace、以及 evidence 自循环的 prewrite routing。
+- P1（paper voice + 论证密度）：让 briefs/pack 更具体；给 writer-context-pack 补正向写法引导；让 binder 更 subsection-specific；把写作阶段拆分为可组合 playbooks（front matter / chapter lead / H3）；并把 role prompt blocks 内化到写作技能里。
+- P2（结构性重构）：schema 规范化；visuals 的产品策略二选一（optional vs 注入闭环）；减少 god objects（writer packs / draft polish）。
 
+在 “从终稿倒推” 的视角下，上一版最关键的收敛点是：
+- 不能只把写作质量 gate 放在 `sections/*.md`，必须覆盖 merge 后的 `output/DRAFT.md`，因为 transitions 等注入源会绕过 per-section 自循环。
+- “schema-valid ≠ writeable”：必须显式区分 scaffold 与 refined substrate（refined markers），否则写作阶段会被迫用 prose 去补上游缺口。
+- 写作阶段需要 role 化，把“如何写好”提前编码进 skills 合同，而不是靠事后审计把模型打回去。
 
-现象（baseline 可证）：
-- pipeline `target_artifacts`=40（`arxiv-survey-latex`），workspace 缺 2 个 QA 报告：
-  - `workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/SECTION_LOGIC_REPORT.md`
-  - `workspaces/e2e-agent-survey-latex-verify-20260118-182656/output/GLOBAL_REVIEW.md`
+---
 
-为什么是 P0：
-- 这是 Units 合同失效，会直接让自循环失去证据（只能靠“感觉”改写）。
+## P0 — 必须先修（读者可信 + 审计可回放 + 不再一眼自动化）
 
-建议改动（偏合同/流程，不靠硬风格 gate）：
-- 把“报告类 skill”合同写死：PASS/FAIL 都必须写 report 文件。
-  - 目标 skill：`section-logic-polisher`, `global-reviewer`（至少这两个）
-- 新增（或合并进 `pipeline-auditor`）：`artifact-contract-auditor`
-  - 输出：`output/CONTRACT_REPORT.md`（缺失项列表 + PASS/FAIL）
+### P0-1 注入源覆盖：把 transitions 当作“正文的一部分”管理
+
+问题（终稿可证）：
+- `workspaces/e2e-agent-survey-latex-verify-20260119-120720/output/DRAFT.md:73/143/217` 出现 planner-talk transitions。
+- 源头来自 `workspaces/e2e-agent-survey-latex-verify-20260119-120720/outline/transitions.md:14-17`。
+
+设计改造（建议）：
+- 固化“后合并口吻门”（post-merge voice gate）为 C5 必经边界：
+  - 检测 planner-talk / slash-list（A/B/C）/ slide-narration。
+  - 失败必须路由回最早责任产物（通常是 transitions），而不是在终稿里打补丁。
 
 预期收益：
-- 每个 workspace 可作为回归样本；质量与失败可复盘。
-
-风险：
-- 更严格会暴露更多“以前假装跑通”的 run（属预期）。
+- “writer-selfloop PASS 但终稿像生成器”这类错位会显式暴露并可路由。
 
 验证：
-- 任意一次 e2e：40/40 target artifacts 存在；或 `CONTRACT_REPORT` 明确列出 optional/missing。
+- 终稿不再出现上述 3 行的句式族；并且 FAIL 时能定位到 `outline/transitions.md`。
+
+状态：
+- 已落实到 skills/pipeline：
+  - `transition-weaver` 明确“注入合同”+ rewrite triggers（避免 planner-talk/slash-list）
+  - `section-merger` 明确注入格式（仅 `- 3.1 → 3.2: <text>` 默认会被注入）+ 强制 post-merge 路由
+  - `post-merge-voice-gate` 增强 rewrite triggers + 路由规则
+  仍需要下一次 e2e 回放验证 gate 是否在正确边界触发。
 
 ---
 
-### P0-2 失败沉淀：BLOCKED 不再需要重跑才能定位
+### P0-2 front matter 方法学段落（methodology note）必须变成硬合同
 
-Status: DONE (2026-01-19) — `output/QUALITY_GATE.md` 追加写；runner 追加写 `output/RUN_ERRORS.md`；workspace 模板默认包含两者。
+问题（终稿可证）：
+- `papers/retrieval_report.md` 中已有候选池规模（809→800）与时间窗，但终稿未消费（终稿中检索不到这些数字）。
+- 成熟 survey 通常在前 1–2 页给出方法学底座；缺失会显著拉大“论文感”差距。
 
+设计改造（建议）：
+- 将 methodology note 从“可选写法”升级为硬合同（只写一次）：
+  - time window
+  - candidate pool size
+  - core set size
+  - evidence mode（abstract/fulltext）
+- 允许实现策略分层（仍然 skills-first）：
+  - 可拆成独立的 NO PROSE 中间态（methodology facts card），再由 front matter writer 消费；
+  - 或直接由 front matter writer 从 retrieval/core-set 产物中提取并写成 1 段论文式说明。
 
-现象（baseline 可证）：
-- `STATUS.md` 有 `BLOCKED (script failed)` / `BLOCKED (quality gate: output/QUALITY_GATE.md)`，但 workspace 中没有对应的错误沉淀文件。
-
-建议改动：
-- 为所有 pipeline 定义两个标准 error sinks（append-only）：
-  - `output/QUALITY_GATE.md`：gate code + 路由建议（回到哪个 stage/skill 修）
-  - `output/RUN_ERRORS.md`：unit_id + timestamp + stderr 摘要
+预期收益：
+- 读者能快速判断覆盖范围与证据强度；正文减少免责声明堆叠。
 
 验证：
-- 人为制造失败（删 input），run 结束后上述两个文件必存在且可定位到具体 unit。
+- Introduction/Related Work 中出现上述信息且只出现一次（不写 run logs/pipeline 术语）。
+
+状态：
+- 设计建议（建议提升为 arxiv-survey-latex 默认必做，而非 optional）。
 
 ---
 
-### P0-3 transition-weaver 去“planner talk”（最影响论文感）
+### P0-3 numeric-claim hygiene：数字进入正文必须携带最小协议上下文
 
-Status: DONE (2026-01-19) — `transition-weaver` 输出 paper-voice transitions；质量门拦截 planner-talk 模式与分号枚举。
+问题（终稿可证）：
+- `output/DRAFT.md:121` 含多组百分比，但缺少 setting/metric/budget 的最小上下文。
+- 上游 `paper_notes.jsonl:P0023` 本身有 task/setting 信息，但 writer 未携带。
 
+设计改造（建议）：
+- 把“数字可入正文”的条件写成 evidence-contract：
+  - 任何包含 >=2 个数字/百分比的句子，必须同时说明 task/setting、metric definition、constraint/budget/tool access 中至少 2 项；
+  - 否则降级为定性陈述，并在同段写 verify targets（缺什么才能升级为数字结论）。
 
-现象（baseline 可证）：
-- `workspaces/e2e-agent-survey-latex-verify-20260118-182656/outline/transitions.md` 含大量构建注释句（分号枚举、turning framing into…）。
-- 被 merge 后出现在 `output/DRAFT.md:59/111/165/221`。
-
-为什么是 P0：
-- transition 是全篇高频句型，一旦像注释，读者第一眼判定“自动生成”。
-
-建议改动（优先语义化引导）：
-- transition-weaver 的默认输出必须是“内容论证桥”（1 句即可）：
-  - 写：上一节结论/局限 → 下一节为什么重要
-  - 不写：工具链路/构建过程/“setting up a cleaner A-vs-B comparison”
-- 明确禁止模式（写入 SKILL.md + auditor 检测）：
-  - `After .* makes the bridge explicit via`
-  - `follows naturally by turning .* framing into`
-  - 分号 `;` 形式的枚举规划句
+预期收益：
+- 让“看起来很具体但不可核查”的句子在写作阶段就被约束，减少 reviewer 质疑。
 
 验证：
-- `outline/transitions.md` 不包含上述模式；`output/DRAFT.md` 也为 0。
+- 抽检终稿所有数值句：都有最小协议上下文；否则被降级。
+
+状态：
+- 设计建议（应在 paper-notes/evidence-draft/writer 三处形成一致合同）；writer 阶段已在 `writer-selfloop` 的 FAIL 路由中显式提示“缺上下文则降级/回流”。
 
 ---
 
-### P0-4 DECISIONS checkpoint 绑定 workspace（审计性 canary）
+### P0-4 两条 self-loop 的路由必须“更语义化、更早修复”
 
-Status: DONE (2026-01-19) — `pipeline-router` checkpoint block 显式写入 workspace 名与相对路径，减少 stale approvals.
+问题（共性）：
+- self-loop 若只给“重写文本”建议，会把上游缺口掩盖成写作问题，导致漂移与反复。
 
-现象（baseline 可证）：
-- `workspaces/e2e-agent-survey-latex-verify-20260118-182656/DECISIONS.md` 的 C0 kickoff block workspace 路径是旧的。
-
-建议改动：
-- pipeline-router 写 checkpoint block 时必须刷新 workspace/pipeline 行。
-- block 中增加 self-check：显示当前目录名（使 drift 可见）。
+设计改造（建议）：
+- Evidence self-loop（C4）不仅看 `blocking_missing`，还要暴露“可写性坏味道”并给最短上游修复路径：
+  - binder 同构（claim_type/tag mix 高度一致）→ 路由回 binder/notes
+  - numeric snippet 缺上下文 → 路由回 paper-notes/evidence-draft
+  - per-H3 缺 evaluation anchor → 路由回 briefs/packs
+- Writer self-loop（C5）明确 triage：
+  - 缺证据/缺锚点 → 回 C3/C4（禁止 padding prose）
+  - 口吻/旁白问题 → 回对应 source（section files / transitions / leads）
+  - 数字上下文问题 → 回 evidence-draft/paper-notes 或降级改写
 
 验证：
-- 新 workspace 的 DECISIONS.md C0 block 永远指向自身目录。
+- FAIL 必须能路由到“最早责任产物”，而不是让终稿打补丁。
+
+状态：
+- 已落地为 skills 级设计：
+  - `writer-selfloop` 增加 FAIL code → triage/routing map（把缺证据 vs 写作动作缺失拆开）
+  - `subsection-writer` 将 `sections/sections_manifest.jsonl` 从脚本产物上升为“合同”并补齐手工写法
+  evidence-selfloop 的“可写性坏味道”还可继续增强（下一轮补齐更多 smell + 更短修复链）。
 
 ---
 
-### P0-5 Evidence 自循环（写作前的 prewrite routing）
+### P0-5 去“脚本生成语义内容”：脚本只做 deterministic transforms 或验证
 
-Status: DONE (2026-01-19) — 新增 `evidence-selfloop`（读 bindings+packs → 写 `output/EVIDENCE_SELFLOOP_TODO.md`），并已集成到 arxiv-survey(-latex) 的 C4→C5 bridge（缺 `blocking_missing` 时会阻断写作）。
+问题（共性）：
+- 一旦脚本生成 prose/句式，模板口吻会被硬写进产物，且很难靠后续润色完全消除。
 
-## P1 — 提升 paper voice（减少“正确但空”）
-
-### P1-1 subsection-briefs：让 thesis/contrast 更“具体张力”
-
-Status: DONE (2026-01-19) — briefs 强制新增 `tension_statement` + `evaluation_anchor_minimal`；connector_phrase 变为 clause-level 提示；质量门同步更新。
-
-
-现象：
-- thesis/contrast_hook 偏泛（如 tension 只落在“mechanism/data”轴），writer 容易回到 `Taken together` / `survey should` 省力口吻。
-
-建议改动：
-- 给每个 H3 强制新增两个字段（NO PROSE）：
-  - `tension_statement`：具体张力句（例如“表达性 vs 可验证性”），必须可直接做段落 1 的核心句
-  - `evaluation_anchor_minimal`：task + metric + constraint 三元组（允许 unknown slot，但要显式标注）
-- connector_phrase 改为 clause-level 短提示，禁止整句（降低 copy-paste 模板化）。
+设计改造（建议）：
+- 明确分层：
+  - deterministic transforms 可脚本化（dedupe/merge/schema normalization）
+  - 语义生成必须以 SKILL.md 合同驱动（角色、动作、正反例），脚本只能做验证或机械拼接
 
 验证：
-- audit：`Taken together` <=2；`survey ... should` <=1。
+- 所有“会进入正文的句子/段落”都能追溯到某个写作型 skill 的语义合同，而不是来自脚本模板。
+
+状态：
+- 已部分落实：写作相关 skills 已明确“脚本为可选 deterministic helper”；语义生成的主路径以 SKILL.md role cards + 合同为准（下一轮继续清理/弱化其它技能的脚本主路径）。
 
 ---
 
-### P1-2 writer-context-pack：补“正向写法引导”（替代句式库）
+## P1 — 提升 paper voice（减少“正确但空”，让论证动作在落笔前生效）
 
-Status: DONE (2026-01-19) — packs 增加 `paper_voice_palette`（opener/synthesis/rewrite rules），并携带 tension/eval anchor。
+### P1-1 写作 role 化：把“如何写好”内化为可组合的角色与职责
 
-
-现象：
-- pack 已有禁令（do_not_repeat）但缺少替代句式/微结构提示。
-
-建议改动：
-- 新增结构化字段 `paper_voice_palette`：
-  - opener archetypes（decision-first/tension-first/evidence-first）示例
-  - synthesis alternatives（替代 Taken together）
-  - rewrite rules（把 survey should → 内容主张句 的映射）
+设计改造（建议）：
+- Writer 阶段最少拆成 3 个语义角色（不一定对应 3 个 skill，但合同要写清）：
+  - Section Author：按 argument moves 写段落（张力/对比/评测锚/局限）
+  - Skeptical Reviewer：只做“可核查性”挑刺（数字上下文、协议缺口、过度外推）
+  - Style Harmonizer：只做 paper voice 与节奏（去旁白、去单调连接词、保持引用锚定）
 
 验证：
-- audit report 中 phrase family 复发显著下降；且不靠硬 blocking。
+- 终稿不存在旁白导航句；且 discourse stems 分布更自然。
 
 ---
 
-### P1-3 evidence-binder：从“同构配方”变成 subsection-specific 证据计划
+### P1-2 chapter lead：任何包含多个 H3 的章节都要有 lead（防止段落孤岛）
 
-Status: DONE (2026-01-19) — bindings 增加 `binding_rationale` + `binding_gaps`；report 增加 gaps 列。
-
-
-现象（baseline 可证）：
-- `outline/evidence_binding_report.md` 每节同样 mix：limitation=1/method=1/result=10。
-
-建议改动：
-- evidence-binder 输出增加：
-  - `binding_rationale`（短 bullet）：这些 evidence 如何覆盖 axes
-  - `binding_gaps`：哪些 required_evidence_fields 未覆盖（回退到 C3 或 C1）
+设计改造（建议）：
+- `chapter-lead-writer` 变成条件必做（当章含 >=2 H3）。
+- lead 只写 lens/比较轴与承接关系，不写标题旁白。
 
 验证：
-- binding report 能看到小节差异；gaps 能驱动自循环回到上游补证据。
+- 读 lead 能预测后续 H3 的分工与比较轴。
 
 ---
 
-### P1-4 写作阶段的“可执行写法”显式化（playbooks + examples）
+### P1-3 transitions 的两条路线（二选一，避免双轨漂移）
 
-Status: DONE (2026-01-19) — `subsection-polisher` / `global-reviewer` / `pipeline-auditor` / `citation-injector` 增强为 *语义化写作/修订 playbook*（目标/约束/反例/改写配方/路由表），把“如何写好/如何改好”前置到写作阶段而非事后评判。
+路线 A（保留注入）：
+- transitions 作为正文的一部分：严格受 post-merge voice gate 约束（1 句、论证桥、禁 planner-talk/slash-list）。
 
-动机：
-- 仅靠审计/事后润色无法阻止“模板旁白/免责声明 spam/引用 dump”反复复发；必须在写作与局部修订技能里把可执行写法编码出来。
+路线 B（取消注入）：
+- transitions 只输出 intent（NO PROSE），由 writer 在小节内部完成承接；writer-selfloop 检查承接句是否存在。
 
-改动要点：
-- `subsection-polisher`：补齐 H3 论证动作合同 + 反例/改写配方；明确 fallback 到 `outline/subsection_briefs.jsonl` / `outline/evidence_drafts.jsonl`；显式引用 `citations/ref.bib` 校验。
-- `global-reviewer`：增加“如何用 outline/taxonomy/mapping/matrix 做全局一致性审计”的 workflow，并给出 paper-voice 改写例；脚本段落标准化（Quick Start/All Options/Examples）。
-- `pipeline-auditor`：把报告解释升级为“路由表”，明确每类 FAIL 属于哪个 stage/skill；脚本段落标准化。
-- `citation-injector`：增加 paper-voice 注入句式库 + 反模式（budget-dump voice）；明确 `output/CITATION_BUDGET_REPORT.md` 与 `outline/outline.yml` 的放置逻辑。
+需要你拍板（见文末“产品/策略问题”）：到底选 A 还是 B。
 
-验证：
-- `scripts/validate_repo.py --strict` PASS。
-
+---
 
 ## P2 — 结构性重构（减少无效劳动 + 降 drift）
 
-### P2-1 visuals（tables/timeline/figures）：要么 optional，要么闭环注入
+### P2-1 visuals（LaTeX survey 的交付差距来源之一）
 
-Status: DONE (2026-01-19) — 选择路线 1（默认 optional）：arxiv-survey(-latex) 默认不再强制跑 tables/timeline/figures 单元；相关 skills 保留为可选工具箱。
+问题：
+- 对标 survey 通常至少有 1–2 个关键表（taxonomy/evaluation/protocol）；缺表会显著拉大交付观感差距。
 
-
-现象（baseline 可证）：
-- workspace 有 `outline/tables.md`/`timeline.md`/`figures.md`，但 `latex/main.tex` 不包含它们。
-
-二选一决策：
-1) 简化：把 table-schema/table-filler/survey-visuals 改为 optional（默认不跑）。
-2) 闭环：新增 `visuals-inserter`（C5）把这些内容插入 DRAFT/LaTeX。
+设计改造（建议）：
+- 用 `draft_profile` 区分策略：
+  - `lite`：0 表可接受。
+  - `survey/deep`：默认至少 2 表（taxonomy 表 + benchmark/protocol 表）。
 
 验证：
-- 若闭环：PDF 中至少出现 1–2 张表（或 timeline/figure placeholder），且引用可编译。
+- `survey/deep` 的 PDF 中出现 >=2 张可编译表格（每行有 citations）。
+
+状态：
+- OPEN（需要你拍板：是否把“>=2 表”定义为 survey profile 的默认门槛）。
 
 ---
 
-### P2-2 schema 规范化（减少 best-effort heuristics）
+### P2-2 结构预算与大纲自循环（防止 H3 爆炸/小节过薄）
 
-Status: DONE (2026-01-19) — 新增 `schema-normalizer`（NO PROSE, deterministic）并已集成到 arxiv-survey(-latex) 的 C4 bridge（anchor-sheet → schema-normalizer → writer-context-pack）。
-
-修复点：
-- `schema-normalizer`：补齐 `section_id/section_title`；统一 JSONL `citations` 为 raw bibkey（无 `@` 前缀）；写 `output/SCHEMA_NORMALIZATION_REPORT.md`。
-- 下游兼容：`writer-context-pack` / `anchor-sheet` / quality gate 对 `citations` 支持 raw bibkey（Markdown 写作时使用 `[@bibkey]`）。
+设计改造（建议）：
+- 在 C2 强化预算合同：H3 目标为少而厚（lite<=8, survey<=10, deep<=12）。
+- 让 outline/refiner 能显式建议“合并哪些 H3”而不是仅报告 coverage。
 
 验证：
-- briefs → evidence packs → anchors → writer packs 无需再做 best-effort parsing；schema drift 会被 `SCHEMA_NORMALIZATION_REPORT.md` 定位。
+- 生成 outline 与 `ref/agent-surveys/STYLE_REPORT.md` 的 section count 分布接近。
+
+状态：
+- 设计建议（已存在 outline-budgeter，但可进一步提升为“自循环动作”而非可选技能）。
 
 ---
 
 ## 产品/策略问题（需要你拍板）
 
-- “一键跑”默认 profile：`lite`（速度）还是 `survey`（论文感）？
-- transition/meta-voice：长期保持 warning，还是成熟后升级为 blocking？
-- citation scope：想要严格计划（writer 必须跟 plan），还是软计划（writer 可在 mapped 内选 + injector 补）？
+- transitions：到底采用“注入句子”（路线 A）还是“仅 intent、由 writer 内化”（路线 B）？
+- front matter：是否把 `front-matter-writer` 设为 arxiv-survey-latex 的默认必做（而不是 optional）？
+- `survey/deep` profile：是否把 “methodology note + >=2 表” 定义为默认交付门槛？
+- evidence mode 默认：长期维持 abstract-first，还是对 `deep` 默认要求 fulltext（成本更高但更像论文）？

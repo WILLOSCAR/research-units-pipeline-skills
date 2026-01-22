@@ -15,6 +15,24 @@ Turn a core paper set into a **2+ level, mappable taxonomy** that will drive the
 
 This is *structure*, not writing: avoid prose paragraphs and avoid “generic placeholder” buckets.
 
+## Role cards (prompt-level guidance)
+
+- **Taxonomy Architect**
+  - Mission: create a taxonomy that reads like a survey’s core chapters (few, thick buckets).
+  - Do: choose 3–4 top-level chapters by reader questions and decision-relevant axes.
+  - Avoid: keyword-only clusters, “Misc/Other”, and too many top-level buckets that would bloat the final ToC.
+
+- **Mapping Sponsor**
+  - Mission: keep the taxonomy mappable to real papers.
+  - Do: ensure each leaf can plausibly map to multiple papers (ideally ≥3); keep node names discriminative.
+  - Avoid: overlapping buckets whose boundaries are not explainable.
+
+- **Scope Guardian**
+  - Mission: encode what counts as in-scope at the taxonomy level.
+  - Do: bake boundary cues into descriptions (what belongs here, what does not).
+  - Avoid: relying on later prose to resolve scope drift.
+
+
 ## When to use
 
 - You have a `papers/core_set.csv` and need a stable structure for a survey/snapshot.
@@ -87,6 +105,15 @@ Uses: `papers/papers_dedup.jsonl`, `DECISIONS.md`.
 
 - The script generates a baseline 2-level taxonomy (topic-aware) and never overwrites non-placeholder work.
 - In `pipeline.py --strict` it will be blocked only if placeholder markers (TODO/TBD/FIXME/(placeholder)) remain.
+
+### Refinement marker (recommended; completion signal)
+
+When you are satisfied with the taxonomy (and after C2 approval if applicable), create:
+- `outline/taxonomy.refined.ok`
+
+This is an explicit "I reviewed/refined this" signal:
+- makes it harder for a scaffold-y taxonomy to silently pass in strict runs
+- documents that buckets were edited into reader-meaningful, mappable nodes
 
 ## Troubleshooting
 

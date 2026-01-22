@@ -18,6 +18,10 @@ Purpose: turn each **H2 chapter that contains H3 subsections** into a chapter-le
 
 This artifact is **internal intent**, not reader-facing prose.
 
+Why this matters for writing quality:
+- Chapter briefs prevent the "paragraph island" failure mode: without a throughline, each H3 restarts and repeats openers.
+- Treat `throughline` and `lead_paragraph_plan` as decision constraints, not copyable sentences.
+
 ## Inputs
 
 - `outline/outline.yml`
@@ -95,6 +99,15 @@ Contract (paper-like, no new facts):
 - Explicit IO:
   - `python .codex/skills/chapter-briefs/scripts/run.py --workspace workspaces/<ws> --inputs "outline/outline.yml;outline/subsection_briefs.jsonl;GOAL.md" --outputs "outline/chapter_briefs.jsonl"`
 
-Notes:
+### Refinement marker (recommended; prevents churn)
+
+When you are satisfied with chapter briefs, create:
+- `outline/chapter_briefs.refined.ok`
+
+This is an explicit "I reviewed/refined this" signal:
+- prevents scripts from regenerating and undoing your work
+- (in strict runs) can be used as a completion signal to avoid silently accepting a bootstrap scaffold
+
+### Notes
+
 - This helper is a bootstrap; refine manually if needed.
-- Freeze policy: create `outline/chapter_briefs.refined.ok` to prevent regeneration.

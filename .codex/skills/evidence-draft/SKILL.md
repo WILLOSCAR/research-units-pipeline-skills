@@ -15,6 +15,28 @@ Purpose: turn `papers/paper_notes.jsonl` + subsection mapping into **writeable e
 
 Key design: every pack should contain **evidence snippets** (1–2 sentences) with **provenance** (abstract/fulltext/notes pointer). Even abstract-level snippets are better than template prose.
 
+Why this matters for writing quality:
+- Packs are the writer substrate; if packs are thin, C5 will either pad prose or guess.
+- Treat `blocking_missing` as a stop signal: route upstream (notes/bindings) instead of writing around gaps.
+
+## Role cards (prompt-level guidance)
+
+- **Evidence Curator**
+  - Mission: turn paper notes into contrastable, citeable evidence (not summaries).
+  - Do: extract snippet-backed comparisons; surface protocol details and failure modes.
+  - Avoid: axis-driven "hypotheses" that are not supported by snippets.
+
+- **Provenance Accountant**
+  - Mission: keep every snippet auditable.
+  - Do: attach provenance pointers (abstract/fulltext/notes location) and keep excerpts sentence-level.
+  - Avoid: untraceable paraphrases that cannot be verified.
+
+- **Skeptic**
+  - Mission: prevent evidence inflation.
+  - Do: downgrade claims when evidence is abstract/title-only; convert unknowns into `verify_fields` (not repeated boilerplate in prose).
+  - Avoid: strong conclusions without protocol/metric context.
+
+
 ## Non-negotiables
 
 - NO PROSE: packs are bullets-only evidence, not narrative paragraphs.
@@ -22,6 +44,9 @@ Key design: every pack should contain **evidence snippets** (1–2 sentences) wi
 - Citation hygiene: every cite key must exist in `citations/ref.bib`.
 - Claim candidates must be snippet-derived (no axis-driven “Hypothesis: …” items); put questions into `verify_fields` instead.
 - Avoid silent truncation: keep `claim_candidates[].claim` long enough to carry concrete detail (<= ~400 chars) and keep highlight `excerpt` sentence-level (<= ~280 chars).
+- Numeric-claim hygiene (evidence substrate):
+  - If a snippet/claim includes digits or `%`, also include minimal context in the same bullet (at least 2 of: task/setting, metric definition, constraint/budget/tool access).
+  - If the context is not present in notes/fulltext, do not keep the number; downgrade to qualitative wording and add a `verify_fields` item instead.
 - Evidence-aware language:
   - fulltext-backed → can summarize comparisons
   - abstract-only/title-only → must be provisional + list verify-fields (no strong “dominant trade-offs” language)
@@ -88,16 +113,21 @@ Allowed `source`: `fulltext|abstract|paper_notes|title`.
 
 - [ ] Every subsection has >=4 concrete comparisons.
 - [ ] `evidence_snippets` is non-empty and includes provenance.
+- [ ] Any bullet containing numbers/% also carries minimal protocol context (task/metric/constraint), or the number is removed and moved to `verify_fields`.
 - [ ] `claim_candidates` has >=3 snippet-derived items (no axis-driven hypotheses).
 - [ ] `blocking_missing` is empty.
 - [ ] No `TODO` / `(placeholder)` / `<!-- SCAFFOLD -->` / unicode ellipsis (`…`) remains.
 
-## Helper script
-
-- `python .codex/skills/evidence-draft/scripts/run.py --help`
-- `python .codex/skills/evidence-draft/scripts/run.py --workspace <ws>`
-
 ## Script
+
+### Refinement marker (recommended; prevents churn)
+
+When you are satisfied with evidence packs (and `blocking_missing` is empty), create:
+- `outline/evidence_drafts.refined.ok`
+
+This is an explicit "I reviewed/refined this" signal:
+- prevents scripts from regenerating and undoing your work
+- (in strict runs) can be used as a completion signal before writing
 
 ### Quick Start
 

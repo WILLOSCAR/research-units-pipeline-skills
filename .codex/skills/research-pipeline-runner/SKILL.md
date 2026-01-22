@@ -69,12 +69,27 @@ User goal → choose:
   - `writer-selfloop` fixes only failing `sections/*.md`
   - `draft-polisher` removes generator voice without changing citation keys
 
+## Strict-mode behavior (by design)
+
+In `--strict` runs, several semantic C3/C4 artifacts are treated as *scaffolds* until explicitly marked refined.
+This is intentional: it prevents bootstrap JSONL from silently passing into C5 writing (a major source of hollow/templated prose).
+
+Create these markers only after you have manually refined/spot-checked the artifacts:
+- `outline/subsection_briefs.refined.ok`
+- `outline/chapter_briefs.refined.ok`
+- `outline/evidence_bindings.refined.ok`
+- `outline/evidence_drafts.refined.ok`
+- `outline/anchor_sheet.refined.ok`
+- `outline/writer_context_packs.refined.ok`
+
+The runner may BLOCK even if the JSONL exists; add the marker after refinement, then rerun/resume the unit.
+
 5) Finish:
 - merge → audit → (optional) LaTeX scaffold/compile
 
-## Practical commands (optional helpers)
+## Optional CLI helpers (debug only)
 
-- Kickoff + run (recommended): `python scripts/pipeline.py kickoff --topic "<topic>" --pipeline <pipeline-name> --run --strict`
+- Kickoff + run (optional; convenient, not required): `python scripts/pipeline.py kickoff --topic "<topic>" --pipeline <pipeline-name> --run --strict`
 - Resume: `python scripts/pipeline.py run --workspace <ws> --strict`
 - Approve checkpoint: `python scripts/pipeline.py approve --workspace <ws> --checkpoint C2`
 - Mark refined unit: `python scripts/pipeline.py mark --workspace <ws> --unit-id <U###> --status DONE --note "LLM refined"`

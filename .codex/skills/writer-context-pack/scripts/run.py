@@ -134,6 +134,34 @@ def _draft_profile(workspace: Path) -> str:
     return "survey"
 
 
+
+def _load_voice_palette(*, workspace: Path, repo_root: Path) -> dict[str, Any]:
+    """Load a paper-voice palette used by writer packs.
+
+    Precedence (most specific first):
+    - Workspace override: outline/paper_voice_palette.json
+    - Repo default: .codex/skills/writer-context-pack/assets/paper_voice_palette.json
+
+    Keep this file small and semantic: it is a rewrite guide, not a prose template.
+    """
+
+    candidates = [
+        workspace / 'outline' / 'paper_voice_palette.json',
+        repo_root / '.codex' / 'skills' / 'writer-context-pack' / 'assets' / 'paper_voice_palette.json',
+    ]
+
+    for p in candidates:
+        try:
+            if not p.exists() or p.stat().st_size <= 0:
+                continue
+            data = json.loads(p.read_text(encoding='utf-8', errors='ignore'))
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            continue
+
+    return {}
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", required=True)
@@ -257,74 +285,36 @@ def main() -> int:
         "limitation_excerpt": 320,
     }
 
-    # Anti-template hints for C5 writers (keep paper prose; avoid “outline narration”).
-    DO_NOT_REPEAT = [
-        "This subsection surveys",
-        "This subsection argues",
-        "In this subsection",
-        "Next, we move from",
-        "We now turn to",
-        "this run",
-        "this run is",
-        "Method note (evidence policy):",
-        "A few representative references include",
-        "Notable lines of work include",
-        "Concrete examples include",
-        "Concrete examples in",
-        "Concrete examples for",
-        "Work in this area includes",
-        "Recent systems for",
-        "Examples that illustrate",
-        "Representative systems for",
-        "Concrete systems include",
-        "Recent systems include",
-        "Examples include",
-        "Representative systems include",
-        "Therefore, survey synthesis should",
-        "Therefore, survey comparisons should",
-        "As a result, survey comparisons should",
-        "survey synthesis should",
-        "survey comparisons should",
-        "Taken together,",
-        "claims remain provisional under abstract-only evidence",
-        "abstract-only evidence",
-        "Key takeaway:",
-        "Main takeaway:",
-    ]
+    # Paper voice palette is data-driven (semantic), not hard-coded.
+    # Users may override per-workspace via `outline/paper_voice_palette.json`.
+    palette = _load_voice_palette(workspace=workspace, repo_root=repo_root)
+
+    forbidden = [str(x).strip() for x in (palette.get('forbidden_pipeline_voice') or []) if str(x).strip()]
+    high_risk = [str(x).strip() for x in (palette.get('high_risk_templates') or []) if str(x).strip()]
+
+    # Back-compat: keep a single flat list for writers that expect `do_not_repeat_phrases`.
+    # Treat `forbidden` as hard (must not appear). Treat `high_risk` as rewrite triggers.
+    DO_NOT_REPEAT = list(dict.fromkeys(forbidden + high_risk))
 
     # Positive guidance (paper voice): small phrase palettes + rewrite stems.
     # Keep these semantic and short; the draft must not read like template narration.
     PAPER_VOICE_PALETTE = {
-        "opener_archetypes": {
-            "tension-first": [
-                "A key tension is",
-                "The central trade-off is",
-                "A recurring constraint is",
-            ],
-            "decision-first": [
-                "For system builders, the crux is",
-                "A practical decision is",
-                "One design choice is",
-            ],
-            "lens-first": [
-                "Seen through the lens of",
-                "From the perspective of",
-                "Under an interface contract,",
-            ],
+        'forbidden_pipeline_voice': forbidden,
+        'high_risk_templates': high_risk,
+        'opener_archetypes': palette.get('opener_archetypes') or {
+            'tension-first': ['A key tension is', 'The central trade-off is', 'A recurring constraint is'],
+            'decision-first': ['For system builders, the crux is', 'A practical decision is', 'One design choice is'],
+            'lens-first': ['Seen through the lens of', 'From the perspective of', 'Under an interface contract,'],
         },
-        "synthesis_stems": [
-            "Across these studies,",
-            "Collectively,",
-            "In summary,",
-            "The evidence suggests that",
-            "A consistent theme is that",
-        ],
-        "rewrite_rules": [
-            {"avoid_stem": "This subsection surveys", "prefer_stem": "A key tension is"},
-            {"avoid_stem": "In this subsection", "prefer_stem": "We focus on"},
-            {"avoid_stem": "Next, we move", "prefer_stem": "Having established"},
-            {"avoid_stem": "We now turn", "prefer_stem": "We then examine"},
-            {"avoid_stem": "survey comparisons should", "prefer_stem": "Across protocols, we observe"},
+        'synthesis_stems': palette.get('synthesis_stems')
+        or ['Across these studies,', 'Collectively,', 'In summary,', 'The evidence suggests that', 'A consistent theme is that'],
+        'rewrite_rules': palette.get('rewrite_rules')
+        or [
+            {'avoid_stem': 'This subsection surveys', 'prefer_stem': 'A key tension is'},
+            {'avoid_stem': 'In this subsection', 'prefer_stem': 'We focus on'},
+            {'avoid_stem': 'Next, we move', 'prefer_stem': 'Having established'},
+            {'avoid_stem': 'We now turn', 'prefer_stem': 'We then examine'},
+            {'avoid_stem': 'survey comparisons should', 'prefer_stem': 'Across protocols, we observe'},
         ],
     }
 
@@ -448,6 +438,8 @@ def main() -> int:
         eval_considered = 0
         eval_dropped_no_cites = 0
 
+        eval_token_list_style = False
+
         eval_proto: list[dict[str, Any]] = []
         for it in (raw_eval or [])[:10]:
             if not isinstance(it, dict):
@@ -457,7 +449,14 @@ def main() -> int:
             if not cites:
                 eval_dropped_no_cites += 1
                 continue
-            eval_proto.append({"bullet": _trim(it.get("bullet") or "", max_len=TRIM["eval_bullet"]), "citations": cites})
+            bullet = _trim(it.get("bullet") or "", max_len=TRIM["eval_bullet"])
+            if re.match(r"(?i)^evaluation tokens mentioned in mapped evidence:\s*", bullet):
+                eval_token_list_style = True
+                bullet = re.sub(r"(?i)^evaluation tokens mentioned in mapped evidence:\s*", "Evaluation mentions include: ", bullet)
+                bullet = bullet.replace(";", ",")
+                bullet = re.sub(r"\s+,", ",", bullet)
+                bullet = re.sub(r"\s{2,}", " ", bullet).strip()
+            eval_proto.append({"bullet": bullet, "citations": cites})
             if len(eval_proto) >= 8:
                 break
 
@@ -514,6 +513,10 @@ def main() -> int:
         if not thesis:
             pack_warnings.append(
                 "Missing `thesis` in subsection briefs; fix `subsection-briefs` so the writer has a central claim to execute."
+            )
+        if eval_token_list_style:
+            pack_warnings.append(
+                "Evaluation protocol bullets are token-list style; avoid copying them as sentences. Prefer subsection-specific benchmarks/metrics from `anchor_facts` and state task/metric/constraint explicitly."
             )
         if len(anchor_facts) < min_anchor:
             pack_warnings.append(
