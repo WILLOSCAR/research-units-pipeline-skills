@@ -37,6 +37,7 @@ This skill is analysis-only. It does not edit content.
 
 - Placeholder leakage: ellipsis (`...`, `…`), TODO markers, scaffold tags.
 - Outline alignment: section/subsection order vs `outline/outline.yml`.
+- Survey tables (survey deliverable): require >=2 Markdown tables in the merged draft (index tables live in `outline/tables_index.md`) (inserted by `section-merger` from `outline/tables_appendix.md`).
 - Paper voice anti-patterns:
   - narration templates (`This subsection ...`, `In this subsection ...`)
   - slide navigation (`Next, we move ...`, `We now turn to ...`)
@@ -56,6 +57,9 @@ Common FAIL families -> responsible stage/skill:
 
 - Placeholders / leaked scaffolds
   - Fix: C2–C4 artifacts are not clean. Route to `subsection-briefs` / `evidence-draft` / `writer-context-pack`, then rewrite affected sections.
+
+- Missing overview tables (draft has <2 tables)
+  - Fix: ensure `table-schema` + `appendix-table-writer` produced `outline/tables_appendix.md` (>=2 tables, citation-backed, no placeholders), then rerun `section-merger` (tables insert as an Appendix block by default).
 
 - Planner talk in transitions / narrator bridges
   - Fix: rerun `transition-weaver` (and ensure briefs include `bridge_terms` / `contrast_hook`), then re-merge.

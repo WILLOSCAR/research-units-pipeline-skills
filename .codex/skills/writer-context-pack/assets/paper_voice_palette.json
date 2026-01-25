@@ -1,5 +1,5 @@
 {
-  "version": "0.3",
+  "version": "0.4",
   "notes": [
     "This palette is a soft writing guide for survey prose (paper voice).",
     "writer-context-pack will load this file (or workspace override: outline/paper_voice_palette.json) and copy it into each per-H3 writer pack.",
@@ -15,12 +15,22 @@
     "evidence pack",
     "evidence packs",
     "writer context pack",
-    "Method note (evidence policy):"
+    "Method note (evidence policy):",
+    "Methodology note:",
+    "Methodology note (evidence policy):",
+    "Methodology note (evidence-policy):",
+    "Method note:"
   ],
   "high_risk_templates": [
     "This subsection surveys",
     "This subsection argues",
     "In this subsection",
+    "This section surveys",
+    "This section reviews",
+    "This section discusses",
+    "This section covers",
+    "This section presents",
+    "This section introduces",
     "provides an overview",
     "This survey provides an overview",
     "In this section, we provide an overview",
@@ -46,7 +56,15 @@
     "claims remain provisional under abstract-only evidence",
     "abstract-only evidence",
     "Key takeaway:",
-    "Main takeaway:"
+    "Main takeaway:",
+    "protocol token",
+    "protocol tokens",
+    "constraint token",
+    "constraint tokens",
+    "metric token",
+    "metric tokens",
+    "evaluation token",
+    "evaluation tokens"
   ],
   "opener_archetypes": {
     "tension-first": [
@@ -63,6 +81,16 @@
       "Seen through the lens of",
       "From the perspective of",
       "Under an interface contract,"
+    ],
+    "contrast-first": [
+      "A useful contrast is between",
+      "One sharp contrast is between",
+      "A recurring split is between"
+    ],
+    "protocol-first": [
+      "Comparisons hinge on",
+      "Results are only comparable when",
+      "Evaluation claims depend on"
     ]
   },
   "synthesis_stems": [
@@ -112,7 +140,20 @@
     "Furthermore,",
     "This suggests",
     "Taken together,",
-    "The key point is that"
+    "The key point is that",
+    "Overall,",
+    "In summary,",
+    "In practice,",
+    "More broadly,",
+    "Importantly,",
+    "Notably,",
+    "Crucially,",
+    "In general,",
+    "At a high level,",
+    "In other words,",
+    "Therefore,",
+    "In addition,",
+    "As a result,"
   ],
   "discourse_stem_rewrites": {
     "Additionally,": [
@@ -134,6 +175,58 @@
       "A practical implication is that",
       "A useful way to read these results is that",
       "One takeaway is that"
+    ],
+    "Overall,": [
+      "In practice,",
+      "More broadly,",
+      "A practical implication is that",
+      "One way to read this evidence is that"
+    ],
+    "In summary,": [
+      "Across these studies,",
+      "Collectively,",
+      "A consistent theme is that",
+      "The evidence suggests that"
+    ],
+    "Importantly,": [
+      "More importantly,",
+      "A key constraint is that",
+      "A practical implication is that"
+    ],
+    "Notably,": [
+      "In particular,",
+      "A concrete example is that",
+      "One implication is that"
+    ],
+    "Crucially,": [
+      "More importantly,",
+      "A central constraint is that",
+      "A key takeaway is that"
+    ],
+    "At a high level,": [
+      "Concretely,",
+      "Under this protocol,",
+      "In practice,"
+    ],
+    "In other words,": [
+      "Put differently,",
+      "Equivalently,",
+      "More concretely,"
+    ],
+    "Therefore,": [
+      "As a result,",
+      "This in turn means that",
+      "A practical implication is that"
+    ],
+    "In addition,": [
+      "At the same time,",
+      "A second consideration is",
+      "More importantly,"
+    ],
+    "As a result,": [
+      "This in turn means that",
+      "Consequently,",
+      "A practical implication is that"
     ]
   },
   "role_cards": {
@@ -176,7 +269,8 @@
         "Count-based openers used as a slot (e.g., Two limitations..., Three takeaways...).",
         "Repeated discourse stems (Additionally, This suggests, Taken together) across many paragraphs.",
         "Pipeline words (workspace/unit/quality gate/evidence pack) in reader-facing text.",
-        "PPT speaker-note tone (Now we..., The remainder of...)."
+        "PPT speaker-note tone (Now we..., The remainder of...).",
+        "Internal shorthand that reads like planning notes (e.g., protocol/metric/constraint tokens)."
       ]
     }
   }

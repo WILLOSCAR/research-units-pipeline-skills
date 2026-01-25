@@ -1,0 +1,4 @@
+- 3.1 → 3.2: Once the agent loop defines how decisions translate into actions, the next question is how those actions are grounded in concrete tool interfaces and orchestration policies that shape reliability and risk.
+- 4.1 → 4.2: Planning determines how actions are chosen over time, whereas memory determines what evidence those choices can reliably condition on under a fixed protocol.
+- 5.1 → 5.2: Self-improvement adapts an agent across episodes, but coordination couples multiple agents whose roles and communication protocols introduce new trade-offs and failure modes.
+- 6.1 → 6.2: Evaluation protocols define what success means, yet the same interface and budget assumptions also determine what can go wrong in deployment, motivating a closer look at safety, security, and governance.

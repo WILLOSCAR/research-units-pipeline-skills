@@ -168,20 +168,15 @@ def main() -> int:
     min_unique_frac = 0
     if profile == "arxiv-survey" and outline_order and bib_keys:
         h3_n = len(set(outline_order))
-        floor = 0
+        floor = 110
         if draft_profile == "deep":
             per_h3 = 12
             base = 30
             frac = 0.55
-        elif draft_profile == "lite":
-            per_h3 = 6
-            base = 14
-            frac = 0.30
         else:
             per_h3 = 10
             base = 30
             frac = 0.50
-            floor = 110
 
         min_unique_struct = base + per_h3 * h3_n
         min_unique_frac = int(len(bib_keys) * frac)

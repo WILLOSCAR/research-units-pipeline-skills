@@ -1,7 +1,13 @@
 ---
 name: tutorial
-version: 2.1
+version: 2.2
 target_artifacts:
+  - STATUS.md
+  - UNITS.csv
+  - CHECKPOINTS.md
+  - DECISIONS.md
+  - GOAL.md
+  - queries.md
   - output/TUTORIAL_SPEC.md
   - outline/concept_graph.yml
   - outline/module_plan.yml

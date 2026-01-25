@@ -104,7 +104,7 @@ Allowed `source`: `fulltext|abstract|paper_notes|title`.
    - Definitions/setup: 1–2 bullets that define setup + scope boundary (with citations).
    - Claim candidates: 3–5 **checkable** candidates (prefer snippet-derived; tag with `evidence_field`).
    - Concrete comparisons: >=4 A-vs-B comparisons (cluster-vs-cluster) along explicit axes.
-   - Evaluation protocol: list concrete benchmark/metric tokens if extractable; otherwise treat as a blocking gap.
+   - Evaluation protocol: list concrete benchmark/metric names if extractable; otherwise treat as a blocking gap.
    - Failures/limitations: 2–4 concrete limitations/failure modes with citations.
    - Set `blocking_missing` for hard blockers (e.g., no usable citations; title-only evidence; no eval tokens for an eval-heavy subsection).
 4. Write `outline/evidence_drafts.jsonl` and per-subsection Markdown copies.

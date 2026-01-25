@@ -1,0 +1,6 @@
+## Abstract
+
+Large language models are increasingly deployed as agents: closed-loop systems that plan, act through external tools, observe feedback, and adapt across long-horizon tasks. This shift turns "prompting" into a systems problem, where interface contracts (what actions are executable) and evaluation protocols (what results are comparable) jointly determine whether reported capabilities transfer. Recent work has therefore expanded along two coupled fronts: richer tool-use and orchestration mechanisms (from textual action traces to structured tool schemas) [@Yao2022React; @Schick2023Toolformer; @Dong2025Etom], and more demanding benchmarks that surface long-horizon brittleness, cost sensitivity, and security risks [@Mohammadi2025Evaluation; @Fu2025Eval].
+
+This survey organizes the agent literature through a protocol-first lens: we treat the agent boundary and tool interface as the primary contract, then examine how planning, memory, adaptation, and multi-agent coordination interact with evaluation assumptions. We emphasize evidence-backed contrasts, highlight where measurements are not commensurate across papers, and summarize representative approaches and benchmark settings in Appendix tables for rapid comparison.
+

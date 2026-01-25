@@ -1,0 +1,145 @@
+section_id	section_title	paper_id	why
+3.1	Agent loop and action spaces	P0024	Matches subsection 'Agent loop and action spaces' via shared terms (loop, action, agent) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0057	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, benchmarks) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0103	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, compute) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0188	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, appear) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0081	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, architecture) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0095	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, benchmarks) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0136	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, architecture) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0164	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, benchmarks) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0170	Matches subsection 'Agent loop and action spaces' via shared terms (agent, act, agent) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0173	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, data) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0070	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, benchmarks) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0083	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, benchmarks) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0105	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, benchmarks) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0200	Matches subsection 'Agent loop and action spaces' via shared terms (agent, loop, agent) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0181	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, constraints) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0023	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, architecture) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0099	Matches subsection 'Agent loop and action spaces' via shared terms (agent, agent, environment) in the paper title/abstract.
+3.1	Agent loop and action spaces	P0001	Matches subsection 'Agent loop and action spaces' via shared terms (action, benchmarks, human) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0085	Matches subsection 'Tool interfaces and orchestration' via shared terms (orchestration, tool, benchmarks) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0192	Matches subsection 'Tool interfaces and orchestration' via shared terms (orchestration, tool, constraints) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0060	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, benchmarks, core) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0021	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, design, major) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0045	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, calling, data) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0129	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, architecture, core) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0158	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, apis, benchmarks) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0011	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, benchmarks, calling) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0171	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, data, evaluation) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0046	Matches subsection 'Tool interfaces and orchestration' via shared terms (apis, calling, datasets) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0138	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, data, datasets) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0178	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, benchmarks, constraints) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0180	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, evidence, tasks) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0036	Matches subsection 'Tool interfaces and orchestration' via shared terms (benchmarks, data, evaluation) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0101	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, calling, modes) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0128	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, benchmarks, selection) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0051	Matches subsection 'Tool interfaces and orchestration' via shared terms (tool, architecture, calling) in the paper title/abstract.
+3.2	Tool interfaces and orchestration	P0001	Matches subsection 'Tool interfaces and orchestration' via shared terms (benchmarks, human, interface) in the paper title/abstract. (also mapped 1× already)
+4.1	Planning and reasoning loops	P0024	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, architecture, calls) in the paper title/abstract. (also mapped 1× already)
+4.1	Planning and reasoning loops	P0108	Matches subsection 'Planning and reasoning loops' via shared terms (planning, how, memory) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0130	Matches subsection 'Planning and reasoning loops' via shared terms (planning, reasoning, evaluation) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0034	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, components, explicit) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0076	Matches subsection 'Planning and reasoning loops' via shared terms (planning, benchmarks, failure) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0200	Matches subsection 'Planning and reasoning loops' via shared terms (planning, reasoning, human) in the paper title/abstract. (also mapped 1× already)
+4.1	Planning and reasoning loops	P0012	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, explicit, how) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0013	Matches subsection 'Planning and reasoning loops' via shared terms (architecture, choices, components) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0144	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, datasets, interface) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0185	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, architecture, benchmarks) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0213	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, explicit, identify) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0154	Matches subsection 'Planning and reasoning loops' via shared terms (planning, data, decomposition) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0159	Matches subsection 'Planning and reasoning loops' via shared terms (planning, constraints, memory) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0033	Matches subsection 'Planning and reasoning loops' via shared terms (benchmarks, calls, components) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0091	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, calls, compute) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0113	Matches subsection 'Planning and reasoning loops' via shared terms (planning, datasets, memory) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0134	Matches subsection 'Planning and reasoning loops' via shared terms (data, failure, failures) in the paper title/abstract.
+4.1	Planning and reasoning loops	P0001	Matches subsection 'Planning and reasoning loops' via shared terms (reasoning, benchmarks, components) in the paper title/abstract. (also mapped 2× already)
+4.2	Memory and retrieval (RAG)	P0167	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, benchmarks, components) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0131	Matches subsection 'Memory and retrieval (RAG)' via shared terms (retrieval, core, design) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0103	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, compute, constraints) in the paper title/abstract. (also mapped 1× already)
+4.2	Memory and retrieval (RAG)	P0032	Matches subsection 'Memory and retrieval (RAG)' via shared terms (rag, evaluation, rag) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0166	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, architecture, latency) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0030	Matches subsection 'Memory and retrieval (RAG)' via shared terms (retrieval, design, evaluation) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0093	Matches subsection 'Memory and retrieval (RAG)' via shared terms (retrieval, benchmarks, explicit) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0104	Matches subsection 'Memory and retrieval (RAG)' via shared terms (retrieval, data, datasets) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0126	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, components, core) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0127	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, architecture, benchmarks) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0186	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, identify, memory) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0191	Matches subsection 'Memory and retrieval (RAG)' via shared terms (retrieval, benchmarks, design) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0050	Matches subsection 'Memory and retrieval (RAG)' via shared terms (benchmarks, components, core) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0177	Matches subsection 'Memory and retrieval (RAG)' via shared terms (memory, architecture, human) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0164	Matches subsection 'Memory and retrieval (RAG)' via shared terms (benchmarks, components, data) in the paper title/abstract. (also mapped 1× already)
+4.2	Memory and retrieval (RAG)	P0063	Matches subsection 'Memory and retrieval (RAG)' via shared terms (long, memory, recent) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0084	Matches subsection 'Memory and retrieval (RAG)' via shared terms (retrieval, axes, recent) in the paper title/abstract.
+4.2	Memory and retrieval (RAG)	P0001	Matches subsection 'Memory and retrieval (RAG)' via shared terms (benchmarks, components, human) in the paper title/abstract. (also mapped 3× already)
+5.1	Self-improvement and adaptation	P0094	Matches subsection 'Self-improvement and adaptation' via shared terms (adaptation, adaptation, benchmarks) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0035	Matches subsection 'Self-improvement and adaptation' via shared terms (self, critique, evaluation) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0071	Matches subsection 'Self-improvement and adaptation' via shared terms (self, design, driven) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0036	Matches subsection 'Self-improvement and adaptation' via shared terms (self, benchmarks, data) in the paper title/abstract. (also mapped 1× already)
+5.1	Self-improvement and adaptation	P0156	Matches subsection 'Self-improvement and adaptation' via shared terms (core, cost, data) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0046	Matches subsection 'Self-improvement and adaptation' via shared terms (self, datasets, evaluation) in the paper title/abstract. (also mapped 1× already)
+5.1	Self-improvement and adaptation	P0047	Matches subsection 'Self-improvement and adaptation' via shared terms (design, how, learning) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0057	Matches subsection 'Self-improvement and adaptation' via shared terms (self, benchmarks, cost) in the paper title/abstract. (also mapped 1× already)
+5.1	Self-improvement and adaptation	P0062	Matches subsection 'Self-improvement and adaptation' via shared terms (data, datasets, design) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0086	Matches subsection 'Self-improvement and adaptation' via shared terms (self, comparisons, human) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0090	Matches subsection 'Self-improvement and adaptation' via shared terms (self, benchmarks, data) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0055	Matches subsection 'Self-improvement and adaptation' via shared terms (architecture, evaluation, failure) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0089	Matches subsection 'Self-improvement and adaptation' via shared terms (benchmarks, data, datasets) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0203	Matches subsection 'Self-improvement and adaptation' via shared terms (how, identify, limitations) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0150	Matches subsection 'Self-improvement and adaptation' via shared terms (aggregation, communication, cost) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0037	Matches subsection 'Self-improvement and adaptation' via shared terms (communication, data, design) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0092	Matches subsection 'Self-improvement and adaptation' via shared terms (data, driven, how) in the paper title/abstract.
+5.1	Self-improvement and adaptation	P0001	Matches subsection 'Self-improvement and adaptation' via shared terms (benchmarks, human, learning) in the paper title/abstract. (also mapped 4× already)
+5.2	Multi-agent coordination	P0187	Matches subsection 'Multi-agent coordination' via shared terms (agent, coordination, multi) in the paper title/abstract.
+5.2	Multi-agent coordination	P0129	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0205	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract.
+5.2	Multi-agent coordination	P0212	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract.
+5.2	Multi-agent coordination	P0213	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0158	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0122	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract.
+5.2	Multi-agent coordination	P0184	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract.
+5.2	Multi-agent coordination	P0148	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract.
+5.2	Multi-agent coordination	P0188	Matches subsection 'Multi-agent coordination' via shared terms (agent, agent, appear) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0041	Matches subsection 'Multi-agent coordination' via shared terms (agent, agent, budget) in the paper title/abstract.
+5.2	Multi-agent coordination	P0133	Matches subsection 'Multi-agent coordination' via shared terms (agent, agent, communication) in the paper title/abstract.
+5.2	Multi-agent coordination	P0195	Matches subsection 'Multi-agent coordination' via shared terms (agent, adaptation, agent) in the paper title/abstract.
+5.2	Multi-agent coordination	P0151	Matches subsection 'Multi-agent coordination' via shared terms (agent, agent, concrete) in the paper title/abstract.
+5.2	Multi-agent coordination	P0076	Matches subsection 'Multi-agent coordination' via shared terms (coordination, agent, benchmarks) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0101	Matches subsection 'Multi-agent coordination' via shared terms (agent, multi, agent) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0105	Matches subsection 'Multi-agent coordination' via shared terms (agent, agent, benchmarks) in the paper title/abstract. (also mapped 1× already)
+5.2	Multi-agent coordination	P0164	Matches subsection 'Multi-agent coordination' via shared terms (agent, agent, benchmarks) in the paper title/abstract. (also mapped 2× already)
+6.1	Benchmarks and evaluation protocols	P0111	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, benchmarks, data) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0089	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, benchmarks, data) in the paper title/abstract. (also mapped 1× already)
+6.1	Benchmarks and evaluation protocols	P0014	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, constraints, evaluation) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0040	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, design, evaluation) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0039	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, design, evaluation) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0204	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (choices, design, evaluation) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0013	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (architecture, choices, data) in the paper title/abstract. (also mapped 1× already)
+6.1	Benchmarks and evaluation protocols	P0098	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (data, limitations, protocol) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0033	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (benchmarks, core, data) in the paper title/abstract. (also mapped 1× already)
+6.1	Benchmarks and evaluation protocols	P0136	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (architecture, benchmarks, core) in the paper title/abstract. (also mapped 1× already)
+6.1	Benchmarks and evaluation protocols	P0174	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, how, include) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0179	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (benchmarks, core, data) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0042	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, metrics, setup) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0043	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (evaluation, explicit, recent) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0064	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (constraints, design, risks) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0068	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (architecture, core, mechanism) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0072	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (identify, leakage, protocol) in the paper title/abstract.
+6.1	Benchmarks and evaluation protocols	P0164	Matches subsection 'Benchmarks and evaluation protocols' via shared terms (benchmarks, data, design) in the paper title/abstract. (also mapped 3× already)
+6.2	Safety, security, and governance	P0097	Matches subsection 'Safety, security, and governance' via shared terms (security, agents, evaluation) in the paper title/abstract.
+6.2	Safety, security, and governance	P0132	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, data) in the paper title/abstract.
+6.2	Safety, security, and governance	P0135	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, benchmarks) in the paper title/abstract.
+6.2	Safety, security, and governance	P0079	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, deployed) in the paper title/abstract.
+6.2	Safety, security, and governance	P0023	Matches subsection 'Safety, security, and governance' via shared terms (security, agents, architecture) in the paper title/abstract. (also mapped 1× already)
+6.2	Safety, security, and governance	P0065	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, benchmarks) in the paper title/abstract.
+6.2	Safety, security, and governance	P0189	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, data) in the paper title/abstract.
+6.2	Safety, security, and governance	P0064	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, constraints) in the paper title/abstract. (also mapped 1× already)
+6.2	Safety, security, and governance	P0114	Matches subsection 'Safety, security, and governance' via shared terms (agents, data, datasets) in the paper title/abstract.
+6.2	Safety, security, and governance	P0179	Matches subsection 'Safety, security, and governance' via shared terms (security, benchmarks, core) in the paper title/abstract. (also mapped 1× already)
+6.2	Safety, security, and governance	P0042	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, evaluation) in the paper title/abstract. (also mapped 1× already)
+6.2	Safety, security, and governance	P0111	Matches subsection 'Safety, security, and governance' via shared terms (security, agents, benchmarks) in the paper title/abstract. (also mapped 1× already)
+6.2	Safety, security, and governance	P0220	Matches subsection 'Safety, security, and governance' via shared terms (agents, constraints, data) in the paper title/abstract.
+6.2	Safety, security, and governance	P0197	Matches subsection 'Safety, security, and governance' via shared terms (agents, controls, core) in the paper title/abstract.
+6.2	Safety, security, and governance	P0219	Matches subsection 'Safety, security, and governance' via shared terms (agents, benchmarks, data) in the paper title/abstract.
+6.2	Safety, security, and governance	P0192	Matches subsection 'Safety, security, and governance' via shared terms (safety, agents, constraints) in the paper title/abstract. (also mapped 1× already)
+6.2	Safety, security, and governance	P0112	Matches subsection 'Safety, security, and governance' via shared terms (agents, constraints, data) in the paper title/abstract.
+6.2	Safety, security, and governance	P0164	Matches subsection 'Safety, security, and governance' via shared terms (benchmarks, data, design) in the paper title/abstract. (also mapped 4× already)

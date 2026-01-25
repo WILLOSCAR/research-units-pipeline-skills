@@ -1,0 +1,13 @@
+# Unit log
+- unit_id: U1045
+- skill: citation-injector
+- exit: 2
+- cmd: /home/rjs/miniconda3/envs/agent/bin/python /home/rjs/Workspace/codebase/research-units-pipeline-skills/.codex/skills/citation-injector/scripts/run.py --workspace /home/rjs/Workspace/codebase/research-units-pipeline-skills/workspaces/e2e-agent-survey-latex-verify-20260125-045301 --unit-id U1045 --inputs output/DRAFT.md;output/CITATION_BUDGET_REPORT.md;outline/outline.yml;citations/ref.bib --outputs output/DRAFT.md;output/CITATION_INJECTION_REPORT.md --checkpoint C5
+
+## stdout
+
+(empty)
+
+## stderr
+
+(empty)

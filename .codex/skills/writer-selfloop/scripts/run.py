@@ -84,12 +84,44 @@ def _expected_paths_from_outline(outline: Any) -> set[str]:
 
 
 
+def _load_voice_palette(*, workspace: Path) -> dict[str, Any]:
+    # Load the paper-voice palette (data-driven; workspace-overridable).
+    #
+    # Source of truth:
+    # - workspace override: `outline/paper_voice_palette.json`
+    # - repo default: `.codex/skills/writer-context-pack/assets/paper_voice_palette.json`
+    #
+    # This keeps cadence/style checks semantic rather than hard-coded.
+
+    override = workspace / "outline" / "paper_voice_palette.json"
+    repo_root = Path(__file__).resolve().parents[4]
+    default = repo_root / ".codex" / "skills" / "writer-context-pack" / "assets" / "paper_voice_palette.json"
+
+    for cand in (override, default):
+        try:
+            if not cand.exists() or cand.stat().st_size <= 0:
+                continue
+            obj = json.loads(cand.read_text(encoding="utf-8", errors="ignore"))
+            if isinstance(obj, dict):
+                return obj
+        except Exception:
+            continue
+    return {}
+
+
+
 def _style_smells_for_h3(*, workspace: Path, h3_paths: list[str]) -> list[str]:
     # Non-blocking style-smell hints (deterministic, conservative).
     # These are not hard gates: they exist to surface high-signal paper-voice drift
     # that can persist even when structural quality checks pass.
 
-    # NOTE: use raw strings for word boundaries; plain "\\b" becomes a backspace byte.
+    palette = _load_voice_palette(workspace=workspace)
+    watchlist = [str(x).strip() for x in (palette.get("discourse_stem_watchlist") or []) if str(x).strip()]
+    rewrites = palette.get("discourse_stem_rewrites") or {}
+    if not isinstance(rewrites, dict):
+        rewrites = {}
+
+    # NOTE: use raw strings for word boundaries; plain "\b" becomes a backspace byte.
     # Match count-based paragraph openers like:
     #   "Two limitations ..."
     #   "Three key takeaways ..."
@@ -98,14 +130,28 @@ def _style_smells_for_h3(*, workspace: Path, h3_paths: list[str]) -> list[str]:
     counting_pat = re.compile(
         r"(?im)^\s*(two|three|four)\s+(?:\w+\s+){0,2}?(limitations|caveats|takeaways|lessons)\b"
     )
-    keypoint_pat = re.compile(r"(?i)\bthe\s+key\s+point\s+is\s+that\b")
     overview_pat = re.compile(
         r"(?im)^\s*(?:this\s+(?:survey|section|subsection)|in\s+this\s+(?:section|subsection)|we)\b[^\n]{0,140}\b(?:provide|provides|present|presents|offer|offers|give|gives)\b[^\n]{0,80}\boverview\b"
     )
 
+    # Internal shorthand that tends to read like an intermediate artifact in reader prose.
+    token_jargon_pat = re.compile(r"(?i)\b(protocol|constraint|metric|evaluation)\s+tokens?\b")
+
+    # Discourse stems to watch for repetition.
+    # - comma stems: track as paragraph starters (high-signal cadence tell)
+    # - non-comma stems: track anywhere (e.g., "This suggests")
+    comma_stems = [s for s in watchlist if s.endswith(",")]
+    inline_stems = [s for s in watchlist if not s.endswith(",")]
+
+    comma_pats = {s: re.compile(rf"(?im)^\s*{re.escape(s)}") for s in comma_stems}
+    inline_pats = {s: re.compile(re.escape(s), re.IGNORECASE) for s in inline_stems}
+
     counting_files: dict[str, list[str]] = {}
-    keypoint_files: list[str] = []
     overview_files: list[str] = []
+    token_files: list[str] = []
+    comma_stem_files: dict[str, list[str]] = {}
+    inline_stem_files: dict[str, list[str]] = {}
+
     opener_stems: Counter[str] = Counter()
 
     for rel in h3_paths:
@@ -129,11 +175,19 @@ def _style_smells_for_h3(*, workspace: Path, h3_paths: list[str]) -> list[str]:
             phrase = f"{m.group(1).lower()} {m.group(2).lower()}"
             counting_files.setdefault(phrase, []).append(rel)
 
-        if keypoint_pat.search(body):
-            keypoint_files.append(rel)
-
         if overview_pat.search(body):
             overview_files.append(rel)
+
+        if token_jargon_pat.search(body):
+            token_files.append(rel)
+
+        for stem, pat in comma_pats.items():
+            if pat.search(body):
+                comma_stem_files.setdefault(stem, []).append(rel)
+
+        for stem, pat in inline_pats.items():
+            if pat.search(body):
+                inline_stem_files.setdefault(stem, []).append(rel)
 
     lines: list[str] = []
 
@@ -154,16 +208,9 @@ def _style_smells_for_h3(*, workspace: Path, h3_paths: list[str]) -> list[str]:
         if len(files) > 8:
             sample += f" (+{len(files) - 8} more)"
         lines.append(f"  - files: {sample}")
-        lines.append("  - fix: run `style-harmonizer` (or rewrite locally) to remove count-based opener slots; fold caveats into contrast paragraphs or vary phrasing.")
-
-    uniq_key = sorted(set(keypoint_files))
-    if len(uniq_key) >= 2:
-        lines.append(f"- repeated stem `The key point is that` across H3s ({len(uniq_key)} files)")
-        sample = ", ".join(f"`{f}`" for f in uniq_key[:8])
-        if len(uniq_key) > 8:
-            sample += f" (+{len(uniq_key) - 8} more)"
-        lines.append(f"  - files: {sample}")
-        lines.append("  - fix: run `style-harmonizer` (safe: citations stay fixed) to vary the discourse stem and sentence shape while keeping meaning.")
+        lines.append(
+            "  - fix: run `style-harmonizer` (or rewrite locally) to remove count-based opener slots; fold caveats into contrast paragraphs or vary phrasing."
+        )
 
     uniq_overview = sorted(set(overview_files))
     if len(uniq_overview) >= 2:
@@ -172,7 +219,72 @@ def _style_smells_for_h3(*, workspace: Path, h3_paths: list[str]) -> list[str]:
         if len(uniq_overview) > 8:
             sample += f" (+{len(uniq_overview) - 8} more)"
         lines.append(f"  - files: {sample}")
-        lines.append("  - fix: rewrite openers into a content-bearing lens/tension (avoid \"overview\" narration); keep meaning and citation keys unchanged.")
+        lines.append(
+            "  - fix: rewrite openers into a content-bearing lens/tension (avoid \"overview\" narration); keep meaning and citation keys unchanged."
+        )
+
+    # Discourse stems (comma starters): report the most reused one if it appears across >=3 H3s.
+    worst_comma: tuple[int, str, list[str]] | None = None
+    for stem, files in comma_stem_files.items():
+        uniq = sorted(set(files))
+        if len(uniq) < 3:
+            continue
+        cand = (len(uniq), stem, uniq)
+        if worst_comma is None or cand[0] > worst_comma[0] or (cand[0] == worst_comma[0] and cand[1] < worst_comma[1]):
+            worst_comma = cand
+
+    if worst_comma:
+        n, stem, files = worst_comma
+        lines.append(f"- repeated paragraph-starter stem across H3s ({n} files): `{stem}`")
+        sample = ", ".join(f"`{f}`" for f in files[:8])
+        if len(files) > 8:
+            sample += f" (+{len(files) - 8} more)"
+        lines.append(f"  - files: {sample}")
+        sugg = rewrites.get(stem) or []
+        if isinstance(sugg, list) and sugg:
+            opts = "; ".join(str(x).strip() for x in sugg[:4] if str(x).strip())
+            if opts:
+                lines.append(f"  - rewrite options: {opts}")
+        lines.append(
+            "  - fix: rewrite to subject-first sentences and move the relation mid-sentence (keep citations unchanged); `style-harmonizer` has safe rewrite recipes."
+        )
+
+    # Discourse stems (inline): report the most reused one if it appears across >=2 H3s.
+    worst_inline: tuple[int, str, list[str]] | None = None
+    for stem, files in inline_stem_files.items():
+        uniq = sorted(set(files))
+        if len(uniq) < 2:
+            continue
+        cand = (len(uniq), stem, uniq)
+        if worst_inline is None or cand[0] > worst_inline[0] or (cand[0] == worst_inline[0] and cand[1] < worst_inline[1]):
+            worst_inline = cand
+
+    if worst_inline:
+        n, stem, files = worst_inline
+        lines.append(f"- repeated discourse stem across H3s ({n} files): `{stem}`")
+        sample = ", ".join(f"`{f}`" for f in files[:8])
+        if len(files) > 8:
+            sample += f" (+{len(files) - 8} more)"
+        lines.append(f"  - files: {sample}")
+        sugg = rewrites.get(stem) or []
+        if isinstance(sugg, list) and sugg:
+            opts = "; ".join(str(x).strip() for x in sugg[:4] if str(x).strip())
+            if opts:
+                lines.append(f"  - rewrite options: {opts}")
+        lines.append(
+            "  - fix: vary the discourse stem and sentence shape while keeping meaning/citations unchanged; prefer content nouns at the start of sentences."
+        )
+
+    uniq_tokens = sorted(set(token_files))
+    if len(uniq_tokens) >= 2:
+        lines.append(f"- internal shorthand `... tokens` leaked into H3 prose ({len(uniq_tokens)} files)")
+        sample = ", ".join(f"`{f}`" for f in uniq_tokens[:8])
+        if len(uniq_tokens) > 8:
+            sample += f" (+{len(uniq_tokens) - 8} more)"
+        lines.append(f"  - files: {sample}")
+        lines.append(
+            "  - fix: rewrite `... tokens` -> `... protocol details/assumptions/fields` (reserve \"token\" for numeric LM token budgets); keep meaning and citation keys unchanged."
+        )
 
     rep_openers = [(s, c) for s, c in opener_stems.items() if c >= 3]
     rep_openers.sort(key=lambda kv: (-kv[1], kv[0]))

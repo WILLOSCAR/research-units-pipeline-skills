@@ -26,7 +26,7 @@
 - core_size: "220"
 - per_subsection: ""         # section-mapper target papers per H3 (arxiv-survey default: 18)
 - global_citation_min_subsections: ""  # treat citations mapped to >=N subsections as globally allowed for citation-scope checks (default: 3)
-- draft_profile: survey  # lite | survey | deep (controls strict quality gates for C5 depth)
+- draft_profile: survey  # survey | deep (controls strict quality gates for C5 depth)
 - enrich_metadata: ""        # true|false; optional arXiv id_list backfill for offline imports (needs network)
 - evidence_mode: "abstract"   # abstract | fulltext
 - fulltext_max_papers: ""

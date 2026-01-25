@@ -44,7 +44,7 @@ Front matter is where many \"automation tells\" originate (method-note spam, sli
 
 2) Load scope + structure
 - Read `GOAL.md` to restate the problem boundary in one sentence.
-- Read `queries.md` to understand `evidence_mode` (abstract vs fulltext) and `draft_profile` (lite/survey/deep).
+- Read `queries.md` to understand `evidence_mode` (abstract vs fulltext) and `draft_profile` (survey/deep).
 - Read `papers/retrieval_report.md` (and/or count `papers/core_set.csv`) to extract: time window, candidate pool size, core set size.
 - Read `outline/outline.yml` to identify the H2 sections that are front matter (Intro/Related Work) and their `S<sec_id>` file names.
 
@@ -173,7 +173,7 @@ Recommended paragraph jobs:
 - Boundary/definition: what you include/exclude (agent vs tool-using LM; single vs multi-agent; online vs offline).
 - Why interfaces/protocols matter: the interface contract determines what evaluation claims mean.
 - Taxonomy preview: what axes you use and why (avoid listing 10 axes; choose a few stable ones).
-- Methodology note (ONE paragraph): state time window + candidate pool size + core set size + evidence mode (abstract/fulltext), phrased as survey methodology (not \"run logs\").
+- Methodology paragraph (ONE paragraph; no label like "Methodology note"): state time window + candidate pool size + core set size + evidence mode (abstract/fulltext), phrased as survey methodology (not \"run logs\"). Start it like a normal sentence (e.g., "We retrieved ...").
 - Contributions: what the survey delivers (taxonomy, evaluation lens, open problems).
 - Organization: light, one paragraph max (avoid slide narration).
 

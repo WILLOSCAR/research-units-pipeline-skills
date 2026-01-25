@@ -160,10 +160,54 @@ def _subsection_bullets(*, parent: str, title: str, hint: str = "") -> list[str]
             "Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.",
             "Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.",
             "Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.",
-            "Comparison axes: choose 3-5 concrete axes specific to this subsection (avoid repeating the same generic axes across all H3).",
+            _comparison_axes_bullet(parent=parent, title=title, hint=hint),
         ]
     )
     return bullets
+
+
+
+def _comparison_axes_bullet(*, parent: str, title: str, hint: str = "") -> str:
+    """Return a content-bearing comparison-axes bullet (no instruction-like scaffold text).
+
+    Downstream `subsection-briefs` treats `Comparison axes:` as a parseable seed.
+    Keep items as atomic phrases separated by semicolons.
+    """
+
+    text = " ".join([(parent or ""), (title or ""), (hint or "")]).lower()
+
+    # Agent/system survey heuristics.
+    if any(k in text for k in ["agent", "tool", "tool-use", "function", "mcp", "protocol", "interface"]):
+        return (
+            "Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; "
+            "sandboxing/permissions/observability; evaluation protocol (tasks, metrics, budget); failure modes."
+        )
+    if any(k in text for k in ["plan", "planning", "reason", "reasoning", "search", "thought", "tree", "mcts"]):
+        return (
+            "Comparison axes: control-loop design (planner/executor); deliberation/search method; "
+            "action grounding (tools vs environment); evaluation protocol (success, cost, latency); failure modes."
+        )
+    if any(k in text for k in ["memory", "retrieval", "rag", "cache", "long-horizon"]):
+        return (
+            "Comparison axes: memory type (episodic/semantic/scratchpad); retrieval source/index; "
+            "write/update/forgetting policy; evaluation protocol (long-horizon success, cost); failure modes."
+        )
+    if any(k in text for k in ["multi-agent", "coordination", "debate", "collaboration", "swarm"]):
+        return (
+            "Comparison axes: communication protocol/roles; aggregation (vote/debate/referee); "
+            "stability/robustness; evaluation protocol (coordination success, cost); failure modes."
+        )
+    if any(k in text for k in ["safety", "security", "attack", "threat", "guardrail", "injection", "exfiltration"]):
+        return (
+            "Comparison axes: threat model; defense surface (policy/sandbox/monitoring); "
+            "security evaluation protocol; robustness vs capability trade-offs; failure modes."
+        )
+
+    # Generic fallback (still content-bearing; semicolon-separated).
+    return (
+        "Comparison axes: core mechanism/architecture; training/data/supervision; "
+        "evaluation protocol (datasets, metrics, human eval); efficiency (compute, latency, cost); failure modes."
+    )
 
 
 def _is_placeholder(text: str) -> bool:

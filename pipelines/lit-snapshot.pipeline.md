@@ -1,7 +1,13 @@
 ---
 name: lit-snapshot
-version: 2.1
+version: 2.2
 target_artifacts:
+  - STATUS.md
+  - UNITS.csv
+  - CHECKPOINTS.md
+  - DECISIONS.md
+  - GOAL.md
+  - queries.md
   - papers/papers_raw.jsonl
   - papers/papers_dedup.jsonl
   - papers/core_set.csv

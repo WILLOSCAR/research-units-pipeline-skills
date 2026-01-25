@@ -451,6 +451,9 @@ def _choose_axes(*, sub_title: str, goal: str, evidence_needs: list[str], outlin
         low = x.lower()
         if "refine" in low and "evidence" in low:
             return
+        # Drop instruction-like scaffold leakage from upstream outline bullets.
+        if re.search(r"(?i)\b(?:choose|pick|select|enumerate|avoid)\b", low):
+            return
         # Drop ultra-generic axis tokens that are almost always scaffold leakage.
         if norm(x) in {"mechanism", "data", "evaluation", "efficiency", "limitation", "limitations"}:
             return

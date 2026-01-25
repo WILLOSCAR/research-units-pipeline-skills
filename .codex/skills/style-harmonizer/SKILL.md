@@ -30,7 +30,7 @@ Optional (helps you stay in-scope while rewriting):
 
 - Updated `sections/*.md` files (same filenames; still body-only; no headings)
 - Re-running `writer-selfloop` is the audit trail (Style Smells should shrink).
-- Optional (pipeline signal): create `sections/style_harmonized.refined.ok` (empty file) when you are done.
+- Create `sections/style_harmonized.refined.ok` (empty file) when you are done (pipeline contract signal; required if this unit is marked DONE).
 
 ## Role cards (use explicitly)
 
@@ -94,6 +94,34 @@ Rewrite moves:
 Mini example (paraphrase only):
 - Bad: `This section provides an overview of tool interfaces for agents.`
 - Better: `Tool interfaces define what actions are executable; interface contracts therefore determine which evaluation claims transfer across environments.`
+
+### 5) Paragraphs repeatedly starting with connector adverbs (Moreover, In addition, Therefore, Overall, As a result)
+
+Why it is high-signal: the prose starts to sound mechanically stitched (each paragraph begins with the same connective), even when the content is solid.
+
+Rewrite moves:
+- Keep the logical relation, but move the connector into the sentence: start with the subject (e.g., "Tool catalogs also ..."), then add the relation mid-sentence ("..., which in turn ...").
+- Use clause shapes instead of adverb openers: "While ... , ..." / "Although ... , ..." / "Because ... , ...".
+- When summarizing, avoid "Overall," as a default label; state the conclusion directly as a claim sentence.
+
+Mini example (paraphrase only):
+- High-signal smell: "Moreover, ..." (repeated across multiple paragraphs)
+- Better: start with the content noun phrase ("One implication is ..." / "A practical constraint is ..."), then express the relation inside the sentence.
+
+
+
+### 6) Internal shorthand leaking into paper voice ("token(s)" used as a protocol noun)
+
+Why it is high-signal: outside of NLP contexts (token budget/context window), "token" reads like internal shorthand. In this pipeline it often originates from packs/schemas and gets copied into prose, which makes the draft feel like an intermediate artifact.
+
+Rewrite moves:
+- Replace "X tokens" with reader-facing nouns: "X protocol details/assumptions/fields/parameters/dimensions".
+- If you truly mean language-model tokens, keep it numeric and specific (e.g., "a 60k-token context window", "token budget"); avoid using "token" as a generic label for protocol metadata.
+- Avoid "three tokens: ..." slots; either (a) state the conclusion directly, or (b) use "three reporting fields" and embed them naturally in the sentence.
+
+Mini example (paraphrase only):
+- Bad: `Overall, self-improvement should be reported as a protocol with three explicit tokens: the feedback channel, the update rule, and the accounting rule.`
+- Better: `Self-improvement results are easiest to compare when papers make three reporting fields explicit: the feedback channel, the update rule, and the accounting assumptions.`
 
 ## Workflow (minimal)
 

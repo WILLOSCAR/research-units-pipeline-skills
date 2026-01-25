@@ -1,7 +1,13 @@
 ---
 name: systematic-review
-version: 2.1
+version: 2.2
 target_artifacts:
+  - STATUS.md
+  - UNITS.csv
+  - CHECKPOINTS.md
+  - DECISIONS.md
+  - GOAL.md
+  - queries.md
   - output/PROTOCOL.md
   - papers/papers_raw.jsonl
   - papers/retrieval_report.md

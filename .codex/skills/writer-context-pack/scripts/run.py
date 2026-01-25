@@ -110,7 +110,7 @@ def _iter_outline_subsections(outline: Any) -> list[dict[str, str]]:
 
 
 def _draft_profile(workspace: Path) -> str:
-    """Best-effort parse from `queries.md` (lite|survey|deep)."""
+    """Best-effort parse from `queries.md` (survey|deep)."""
 
     path = workspace / "queries.md"
     if not path.exists():
@@ -126,7 +126,7 @@ def _draft_profile(workspace: Path) -> str:
             if key not in keys:
                 continue
             value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
-            if value in {"lite", "survey", "deep"}:
+            if value in {"survey", "deep"}:
                 return value
             return "survey"
     except Exception:
@@ -316,6 +316,10 @@ def main() -> int:
             {'avoid_stem': 'We now turn', 'prefer_stem': 'We then examine'},
             {'avoid_stem': 'survey comparisons should', 'prefer_stem': 'Across protocols, we observe'},
         ],
+        "discourse_stem_watchlist": [str(x).strip() for x in (palette.get("discourse_stem_watchlist") or []) if str(x).strip()],
+        "discourse_stem_rewrites": palette.get("discourse_stem_rewrites") or {},
+        "role_cards": palette.get("role_cards") or {},
+        "version": str(palette.get("version") or "").strip(),
     }
 
     records: list[dict[str, Any]] = []
@@ -491,10 +495,6 @@ def main() -> int:
             min_anchor = 3
             min_comp = 3
             min_lim = 2
-        elif draft_profile == "lite":
-            min_anchor = 1
-            min_comp = 1
-            min_lim = 1
         else:
             min_anchor = 2
             min_comp = 2
@@ -569,10 +569,12 @@ def main() -> int:
             "trim_policy": TRIM,
         }
 
-        opener_mode = _stable_choice(f"opener:{sid}", ["tension-first", "decision-first", "lens-first"]) or "tension-first"
+        opener_mode = _stable_choice(f"opener:{sid}", ["tension-first", "decision-first", "contrast-first", "protocol-first", "lens-first"]) or "tension-first"
         opener_hint = {
             "tension-first": "Start with the subsection’s central tension/trade-off; end paragraph 1 with the thesis.",
             "decision-first": "Start with a builder/research decision; state what it depends on; end paragraph 1 with the thesis.",
+            "contrast-first": "Start with an explicit A-vs-B contrast; state why it matters; end paragraph 1 with the thesis.",
+            "protocol-first": "Start with comparability constraints (protocol/budget/tool access); state what they make meaningful; end paragraph 1 with the thesis.",
             "lens-first": "Start by naming the lens (interface/protocol/threat model); state what it reveals; end paragraph 1 with the thesis.",
         }.get(opener_mode, "")
 

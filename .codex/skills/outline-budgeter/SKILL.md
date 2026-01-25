@@ -15,7 +15,7 @@ Purpose: prevent the most common survey failure mode: **H3 explosion** (too many
 
 This skill rewrites `outline/outline.yml` into a **paper-like budget**:
 - Final ToC target: ~6–8 H2 sections (Intro / Related Work + 3–4 core chapters + Discussion + Conclusion)
-- H3 target: fewer, thicker subsections (per `draft_profile`: lite<=8, survey<=10, deep<=12)
+- H3 target: fewer, thicker subsections (per `draft_profile`: survey<=10, deep<=12)
 
 Important: Discussion/Conclusion are appended in C5 merge (global sections), so the *outline itself* should usually be <=6 H2.
 
@@ -36,7 +36,7 @@ Important: Discussion/Conclusion are appended in C5 merge (global sections), so 
 ## Workflow (NO PROSE)
 
 1) Read the outline and compute a simple budget snapshot:
-- If `queries.md` sets `draft_profile` (lite/survey/deep), use it to decide the H3 budget target.
+- If `queries.md` sets `draft_profile` (survey/deep), use it to decide the H3 budget target.
 - H2 count (excluding Discussion/Conclusion, which are not in the outline)
 - Total H3 count
 - H3 count per H2 chapter

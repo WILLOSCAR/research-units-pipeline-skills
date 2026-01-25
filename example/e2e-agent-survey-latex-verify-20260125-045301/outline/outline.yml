@@ -1,0 +1,189 @@
+- id: '1'
+  title: Introduction
+  bullets:
+  - 'Intent: motivate the topic, set scope boundaries, and explain why the survey is needed now.'
+  - 'RQ: What is the survey scope and what reader questions will the taxonomy answer?'
+  - 'Evidence needs: define key terms; position vs related work; summarize what evidence is collected (datasets/metrics/benchmarks).'
+  - 'Expected cites: >=10 across intro + background (surveys, seminal works, widely-used benchmarks).'
+  - 'Structure: preview the taxonomy and how later sections map to evidence and comparisons.'
+- id: '2'
+  title: Related Work
+  bullets:
+  - 'Intent: position this survey relative to adjacent lines of work (agents, tool use, RAG, evaluation, security) and existing
+    surveys/reviews.'
+  - 'RQ: What does this survey add beyond existing overviews (taxonomy choices, evidence-first criteria, evaluation focus)?'
+  - 'Evidence needs: cite 3–6 surveys/reviews and 3–6 foundational works; clarify scope boundaries and terminology.'
+  - 'Expected cites: >=10 (surveys/reviews + seminal works + widely-used benchmarks).'
+  - 'Structure: explain how the taxonomy differs from common organization schemes and why it supports deeper comparisons.'
+- id: '3'
+  title: Foundations & Interfaces
+  bullets:
+  - 'Intent: define the design space for Foundations & Interfaces and provide cross-subsection comparisons.'
+  - 'RQ: What is the organizing logic of Foundations & Interfaces, and which comparisons are most decision-relevant?'
+  - 'Scope cues: Problem formulation and interface design for tool-using LLM agents: the agent loop, action spaces, and the
+    tool/environment boundary that constrains reliability.'
+  - 'Evidence needs: representative methods; evaluation protocols; known failure modes; connections to adjacent chapters.'
+  - 'Expected cites: each subsection >=3; chapter total should be high enough to support evidence-first synthesis.'
+  - 'Chapter lead plan: later write a short (2–3 paragraph) lead that previews the key comparison axes and how the H3 subsections
+    connect.'
+  subsections:
+  - id: '3.1'
+    title: Agent loop and action spaces
+    bullets:
+    - 'Intent: explain what belongs in Agent loop and action spaces (within Foundations & Interfaces) and how it differs from
+      neighboring subtopics.'
+    - 'RQ: Which design choices in Agent loop and action spaces drive the major trade-offs, and how are those trade-offs measured?'
+    - 'Scope cues: Agent loop abstractions (state → decide → act → observe), action representations, environment/tool modeling,
+      and failure recovery assumptions.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'
+  - id: '3.2'
+    title: Tool interfaces and orchestration
+    bullets:
+    - 'Intent: explain what belongs in Tool interfaces and orchestration (within Foundations & Interfaces) and how it differs
+      from neighboring subtopics.'
+    - 'RQ: Which design choices in Tool interfaces and orchestration drive the major trade-offs, and how are those trade-offs
+      measured?'
+    - 'Scope cues: Calling tools/APIs (function calling), tool selection/routing, permissions/sandboxing, and orchestration
+      patterns that affect correctness and safety.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'
+- id: '4'
+  title: Core Components (Planning + Memory)
+  bullets:
+  - 'Intent: define the design space for Core Components (Planning + Memory) and provide cross-subsection comparisons.'
+  - 'RQ: What is the organizing logic of Core Components (Planning + Memory), and which comparisons are most decision-relevant?'
+  - 'Scope cues: Core capability levers for long-horizon agents: planning/reasoning for action selection and memory/retrieval
+    for grounded state.'
+  - 'Evidence needs: representative methods; evaluation protocols; known failure modes; connections to adjacent chapters.'
+  - 'Expected cites: each subsection >=3; chapter total should be high enough to support evidence-first synthesis.'
+  - 'Chapter lead plan: later write a short (2–3 paragraph) lead that previews the key comparison axes and how the H3 subsections
+    connect.'
+  subsections:
+  - id: '4.1'
+    title: Planning and reasoning loops
+    bullets:
+    - 'Intent: explain what belongs in Planning and reasoning loops (within Core Components (Planning + Memory)) and how it
+      differs from neighboring subtopics.'
+    - 'RQ: Which design choices in Planning and reasoning loops drive the major trade-offs, and how are those trade-offs measured?'
+    - 'Scope cues: Decomposition, plan search/verification, and robustness under partial observability and tool failures;
+      how planning interleaves with tool calls.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'
+  - id: '4.2'
+    title: Memory and retrieval (RAG)
+    bullets:
+    - 'Intent: explain what belongs in Memory and retrieval (RAG) (within Core Components (Planning + Memory)) and how it
+      differs from neighboring subtopics.'
+    - 'RQ: Which design choices in Memory and retrieval (RAG) drive the major trade-offs, and how are those trade-offs measured?'
+    - 'Scope cues: Working vs long-term memory, retrieval policies, state summarization, grounding strategies, and how memory
+      interacts with planning and tool use.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'
+- id: '5'
+  title: Learning, Adaptation & Coordination
+  bullets:
+  - 'Intent: define the design space for Learning, Adaptation & Coordination and provide cross-subsection comparisons.'
+  - 'RQ: What is the organizing logic of Learning, Adaptation & Coordination, and which comparisons are most decision-relevant?'
+  - 'Scope cues: How agents improve with experience (reflection/RL/prompt/program optimization) and how multiple agents coordinate
+    to divide labor or verify outputs.'
+  - 'Evidence needs: representative methods; evaluation protocols; known failure modes; connections to adjacent chapters.'
+  - 'Expected cites: each subsection >=3; chapter total should be high enough to support evidence-first synthesis.'
+  - 'Chapter lead plan: later write a short (2–3 paragraph) lead that previews the key comparison axes and how the H3 subsections
+    connect.'
+  subsections:
+  - id: '5.1'
+    title: Self-improvement and adaptation
+    bullets:
+    - 'Intent: explain what belongs in Self-improvement and adaptation (within Learning, Adaptation & Coordination) and how
+      it differs from neighboring subtopics.'
+    - 'RQ: Which design choices in Self-improvement and adaptation drive the major trade-offs, and how are those trade-offs
+      measured?'
+    - 'Scope cues: Reflection/critique/revision loops, preference optimization, and evaluation-driven prompt/program tuning;
+      stability and reward hacking risks.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: communication protocol/roles; aggregation (vote/debate/referee); stability/robustness; evaluation
+      protocol (coordination success, cost); failure modes.'
+  - id: '5.2'
+    title: Multi-agent coordination
+    bullets:
+    - 'Intent: explain what belongs in Multi-agent coordination (within Learning, Adaptation & Coordination) and how it differs
+      from neighboring subtopics.'
+    - 'RQ: Which design choices in Multi-agent coordination drive the major trade-offs, and how are those trade-offs measured?'
+    - 'Scope cues: Role specialization, communication protocols, debate/verification patterns, aggregation, and coordination
+      failure modes.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'
+- id: '6'
+  title: Evaluation & Risks
+  bullets:
+  - 'Intent: define the design space for Evaluation & Risks and provide cross-subsection comparisons.'
+  - 'RQ: What is the organizing logic of Evaluation & Risks, and which comparisons are most decision-relevant?'
+  - 'Scope cues: What we measure and why it is hard: benchmarks/protocols for tool-use and long-horizon tasks, plus risk surfaces
+    and governance constraints for deployed agents.'
+  - 'Evidence needs: representative methods; evaluation protocols; known failure modes; connections to adjacent chapters.'
+  - 'Expected cites: each subsection >=3; chapter total should be high enough to support evidence-first synthesis.'
+  - 'Chapter lead plan: later write a short (2–3 paragraph) lead that previews the key comparison axes and how the H3 subsections
+    connect.'
+  subsections:
+  - id: '6.1'
+    title: Benchmarks and evaluation protocols
+    bullets:
+    - 'Intent: explain what belongs in Benchmarks and evaluation protocols (within Evaluation & Risks) and how it differs
+      from neighboring subtopics.'
+    - 'RQ: Which design choices in Benchmarks and evaluation protocols drive the major trade-offs, and how are those trade-offs
+      measured?'
+    - 'Scope cues: Task suites, datasets, metrics, human evaluation, leakage/reproducibility concerns, and how evaluation
+      choices bias conclusions.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'
+  - id: '6.2'
+    title: Safety, security, and governance
+    bullets:
+    - 'Intent: explain what belongs in Safety, security, and governance (within Evaluation & Risks) and how it differs from
+      neighboring subtopics.'
+    - 'RQ: Which design choices in Safety, security, and governance drive the major trade-offs, and how are those trade-offs
+      measured?'
+    - 'Scope cues: Threat models (prompt injection, data exfiltration, tool abuse), guardrails/monitoring, and governance
+      controls for deployed agents.'
+    - 'Evidence needs: core mechanism and system architecture, training and data setup, evaluation protocol (datasets, metrics,
+      human evaluation), compute and latency constraints, and failure modes and limitations.'
+    - 'Expected cites: >=3 (H3); include >=1 canonical/seminal work and >=1 recent representative work when possible.'
+    - 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
+    - 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
+    - 'Comparison axes: tool interface contract (schemas/protocols); tool selection/routing policy; sandboxing/permissions/observability;
+      evaluation protocol (tasks, metrics, budget); failure modes.'

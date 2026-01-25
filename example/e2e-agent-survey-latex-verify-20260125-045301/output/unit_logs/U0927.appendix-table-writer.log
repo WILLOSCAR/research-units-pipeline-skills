@@ -1,0 +1,13 @@
+# Unit log
+- unit_id: U0927
+- skill: appendix-table-writer
+- exit: 2
+- cmd: /home/rjs/miniconda3/envs/agent/bin/python /home/rjs/Workspace/codebase/research-units-pipeline-skills/.codex/skills/appendix-table-writer/scripts/run.py --workspace /home/rjs/Workspace/codebase/research-units-pipeline-skills/workspaces/e2e-agent-survey-latex-verify-20260125-045301 --unit-id U0927 --inputs outline/table_schema.md;outline/tables_index.md;outline/subsection_briefs.jsonl;outline/evidence_drafts.jsonl;outline/anchor_sheet.jsonl;citations/ref.bib --outputs outline/tables_appendix.md;output/TABLES_APPENDIX_REPORT.md --checkpoint C4
+
+## stdout
+
+(empty)
+
+## stderr
+
+(empty)

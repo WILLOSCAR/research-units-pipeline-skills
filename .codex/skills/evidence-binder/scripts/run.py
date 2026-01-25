@@ -170,8 +170,6 @@ def main() -> int:
     if profile == "arxiv-survey":
         if draft_profile == "deep":
             k = 24
-        elif draft_profile == "lite":
-            k = 12
         else:
             k = 18
 

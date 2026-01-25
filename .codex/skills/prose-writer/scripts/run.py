@@ -61,7 +61,7 @@ def main() -> int:
     briefs_rel = _first_match(inputs, ("outline/subsection_briefs.jsonl", "subsection_briefs.jsonl")) or "outline/subsection_briefs.jsonl"
     evidence_rel = _first_match(inputs, ("outline/evidence_drafts.jsonl", "evidence_drafts.jsonl")) or "outline/evidence_drafts.jsonl"
     transitions_rel = _first_match(inputs, ("outline/transitions.md", "transitions.md")) or "outline/transitions.md"
-    tables_rel = _first_match(inputs, ("outline/tables.md", "tables.md")) or "outline/tables.md"
+    tables_rel = _first_match(inputs, ("outline/tables_appendix.md", "tables_appendix.md")) or "outline/tables_appendix.md"
     timeline_rel = _first_match(inputs, ("outline/timeline.md", "timeline.md")) or "outline/timeline.md"
     figures_rel = _first_match(inputs, ("outline/figures.md", "figures.md")) or "outline/figures.md"
     bib_rel = _first_match(inputs, ("citations/ref.bib", "ref.bib")) or "citations/ref.bib"
@@ -136,7 +136,7 @@ def main() -> int:
     require("citation-verifier", [bib_rel])
     require("claim-matrix-rewriter", ["outline/claim_evidence_matrix.md"])
     require("table-schema", ["outline/table_schema.md"])
-    require("table-filler", [tables_rel])
+    require("appendix-table-writer", [tables_rel])
     require("survey-visuals", [timeline_rel, figures_rel])
     require("transition-weaver", [transitions_rel])
 

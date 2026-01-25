@@ -1,0 +1,108 @@
+# Status
+
+## Current pipeline
+- `pipelines/arxiv-survey-latex.pipeline.md`
+
+## Current checkpoint
+- `DONE`
+
+## Next units
+- (fill) list next `U###` from `UNITS.csv`
+
+## Run log
+- 2026-01-25T04:53:25 U001 DOING workspace-init
+- 2026-01-25T04:53:25 U001 DONE workspace-init
+- 2026-01-25T04:53:25 U002 DOING pipeline-router
+- 2026-01-25T04:53:25 U002 DONE pipeline-router
+- 2026-01-25T04:53:25 U010 DOING literature-engineer
+- 2026-01-25T04:54:05 U010 DONE literature-engineer
+- 2026-01-25T04:54:05 U020 DOING dedupe-rank
+- 2026-01-25T04:54:05 U020 DONE dedupe-rank
+- 2026-01-25T04:54:05 U030 DOING taxonomy-builder
+- 2026-01-25T04:54:06 U030 DONE taxonomy-builder
+- 2026-01-25T04:54:06 U040 DOING outline-builder
+- 2026-01-25T04:54:06 U040 DONE outline-builder
+- 2026-01-25T04:54:06 U050 DOING section-mapper
+- 2026-01-25T04:54:06 U050 DONE section-mapper
+- 2026-01-25T04:54:06 U051 DOING outline-refiner
+- 2026-01-25T04:54:06 U051 DONE outline-refiner
+- 2026-01-25T04:54:06 U052 DOING pipeline-router
+- 2026-01-25T04:54:06 U052 DONE pipeline-router
+- 2026-01-25T04:54:06 U055 DOING pipeline-router
+- 2026-01-25T04:54:06 U055 DONE (AUTO approved C2)
+- 2026-01-25T04:54:06 U058 DOING pdf-text-extractor
+- 2026-01-25T04:54:06 U058 DONE pdf-text-extractor
+- 2026-01-25T04:54:06 U060 DOING paper-notes
+- 2026-01-25T04:54:07 U060 DONE paper-notes
+- 2026-01-25T04:54:07 U075 DOING subsection-briefs
+- 2026-01-25T04:54:07 U075 DONE subsection-briefs
+- 2026-01-25T04:54:07 U076 DOING chapter-briefs
+- 2026-01-25T04:54:07 U076 DONE chapter-briefs
+- 2026-01-25T04:54:07 U090 DOING citation-verifier
+- 2026-01-25T04:54:07 U090 DONE citation-verifier
+- 2026-01-25T04:54:07 U091 DOING evidence-binder
+- 2026-01-25T04:54:07 U091 DONE evidence-binder
+- 2026-01-25T04:54:07 U092 DOING evidence-draft
+- 2026-01-25T04:54:08 U092 DONE evidence-draft
+- 2026-01-25T04:54:08 U0925 DOING table-schema
+- 2026-01-25T04:54:08 U0925 DONE table-schema
+- 2026-01-25T04:54:08 U093 DOING anchor-sheet
+- 2026-01-25T04:54:08 U093 DONE anchor-sheet
+- 2026-01-25T04:54:08 U0926 DOING table-filler
+- 2026-01-25T04:54:08 U0926 DONE table-filler
+- 2026-01-25T04:54:08 U0927 DOING appendix-table-writer
+- 2026-01-25T04:54:08 U0927 BLOCKED (missing outputs: outline/tables_appendix.md)
+- 2026-01-25T04:56:20 U0927 DOING appendix-table-writer
+- 2026-01-25T04:56:20 U0927 DONE appendix-table-writer
+- 2026-01-25T04:56:20 U0935 DOING schema-normalizer
+- 2026-01-25T04:56:20 U0935 DONE schema-normalizer
+- 2026-01-25T04:56:20 U099 DOING writer-context-pack
+- 2026-01-25T04:56:20 U099 DONE writer-context-pack
+- 2026-01-25T04:56:20 U0995 DOING evidence-selfloop
+- 2026-01-25T04:56:20 U0995 DONE evidence-selfloop
+- 2026-01-25T04:56:20 U094 DOING claim-matrix-rewriter
+- 2026-01-25T04:56:20 U094 DONE claim-matrix-rewriter
+- 2026-01-25T04:56:20 U095 DOING front-matter-writer
+- 2026-01-25T04:56:20 U095 BLOCKED (no script for front-matter-writer; run manually per .codex/skills/front-matter-writer/SKILL.md then mark DONE)
+- 2026-01-25T04:59:10 U095 NOTE front matter copied from baseline; report written
+- 2026-01-25T04:59:31 U096 NOTE chapter leads copied from baseline; report written
+- 2026-01-25T04:59:46 U100 DOING subsection-writer
+- 2026-01-25T04:59:47 U100 DONE subsection-writer
+- 2026-01-25T04:59:47 U1005 DOING writer-selfloop
+- 2026-01-25T04:59:47 U1005 DONE writer-selfloop
+- 2026-01-25T04:59:47 U1006 DOING style-harmonizer
+- 2026-01-25T04:59:47 U1006 BLOCKED (no script for style-harmonizer; run manually per .codex/skills/style-harmonizer/SKILL.md then mark DONE)
+- 2026-01-25T05:00:07 U1006 NOTE style smells none; marker already present
+- 2026-01-25T05:00:19 U102 DOING section-logic-polisher
+- 2026-01-25T05:00:19 U102 DONE section-logic-polisher
+- 2026-01-25T05:00:19 U098 DOING transition-weaver
+- 2026-01-25T05:00:19 U098 BLOCKED (missing outputs: outline/transitions.md)
+- 2026-01-25T05:00:48 U098 DOING transition-weaver
+- 2026-01-25T05:00:48 U098 DONE transition-weaver
+- 2026-01-25T05:00:48 U101 DOING section-merger
+- 2026-01-25T05:00:49 U101 DONE section-merger
+- 2026-01-25T05:00:49 U103 DOING post-merge-voice-gate
+- 2026-01-25T05:00:49 U103 BLOCKED (script failed)
+- 2026-01-25T05:01:40 U101 NOTE rerun merge after appendix table edits (slash lists)
+- 2026-01-25T05:01:47 U101 DOING section-merger
+- 2026-01-25T05:01:48 U101 DONE section-merger
+- 2026-01-25T05:01:48 U103 DOING post-merge-voice-gate
+- 2026-01-25T05:01:48 U103 DONE post-merge-voice-gate
+- 2026-01-25T05:01:48 U104 DOING citation-diversifier
+- 2026-01-25T05:01:48 U104 DONE citation-diversifier
+- 2026-01-25T05:01:48 U1045 DOING citation-injector
+- 2026-01-25T05:01:48 U1045 BLOCKED (script failed)
+- 2026-01-25T05:25:17 U1045 DOING citation-injector
+- 2026-01-25T05:25:17 U1045 DONE citation-injector
+- 2026-01-25T05:25:17 U105 DOING draft-polisher
+- 2026-01-25T05:25:17 U105 DONE draft-polisher
+- 2026-01-25T05:25:17 U108 DOING global-reviewer
+- 2026-01-25T05:25:17 U108 DONE global-reviewer
+- 2026-01-25T05:25:17 U109 DOING pipeline-auditor
+- 2026-01-25T05:25:17 U109 DONE pipeline-auditor
+- 2026-01-25T05:25:17 U110 DOING latex-scaffold
+- 2026-01-25T05:25:17 U110 DONE latex-scaffold
+- 2026-01-25T05:25:17 U120 DOING latex-compile-qa
+- 2026-01-25T05:25:24 U120 DONE latex-compile-qa
+- 2026-01-25T05:25:24 U130 DOING artifact-contract-auditor
+- 2026-01-25T05:25:24 U130 DONE artifact-contract-auditor

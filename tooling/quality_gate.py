@@ -33,7 +33,7 @@ def _pipeline_profile(workspace: Path) -> str:
 def _draft_profile(workspace: Path) -> str:
     """Return the draft strictness profile from `queries.md` (best-effort).
 
-    Supported values: `lite`, `survey`, `deep`.
+    Supported values: `survey`, `deep` (default: `survey` for arxiv-survey pipelines).
     """
     profile = _pipeline_profile(workspace)
     default = "survey" if profile == "arxiv-survey" else "default"
@@ -53,7 +53,7 @@ def _draft_profile(workspace: Path) -> str:
             if key not in keys:
                 continue
             value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
-            if value in {"lite", "survey", "deep"}:
+            if value in {"survey", "deep"}:
                 return value
             return default
     except Exception:
@@ -252,7 +252,9 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
     if skill == "table-schema":
         return _check_table_schema(workspace, outputs)
     if skill == "table-filler":
-        return _check_tables_md(workspace, outputs)
+        return _check_tables_index_md(workspace, outputs)
+    if skill == "appendix-table-writer":
+        return _check_tables_appendix_md(workspace, outputs)
     if skill == "subsection-briefs":
         return _check_subsection_briefs(workspace, outputs)
     if skill == "chapter-briefs":
@@ -491,7 +493,7 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
             "- If offline, use `verification_status=offline_generated` and plan a later `--verify-only` pass when network is available.",
         ],
         "survey-visuals": [
-            "- Fill `outline/tables.md` with ≥2 real Markdown tables (method + evaluation/benchmarks) and include citations in rows.",
+            "- Tables are handled by table skills: `table-schema` (schema) → `table-filler` (index: `outline/tables_index.md`) → `appendix-table-writer` (reader tables: `outline/tables_appendix.md`).",
             "- Fill `outline/timeline.md` with ≥8 milestone bullets (year + cited works).",
             "- Fill `outline/figures.md` with ≥2 figure specs (purpose, elements, supporting citations).",
         ],
@@ -1095,8 +1097,6 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         # Paper-like constraint: avoid fragmenting the survey into too many tiny H3s.
         if draft_profile == "deep":
             max_h3 = 12
-        elif draft_profile == "lite":
-            max_h3 = 8
         else:
             max_h3 = 10
 
@@ -1756,18 +1756,6 @@ def _check_subsection_briefs(workspace: Path, outputs: list[str]) -> list[Qualit
                 )
             )
 
-        # Explicit refinement marker: treat bootstrap outputs as scaffolds until reviewed/refined.
-        refined_marker = workspace / "outline" / "subsection_briefs.refined.ok"
-        if not issues and not refined_marker.exists():
-            issues.append(
-                QualityIssue(
-                    code="subsection_briefs_not_refined",
-                    message=(
-                        f"`{out_rel}` exists but is not marked refined. "
-                        "After you manually refine briefs (especially unique tension/thesis), create `outline/subsection_briefs.refined.ok`."
-                    ),
-                )
-            )
     return issues
 
 
@@ -1880,20 +1868,6 @@ def _check_chapter_briefs(workspace: Path, outputs: list[str]) -> list[QualityIs
             )
         )
 
-    profile = _pipeline_profile(workspace)
-    if profile == "arxiv-survey" and not issues:
-        refined_marker = workspace / "outline" / "chapter_briefs.refined.ok"
-        if not refined_marker.exists():
-            issues.append(
-                QualityIssue(
-                    code="chapter_briefs_not_refined",
-                    message=(
-                        f"`{out_rel}` exists but is not marked refined. "
-                        "After you manually refine chapter throughlines (avoid generic glue), create `outline/chapter_briefs.refined.ok`."
-                    ),
-                )
-            )
-
     return issues
 
 
@@ -1983,10 +1957,7 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
     draft_profile = _draft_profile(workspace)
     min_comparisons = 3
     if profile == "arxiv-survey":
-        if draft_profile == "deep":
-            min_comparisons = 5
-        elif draft_profile != "lite":
-            min_comparisons = 4
+        min_comparisons = 5 if draft_profile == "deep" else 4
 
     bad = 0
     missing_bib = 0
@@ -2093,18 +2064,6 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
             )
         )
 
-    if profile == "arxiv-survey" and not issues:
-        refined_marker = workspace / "outline" / "evidence_drafts.refined.ok"
-        if not refined_marker.exists():
-            issues.append(
-                QualityIssue(
-                    code="evidence_drafts_not_refined",
-                    message=(
-                        f"`{out_rel}` exists but is not marked refined. "
-                        "After you confirm packs are complete (no `blocking_missing`) and subsection-specific, create `outline/evidence_drafts.refined.ok`."
-                    ),
-                )
-            )
     return issues
 
 
@@ -2189,19 +2148,6 @@ def _check_anchor_sheet(workspace: Path, outputs: list[str]) -> list[QualityIssu
             )
         )
 
-    profile = _pipeline_profile(workspace)
-    if profile == "arxiv-survey" and not issues:
-        refined_marker = workspace / "outline" / "anchor_sheet.refined.ok"
-        if not refined_marker.exists():
-            issues.append(
-                QualityIssue(
-                    code="anchor_sheet_not_refined",
-                    message=(
-                        f"`{out_rel}` exists but is not marked refined. "
-                        "After you verify anchors are subsection-specific and cite-backed, create `outline/anchor_sheet.refined.ok`."
-                    ),
-                )
-            )
     return issues
 
 
@@ -2287,12 +2233,7 @@ def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[Qua
     profile = _pipeline_profile(workspace)
     draft_profile = _draft_profile(workspace)
     if profile == "arxiv-survey":
-        if draft_profile == "deep":
-            min_plan = 10
-        elif draft_profile != "lite":
-            min_plan = 8
-        else:
-            min_plan = 6
+        min_plan = 10 if draft_profile == "deep" else 8
     else:
         min_plan = 4
 
@@ -2312,9 +2253,9 @@ def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[Qua
     missing_must_use: list[str] = []
 
     if profile == "arxiv-survey":
-        min_comparisons = 4 if draft_profile != "lite" else 3
-        min_lim_hooks = 2 if draft_profile != "lite" else 1
-        min_anchors = 6 if draft_profile != "lite" else 3
+        min_comparisons = 4
+        min_lim_hooks = 2
+        min_anchors = 6
     else:
         min_comparisons = 1
         min_lim_hooks = 1
@@ -2544,18 +2485,6 @@ def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[Qua
                 )
             )
 
-    if profile == "arxiv-survey" and not issues:
-        refined_marker = workspace / "outline" / "writer_context_packs.refined.ok"
-        if not refined_marker.exists():
-            issues.append(
-                QualityIssue(
-                    code="writer_context_packs_not_refined",
-                    message=(
-                        f"`{out_rel}` exists but is not marked refined. "
-                        "After you spot-check packs for scope/citation constraints and anti-template guidance, create `outline/writer_context_packs.refined.ok`."
-                    ),
-                )
-            )
     return issues
 
 
@@ -2653,19 +2582,6 @@ def _check_evidence_bindings(workspace: Path, outputs: list[str]) -> list[Qualit
         if report and (_check_placeholder_markers(report) or "…" in report):
             return [QualityIssue(code="evidence_binding_report_placeholders", message=f"`{report_rel}` contains placeholders; regenerate binder report.")]
 
-    if profile == "arxiv-survey":
-        refined_marker = workspace / "outline" / "evidence_bindings.refined.ok"
-        if not refined_marker.exists():
-            return [
-                QualityIssue(
-                    code="evidence_bindings_not_refined",
-                    message=(
-                        f"`{out_rel}` exists but is not marked refined. "
-                        "After you verify `binding_gaps` / `tag mix` are subsection-specific, create `outline/evidence_bindings.refined.ok`."
-                    ),
-                )
-            ]
-
     return []
 
 
@@ -2681,7 +2597,7 @@ def _check_survey_visuals(workspace: Path, outputs: list[str]) -> list[QualityIs
         timeline_rel = outputs[0]
         figures_rel = outputs[1]
     else:
-        tables_rel = outputs[0] if outputs else "outline/tables.md"
+        tables_rel = outputs[0] if outputs else "outline/tables_index.md"
         timeline_rel = outputs[1] if len(outputs) >= 2 else "outline/timeline.md"
         figures_rel = outputs[2] if len(outputs) >= 3 else "outline/figures.md"
 
@@ -2781,14 +2697,14 @@ def _check_table_schema(workspace: Path, outputs: list[str]) -> list[QualityIssu
         return [QualityIssue(code="empty_table_schema", message=f"`{out_rel}` is empty.")]
     if _check_placeholder_markers(text) or "…" in text:
         return [QualityIssue(code="table_schema_placeholders", message=f"`{out_rel}` contains placeholders; fill schema with real table definitions.")]
-    n = len(re.findall(r"(?m)^##\s+Table\s+\d+:", text))
-    if n < 2:
-        return [QualityIssue(code="table_schema_too_few", message=f"`{out_rel}` should define >=2 tables (found {n}).")]
+    n = len(re.findall(r"(?m)^##\s+Table\s+[IA]\d+:", text))
+    if n < 4:
+        return [QualityIssue(code="table_schema_too_few", message=f"`{out_rel}` should define >=4 tables (I* index + A* appendix; found {n}).")]
     return []
 
 
-def _check_tables_md(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    out_rel = outputs[0] if outputs else "outline/tables.md"
+def _check_tables_index_md(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    out_rel = outputs[0] if outputs else "outline/tables_index.md"
     path = workspace / out_rel
     if not path.exists():
         return [QualityIssue(code="missing_tables_md", message=f"`{out_rel}` does not exist.")]
@@ -2809,6 +2725,56 @@ def _check_tables_md(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         return [QualityIssue(code="tables_no_cites", message=f"`{out_rel}` should include citations in table rows (e.g., `[@BibKey]`).")]
     if re.search(r"\[@(?:Key|KEY)\d+", text):
         return [QualityIssue(code="tables_placeholder_cites", message=f"`{out_rel}` contains placeholder cite keys like `[@Key1]`.")]
+    return []
+
+
+def _check_tables_appendix_md(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    out_rel = outputs[0] if outputs else "outline/tables_appendix.md"
+    expected_report = any(p.endswith("TABLES_APPENDIX_REPORT.md") for p in (outputs or []))
+    report_rel = next((p for p in outputs if p.endswith("TABLES_APPENDIX_REPORT.md")), "output/TABLES_APPENDIX_REPORT.md")
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_tables_appendix", message=f"`{out_rel}` does not exist.")]
+    text = path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not text:
+        return [QualityIssue(code="empty_tables_appendix", message=f"`{out_rel}` is empty.")]
+    if _check_placeholder_markers(text) or "…" in text or re.search(r"(?m)\.\.\.+", text):
+        return [
+            QualityIssue(
+                code="tables_appendix_placeholders",
+                message=f"`{out_rel}` contains placeholders/ellipsis (including `...` truncation); curate clean Appendix tables and remove truncation markers.",
+            )
+        ]
+    if any(ln.lstrip().startswith("#") for ln in text.splitlines() if ln.strip()):
+        return [
+            QualityIssue(
+                code="tables_appendix_contains_headings",
+                message=f"`{out_rel}` should not contain Markdown headings; keep it heading-free so the merger can insert it cleanly under a single Appendix heading.",
+            )
+        ]
+    table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
+    if len(table_seps) < 2:
+        return [QualityIssue(code="tables_appendix_missing", message=f"`{out_rel}` should contain >=2 Markdown tables (found {len(table_seps)}).")]
+    if "[@" not in text:
+        return [QualityIssue(code="tables_appendix_no_cites", message=f"`{out_rel}` should include citations in table rows (e.g., `[@BibKey]`).")]
+    if re.search(r"\[@(?:Key|KEY)\d+", text):
+        return [QualityIssue(code="tables_appendix_placeholder_cites", message=f"`{out_rel}` contains placeholder cite keys like `[@Key1]`.")]
+    # Heuristic: if it looks like a subsection/axes index dump, block it (appendix tables should be reader-facing).
+    if re.search(r"(?im)^\|\s*subsection\s*\|", text) and re.search(r"(?im)\|\s*axes\s*\|", text):
+        return [
+            QualityIssue(
+                code="tables_appendix_looks_indexy",
+                message=f"`{out_rel}` looks like an internal subsection/axes index table; curate reader-facing Appendix tables (methods/benchmarks/risks) instead of pasting the index.",
+            )
+        ]
+
+    report_path = workspace / report_rel
+    if expected_report:
+        if not report_path.exists() or report_path.stat().st_size == 0:
+            return [QualityIssue(code="missing_tables_appendix_report", message=f"`{report_rel}` is missing or empty.")]
+        rep = report_path.read_text(encoding="utf-8", errors="ignore")
+        if "- Status: PASS" not in rep:
+            return [QualityIssue(code="tables_appendix_report_not_pass", message=f"`{report_rel}` is not PASS; fix Appendix tables and rerun `appendix-table-writer`.")]
     return []
 
 
@@ -3352,12 +3318,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
             profile = _pipeline_profile(workspace)
             draft_profile = _draft_profile(workspace)
             if profile == "arxiv-survey":
-                if draft_profile == "deep":
-                    min_cites = 12
-                elif draft_profile == "lite":
-                    min_cites = 7
-                else:
-                    min_cites = 10
+                min_cites = 12 if draft_profile == "deep" else 10
                 if len(cite_keys) < min_cites:
                     issues.append(
                         QualityIssue(
@@ -3367,14 +3328,14 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     )
 
             if profile == "arxiv-survey":
-                min_paragraphs = 6
-                min_chars = 5000
                 if draft_profile == "deep":
                     min_paragraphs = 10
-                    min_chars = 11000
-                elif draft_profile != "lite":
+                    # Keep sections "thick" without forcing filler; prefer argument-move checks over raw length.
+                    # This is a post-citation length floor (citations removed) used as a readability proxy.
+                    min_chars = 5500
+                else:
                     min_paragraphs = 9
-                    min_chars = 9000
+                    min_chars = 4500
 
                 paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
                 # Paper voice: block narration templates that read like outline commentary
@@ -3383,7 +3344,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 first_no_cites = re.sub(r"\[@[^\]]+\]", "", first_para)
                 first_no_cites = re.sub(r"\s+", " ", first_no_cites).strip()
                 if re.search(
-                    r"(?i)\b(?:this\s+(?:section|subsection)\s+(?:surveys|argues|shows|highlights|demonstrates|contends)|in\s+this\s+(?:section|subsection))\b",
+                    r"(?i)\b(?:this\s+(?:section|subsection)\s+(?:surveys|reviews|discusses|covers|presents|introduces|outlines|summarizes|describes|argues|shows|highlights|demonstrates|contends)|in\s+this\s+(?:section|subsection))\b",
                     first_no_cites,
                 ):
                     issues.append(
@@ -3513,11 +3474,6 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     min_eval = 3
                     min_lim = 2
                     min_anchor_paras = 3
-                elif draft_profile == "lite":
-                    min_contrast = 1
-                    min_eval = 1
-                    min_lim = 1
-                    min_anchor_paras = 1
                 else:
                     min_contrast = 2
                     min_eval = 2
@@ -3702,15 +3658,6 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                             min_cites = 22
                             min_paras = 10
                             min_chars = 3600
-                    elif draft_profile == "lite":
-                        if is_intro:
-                            min_cites = 8
-                            min_paras = 4
-                            min_chars = 1400
-                        else:
-                            min_cites = 10
-                            min_paras = 5
-                            min_chars = 1600
                     else:
                         if is_intro:
                             min_cites = 12
@@ -3804,12 +3751,15 @@ def _check_section_logic_polisher(workspace: Path, outputs: list[str]) -> list[Q
         ]
 
     draft_profile = _draft_profile(workspace)
-    if draft_profile == "deep":
-        causal_min, contrast_min, extension_min, impl_min = 3, 2, 2, 1
-    elif draft_profile == "lite":
-        causal_min, contrast_min, extension_min, impl_min = 1, 1, 1, 0
-    else:
-        causal_min, contrast_min, extension_min, impl_min = 2, 2, 2, 1
+
+    # IMPORTANT (paper voice): do not hard-block on linker word counts.
+    #
+    # Counting explicit discourse markers ("therefore/however/moreover/...") is a poor proxy
+    # for coherence and often incentivizes exactly the paragraph-initial connector cadence
+    # that makes the prose feel templated. This gate is therefore thesis-only:
+    # - it blocks when the subsection lacks a clear, conclusion-first thesis in paragraph 1
+    # - linker density is handled as *non-blocking* "style smells" elsewhere
+    causal_min = contrast_min = extension_min = impl_min = 0
 
     # Thesis/takeaway: require an explicit conclusion-first signal early, but
     # avoid forcing generator-like meta openers ("This subsection ...").

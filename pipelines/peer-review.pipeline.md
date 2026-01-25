@@ -1,7 +1,13 @@
 ---
 name: peer-review
-version: 2.1
+version: 2.2
 target_artifacts:
+  - STATUS.md
+  - UNITS.csv
+  - CHECKPOINTS.md
+  - DECISIONS.md
+  - GOAL.md
+  - queries.md
   - output/CLAIMS.md
   - output/MISSING_EVIDENCE.md
   - output/NOVELTY_MATRIX.md

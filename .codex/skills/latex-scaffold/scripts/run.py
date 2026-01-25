@@ -195,6 +195,9 @@ def _markdown_to_latex(md: str) -> str:
     in_itemize = False
     in_abstract = False
 
+    in_appendix = False
+    pending_table_caption: tuple[str, str] | None = None
+
     def _close_itemize() -> None:
         nonlocal in_itemize
         if in_itemize:
@@ -250,6 +253,17 @@ def _markdown_to_latex(md: str) -> str:
                 i += 1
                 continue
             _close_abstract()
+            # Appendix handling: emit \appendix once, and strip the prefix from the heading.
+            if heading_low.startswith("appendix") or heading.startswith("Appendix") or heading.startswith("APPENDIX") or heading.startswith("附录"):
+                if not in_appendix:
+                    out.append(r"\appendix")
+                    out.append("")
+                    in_appendix = True
+                heading = re.sub(r"(?i)^appendix(?:es)?\s*[:\-]?\s*", "", heading).strip()
+                heading = re.sub(r"^附录\s*[:：\-]?\s*", "", heading).strip()
+                if not heading:
+                    heading = "Appendix"
+
             out.append(rf"\section{{{_escape_latex(heading)}}}")
             out.append("")
             i += 1
@@ -273,6 +287,12 @@ def _markdown_to_latex(md: str) -> str:
             i += 1
             continue
 
+        m = re.match(r"^\*\*(?:Appendix\s+)?Table\s+([A-Za-z0-9]+)\.\s+(.+)\*\*$", stripped)
+        if m:
+            pending_table_caption = (m.group(1), m.group(2))
+            i += 1
+            continue
+
         if _is_table_header(stripped) and i + 1 < len(lines) and _is_table_separator(lines[i + 1].strip()):
             _close_itemize()
             _close_abstract()
@@ -286,7 +306,12 @@ def _markdown_to_latex(md: str) -> str:
                     break
                 table_lines.append(nxt.strip())
                 j += 1
-            out.extend(_render_table(table_lines, convert_inline=_convert_inline))
+            cap_id = ""
+            cap_text = ""
+            if pending_table_caption:
+                cap_id, cap_text = pending_table_caption
+                pending_table_caption = None
+            out.extend(_render_table(table_lines, convert_inline=_convert_inline, caption=cap_text, label=cap_id))
             out.append("")
             i = j
             continue
@@ -334,7 +359,7 @@ def _split_md_row(line: str) -> list[str]:
     return [c.strip() for c in line.split("|")]
 
 
-def _render_table(lines: list[str], *, convert_inline) -> list[str]:
+def _render_table(lines: list[str], *, convert_inline, caption: str | None = None, label: str | None = None) -> list[str]:
     # lines: header, separator, row...
     header = _split_md_row(lines[0]) if lines else []
     rows = [_split_md_row(ln) for ln in lines[2:]] if len(lines) > 2 else []
@@ -344,9 +369,29 @@ def _render_table(lines: list[str], *, convert_inline) -> list[str]:
     header = (header + [""] * ncols)[:ncols]
     rows = [(r + [""] * ncols)[:ncols] for r in rows]
 
-    colspec = "l" + ("".join(["Y" for _ in range(ncols - 1)]) if ncols > 1 else "")
+    header_join = " ".join(header).lower()
+    colspec = "Y" * ncols
+    if ncols >= 3 and re.search(r"\b(refs?|citations?)\b", header_join):
+        # Keep the refs column compact; let the other columns share the remaining width.
+        colspec = ("Y" * (ncols - 1)) + "l"
     out: list[str] = []
-    out.append(r"\begin{center}")
+    in_table_env = bool(caption)
+    lab = ""
+    if label:
+        lab = re.sub(r"[^a-z0-9]+", "", str(label).lower())
+
+    if in_table_env:
+        out.append(r"\begin{table}[t]")
+        out.append(r"\centering")
+        out.append(r"\small")
+        out.append(r"\setlength{\tabcolsep}{4pt}")
+        out.append(r"\renewcommand{\arraystretch}{1.15}")
+        out.append(r"\caption{" + convert_inline(caption or "") + "}")
+        if lab:
+            out.append(r"\label{tab:" + lab + "}")
+    else:
+        out.append(r"\begin{center}")
+
     out.append(rf"\begin{{tabularx}}{{\linewidth}}{{{colspec}}}")
     out.append(r"\toprule")
     out.append(" & ".join([convert_inline(c) for c in header]) + r" \\")
@@ -355,7 +400,10 @@ def _render_table(lines: list[str], *, convert_inline) -> list[str]:
         out.append(" & ".join([convert_inline(c) for c in r]) + r" \\")
     out.append(r"\bottomrule")
     out.append(r"\end{tabularx}")
-    out.append(r"\end{center}")
+    if in_table_env:
+        out.append(r"\end{table}")
+    else:
+        out.append(r"\end{center}")
     return out
 
 

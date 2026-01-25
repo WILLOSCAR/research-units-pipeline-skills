@@ -64,15 +64,19 @@
 - `writer-context-pack`：把 briefs + evidence + anchors + allowed cites 合并成 per-H3 写作上下文包（NO PROSE）→ `outline/writer_context_packs.jsonl`
 - `evidence-selfloop`：证据自循环 TODO（读 bindings+packs，写出上游修复路径；把缺口挡在 C5 之前）→ `output/EVIDENCE_SELFLOOP_TODO.md`
 - `claim-matrix-rewriter`：从 evidence packs 重写“claim→evidence 索引”（避免模板 claim）→ `outline/claim_evidence_matrix.md`
-- `table-schema`（可选）：先定义表格 schema（问题/列/证据字段）→ `outline/table_schema.md`
-- `table-filler`（可选）：用 evidence packs 填表（填不出就显式 missing）→ `outline/tables.md`
-- `survey-visuals`（可选）：非 prose 的时间线/图规格（表格由 `table-filler` 负责）→ `outline/timeline.md` + `outline/figures.md`
+- `table-schema`（survey/deep 默认）：先定义表格 schema（问题/列/证据字段）→ `outline/table_schema.md`
+- `table-filler`（survey/deep 默认）：填“索引表”（planning/debug；不进终稿）→ `outline/tables_index.md`
+- `appendix-table-writer`（survey/deep 默认）：写“可发表 Appendix 表”（干净+高密度；进终稿 Appendix）→ `outline/tables_appendix.md`
+- `survey-visuals`（可选）：非 prose 的时间线/图规格 → `outline/timeline.md` + `outline/figures.md`
 
 ### Stage 5 — Writing（C5）[PROSE after approvals]
 
 **Paper Voice Skills** (enforce generator-voice-free prose):
 - `transition-weaver`：生成 H2/H3 过渡句映射（不新增事实/引用；输出 content sentences only）→ `outline/transitions.md`
 - `style-harmonizer`：去槽位句式/去同质化（不改事实/不改 citation keys；只做局部句式改写）→ 更新 `sections/*.md`
+- `opener-variator`：只改 H3 开头段（去 overview/旁白 + 降低 opener cadence 重复），让全稿更像“作者写的”→ 更新 `sections/S*.md`
+- `limitation-weaver`：保留局限性但去掉“Two limitations…”这类计数式槽位句式（不改 citation keys）→ 更新 `sections/S*.md`
+- `evaluation-anchor-checker`：数字/评测断言的最小协议上下文检查（task+metric+constraint；缺上下文就降级，不猜）→ 更新 `sections/*.md`（或 post-merge 的 `output/DRAFT.md`）
 - `section-logic-polisher`：写作逻辑自检（thesis + 连接词密度 + paragraph islands），在 merge 前做局部修复 → `output/SECTION_LOGIC_REPORT.md`
 - `post-merge-voice-gate`：合并后口吻门（把 transitions 视为“注入正文的高频文本源”）：拦截 planner talk / slash-list，并路由回最早责任产物（通常是 `outline/transitions.md`）→ `output/POST_MERGE_VOICE_REPORT.md`
 - `draft-polisher`：对 `output/DRAFT.md` 做去套话 + 连贯性润色（不改变 citation keys 与语义；去 planner talk）
@@ -230,7 +234,8 @@
 - `outline/claim_evidence_matrix.md` → `claim-matrix-rewriter`
 - `citations/ref.bib`, `citations/verified.jsonl` → `citation-verifier`
 - `outline/table_schema.md` → `table-schema`
-- `outline/tables.md` → `table-filler`
+- `outline/tables_index.md` → `table-filler`
+- `outline/tables_appendix.md` → `appendix-table-writer`
 - `outline/timeline.md`, `outline/figures.md` → `survey-visuals`
 - `outline/transitions.md` → `transition-weaver`
 - `output/DRAFT.md` → `prose-writer`, `draft-polisher`

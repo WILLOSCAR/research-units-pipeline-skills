@@ -30,7 +30,7 @@ def _draft_profile(workspace: Path) -> str:
             if key not in keys:
                 continue
             value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
-            if value in {"lite", "survey", "deep"}:
+            if value in {"survey", "deep"}:
                 return value
             return "survey"
     except Exception:
@@ -101,10 +101,10 @@ def _connector_counts(text: str) -> Counts:
     blob = re.sub(r"\[@[^\]]+\]", "", text or "")
     blob = blob.lower()
 
-    causal = r"\b(therefore|thus|hence|as a result|consequently|accordingly)\b|因此|所以|从而|因而|由此"
-    contrast = r"\b(however|nevertheless|nonetheless|yet|whereas|unlike|in contrast|by contrast)\b|然而|相比之下|相较|不同于"
-    extension = r"\b(moreover|furthermore|additionally|in addition|similarly|likewise|building on|following)\b|此外|并且|同时|进一步|另外"
-    implication = r"\b(this raises|this suggests|this implies|this motivates|this highlights)\b|这(?:提示|表明|意味着|引出)"
+    causal = r"\b(therefore|thus|hence|as a result|consequently|accordingly|because|since|this leads to|which means|which makes)\b|因此|所以|从而|因而|由此"
+    contrast = r"\b(however|nevertheless|nonetheless|yet|whereas|unlike|in contrast|by contrast|although|while|but)\b|然而|相比之下|相较|不同于"
+    extension = r"\b(moreover|furthermore|additionally|in addition|similarly|likewise|building on|following|also|another|a second|at the same time|in turn)\b|此外|并且|同时|进一步|另外"
+    implication = r"\b(this raises|this suggests|this implies|this motivates|this highlights|this means|this indicates|this points to|a practical implication is|one implication is)\b|这(?:提示|表明|意味着|引出)"
 
     return Counts(
         causal=len(re.findall(causal, blob)),
@@ -118,8 +118,6 @@ def _thresholds(profile: str) -> Counts:
     profile = (profile or "").strip().lower()
     if profile == "deep":
         return Counts(causal=3, contrast=2, extension=2, implication=1)
-    if profile == "lite":
-        return Counts(causal=1, contrast=1, extension=1, implication=0)
     return Counts(causal=2, contrast=2, extension=2, implication=1)
 
 
@@ -162,7 +160,7 @@ def main() -> int:
         )
         rows.append((p.relative_to(workspace).as_posix(), thesis_ok, connectors_ok, template_ok, counts))
 
-    fail = [r for r in rows if not (r[1] and r[2])]
+    fail = [r for r in rows if not r[1]]
     status = "PASS" if (rows and not fail) else "FAIL"
 
     lines: list[str] = [
@@ -188,7 +186,7 @@ def main() -> int:
     ]
 
     for rel, thesis_ok, connectors_ok, template_ok, c in rows:
-        ok = thesis_ok and connectors_ok
+        ok = thesis_ok
         lines.append(
             f"| `{rel}` | {'Y' if thesis_ok else 'N'} | {'Y' if connectors_ok else 'N'} | {'Y' if template_ok else 'N'} | {c.causal} | {c.contrast} | {c.extension} | {c.implication} | {'PASS' if ok else 'FAIL'} |"
         )
@@ -215,7 +213,7 @@ def main() -> int:
                 "## How to fix (blocking)",
                 "",
                 "- Make paragraph 1 conclusion-first with a clear thesis sentence (keep signposting light; avoid repeated opener labels).",
-                "- Rewrite paragraph openings to include explicit logical connectors (causal/contrast/extension/implication).",
+                "- Express logical relations, but prefer subject-first sentences and mid-sentence glue (because/while/which) instead of repeating paragraph-starter adverbs (Overall/In addition).",
                 "- Do not add new citation keys; keep scope within the subsection.",
             ]
         )

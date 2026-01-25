@@ -140,7 +140,7 @@ If you cannot do this without guessing, stop and fix upstream evidence instead o
 - `outline/subsection_briefs.jsonl`
 - `outline/transitions.md`
 - `outline/evidence_drafts.jsonl`
-- Optional: `outline/tables.md`, `outline/timeline.md`, `outline/figures.md`
+- Optional: `outline/tables_index.md`, `outline/tables_appendix.md`, `outline/timeline.md`, `outline/figures.md`
 - Optional: `outline/claim_evidence_matrix.md`
 - `citations/ref.bib`
 - `DECISIONS.md`
@@ -187,8 +187,9 @@ Before writing, load the structural and coherence inputs: `outline/outline.yml` 
 5. **Weave transitions (coherence)**
    - Between adjacent subsections/sections, add 1–2 transition sentences that reflect the taxonomy logic (not generic “Moreover/However”).
 
-6. **Integrate cross-cutting artifacts (optional)**
-   - Treat `outline/tables.md`, `outline/timeline.md`, and `outline/figures.md` as intermediate artifacts by default: weave them into the *relevant* prose sections (or include a short appendix), rather than dumping them as standalone top-level sections.
+6. **Integrate cross-cutting artifacts (paper-like)**
+   - Tables are part of the default survey deliverable. If `outline/tables_appendix.md` exists, place its contents into the draft as an Appendix block (recommended: after Conclusion). Do not paste `outline/tables_index.md` into the paper; it is an internal index.
+   - `outline/timeline.md` and `outline/figures.md` remain optional/intermediate by default: weave them into relevant prose (or a short appendix) only if they add real reader value.
    - Prefer referencing tables in prose over restating an identical “axes list” sentence in every subsection.
 
 7. **Self-check + revise (hard fail signals)**

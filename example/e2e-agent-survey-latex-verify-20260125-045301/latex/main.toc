@@ -1,0 +1,17 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}Related Work}{3}{section.2}%
+\contentsline {section}{\numberline {3}Foundations \& Interfaces}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Agent loop and action spaces}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Tool interfaces and orchestration}{5}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Core Components (Planning + Memory)}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Planning and reasoning loops}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Memory and retrieval (RAG)}{8}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Learning, Adaptation \& Coordination}{9}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Self-improvement and adaptation}{10}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Multi-agent coordination}{11}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Evaluation \& Risks}{12}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Benchmarks and evaluation protocols}{12}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Safety, security, and governance}{14}{subsection.6.2}%
+\contentsline {section}{\numberline {7}Discussion}{15}{section.7}%
+\contentsline {section}{\numberline {8}Conclusion}{15}{section.8}%
+\contentsline {section}{\numberline {A}Tables}{16}{appendix.A}%

@@ -1,6 +1,6 @@
 unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
 U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace模板文件齐全（含 error sinks: QUALITY_GATE/RUN_ERRORS）,C0,TODO,,CODEX
-U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md,DECISIONS含C0问题块,C0,TODO,U001,CODEX
+U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,DECISIONS含C0问题块；queries.md 已基于 GOAL seed（本 pipeline 可不使用）,C0,TODO,U001,CODEX
 U010,Define tutorial audience and learning objectives,STRUCTURE,tutorial-spec,STATUS.md,output/TUTORIAL_SPEC.md,包含受众/先修/学习目标/边界,C1,TODO,U002,CODEX
 U020,Build concept graph and module breakdown,STRUCTURE,concept-graph,output/TUTORIAL_SPEC.md,outline/concept_graph.yml,至少10个概念节点且标注依赖关系,C2,TODO,U010,CODEX
 U030,Plan modules from concept graph,STRUCTURE,module-planner,outline/concept_graph.yml,outline/module_plan.yml,每模块有 objectives + outputs，并标注 running example 步骤（如适用）,C2,TODO,U020,CODEX

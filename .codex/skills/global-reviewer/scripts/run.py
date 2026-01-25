@@ -163,7 +163,7 @@ def _global_review_report(*, workspace: Path) -> str:
     weakest = [t for _, t in lengths[:3]] if lengths else []
     median_len = lengths[len(lengths) // 2][0] if lengths else 0
 
-    tables_path = workspace / "outline" / "tables.md"
+    tables_path = workspace / "outline" / "tables_appendix.md"
     timeline_path = workspace / "outline" / "timeline.md"
     figures_path = workspace / "outline" / "figures.md"
 

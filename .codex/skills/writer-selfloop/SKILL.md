@@ -128,7 +128,9 @@ After PASS (merge-aware voice safety):
 
 After PASS (non-blocking style hygiene):
 - Open `output/WRITER_SELFLOOP_TODO.md` and read `## Style Smells (non-blocking)`.
-- If it flags repeated slot phrases (e.g., `Two limitations ...`) or overused stems (e.g., `The key point is that`), run `style-harmonizer` on the listed `sections/*.md` files.
+- If it flags opener cadence / `overview` narration, run `opener-variator` on the listed files.
+- If it flags count-based limitation slots (e.g., `Two limitations ...`), run `limitation-weaver` on the listed files.
+- Otherwise (or after micro-fixes), run `style-harmonizer` on the listed `sections/*.md` files.
 - Keep meaning + citations fixed; treat this as surface-level rewrite, not new content.
 
 ## How to fix a failing H3 (semantic recipe)
@@ -159,7 +161,7 @@ Disclaimer spam -> one policy paragraph + local caveat only when needed:
 
 Stop and route upstream if:
 - you cannot write a contrast or evaluation anchor without guessing
-- the pack lacks benchmarks/metrics/protocol tokens needed for the subsection\x27s core claim
+- the pack lacks benchmarks/metrics/protocol details needed for the subsection\x27s core claim
 - fixing one H3 keeps forcing out-of-scope citations
 
 ## Failure codes -> routing (how to read the gate)

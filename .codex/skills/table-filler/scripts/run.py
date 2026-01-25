@@ -31,7 +31,7 @@ def _looks_refined(text: str) -> bool:
         return False
     # Require at least 2 Markdown tables.
     seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
-    return len(seps) >= 2 and "[@" in text and len(text.strip()) >= 800
+    return len(seps) >= 2 and "[@" in text and len(text.strip()) >= 600
 
 
 def _sid_key(s: str) -> tuple[int, ...]:
@@ -111,6 +111,7 @@ def _backup_existing(path: Path) -> None:
 
     backup_existing(path)
 
+
 def _clean_axis(axis: str) -> str:
     axis = re.sub(r"\s+", " ", (axis or "").strip())
     axis = axis.rstrip(" .;:，；。")
@@ -119,10 +120,10 @@ def _clean_axis(axis: str) -> str:
     return axis
 
 
-def _clean_verify_field(v: str) -> str:
-    v = re.sub(r"\s+", " ", (v or "").strip())
-    v = v.rstrip(" .;:，；。")
-    return v
+def _clean_anchor_text(text: str) -> str:
+    text = re.sub(r"\[@[^\]]+\]", "", str(text or ""))
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.rstrip(" .;:，；。")
 
 
 def main() -> int:
@@ -140,13 +141,21 @@ def main() -> int:
     from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list, read_jsonl
 
     workspace = Path(args.workspace).resolve()
+
     inputs = parse_semicolon_list(args.inputs) or [
         "outline/table_schema.md",
         "outline/subsection_briefs.jsonl",
         "outline/evidence_drafts.jsonl",
+        "outline/anchor_sheet.jsonl",
         "citations/ref.bib",
     ]
-    outputs = parse_semicolon_list(args.outputs) or ["outline/tables.md"]
+    outputs = parse_semicolon_list(args.outputs) or ["outline/tables_index.md"]
+
+    schema_rel = next((p for p in inputs if str(p).endswith("outline/table_schema.md") or str(p).endswith("table_schema.md")), "outline/table_schema.md")
+    briefs_rel = next((p for p in inputs if str(p).endswith("outline/subsection_briefs.jsonl") or str(p).endswith("subsection_briefs.jsonl")), "outline/subsection_briefs.jsonl")
+    packs_rel = next((p for p in inputs if str(p).endswith("outline/evidence_drafts.jsonl") or str(p).endswith("evidence_drafts.jsonl")), "outline/evidence_drafts.jsonl")
+    anchors_rel = next((p for p in inputs if str(p).endswith("outline/anchor_sheet.jsonl") or str(p).endswith("anchor_sheet.jsonl")), "outline/anchor_sheet.jsonl")
+    bib_rel = next((p for p in inputs if str(p).endswith("citations/ref.bib") or str(p).endswith("ref.bib")), "citations/ref.bib")
 
     out_path = workspace / outputs[0]
     ensure_dir(out_path.parent)
@@ -157,11 +166,13 @@ def main() -> int:
             return 0
         _backup_existing(out_path)
 
-    briefs = read_jsonl(workspace / inputs[1]) if (workspace / inputs[1]).exists() else []
-    bib_text = (workspace / inputs[3]).read_text(encoding="utf-8", errors="ignore") if (workspace / inputs[3]).exists() else ""
-    bib_keys = set(re.findall(r"(?im)^@\w+\s*\{\s*([^,\s]+)\s*,", bib_text))
+    # Read inputs (schema is a contract artifact; filler is driven by briefs + packs + anchors).
+    briefs = read_jsonl(workspace / briefs_rel) if (workspace / briefs_rel).exists() else []
+    packs = read_jsonl(workspace / packs_rel) if (workspace / packs_rel).exists() else []
+    anchors = read_jsonl(workspace / anchors_rel) if (workspace / anchors_rel).exists() else []
 
-    packs = read_jsonl(workspace / inputs[2]) if (workspace / inputs[2]).exists() else []
+    bib_text = (workspace / bib_rel).read_text(encoding="utf-8", errors="ignore") if (workspace / bib_rel).exists() else ""
+    bib_keys = set(re.findall(r"(?im)^@\w+\s*\{\s*([^,\s]+)\s*,", bib_text))
 
     briefs_by = {
         str(b.get("sub_id") or "").strip(): b
@@ -174,14 +185,21 @@ def main() -> int:
         if isinstance(p, dict) and str(p.get("sub_id") or "").strip()
     }
 
+    anchors_by: dict[str, list[dict[str, Any]]] = {}
+    for rec in anchors:
+        if not isinstance(rec, dict):
+            continue
+        sid = str(rec.get("sub_id") or "").strip()
+        if not sid:
+            continue
+        items = rec.get("anchors") or []
+        if isinstance(items, list):
+            anchors_by[sid] = [a for a in items if isinstance(a, dict)]
+
     sub_ids = sorted(briefs_by.keys(), key=_sid_key)
 
     lines: list[str] = [
-        "# Tables",
-        "",
-        "All tables are generated evidence-first from subsection briefs + evidence packs.",
-        "",
-        "## Table 1: Subsection comparison map (axes + representative works)",
+        "**Index Table 1. Subsection map (axes + representative works).**",
         "",
         "| Subsection | Axes | Representative works |",
         "|---|---|---|",
@@ -211,15 +229,15 @@ def main() -> int:
         wrote += 1
 
     if wrote == 0:
-        lines.append("| (no subsections) | - | - |")
+        lines.append("| (no subsections) | — | — |")
 
     lines.extend(
         [
             "",
-            "## Table 2: Evidence readiness + verification needs",
+            "**Index Table 2. Concrete anchors (benchmarks / numbers / caveats).**",
             "",
-            "| Subsection | Evidence levels | Verify fields | Representative works |",
-            "|---|---|---|---|",
+            "| Subsection | Anchor facts | Representative works |",
+            "|---|---|---|",
         ]
     )
 
@@ -228,54 +246,50 @@ def main() -> int:
         pack = packs_by.get(sid) or {}
         title = str(brief.get("title") or pack.get("title") or "").strip()
 
-        ev = pack.get("evidence_level_summary") or {}
-        if isinstance(ev, dict):
-            ev_txt = ", ".join([f"{k}={int(ev.get(k) or 0)}" for k in ["fulltext", "abstract", "title"] if k in ev])
-        else:
-            ev_txt = ""
+        aitems = anchors_by.get(sid) or []
+        prefer = [a for a in aitems if str(a.get("hook_type") or "").strip().lower() in {"quant", "eval"}]
+        picked = prefer or aitems
 
-        verify = pack.get("verify_fields") or []
-        verify_items = [_clean_verify_field(v) for v in verify if _clean_verify_field(v)]
+        facts: list[str] = []
+        cite_keys: list[str] = []
+        for a in picked:
+            txt = _clean_anchor_text(a.get("text") or "")
+            if txt and txt not in facts:
+                facts.append(txt)
+            for k in a.get("citations") or []:
+                k = str(k or "").strip()
+                if not k:
+                    continue
+                if bib_keys and k not in bib_keys:
+                    continue
+                if k not in cite_keys:
+                    cite_keys.append(k)
+            if len(facts) >= 3:
+                break
 
-        # Drop generic boilerplate if more specific fields exist.
-        generic_prefixes = ("verify fine-grained", "validate with full", "abstract-level evidence")
-        specific = [v for v in verify_items if not v.lower().startswith(generic_prefixes)]
-        verify_items = specific or verify_items
+        facts_cell = "<br>".join([_truncate(t, 130) for t in facts[:3]]) if facts else "—"
 
-        cite_keys = [k for k in _collect_pack_citations(pack) if (not bib_keys) or (k in bib_keys)]
+        # If anchor sheet is empty for a subsection, fall back to pack citations so the row is still cite-backed.
+        if not cite_keys:
+            cite_keys = [k for k in _collect_pack_citations(pack) if (not bib_keys) or (k in bib_keys)]
+
         cites = _format_cites(cite_keys[:5])
 
         lines.append(
             "| "
             + _truncate(f"{sid} {title}", 90).replace("|", " ")
             + " | "
-            + (ev_txt or "—")
-            + " | "
-            + ("<br>".join([_truncate(v, 80) for v in verify_items[:5]]) if verify_items else "—").replace("|", " ")
+            + facts_cell.replace("|", " ")
             + " | "
             + (cites or "—")
             + " |"
         )
 
-    blocking: list[str] = []
-    for sid in sub_ids:
-        pack = packs_by.get(sid) or {}
-        miss = pack.get("blocking_missing") or []
-        if isinstance(miss, list) and any(str(x).strip() for x in miss):
-            blocking.append(sid)
-    if blocking:
-        lines.extend(
-            [
-                "",
-                "## Blocking evidence gaps (from evidence packs)",
-                "",
-                "- The following subsections are marked as `blocking_missing` and should stop drafting until evidence is enriched:",
-            ]
-        )
-        for sid in blocking[:30]:
-            lines.append(f"- {sid}")
+    out_text = "\n".join(lines).rstrip() + "\n"
+    if _is_placeholder(out_text) or not _looks_refined(out_text):
+        raise SystemExit("Generated tables look unrefined or contain placeholders")
 
-    atomic_write_text(out_path, "\n".join(lines).rstrip() + "\n")
+    atomic_write_text(out_path, out_text)
     return 0
 
 

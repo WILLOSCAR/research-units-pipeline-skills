@@ -28,11 +28,11 @@ def main() -> int:
         "papers/paper_notes.jsonl",
         "citations/ref.bib",
     ]
-    outputs = parse_semicolon_list(args.outputs) or ["outline/tables.md", "outline/timeline.md", "outline/figures.md"]
+    outputs = parse_semicolon_list(args.outputs) or ["outline/timeline.md", "outline/figures.md"]
 
     # Backward compatible:
-    # - 3 outputs: tables + timeline + figures (legacy)
-    # - 2 outputs: timeline + figures (tables may be produced by `table-filler`)
+    # - 3 outputs: tables_index + timeline + figures (legacy)
+    # - 2 outputs: timeline + figures (tables are produced by `table-filler` + `appendix-table-writer`)
     out_tables: Path | None = None
     out_timeline: Path
     out_figures: Path
@@ -44,7 +44,8 @@ def main() -> int:
         out_timeline = workspace / outputs[0]
         out_figures = workspace / outputs[1]
     else:
-        out_tables = workspace / "outline" / "tables.md"
+        # Legacy fallback (kept for older call sites): write an internal index table, not a paper table.
+        out_tables = workspace / "outline" / "tables_index.md"
         out_timeline = workspace / "outline" / "timeline.md"
         out_figures = workspace / "outline" / "figures.md"
 

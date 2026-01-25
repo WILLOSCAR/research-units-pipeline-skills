@@ -23,7 +23,8 @@ def _parse_budget_report(md: str) -> tuple[int, int, dict[str, list[str]]]:
     gap = 0
     suggestions: dict[str, list[str]] = {}
 
-    m = re.search(r"(?im)^\s*-\s*Global target.*>=\s*(\d+)\s*$", md or "")
+    # Allow trailing context like "(struct=..., frac=..., bib=...)" after the number.
+    m = re.search(r"(?im)^\s*-\s*Global target.*>=\s*(\d+)\b", md or "")
     if m:
         target = int(m.group(1))
     m = re.search(r"(?im)^\s*-\s*Gap:\s*(\d+)\s*$", md or "")

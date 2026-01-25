@@ -1,0 +1,4 @@
+Learning and coordination turn an agent from a fixed policy into a system that changes with feedback. Self-improvement methods can raise performance, but they also introduce new failure modes: reward hacking, instability, and protocol dependence (what is held fixed, what is updated, and under which budget) [@Shinn2023Reflexion; @Zhang2026Evoroute].
+
+We first review adaptation mechanisms that modify prompts, policies, or routing based on experience, and we highlight how to read reported gains through the lens of evaluation and cost constraints. We then examine multi-agent coordination, where roles, communication protocols, and aggregation rules determine whether multiple models help verification and coverage or simply add variance and cost [@Cao2025Skyrl; @Shen2024Small; @Lumer2025Memtool].
+

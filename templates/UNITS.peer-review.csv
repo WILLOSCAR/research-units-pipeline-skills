@@ -1,6 +1,6 @@
 unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
 U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace模板文件齐全（含 error sinks: QUALITY_GATE/RUN_ERRORS）,C0,TODO,,CODEX
-U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md,DECISIONS含C0问题块,C0,TODO,U001,CODEX
+U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,DECISIONS含C0问题块；queries.md 已基于 GOAL seed（可留空用于本 pipeline）,C0,TODO,U001,CODEX
 U010,Extract claims and contributions,STRUCTURE,claims-extractor,output/PAPER.md,output/CLAIMS.md,每个 claim 可定位到原文段落/页码,C1,TODO,U002,CODEX
 U020,Audit evidence for each claim,EVIDENCE,evidence-auditor,output/CLAIMS.md,output/MISSING_EVIDENCE.md,每条 claim 有 evidence 或明确缺口,C2,TODO,U010,CODEX
 U025,Build novelty/prior-work matrix,EVIDENCE,novelty-matrix,output/CLAIMS.md,output/NOVELTY_MATRIX.md,至少5篇相关工作（或说明为何不可得）；每行有 overlap/delta 证据说明,C2,TODO,U010,CODEX

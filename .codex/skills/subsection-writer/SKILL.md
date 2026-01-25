@@ -63,6 +63,7 @@ Do:
 
 Avoid:
 - Repeating template stems (e.g., `Taken together`, `This subsection...`) across many sections.
+- Internal shorthand that reads like planning notes once merged (e.g., calling assumptions "tokens"); prefer "protocol details/assumptions/metadata".
 
 
 ## Role prompt: Section Author (content expert)

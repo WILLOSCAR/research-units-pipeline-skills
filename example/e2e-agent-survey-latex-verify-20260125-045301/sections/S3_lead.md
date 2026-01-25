@@ -1,0 +1,4 @@
+Agent papers often disagree because they silently assume different interfaces: what actions exist, how tools are specified, what feedback is observable, and which failures are recoverable. Treating the interface as a contract helps separate model capability from systems design choices, and it also clarifies why "tool use" results can be brittle across environments and protocols [@Schick2023Toolformer; @Yao2022React; @Liu2025Mcpagentbench].
+
+We first define the agent loop and its action spaces as the basic abstraction that ties state, decisions, actions, and observations into a measurable protocol. We then examine tool interfaces and orchestration mechanisms, focusing on how schema design, routing, and replayability constraints shape both correctness and what evaluation claims can be compared across studies [@Dong2025Etom; @Khatchadourian2026Replayable].
+

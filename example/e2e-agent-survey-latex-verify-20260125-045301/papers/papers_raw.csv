@@ -1,0 +1,801 @@
+title,year,url,arxiv_id,doi,venue,primary_category,categories,pdf_url,source
+ReAct: Synergizing Reasoning and Acting in Language Models,2022,http://arxiv.org/abs/2210.03629v3,2210.03629v3,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2210.03629v3,arxiv
+Toolformer: Language Models Can Teach Themselves to Use Tools,2023,http://arxiv.org/abs/2302.04761v1,2302.04761v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2302.04761v1,arxiv
+Reflexion: Language Agents with Verbal Reinforcement Learning,2023,http://arxiv.org/abs/2303.11366v4,2303.11366v4,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2303.11366v4,arxiv
+Tree of Thoughts: Deliberate Problem Solving with Large Language Models,2023,http://arxiv.org/abs/2305.10601v2,2305.10601v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2305.10601v2,arxiv
+Voyager: An Open-Ended Embodied Agent with Large Language Models,2023,http://arxiv.org/abs/2305.16291v2,2305.16291v2,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2305.16291v2,arxiv
+A Survey on Large Language Model based Autonomous Agents,2023,http://arxiv.org/abs/2308.11432v7,2308.11432v7,10.1007/s11704-024-40231-1,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2308.11432v7,arxiv
+"Large Language Model Agent: A Survey on Methodology, Applications and Challenges",2025,http://arxiv.org/abs/2503.21460v1,2503.21460v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.21460v1,arxiv
+"Agentic Large Language Models, a survey",2025,http://arxiv.org/abs/2503.23037v3,2503.23037v3,10.1613/jair.1.18675,"JAIR volume 84, article 29, December 2025",cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2503.23037v3,arxiv
+Large Language Model-Brained GUI Agents: A Survey,2024,http://arxiv.org/abs/2411.18279v12,2411.18279v12,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2411.18279v12,arxiv
+4D-ARE: Bridging the Attribution Gap in LLM Agent Requirements Engineering,2026,http://arxiv.org/abs/2601.04556v1,2601.04556v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2601.04556v1,arxiv
+ARM: Role-Conditioned Neuron Transplantation for Training-Free Generalist LLM Agent Merging,2026,http://arxiv.org/abs/2601.07309v1,2601.07309v1,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2601.07309v1,arxiv
+Active Context Compression: Autonomous Memory Management in LLM Agents,2026,http://arxiv.org/abs/2601.07190v1,2601.07190v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.07190v1,arxiv
+AgentDevel: Reframing Self-Evolving LLM Agents as Release Engineering,2026,http://arxiv.org/abs/2601.04620v1,2601.04620v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.04620v1,arxiv
+Agentic Memory: Learning Unified Long-Term and Short-Term Memory Management for Large Language Model Agents,2026,http://arxiv.org/abs/2601.01885v1,2601.01885v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2601.01885v1,arxiv
+AlignUSER: Human-Aligned LLM Agents via World Models for Recommender System Evaluation,2026,http://arxiv.org/abs/2601.00930v1,2601.00930v1,,,cs.IR,"cs.IR,cs.AI",https://arxiv.org/pdf/2601.00930v1,arxiv
+Autonomous Quantum Simulation through Large Language Model Agents,2026,http://arxiv.org/abs/2601.10194v1,2601.10194v1,,,quant-ph,"quant-ph,physics.chem-ph",https://arxiv.org/pdf/2601.10194v1,arxiv
+Beyond Dialogue Time: Temporal Semantic Memory for Personalized LLM Agents,2026,http://arxiv.org/abs/2601.07468v1,2601.07468v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.07468v1,arxiv
+Beyond IVR: Benchmarking Customer Support LLM Agents for Business-Adherence,2026,http://arxiv.org/abs/2601.00596v1,2601.00596v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2601.00596v1,arxiv
+Beyond Max Tokens: Stealthy Resource Amplification via Tool Calling Chains in LLM Agents,2026,http://arxiv.org/abs/2601.10955v1,2601.10955v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2601.10955v1,arxiv
+Beyond Perfect APIs: A Comprehensive Evaluation of LLM Agents Under Real-World API Complexity,2026,http://arxiv.org/abs/2601.00268v1,2601.00268v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2601.00268v1,arxiv
+Beyond Static Summarization: Proactive Memory Extraction for LLM Agents,2026,http://arxiv.org/abs/2601.04463v1,2601.04463v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2601.04463v1,arxiv
+Chain-of-Memory: Lightweight Memory Construction with Dynamic Evolution for LLM Agents,2026,http://arxiv.org/abs/2601.14287v1,2601.14287v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2601.14287v1,arxiv
+Continuum Memory Architectures for Long-Horizon LLM Agents,2026,http://arxiv.org/abs/2601.09913v1,2601.09913v1,,,cs.AI,"cs.AI,cs.IR",https://arxiv.org/pdf/2601.09913v1,arxiv
+Controlling Long-Horizon Behavior in Language Model Agents with Explicit State Dynamics,2026,http://arxiv.org/abs/2601.16087v1,2601.16087v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2601.16087v1,arxiv
+Coordinated Pandemic Control with Large Language Model Agents as Policymaking Assistants,2026,http://arxiv.org/abs/2601.09264v1,2601.09264v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.09264v1,arxiv
+Effects of personality steering on cooperative behavior in Large Language Model agents,2026,http://arxiv.org/abs/2601.05302v2,2601.05302v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.05302v2,arxiv
+Emerging from Ground: Addressing Intent Deviation in Tool-Using Agents via Deriving Real Calls into Virtual Trajectories,2026,http://arxiv.org/abs/2601.15120v2,2601.15120v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.15120v2,arxiv
+Entropic Context Shaping: Information-Theoretic Filtering for Context-Aware LLM Agents,2026,http://arxiv.org/abs/2601.11585v1,2601.11585v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2601.11585v1,arxiv
+EnvScaler: Scaling Tool-Interactive Environments for LLM Agent via Programmatic Synthesis,2026,http://arxiv.org/abs/2601.05808v1,2601.05808v1,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2601.05808v1,arxiv
+EvoRoute: Experience-Driven Self-Routing LLM Agent Systems,2026,http://arxiv.org/abs/2601.02695v1,2601.02695v1,,,cs.CL,"cs.CL,cs.MA",https://arxiv.org/pdf/2601.02695v1,arxiv
+FROAV: A Framework for RAG Observation and Agent Verification -- Lowering the Barrier to LLM Agent Research,2026,http://arxiv.org/abs/2601.07504v1,2601.07504v1,,,cs.LG,"cs.LG,cs.SE",https://arxiv.org/pdf/2601.07504v1,arxiv
+From Failure to Mastery: Generating Hard Samples for Tool-use Agents,2026,http://arxiv.org/abs/2601.01498v1,2601.01498v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2601.01498v1,arxiv
+Holmes: An Evidence-Grounded LLM Agent for Auditable DDoS Investigation in Cloud Networks,2026,http://arxiv.org/abs/2601.14601v1,2601.14601v1,,,cs.CR,"cs.CR,cs.NI",https://arxiv.org/pdf/2601.14601v1,arxiv
+Inferring Latent Intentions: Attributional Natural Language Inference in LLM Agents,2026,http://arxiv.org/abs/2601.08742v1,2601.08742v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2601.08742v1,arxiv
+IntAgent: NWDAF-Based Intent LLM Agent Towards Advanced Next Generation Networks,2026,http://arxiv.org/abs/2601.13114v1,2601.13114v1,,,cs.NI,"cs.NI,cs.AI,eess.SY",https://arxiv.org/pdf/2601.13114v1,arxiv
+KryptoPilot: An Open-World Knowledge-Augmented LLM Agent for Automated Cryptographic Exploitation,2026,http://arxiv.org/abs/2601.09129v1,2601.09129v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2601.09129v1,arxiv
+LLM Agent Framework for Intelligent Change Analysis in Urban Environment using Remote Sensing Imagery,2026,http://arxiv.org/abs/2601.02757v1,2601.02757v1,10.1016/j.autcon.2025.106341,Automation in Construction 177 (2025) 106341,cs.AI,cs.AI,https://arxiv.org/pdf/2601.02757v1,arxiv
+"LLM Agents in Law: Taxonomy, Applications, and Challenges",2026,http://arxiv.org/abs/2601.06216v1,2601.06216v1,,,cs.CY,"cs.CY,cs.AI",https://arxiv.org/pdf/2601.06216v1,arxiv
+LLM for Large-Scale Optimization Model Auto-Formulation: A Lightweight Few-Shot Learning Approach,2026,http://arxiv.org/abs/2601.09635v1,2601.09635v1,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2601.09635v1,arxiv
+Large Language Model Agent for User-friendly Chemical Process Simulations,2026,http://arxiv.org/abs/2601.11650v1,2601.11650v1,,,physics.chem-ph,"physics.chem-ph,cs.AI",https://arxiv.org/pdf/2601.11650v1,arxiv
+LongDA: Benchmarking LLM Agents for Long-Document Data Analysis,2026,http://arxiv.org/abs/2601.02598v2,2601.02598v2,,,cs.DL,"cs.DL,cs.AI",https://arxiv.org/pdf/2601.02598v2,arxiv
+M3-BENCH: Process-Aware Evaluation of LLM Agents Social Behaviors in Mixed-Motive Games,2026,http://arxiv.org/abs/2601.08462v1,2601.08462v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.08462v1,arxiv
+MAXS: Meta-Adaptive Exploration with LLM Agents,2026,http://arxiv.org/abs/2601.09259v1,2601.09259v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.09259v1,arxiv
+MMUEChange: A Generalized LLM Agent Framework for Intelligent Multi-Modal Urban Environment Change Analysis,2026,http://arxiv.org/abs/2601.05483v1,2601.05483v1,10.1016/j.asoc.2026.114576,Applied Soft Computing 190 (2026) 114576,cs.AI,cs.AI,https://arxiv.org/pdf/2601.05483v1,arxiv
+MPCI-Bench: A Benchmark for Multimodal Pairwise Contextual Integrity Evaluation of Language Model Agents,2026,http://arxiv.org/abs/2601.08235v2,2601.08235v2,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2601.08235v2,arxiv
+Membox: Weaving Topic Continuity into Long-Range Memory for LLM Agents,2026,http://arxiv.org/abs/2601.03785v2,2601.03785v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2601.03785v2,arxiv
+Memory Poisoning Attack and Defense on Memory Based LLM-Agents,2026,http://arxiv.org/abs/2601.05504v2,2601.05504v2,,,cs.CR,"cs.CR,cs.MA",https://arxiv.org/pdf/2601.05504v2,arxiv
+Modeling LLM Agent Reviewer Dynamics in Elo-Ranked Review System,2026,http://arxiv.org/abs/2601.08829v1,2601.08829v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2601.08829v1,arxiv
+Project Ariadne: A Structural Causal Framework for Auditing Faithfulness in LLM Agents,2026,http://arxiv.org/abs/2601.02314v1,2601.02314v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.02314v1,arxiv
+ReliabilityBench: Evaluating LLM Agent Reliability Under Production-Like Stress Conditions,2026,http://arxiv.org/abs/2601.06112v1,2601.06112v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.06112v1,arxiv
+Replayable Financial Agents: A Determinism-Faithfulness Assurance Harness for Tool-Using LLM Agents,2026,http://arxiv.org/abs/2601.15322v1,2601.15322v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2601.15322v1,arxiv
+SimpleMem: Efficient Lifelong Memory for LLM Agents,2026,http://arxiv.org/abs/2601.02553v1,2601.02553v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.02553v1,arxiv
+Sola-Visibility-ISPM: Benchmarking Agentic AI for Identity Security Posture Management Visibility,2026,http://arxiv.org/abs/2601.07880v1,2601.07880v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2601.07880v1,arxiv
+SpecMap: Hierarchical LLM Agent for Datasheet-to-Code Traceability Link Recovery in Systems Engineering,2026,http://arxiv.org/abs/2601.11688v1,2601.11688v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2601.11688v1,arxiv
+The Confidence Dichotomy: Analyzing and Mitigating Miscalibration in Tool-Use Agents,2026,http://arxiv.org/abs/2601.07264v1,2601.07264v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2601.07264v1,arxiv
+ToolGym: an Open-world Tool-using Environment for Scalable Agent Testing and Data Curation,2026,http://arxiv.org/abs/2601.06328v1,2601.06328v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.06328v1,arxiv
+ToolPRMBench: Evaluating and Advancing Process Reward Models for Tool-using Agents,2026,http://arxiv.org/abs/2601.12294v1,2601.12294v1,,,cs.AI,"cs.AI,cs.SE",https://arxiv.org/pdf/2601.12294v1,arxiv
+VIGIL: Defending LLM Agents Against Tool Stream Injection via Verify-Before-Commit,2026,http://arxiv.org/abs/2601.05755v2,2601.05755v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2601.05755v2,arxiv
+What Do LLM Agents Know About Their World? Task2Quiz: A Paradigm for Studying Environment Understanding,2026,http://arxiv.org/abs/2601.09503v1,2601.09503v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2601.09503v1,arxiv
+When Agents Fail: A Comprehensive Study of Bugs in LLM Agents with Automated Labeling,2026,http://arxiv.org/abs/2601.15232v1,2601.15232v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2601.15232v1,arxiv
+A Large-Language-Model Assisted Automated Scale Bar Detection and Extraction Framework for Scanning Electron Microscopic Images,2025,http://arxiv.org/abs/2510.11260v1,2510.11260v1,,,cs.CV,"cs.CV,cond-mat.mtrl-sci,cs.AI,physics.data-an",https://arxiv.org/pdf/2510.11260v1,arxiv
+A Modular LLM-Agent System for Transparent Multi-Parameter Weather Interpretation,2025,http://arxiv.org/abs/2512.11819v1,2512.11819v1,,,cs.CY,cs.CY,https://arxiv.org/pdf/2512.11819v1,arxiv
+A Multi-LLM-Agent-Based Framework for Economic and Public Policy Analysis,2025,http://arxiv.org/abs/2502.16879v1,2502.16879v1,,,cs.AI,"cs.AI,econ.GN",https://arxiv.org/pdf/2502.16879v1,arxiv
+A Novel Architecture for Symbolic Reasoning with Decision Trees and LLM Agents,2025,http://arxiv.org/abs/2508.05311v1,2508.05311v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2508.05311v1,arxiv
+"A Survey of AI for Materials Science: Foundation Models, LLM Agents, Datasets, and Tools",2025,http://arxiv.org/abs/2506.20743v1,2506.20743v1,,,cs.LG,"cs.LG,cs.CE",https://arxiv.org/pdf/2506.20743v1,arxiv
+A Survey of Large Language Model Agents for Question Answering,2025,http://arxiv.org/abs/2503.19213v1,2503.19213v1,,,cs.CL,"cs.CL,cs.AI,cs.HC",https://arxiv.org/pdf/2503.19213v1,arxiv
+A Survey of Large Language Model Empowered Agents for Recommendation and Search: Towards Next-Generation Information Retrieval,2025,http://arxiv.org/abs/2503.05659v2,2503.05659v2,,,cs.IR,cs.IR,https://arxiv.org/pdf/2503.05659v2,arxiv
+A sketch of an AI control safety case,2025,http://arxiv.org/abs/2501.17315v1,2501.17315v1,,,cs.AI,"cs.AI,cs.CR,cs.SE",https://arxiv.org/pdf/2501.17315v1,arxiv
+A-IDE : Agent-Integrated Denoising Experts,2025,http://arxiv.org/abs/2503.16780v1,2503.16780v1,,,cs.CV,cs.CV,https://arxiv.org/pdf/2503.16780v1,arxiv
+A-MEM: Agentic Memory for LLM Agents,2025,http://arxiv.org/abs/2502.12110v11,2502.12110v11,,,cs.CL,"cs.CL,cs.HC",https://arxiv.org/pdf/2502.12110v11,arxiv
+ABBEL: LLM Agents Acting through Belief Bottlenecks Expressed in Language,2025,http://arxiv.org/abs/2512.20111v1,2512.20111v1,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2512.20111v1,arxiv
+ADAgent: LLM Agent for Alzheimer's Disease Analysis with Collaborative Coordinator,2025,http://arxiv.org/abs/2506.11150v3,2506.11150v3,,,eess.IV,"eess.IV,cs.CV",https://arxiv.org/pdf/2506.11150v3,arxiv
+AGrail: A Lifelong Agent Guardrail with Effective and Adaptive Safety Detection,2025,http://arxiv.org/abs/2502.11448v2,2502.11448v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.11448v2,arxiv
+AI Kill Switch for malicious web-based LLM agent,2025,http://arxiv.org/abs/2511.13725v2,2511.13725v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2511.13725v2,arxiv
+AIM-Bench: Evaluating Decision-making Biases of Agentic LLM as Inventory Manager,2025,http://arxiv.org/abs/2508.11416v1,2508.11416v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2508.11416v1,arxiv
+AIonopedia: an LLM agent orchestrating multimodal learning for ionic liquid discovery,2025,http://arxiv.org/abs/2511.11257v1,2511.11257v1,,,cs.AI,"cs.AI,cs.CE,cs.LG",https://arxiv.org/pdf/2511.11257v1,arxiv
+ALAS: A Stateful Multi-LLM Agent Framework for Disruption-Aware Planning,2025,http://arxiv.org/abs/2505.12501v1,2505.12501v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.12501v1,arxiv
+ARIES: Autonomous Reasoning with LLMs on Interactive Thought Graph Environments,2025,http://arxiv.org/abs/2502.21208v1,2502.21208v1,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2502.21208v1,arxiv
+ATLAS: Adaptive Trading with LLM AgentS Through Dynamic Prompt Optimization and Multi-Agent Coordination,2025,http://arxiv.org/abs/2510.15949v2,2510.15949v2,,,q-fin.TR,"q-fin.TR,cs.AI",https://arxiv.org/pdf/2510.15949v2,arxiv
+Abstract Counterfactuals for Language Model Agents,2025,http://arxiv.org/abs/2506.02946v1,2506.02946v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2506.02946v1,arxiv
+AccelOpt: A Self-Improving LLM Agentic System for AI Accelerator Kernel Optimization,2025,http://arxiv.org/abs/2511.15915v1,2511.15915v1,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2511.15915v1,arxiv
+Accelerating Two-Dimensional Materials Research via a Universal Interatomic Potential and Large Language Model Agent,2025,http://arxiv.org/abs/2506.07043v2,2506.07043v2,,,cond-mat.mtrl-sci,cond-mat.mtrl-sci,https://arxiv.org/pdf/2506.07043v2,arxiv
+Achieving Olympia-Level Geometry Large Language Model Agent via Complexity Boosting Reinforcement Learning,2025,http://arxiv.org/abs/2512.10534v2,2512.10534v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.10534v2,arxiv
+Adaptive Attacks Break Defenses Against Indirect Prompt Injection Attacks on LLM Agents,2025,http://arxiv.org/abs/2503.00061v2,2503.00061v2,,,cs.CR,"cs.CR,cs.LG",https://arxiv.org/pdf/2503.00061v2,arxiv
+Addressing the sustainable AI trilemma: a case study on LLM agents and RAG,2025,http://arxiv.org/abs/2501.08262v1,2501.08262v1,,,cs.CY,cs.CY,https://arxiv.org/pdf/2501.08262v1,arxiv
+Adversarial Reinforcement Learning for Large Language Model Agent Safety,2025,http://arxiv.org/abs/2510.05442v1,2510.05442v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2510.05442v1,arxiv
+Aegis: Taxonomy and Optimizations for Overcoming Agent-Environment Failures in LLM Agents,2025,http://arxiv.org/abs/2508.19504v1,2508.19504v1,,,cs.MA,"cs.MA,cs.DC",https://arxiv.org/pdf/2508.19504v1,arxiv
+AgenTracer: Who Is Inducing Failure in the LLM Agentic Systems?,2025,http://arxiv.org/abs/2509.03312v2,2509.03312v2,,,cs.CL,"cs.CL,cs.MA",https://arxiv.org/pdf/2509.03312v2,arxiv
+Agent Safety Alignment via Reinforcement Learning,2025,http://arxiv.org/abs/2507.08270v1,2507.08270v1,,,cs.AI,"cs.AI,cs.CR",https://arxiv.org/pdf/2507.08270v1,arxiv
+Agent-Enhanced Large Language Models for Researching Political Institutions,2025,http://arxiv.org/abs/2503.13524v1,2503.13524v1,10.1561/113.00000125,,cs.CL,"cs.CL,cs.CY",https://arxiv.org/pdf/2503.13524v1,arxiv
+Agent-R1: Training Powerful LLM Agents with End-to-End Reinforcement Learning,2025,http://arxiv.org/abs/2511.14460v1,2511.14460v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2511.14460v1,arxiv
+Agent-R: Training Language Model Agents to Reflect via Iterative Self-Training,2025,http://arxiv.org/abs/2501.11425v3,2501.11425v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2501.11425v3,arxiv
+Agent-UniRAG: A Trainable Open-Source LLM Agent Framework for Unified Retrieval-Augmented Generation Systems,2025,http://arxiv.org/abs/2505.22571v3,2505.22571v3,,,cs.CL,"cs.CL,cs.AI,cs.DB,cs.IR",https://arxiv.org/pdf/2505.22571v3,arxiv
+Agent0: Leveraging LLM Agents to Discover Multi-value Features from Text for Enhanced Recommendations,2025,http://arxiv.org/abs/2507.18993v1,2507.18993v1,,,cs.IR,"cs.IR,cs.LG",https://arxiv.org/pdf/2507.18993v1,arxiv
+AgentA/B: Automated and Scalable Web A/BTesting with Interactive LLM Agents,2025,http://arxiv.org/abs/2504.09723v3,2504.09723v3,,,cs.HC,"cs.HC,cs.CL",https://arxiv.org/pdf/2504.09723v3,arxiv
+AgentDNS: A Root Domain Naming System for LLM Agents,2025,http://arxiv.org/abs/2505.22368v1,2505.22368v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.22368v1,arxiv
+AgentExpt: Automating AI Experiment Design with LLM-based Resource Retrieval Agent,2025,http://arxiv.org/abs/2511.04921v1,2511.04921v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2511.04921v1,arxiv
+AgentFrontier: Expanding the Capability Frontier of LLM Agents with ZPD-Guided Data Synthesis,2025,http://arxiv.org/abs/2510.24695v1,2510.24695v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.24695v1,arxiv
+AgentGuard: Repurposing Agentic Orchestrator for Safety Evaluation of Tool Orchestration,2025,http://arxiv.org/abs/2502.09809v1,2502.09809v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2502.09809v1,arxiv
+AgentGym-RL: Training LLM Agents for Long-Horizon Decision Making through Multi-Turn Reinforcement Learning,2025,http://arxiv.org/abs/2509.08755v1,2509.08755v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2509.08755v1,arxiv
+AgentPRM: Process Reward Models for LLM Agents via Step-Wise Promise and Progress,2025,http://arxiv.org/abs/2511.08325v1,2511.08325v1,,,cs.CL,"cs.CL,cs.IR,cs.LG",https://arxiv.org/pdf/2511.08325v1,arxiv
+AgentRecBench: Benchmarking LLM Agent-based Personalized Recommender Systems,2025,http://arxiv.org/abs/2505.19623v2,2505.19623v2,,,cs.IR,"cs.IR,cs.AI",https://arxiv.org/pdf/2505.19623v2,arxiv
+AgentSHAP: Interpreting LLM Agent Tool Importance with Monte Carlo Shapley Value Estimation,2025,http://arxiv.org/abs/2512.12597v1,2512.12597v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2512.12597v1,arxiv
+AgentSociety Challenge: Designing LLM Agents for User Modeling and Recommendation on Web Platforms,2025,http://arxiv.org/abs/2502.18754v1,2502.18754v1,,,cs.IR,"cs.IR,cs.AI",https://arxiv.org/pdf/2502.18754v1,arxiv
+AgentSpec: Customizable Runtime Enforcement for Safe and Reliable LLM Agents,2025,http://arxiv.org/abs/2503.18666v3,2503.18666v3,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2503.18666v3,arxiv
+AgentSwift: Efficient LLM Agent Design via Value-guided Hierarchical Search,2025,http://arxiv.org/abs/2506.06017v2,2506.06017v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2506.06017v2,arxiv
+AgentTTS: Large Language Model Agent for Test-time Compute-optimal Scaling Strategy in Complex Tasks,2025,http://arxiv.org/abs/2508.00890v2,2508.00890v2,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2508.00890v2,arxiv
+AgentVigil: Generic Black-Box Red-teaming for Indirect Prompt Injection against LLM Agents,2025,http://arxiv.org/abs/2505.05849v4,2505.05849v4,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2505.05849v4,arxiv
+Agentmandering: A Game-Theoretic Framework for Fair Redistricting via Large Language Model Agents,2025,http://arxiv.org/abs/2511.04076v2,2511.04076v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.04076v2,arxiv
+Agents of Change: Self-Evolving LLM Agents for Strategic Planning,2025,http://arxiv.org/abs/2506.04651v2,2506.04651v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2506.04651v2,arxiv
+Align While Search: Belief-Guided Exploratory Inference for World-Grounded Embodied Agents,2025,http://arxiv.org/abs/2512.24461v1,2512.24461v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.24461v1,arxiv
+Aligning LLM agents with human learning and adjustment behavior: a dual agent approach,2025,http://arxiv.org/abs/2511.00993v1,2511.00993v1,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2511.00993v1,arxiv
+Aligning Large Language Model Agents with Rational and Moral Preferences: A Supervised Fine-Tuning Approach,2025,http://arxiv.org/abs/2507.20796v1,2507.20796v1,,,econ.GN,"econ.GN,cs.AI,cs.LG",https://arxiv.org/pdf/2507.20796v1,arxiv
+Alignment Tipping Process: How Self-Evolution Pushes LLM Agents Off the Rails,2025,http://arxiv.org/abs/2510.04860v1,2510.04860v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2510.04860v1,arxiv
+Architecting Resilient LLM Agents: A Guide to Secure Plan-then-Execute Implementations,2025,http://arxiv.org/abs/2509.08646v1,2509.08646v1,,,cs.CR,"cs.CR,cs.AI,eess.SY",https://arxiv.org/pdf/2509.08646v1,arxiv
+Are LLM Agents the New RPA? A Comparative Study with RPA Across Enterprise Workflows,2025,http://arxiv.org/abs/2509.04198v1,2509.04198v1,,,cs.CY,"cs.CY,cs.MA",https://arxiv.org/pdf/2509.04198v1,arxiv
+Ask WhAI:Probing Belief Formation in Role-Primed LLM Agents,2025,http://arxiv.org/abs/2511.14780v1,2511.14780v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.14780v1,arxiv
+AskDB: An LLM Agent for Natural Language Interaction with Relational Databases,2025,http://arxiv.org/abs/2511.16131v1,2511.16131v1,,,cs.DB,"cs.DB,cs.AI",https://arxiv.org/pdf/2511.16131v1,arxiv
+Attractive Metadata Attack: Inducing LLM Agents to Invoke Malicious Tools,2025,http://arxiv.org/abs/2508.02110v2,2508.02110v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2508.02110v2,arxiv
+AudioToolAgent: An Agentic Framework for Audio-Language Models,2025,http://arxiv.org/abs/2510.02995v1,2510.02995v1,,,cs.SD,cs.SD,https://arxiv.org/pdf/2510.02995v1,arxiv
+AutoAgent: A Fully-Automated and Zero-Code Framework for LLM Agents,2025,http://arxiv.org/abs/2502.05957v3,2502.05957v3,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2502.05957v3,arxiv
+AutoBackdoor: Automating Backdoor Attacks via LLM Agents,2025,http://arxiv.org/abs/2511.16709v1,2511.16709v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2511.16709v1,arxiv
+AutoContext: Instance-Level Context Learning for LLM Agents,2025,http://arxiv.org/abs/2510.02369v3,2510.02369v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.02369v3,arxiv
+AutoPDL: Automatic Prompt Optimization for LLM Agents,2025,http://arxiv.org/abs/2504.04365v5,2504.04365v5,,,cs.LG,"cs.LG,cs.AI,cs.PL",https://arxiv.org/pdf/2504.04365v5,arxiv
+AutoPentest: Enhancing Vulnerability Management With Autonomous LLM Agents,2025,http://arxiv.org/abs/2505.10321v1,2505.10321v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2505.10321v1,arxiv
+AutoPentester: An LLM Agent-based Framework for Automated Pentesting,2025,http://arxiv.org/abs/2510.05605v1,2510.05605v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2510.05605v1,arxiv
+AutoQual: An LLM Agent for Automated Discovery of Interpretable Features for Review Quality Assessment,2025,http://arxiv.org/abs/2510.08081v1,2510.08081v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2510.08081v1,arxiv
+AutoTool: Efficient Tool Selection for Large Language Model Agents,2025,http://arxiv.org/abs/2511.14650v1,2511.14650v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.14650v1,arxiv
+Automated Penetration Testing with LLM Agents and Classical Planning,2025,http://arxiv.org/abs/2512.11143v1,2512.11143v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2512.11143v1,arxiv
+Automated Profile Inference with Language Model Agents,2025,http://arxiv.org/abs/2505.12402v1,2505.12402v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2505.12402v1,arxiv
+Automated stereotactic radiosurgery planning using a human-in-the-loop reasoning large language model agent,2025,http://arxiv.org/abs/2512.20586v1,2512.20586v1,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2512.20586v1,arxiv
+Automating Android Build Repair: Bridging the Reasoning-Execution Gap in LLM Agents with Domain-Specific Tools,2025,http://arxiv.org/abs/2510.08640v2,2510.08640v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2510.08640v2,arxiv
+Automating Data-Driven Modeling and Analysis for Engineering Applications using Large Language Model Agents,2025,http://arxiv.org/abs/2510.01398v1,2510.01398v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.01398v1,arxiv
+Automating Mathematical Proof Generation Using Large Language Model Agents and Knowledge Graphs,2025,http://arxiv.org/abs/2503.11657v2,2503.11657v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.11657v2,arxiv
+Automating Structural Engineering Workflows with Large Language Model Agents,2025,http://arxiv.org/abs/2510.11004v1,2510.11004v1,,,cs.MA,"cs.MA,cs.AI,cs.CE,cs.CL",https://arxiv.org/pdf/2510.11004v1,arxiv
+Autonomy Matters: A Study on Personalization-Privacy Dilemma in LLM Agents,2025,http://arxiv.org/abs/2510.04465v1,2510.04465v1,,,cs.HC,"cs.HC,cs.AI,cs.CR",https://arxiv.org/pdf/2510.04465v1,arxiv
+BIASINSPECTOR: Detecting Bias in Structured Data through LLM Agents,2025,http://arxiv.org/abs/2504.04855v1,2504.04855v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2504.04855v1,arxiv
+"Be Friendly, Not Friends: How LLM Sycophancy Shapes User Trust",2025,http://arxiv.org/abs/2502.10844v2,2502.10844v2,,,cs.HC,cs.HC,https://arxiv.org/pdf/2502.10844v2,arxiv
+Benchmarking LLM Agents for Wealth-Management Workflows,2025,http://arxiv.org/abs/2512.02230v1,2512.02230v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.02230v1,arxiv
+Benchmarking and Enhancing LLM Agents in Localizing Linux Kernel Bugs,2025,http://arxiv.org/abs/2505.19489v1,2505.19489v1,,,cs.AI,"cs.AI,cs.SE",https://arxiv.org/pdf/2505.19489v1,arxiv
+Benevolent Dictators? On LLM Agent Behavior in Dictator Games,2025,http://arxiv.org/abs/2511.08721v1,2511.08721v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2511.08721v1,arxiv
+Beyond Correlation: Towards Causal Large Language Model Agents in Biomedicine,2025,http://arxiv.org/abs/2505.16982v1,2505.16982v1,,,cs.AI,"cs.AI,physics.med-ph",https://arxiv.org/pdf/2505.16982v1,arxiv
+Beyond Jailbreaking: Auditing Contextual Privacy in LLM Agents,2025,http://arxiv.org/abs/2506.10171v3,2506.10171v3,,,cs.CR,"cs.CR,cs.AI,cs.CL",https://arxiv.org/pdf/2506.10171v3,arxiv
+Bridging AI and Software Security: A Comparative Vulnerability Assessment of LLM Agent Deployment Paradigms,2025,http://arxiv.org/abs/2507.06323v1,2507.06323v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2507.06323v1,arxiv
+Bridging Symbolic Control and Neural Reasoning in LLM Agents: The Structured Cognitive Loop,2025,http://arxiv.org/abs/2511.17673v3,2511.17673v3,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2511.17673v3,arxiv
+BuildBench: Benchmarking LLM Agents on Compiling Real-World Open-Source Software,2025,http://arxiv.org/abs/2509.25248v1,2509.25248v1,,,cs.SE,"cs.SE,cs.AI,cs.PL",https://arxiv.org/pdf/2509.25248v1,arxiv
+Building LLM Agents by Incorporating Insights from Computer Systems,2025,http://arxiv.org/abs/2504.04485v1,2504.04485v1,,,cs.CV,cs.CV,https://arxiv.org/pdf/2504.04485v1,arxiv
+Byzantine-Robust Decentralized Coordination of LLM Agents,2025,http://arxiv.org/abs/2507.14928v1,2507.14928v1,,,cs.DC,"cs.DC,cs.AI",https://arxiv.org/pdf/2507.14928v1,arxiv
+CATArena: Evaluation of LLM Agents through Iterative Tournament Competitions,2025,http://arxiv.org/abs/2510.26852v1,2510.26852v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2510.26852v1,arxiv
+CLAPP: The CLASS LLM Agent for Pair Programming,2025,http://arxiv.org/abs/2508.05728v1,2508.05728v1,,,astro-ph.IM,"astro-ph.IM,astro-ph.CO,cs.AI,cs.MA",https://arxiv.org/pdf/2508.05728v1,arxiv
+CO-Bench: Benchmarking Language Model Agents in Algorithm Search for Combinatorial Optimization,2025,http://arxiv.org/abs/2504.04310v3,2504.04310v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2504.04310v3,arxiv
+COALESCE: Economic and Security Dynamics of Skill-Based Task Outsourcing Among Team of Autonomous LLM Agents,2025,http://arxiv.org/abs/2506.01900v1,2506.01900v1,,,cs.AI,"cs.AI,cs.CE,cs.CR",https://arxiv.org/pdf/2506.01900v1,arxiv
+CRAKEN: Cybersecurity LLM Agent with Knowledge-Based Execution,2025,http://arxiv.org/abs/2505.17107v1,2505.17107v1,,,cs.CR,"cs.CR,cs.AI,cs.LG,cs.MA",https://arxiv.org/pdf/2505.17107v1,arxiv
+CRMArena-Pro: Holistic Assessment of LLM Agents Across Diverse Business Scenarios and Interactions,2025,http://arxiv.org/abs/2505.18878v1,2505.18878v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2505.18878v1,arxiv
+CSR-Bench: Benchmarking LLM Agents in Deployment of Computer Science Research Repositories,2025,http://arxiv.org/abs/2502.06111v2,2502.06111v2,,,cs.SE,"cs.SE,cs.AI,cs.LG",https://arxiv.org/pdf/2502.06111v2,arxiv
+Can AI automatically analyze public opinion? A LLM agents-based agentic pipeline for timely public opinion analysis,2025,http://arxiv.org/abs/2505.11401v1,2505.11401v1,,,cs.CY,cs.CY,https://arxiv.org/pdf/2505.11401v1,arxiv
+Can LLM Agents Really Debate? A Controlled Study of Multi-Agent Debate in Logical Reasoning,2025,http://arxiv.org/abs/2511.07784v1,2511.07784v1,,,cs.MA,cs.MA,https://arxiv.org/pdf/2511.07784v1,arxiv
+Can LLM Agents Simulate Multi-Turn Human Behavior? Evidence from Real Online Customer Behavior Data,2025,http://arxiv.org/abs/2503.20749v7,2503.20749v7,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.20749v7,arxiv
+Can LLM Agents Solve Collaborative Tasks? A Study on Urgency-Aware Planning and Coordination,2025,http://arxiv.org/abs/2508.14635v1,2508.14635v1,,,cs.RO,"cs.RO,cs.AI",https://arxiv.org/pdf/2508.14635v1,arxiv
+Can LLMs Help You at Work? A Sandbox for Evaluating LLM Agents in Enterprise Environments,2025,http://arxiv.org/abs/2510.27287v1,2510.27287v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2510.27287v1,arxiv
+Can Large Language Model Agents Balance Energy Systems?,2025,http://arxiv.org/abs/2502.10557v2,2502.10557v2,,,eess.SY,eess.SY,https://arxiv.org/pdf/2502.10557v2,arxiv
+Capturing Semantic Flow of ML-based Systems,2025,http://arxiv.org/abs/2503.10310v1,2503.10310v1,,,cs.SE,"cs.SE,cs.LG",https://arxiv.org/pdf/2503.10310v1,arxiv
+Causal Autoencoder-like Generation of Feedback Fuzzy Cognitive Maps with an LLM Agent,2025,http://arxiv.org/abs/2509.25593v1,2509.25593v1,,,cs.AI,"cs.AI,cs.CL,cs.HC,cs.IR",https://arxiv.org/pdf/2509.25593v1,arxiv
+Characterizing LLM-driven Social Network: The Chirper.ai Case,2025,http://arxiv.org/abs/2504.10286v1,2504.10286v1,,,cs.SI,"cs.SI,cs.AI",https://arxiv.org/pdf/2504.10286v1,arxiv
+ChatVis: Large Language Model Agent for Generating Scientific Visualizations,2025,http://arxiv.org/abs/2507.23096v1,2507.23096v1,,,cs.HC,cs.HC,https://arxiv.org/pdf/2507.23096v1,arxiv
+CheatAgent: Attacking LLM-Empowered Recommender Systems via LLM Agent,2025,http://arxiv.org/abs/2504.13192v2,2504.13192v2,10.1145/3637528.3671837,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2504.13192v2,arxiv
+Check Yourself Before You Wreck Yourself: Selectively Quitting Improves LLM Agent Safety,2025,http://arxiv.org/abs/2510.16492v2,2510.16492v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.16492v2,arxiv
+CityEQA: A Hierarchical LLM Agent on Embodied Question Answering Benchmark in City Space,2025,http://arxiv.org/abs/2502.12532v3,2502.12532v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.12532v3,arxiv
+Cleaning Maintenance Logs with LLM Agents for Improved Predictive Maintenance,2025,http://arxiv.org/abs/2511.05311v1,2511.05311v1,,,cs.AI,"cs.AI,cs.LG,cs.RO,cs.SE",https://arxiv.org/pdf/2511.05311v1,arxiv
+CoLLMLight: Cooperative Large Language Model Agents for Network-Wide Traffic Signal Control,2025,http://arxiv.org/abs/2503.11739v1,2503.11739v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2503.11739v1,arxiv
+Coarse-to-Fine Grounded Memory for LLM Agent Planning,2025,http://arxiv.org/abs/2508.15305v1,2508.15305v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2508.15305v1,arxiv
+CodeARC: Benchmarking Reasoning Capabilities of LLM Agents for Inductive Program Synthesis,2025,http://arxiv.org/abs/2503.23145v2,2503.23145v2,,,cs.PL,"cs.PL,cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2503.23145v2,arxiv
+Commercial LLM Agents Are Already Vulnerable to Simple Yet Dangerous Attacks,2025,http://arxiv.org/abs/2502.08586v1,2502.08586v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2502.08586v1,arxiv
+Communicating Activations Between Language Model Agents,2025,http://arxiv.org/abs/2501.14082v2,2501.14082v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2501.14082v2,arxiv
+Communication and Verification in LLM Agents towards Collaboration under Information Asymmetry,2025,http://arxiv.org/abs/2510.25595v1,2510.25595v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.25595v1,arxiv
+Comp-X: On Defining an Interactive Learned Image Compression Paradigm With Expert-driven LLM Agent,2025,http://arxiv.org/abs/2508.15243v1,2508.15243v1,,,cs.CV,cs.CV,https://arxiv.org/pdf/2508.15243v1,arxiv
+Competing LLM Agents in a Non-Cooperative Game of Opinion Polarisation,2025,http://arxiv.org/abs/2502.11649v3,2502.11649v3,,,cs.AI,"cs.AI,cs.SI",https://arxiv.org/pdf/2502.11649v3,arxiv
+Complex System Diagnostics Using a Knowledge Graph-Informed and Large Language Model-Enhanced Framework,2025,http://arxiv.org/abs/2505.21291v1,2505.21291v1,10.3390/app15179428,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.21291v1,arxiv
+Conformal Constrained Policy Optimization for Cost-Effective LLM Agents,2025,http://arxiv.org/abs/2511.11828v1,2511.11828v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2511.11828v1,arxiv
+Connecting Large Language Model Agent to High Performance Computing Resource,2025,http://arxiv.org/abs/2502.12280v1,2502.12280v1,,,cs.DC,"cs.DC,cs.AI",https://arxiv.org/pdf/2502.12280v1,arxiv
+Constructing coherent spatial memory in LLM agents through graph rectification,2025,http://arxiv.org/abs/2510.04195v1,2510.04195v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.04195v1,arxiv
+ContextAgent: Context-Aware Proactive LLM Agents with Open-World Sensory Perceptions,2025,http://arxiv.org/abs/2505.14668v2,2505.14668v2,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2505.14668v2,arxiv
+Continuum: Efficient and Robust Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live,2025,http://arxiv.org/abs/2511.02230v2,2511.02230v2,,,cs.OS,"cs.OS,cs.AI,cs.NI",https://arxiv.org/pdf/2511.02230v2,arxiv
+Control at Stake: Evaluating the Security Landscape of LLM-Driven Email Agents,2025,http://arxiv.org/abs/2507.02699v1,2507.02699v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2507.02699v1,arxiv
+CortexDebate: Debating Sparsely and Equally for Multi-Agent Debate,2025,http://arxiv.org/abs/2507.03928v1,2507.03928v1,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2507.03928v1,arxiv
+CostBench: Evaluating Multi-Turn Cost-Optimal Planning and Adaptation in Dynamic Environments for LLM Tool-Use Agents,2025,http://arxiv.org/abs/2511.02734v1,2511.02734v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2511.02734v1,arxiv
+CryptoBench: A Dynamic Benchmark for Expert-Level Evaluation of LLM Agents in Cryptocurrency,2025,http://arxiv.org/abs/2512.00417v4,2512.00417v4,,,cs.CL,cs.CL,https://arxiv.org/pdf/2512.00417v4,arxiv
+Customer-R1: Personalized Simulation of Human Behaviors via RL-based LLM Agent in Online Shopping,2025,http://arxiv.org/abs/2510.07230v2,2510.07230v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.07230v2,arxiv
+CyberSleuth: Autonomous Blue-Team LLM Agent for Web Attack Forensics,2025,http://arxiv.org/abs/2508.20643v1,2508.20643v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2508.20643v1,arxiv
+"DEBATE: A Large-Scale Benchmark for Role-Playing LLM Agents in Multi-Agent, Long-Form Debates",2025,http://arxiv.org/abs/2510.25110v1,2510.25110v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.25110v1,arxiv
+DEPO: Dual-Efficiency Preference Optimization for LLM Agents,2025,http://arxiv.org/abs/2511.15392v1,2511.15392v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2511.15392v1,arxiv
+DICE: Dynamic In-Context Example Selection in LLM Agents via Efficient Knowledge Transfer,2025,http://arxiv.org/abs/2507.23554v1,2507.23554v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2507.23554v1,arxiv
+DRAFT-RL: Multi-Agent Chain-of-Draft Reasoning for Reinforcement Learning-Enhanced LLMs,2025,http://arxiv.org/abs/2511.20468v1,2511.20468v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.20468v1,arxiv
+DRF: LLM-AGENT Dynamic Reputation Filtering Framework,2025,http://arxiv.org/abs/2509.05764v1,2509.05764v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.05764v1,arxiv
+DVM: Towards Controllable LLM Agents in Social Deduction Games,2025,http://arxiv.org/abs/2501.06695v1,2501.06695v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2501.06695v1,arxiv
+Dark Patterns Meet GUI Agents: LLM Agent Susceptibility to Manipulative Interfaces and the Role of Human Oversight,2025,http://arxiv.org/abs/2509.10723v1,2509.10723v1,,,cs.HC,"cs.HC,cs.AI",https://arxiv.org/pdf/2509.10723v1,arxiv
+DataSciBench: An LLM Agent Benchmark for Data Science,2025,http://arxiv.org/abs/2502.13897v1,2502.13897v1,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2502.13897v1,arxiv
+DatawiseAgent: A Notebook-Centric LLM Agent Framework for Adaptive and Robust Data Science Automation,2025,http://arxiv.org/abs/2503.07044v2,2503.07044v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2503.07044v2,arxiv
+Debating Truth: Debate-driven Claim Verification with Multiple Large Language Model Agents,2025,http://arxiv.org/abs/2507.19090v2,2507.19090v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2507.19090v2,arxiv
+Demonstrating specification gaming in reasoning models,2025,http://arxiv.org/abs/2502.13295v3,2502.13295v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.13295v3,arxiv
+Distilling LLM Agent into Small Models with Retrieval and Code Tools,2025,http://arxiv.org/abs/2505.17612v2,2505.17612v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2505.17612v2,arxiv
+Dive into the Agent Matrix: A Realistic Evaluation of Self-Replication Risk in LLM Agents,2025,http://arxiv.org/abs/2509.25302v1,2509.25302v1,,,cs.AI,"cs.AI,cs.CL,cs.LG,cs.MA",https://arxiv.org/pdf/2509.25302v1,arxiv
+"Divide, Optimize, Merge: Fine-Grained LLM Agent Optimization at Scale",2025,http://arxiv.org/abs/2505.03973v1,2505.03973v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2505.03973v1,arxiv
+Do LLMs trust AI regulation? Emerging behaviour of game-theoretic LLM agents,2025,http://arxiv.org/abs/2504.08640v1,2504.08640v1,,,cs.AI,"cs.AI,cs.CY,cs.GT,nlin.CD",https://arxiv.org/pdf/2504.08640v1,arxiv
+Do Large Language Model Agents Exhibit a Survival Instinct? An Empirical Study in a Sugarscape-Style Simulation,2025,http://arxiv.org/abs/2508.12920v1,2508.12920v1,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2508.12920v1,arxiv
+Doc2Agent: Scalable Generation of Tool-Using Agents from API Documentation,2025,http://arxiv.org/abs/2506.19998v1,2506.19998v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2506.19998v1,arxiv
+Does AI-Assisted Coding Deliver? A Difference-in-Differences Study of Cursor's Impact on Software Projects,2025,http://arxiv.org/abs/2511.04427v2,2511.04427v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2511.04427v2,arxiv
+Doppelganger Method: Breaking Role Consistency in LLM Agent via Prompt-based Transferable Adversarial Attack,2025,http://arxiv.org/abs/2506.14539v2,2506.14539v2,,,cs.AI,"cs.AI,cs.CR",https://arxiv.org/pdf/2506.14539v2,arxiv
+Dynamic Generation of Multi-LLM Agents Communication Topologies with Graph Diffusion Models,2025,http://arxiv.org/abs/2510.07799v1,2510.07799v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.07799v1,arxiv
+ECom-Bench: Can LLM Agent Resolve Real-World E-commerce Customer Support Issues?,2025,http://arxiv.org/abs/2507.05639v2,2507.05639v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2507.05639v2,arxiv
+EDGE: Efficient Data Selection for LLM Agents via Guideline Effectiveness,2025,http://arxiv.org/abs/2502.12494v1,2502.12494v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2502.12494v1,arxiv
+EPO: Entropy-regularized Policy Optimization for LLM Agents Reinforcement Learning,2025,http://arxiv.org/abs/2509.22576v1,2509.22576v1,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2509.22576v1,arxiv
+ETOM: A Five-Level Benchmark for Evaluating Tool Orchestration within the MCP Ecosystem,2025,http://arxiv.org/abs/2510.19423v2,2510.19423v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.19423v2,arxiv
+EU-Agent-Bench: Measuring Illegal Behavior of LLM Agents Under EU Law,2025,http://arxiv.org/abs/2510.21524v1,2510.21524v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.21524v1,arxiv
+EconEvals: Benchmarks and Litmus Tests for Economic Decision-Making by LLM Agents,2025,http://arxiv.org/abs/2503.18825v3,2503.18825v3,,,cs.AI,"cs.AI,cs.CL,cs.GT",https://arxiv.org/pdf/2503.18825v3,arxiv
+Emergence of human-like polarization among large language model agents,2025,http://arxiv.org/abs/2501.05171v2,2501.05171v2,,,cs.SI,"cs.SI,cs.CY",https://arxiv.org/pdf/2501.05171v2,arxiv
+Emergent Social Dynamics of LLM Agents in the El Farol Bar Problem,2025,http://arxiv.org/abs/2509.04537v3,2509.04537v3,,,cs.MA,"cs.MA,cs.AI,cs.CY",https://arxiv.org/pdf/2509.04537v3,arxiv
+"Emission-GPT: A domain-specific language model agent for knowledge retrieval, emission inventory and data analysis",2025,http://arxiv.org/abs/2510.02359v1,2510.02359v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.02359v1,arxiv
+EmoDebt: Bayesian-Optimized Emotional Intelligence for Strategic Agent-to-Agent Debt Recovery,2025,http://arxiv.org/abs/2503.21080v7,2503.21080v7,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.21080v7,arxiv
+Empowering LLM Agents with Geospatial Awareness: Toward Grounded Reasoning for Wildfire Response,2025,http://arxiv.org/abs/2510.12061v1,2510.12061v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.12061v1,arxiv
+Enabling Self-Improving Agents to Learn at Test Time With Human-In-The-Loop Guidance,2025,http://arxiv.org/abs/2507.17131v2,2507.17131v2,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2507.17131v2,arxiv
+Encouraging Good Processes Without the Need for Good Answers: Reinforcement Learning for LLM Agent Planning,2025,http://arxiv.org/abs/2508.19598v1,2508.19598v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2508.19598v1,arxiv
+End-to-End Edge AI Service Provisioning Framework in 6G ORAN,2025,http://arxiv.org/abs/2503.11933v1,2503.11933v1,,,cs.NI,"cs.NI,cs.AI",https://arxiv.org/pdf/2503.11933v1,arxiv
+Enforcing Temporal Constraints for LLM Agents,2025,http://arxiv.org/abs/2512.23738v1,2512.23738v1,,,cs.PL,"cs.PL,cs.AI,cs.FL,cs.LO",https://arxiv.org/pdf/2512.23738v1,arxiv
+Enhancing LLM Agent Safety via Causal Influence Prompting,2025,http://arxiv.org/abs/2507.00979v1,2507.00979v1,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2507.00979v1,arxiv
+Estimating the Empowerment of Language Model Agents,2025,http://arxiv.org/abs/2509.22504v2,2509.22504v2,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2509.22504v2,arxiv
+Evaluating LLM Agent Adherence to Hierarchical Safety Principles: A Lightweight Benchmark for Probing Foundational Controllability Components,2025,http://arxiv.org/abs/2506.02357v2,2506.02357v2,,,cs.LG,"cs.LG,cs.AI,cs.CY",https://arxiv.org/pdf/2506.02357v2,arxiv
+Evaluating LLM Agent Collusion in Double Auctions,2025,http://arxiv.org/abs/2507.01413v1,2507.01413v1,,,cs.GT,"cs.GT,cs.AI,cs.LG",https://arxiv.org/pdf/2507.01413v1,arxiv
+Evaluating Memory in LLM Agents via Incremental Multi-Turn Interactions,2025,http://arxiv.org/abs/2507.05257v2,2507.05257v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2507.05257v2,arxiv
+Evaluation and Benchmarking of LLM Agents: A Survey,2025,http://arxiv.org/abs/2507.21504v1,2507.21504v1,10.1145/3711896.3736570,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2507.21504v1,arxiv
+Evo-Memory: Benchmarking LLM Agent Test-time Learning with Self-Evolving Memory,2025,http://arxiv.org/abs/2511.20857v1,2511.20857v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2511.20857v1,arxiv
+EvoEmo: Towards Evolved Emotional Policies for Adversarial LLM Agents in Multi-Turn Price Negotiation,2025,http://arxiv.org/abs/2509.04310v3,2509.04310v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.04310v3,arxiv
+Evolution of Cooperation in LLM-Agent Societies: A Preliminary Study Using Different Punishment Strategies,2025,http://arxiv.org/abs/2504.19487v3,2504.19487v3,,,cs.MA,cs.MA,https://arxiv.org/pdf/2504.19487v3,arxiv
+EvolveR: Self-Evolving LLM Agents through an Experience-Driven Lifecycle,2025,http://arxiv.org/abs/2510.16079v1,2510.16079v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.16079v1,arxiv
+ExCyTIn-Bench: Evaluating LLM agents on Cyber Threat Investigation,2025,http://arxiv.org/abs/2507.14201v2,2507.14201v2,,,cs.CR,"cs.CR,cs.AI,cs.CL",https://arxiv.org/pdf/2507.14201v2,arxiv
+Exemplar-Guided Planing: Enhanced LLM Agent for KGQA,2025,http://arxiv.org/abs/2510.15283v1,2510.15283v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.15283v1,arxiv
+Exploring Communication Strategies for Collaborative LLM Agents in Mathematical Problem-Solving,2025,http://arxiv.org/abs/2507.17753v1,2507.17753v1,,,cs.HC,"cs.HC,cs.AI,cs.CL,cs.CY",https://arxiv.org/pdf/2507.17753v1,arxiv
+Exploring Expert Failures Improves LLM Agent Tuning,2025,http://arxiv.org/abs/2504.13145v2,2504.13145v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2504.13145v2,arxiv
+Exposing LLM User Privacy via Traffic Fingerprint Analysis: A Study of Privacy Risks in LLM Agent Interactions,2025,http://arxiv.org/abs/2510.07176v1,2510.07176v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2510.07176v1,arxiv
+FEABench: Evaluating Language Models on Multiphysics Reasoning Ability,2025,http://arxiv.org/abs/2504.06260v1,2504.06260v1,,,cs.AI,"cs.AI,cs.CL,math.NA",https://arxiv.org/pdf/2504.06260v1,arxiv
+FHIR-AgentBench: Benchmarking LLM Agents for Realistic Interoperable EHR Question Answering,2025,http://arxiv.org/abs/2509.19319v2,2509.19319v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2509.19319v2,arxiv
+FaultLine: Automated Proof-of-Vulnerability Generation Using LLM Agents,2025,http://arxiv.org/abs/2507.15241v1,2507.15241v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2507.15241v1,arxiv
+Fed-SE: Federated Self-Evolution for Privacy-Constrained Multi-Environment LLM Agents,2025,http://arxiv.org/abs/2512.08870v2,2512.08870v2,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2512.08870v2,arxiv
+FedAgentBench: Towards Automating Real-world Federated Medical Image Analysis with Server-Client LLM Agents,2025,http://arxiv.org/abs/2509.23803v1,2509.23803v1,,,cs.LG,"cs.LG,cs.AI,cs.CV,cs.DC,cs.MA",https://arxiv.org/pdf/2509.23803v1,arxiv
+Finding the Needle in the Crash Stack: Industrial-Scale Crash Root Cause Localization with AutoCrashFL,2025,http://arxiv.org/abs/2510.22530v1,2510.22530v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2510.22530v1,arxiv
+Firewalls to Secure Dynamic LLM Agentic Networks,2025,http://arxiv.org/abs/2502.01822v5,2502.01822v5,,,cs.CR,"cs.CR,cs.CY",https://arxiv.org/pdf/2502.01822v5,arxiv
+First Steps Towards Overhearing LLM Agents: A Case Study With Dungeons & Dragons Gameplay,2025,http://arxiv.org/abs/2505.22809v2,2505.22809v2,,,cs.CL,"cs.CL,cs.AI,cs.HC",https://arxiv.org/pdf/2505.22809v2,arxiv
+Forecasting Frontier Language Model Agent Capabilities,2025,http://arxiv.org/abs/2502.15850v2,2502.15850v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2502.15850v2,arxiv
+From Assistants to Adversaries: Exploring the Security Risks of Mobile LLM Agents,2025,http://arxiv.org/abs/2505.12981v2,2505.12981v2,,,cs.CR,"cs.CR,cs.AI,cs.HC",https://arxiv.org/pdf/2505.12981v2,arxiv
+From Correction to Mastery: Reinforced Distillation of Large Language Model Agents,2025,http://arxiv.org/abs/2509.14257v2,2509.14257v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2509.14257v2,arxiv
+From Experience to Strategy: Empowering LLM Agents with Trainable Graph Memory,2025,http://arxiv.org/abs/2511.07800v1,2511.07800v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2511.07800v1,arxiv
+From Narrative to Action: A Hierarchical LLM-Agent Framework for Human Mobility Generation,2025,http://arxiv.org/abs/2510.24802v1,2510.24802v1,,,cs.MA,"cs.MA,cs.AI,cs.CY",https://arxiv.org/pdf/2510.24802v1,arxiv
+From Natural Language to Certified H-infinity Controllers: Integrating LLM Agents with LMI-Based Synthesis,2025,http://arxiv.org/abs/2511.07894v1,2511.07894v1,,,eess.SY,eess.SY,https://arxiv.org/pdf/2511.07894v1,arxiv
+"From Shadow to Light: Toward Safe and Efficient Policy Learning Across MPC, DeePC, RL, and LLM Agents",2025,http://arxiv.org/abs/2510.04076v1,2510.04076v1,,,cs.RO,"cs.RO,eess.SY",https://arxiv.org/pdf/2510.04076v1,arxiv
+From Trace to Line: LLM Agent for Real-World OSS Vulnerability Localization,2025,http://arxiv.org/abs/2510.02389v2,2510.02389v2,,,cs.SE,"cs.SE,cs.CR,cs.LG",https://arxiv.org/pdf/2510.02389v2,arxiv
+From User Interface to Agent Interface: Efficiency Optimization of UI Representations for LLM Agents,2025,http://arxiv.org/abs/2512.13438v1,2512.13438v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2512.13438v1,arxiv
+FutureX: An Advanced Live Benchmark for LLM Agents in Future Prediction,2025,http://arxiv.org/abs/2508.11987v3,2508.11987v3,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2508.11987v3,arxiv
+Fuzzwise: Intelligent Initial Corpus Generation for Fuzzing,2025,http://arxiv.org/abs/2512.21440v1,2512.21440v1,,,cs.SE,"cs.SE,cs.LG",https://arxiv.org/pdf/2512.21440v1,arxiv
+Gala: Global LLM Agents for Text-to-Model Translation,2025,http://arxiv.org/abs/2509.08970v2,2509.08970v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.08970v2,arxiv
+"Galaxy: A Cognition-Centered Framework for Proactive, Privacy-Preserving, and Self-Evolving LLM Agents",2025,http://arxiv.org/abs/2508.03991v1,2508.03991v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2508.03991v1,arxiv
+GateLens: A Reasoning-Enhanced LLM Agent for Automotive Software Release Analytics,2025,http://arxiv.org/abs/2503.21735v2,2503.21735v2,,,cs.SE,"cs.SE,cs.AI,cs.CL,cs.MA",https://arxiv.org/pdf/2503.21735v2,arxiv
+GenEnv: Difficulty-Aligned Co-Evolution Between LLM Agents and Environment Simulators,2025,http://arxiv.org/abs/2512.19682v2,2512.19682v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2512.19682v2,arxiv
+General Modular Harness for LLM Agents in Multi-Turn Gaming Environments,2025,http://arxiv.org/abs/2507.11633v1,2507.11633v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2507.11633v1,arxiv
+Generator-Assistant Stepwise Rollback Framework for Large Language Model Agent,2025,http://arxiv.org/abs/2503.02519v4,2503.02519v4,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.02519v4,arxiv
+Graph-Augmented Large Language Model Agents: Current Progress and Future Prospects,2025,http://arxiv.org/abs/2507.21407v2,2507.21407v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2507.21407v2,arxiv
+Graph-Enhanced Policy Optimization in LLM Agent Training,2025,http://arxiv.org/abs/2510.26270v1,2510.26270v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.26270v1,arxiv
+GraphCodeAgent: Dual Graph-Guided LLM Agent for Retrieval-Augmented Repo-Level Code Generation,2025,http://arxiv.org/abs/2504.10046v2,2504.10046v2,,,cs.SE,cs.SE,https://arxiv.org/pdf/2504.10046v2,arxiv
+GraphMaster: Automated Graph Synthesis via LLM Agents in Data-Limited Environments,2025,http://arxiv.org/abs/2504.00711v2,2504.00711v2,,,cs.LG,cs.LG,https://arxiv.org/pdf/2504.00711v2,arxiv
+GraphicBench: A Planning Benchmark for Graphic Design with Language Agents,2025,http://arxiv.org/abs/2504.11571v1,2504.11571v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2504.11571v1,arxiv
+Grounded Test-Time Adaptation for LLM Agents,2025,http://arxiv.org/abs/2511.04847v3,2511.04847v3,,,cs.LG,cs.LG,https://arxiv.org/pdf/2511.04847v3,arxiv
+Group-in-Group Policy Optimization for LLM Agent Training,2025,http://arxiv.org/abs/2505.10978v3,2505.10978v3,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2505.10978v3,arxiv
+Guided Reasoning in LLM-Driven Penetration Testing Using Structured Attack Trees,2025,http://arxiv.org/abs/2509.07939v2,2509.07939v2,,,cs.CR,"cs.CR,cs.LG",https://arxiv.org/pdf/2509.07939v2,arxiv
+HMCF: A Human-in-the-loop Multi-Robot Collaboration Framework Based on Large Language Models,2025,http://arxiv.org/abs/2505.00820v1,2505.00820v1,,,cs.RO,cs.RO,https://arxiv.org/pdf/2505.00820v1,arxiv
+Hierarchical AI-Meteorologist: LLM-Agent System for Multi-Scale and Explainable Weather Forecast Reporting,2025,http://arxiv.org/abs/2511.23387v1,2511.23387v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.23387v1,arxiv
+Hierarchical Memory for High-Efficiency Long-Term Reasoning in LLM Agents,2025,http://arxiv.org/abs/2507.22925v1,2507.22925v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2507.22925v1,arxiv
+How Memory Management Impacts LLM Agents: An Empirical Study of Experience-Following Behavior,2025,http://arxiv.org/abs/2505.16067v2,2505.16067v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.16067v2,arxiv
+How to evaluate control measures for LLM agents? A trajectory from today to superintelligence,2025,http://arxiv.org/abs/2504.05259v1,2504.05259v1,,,cs.AI,"cs.AI,cs.CR",https://arxiv.org/pdf/2504.05259v1,arxiv
+Human vs. Agent in Task-Oriented Conversations,2025,http://arxiv.org/abs/2509.17619v2,2509.17619v2,,,cs.IR,cs.IR,https://arxiv.org/pdf/2509.17619v2,arxiv
+HybridRAG-based LLM Agents for Low-Carbon Optimization in Low-Altitude Economy Networks,2025,http://arxiv.org/abs/2506.15947v1,2506.15947v1,,,cs.NI,"cs.NI,eess.SP",https://arxiv.org/pdf/2506.15947v1,arxiv
+IMPROVE: Iterative Model Pipeline Refinement and Optimization Leveraging LLM Experts,2025,http://arxiv.org/abs/2502.18530v3,2502.18530v3,,,cs.CV,"cs.CV,cs.LG",https://arxiv.org/pdf/2502.18530v3,arxiv
+INTA: Intent-Based Translation for Network Configuration with LLM Agents,2025,http://arxiv.org/abs/2501.08760v2,2501.08760v2,,,cs.NI,"cs.NI,cs.AI,cs.LG,cs.SE",https://arxiv.org/pdf/2501.08760v2,arxiv
+IPIGuard: A Novel Tool Dependency Graph-Based Defense Against Indirect Prompt Injection in LLM Agents,2025,http://arxiv.org/abs/2508.15310v1,2508.15310v1,,,cs.CR,"cs.CR,cs.AI,cs.CL",https://arxiv.org/pdf/2508.15310v1,arxiv
+ImpossibleBench: Measuring LLMs' Propensity of Exploiting Test Cases,2025,http://arxiv.org/abs/2510.20270v1,2510.20270v1,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2510.20270v1,arxiv
+Improving Interactive Diagnostic Ability of a Large Language Model Agent Through Clinical Experience Learning,2025,http://arxiv.org/abs/2503.16463v1,2503.16463v1,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2503.16463v1,arxiv
+Improving LLM Agent Planning with In-Context Learning via Atomic Fact Augmentation and Lookahead Search,2025,http://arxiv.org/abs/2506.09171v1,2506.09171v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2506.09171v1,arxiv
+Improving LLM Agents with Reinforcement Learning on Cryptographic CTF Challenges,2025,http://arxiv.org/abs/2506.02048v2,2506.02048v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2506.02048v2,arxiv
+Improving the Efficiency of LLM Agent Systems through Trajectory Reduction,2025,http://arxiv.org/abs/2509.23586v1,2509.23586v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2509.23586v1,arxiv
+"In-Context Distillation with Self-Consistency Cascades: A Simple, Training-Free Way to Reduce LLM Agent Costs",2025,http://arxiv.org/abs/2512.02543v1,2512.02543v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2512.02543v1,arxiv
+IndoorWorld: Integrating Physical Task Solving and Social Simulation in A Heterogeneous Multi-Agent Environment,2025,http://arxiv.org/abs/2506.12331v1,2506.12331v1,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2506.12331v1,arxiv
+Inducing State Anxiety in LLM Agents Reproduces Human-Like Biases in Consumer Decision-Making,2025,http://arxiv.org/abs/2510.06222v1,2510.06222v1,,,cs.HC,"cs.HC,econ.GN",https://arxiv.org/pdf/2510.06222v1,arxiv
+Infusing Theory of Mind into Socially Intelligent LLM Agents,2025,http://arxiv.org/abs/2509.22887v1,2509.22887v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2509.22887v1,arxiv
+Interpretable Locomotion Prediction in Construction Using a Memory-Driven LLM Agent With Chain-of-Thought Reasoning,2025,http://arxiv.org/abs/2504.15263v1,2504.15263v1,,,cs.RO,cs.RO,https://arxiv.org/pdf/2504.15263v1,arxiv
+Interpretable Risk Mitigation in LLM Agent Systems,2025,http://arxiv.org/abs/2505.10670v1,2505.10670v1,,,cs.AI,"cs.AI,cs.CY,cs.GT",https://arxiv.org/pdf/2505.10670v1,arxiv
+Investigating Prosocial Behavior Theory in LLM Agents under Policy-Induced Inequities,2025,http://arxiv.org/abs/2505.15857v2,2505.15857v2,,,cs.SI,cs.SI,https://arxiv.org/pdf/2505.15857v2,arxiv
+Journalism-Guided Agentic In-Context Learning for News Stance Detection,2025,http://arxiv.org/abs/2507.11049v3,2507.11049v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2507.11049v3,arxiv
+Just-in-time Episodic Feedback Hinter: Leveraging Offline Knowledge to Improve LLM Agents Adaptation,2025,http://arxiv.org/abs/2510.04373v1,2510.04373v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.04373v1,arxiv
+Key Decision-Makers in Multi-Agent Debates: Who Holds the Power?,2025,http://arxiv.org/abs/2511.11040v1,2511.11040v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.11040v1,arxiv
+Know Your Intent: An Autonomous Multi-Perspective LLM Agent Framework for DeFi User Transaction Intent Mining,2025,http://arxiv.org/abs/2511.15456v1,2511.15456v1,,,cs.AI,"cs.AI,q-fin.GN",https://arxiv.org/pdf/2511.15456v1,arxiv
+Knowledge-Augmented Large Language Model Agents for Explainable Financial Decision-Making,2025,http://arxiv.org/abs/2512.09440v1,2512.09440v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2512.09440v1,arxiv
+Knowledge-Informed Automatic Feature Extraction via Collaborative Large Language Model Agents,2025,http://arxiv.org/abs/2511.15074v1,2511.15074v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2511.15074v1,arxiv
+LA-RCS: LLM-Agent-Based Robot Control System,2025,http://arxiv.org/abs/2505.18214v1,2505.18214v1,10.18494/SAM5643,Senors and Materials 2025,cs.RO,"cs.RO,cs.AI",https://arxiv.org/pdf/2505.18214v1,arxiv
+LCMF: Lightweight Cross-Modality Mambaformer for Embodied Robotics VQA,2025,http://arxiv.org/abs/2509.18576v1,2509.18576v1,,,cs.RO,"cs.RO,cs.AI",https://arxiv.org/pdf/2509.18576v1,arxiv
+LLM Agent Communication Protocol (LACP) Requires Urgent Standardization: A Telecom-Inspired Protocol is Necessary,2025,http://arxiv.org/abs/2510.13821v1,2510.13821v1,,,cs.NI,cs.NI,https://arxiv.org/pdf/2510.13821v1,arxiv
+LLM Agent Meets Agentic AI: Can LLM Agents Simulate Customers to Evaluate Agentic-AI-based Shopping Assistants?,2025,http://arxiv.org/abs/2509.21501v1,2509.21501v1,,,cs.HC,"cs.HC,cs.CL",https://arxiv.org/pdf/2509.21501v1,arxiv
+LLM Agent Swarm for Hypothesis-Driven Drug Discovery,2025,http://arxiv.org/abs/2504.17967v1,2504.17967v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2504.17967v1,arxiv
+LLM Agent for Hyper-Parameter Optimization,2025,http://arxiv.org/abs/2506.15167v2,2506.15167v2,,,cs.IT,"cs.IT,cs.AI",https://arxiv.org/pdf/2506.15167v2,arxiv
+LLM Agent-Based Simulation of Student Activities and Mental Health Using Smartphone Sensing Data,2025,http://arxiv.org/abs/2508.02679v2,2508.02679v2,,,cs.HC,cs.HC,https://arxiv.org/pdf/2508.02679v2,arxiv
+LLM Agents Are Hypersensitive to Nudges,2025,http://arxiv.org/abs/2505.11584v1,2505.11584v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.11584v1,arxiv
+LLM Agents Beyond Utility: An Open-Ended Perspective,2025,http://arxiv.org/abs/2510.14548v1,2510.14548v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.14548v1,arxiv
+LLM Agents Implement an NLG System from Scratch: Building Interpretable Rule-Based RDF-to-Text Generators,2025,http://arxiv.org/abs/2512.18360v1,2512.18360v1,10.18653/v1/2025.emnlp-industry.142,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2512.18360v1,arxiv
+LLM Agents Making Agent Tools,2025,http://arxiv.org/abs/2502.11705v2,2502.11705v2,,,cs.CL,"cs.CL,cs.AI,cs.LG,cs.MA",https://arxiv.org/pdf/2502.11705v2,arxiv
+LLM Agents Should Employ Security Principles,2025,http://arxiv.org/abs/2505.24019v1,2505.24019v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2505.24019v1,arxiv
+LLM Agents for Automated Dependency Upgrades,2025,http://arxiv.org/abs/2510.03480v2,2510.03480v2,,,cs.SE,cs.SE,https://arxiv.org/pdf/2510.03480v2,arxiv
+LLM Agents for Automated Web Vulnerability Reproduction: Are We There Yet?,2025,http://arxiv.org/abs/2510.14700v1,2510.14700v1,,,cs.SE,"cs.SE,cs.CR",https://arxiv.org/pdf/2510.14700v1,arxiv
+LLM Agents for Education: Advances and Applications,2025,http://arxiv.org/abs/2503.11733v1,2503.11733v1,,,cs.CY,"cs.CY,cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2503.11733v1,arxiv
+LLM Agents for Generating Microservice-based Applications: how complex is your specification?,2025,http://arxiv.org/abs/2508.20119v2,2508.20119v2,,,cs.SE,"cs.SE,cs.LG",https://arxiv.org/pdf/2508.20119v2,arxiv
+LLM Agents for Interactive Workflow Provenance: Reference Architecture and Evaluation Methodology,2025,http://arxiv.org/abs/2509.13978v2,2509.13978v2,10.1145/3731599.3767582,,cs.DC,"cs.DC,cs.AI,cs.DB",https://arxiv.org/pdf/2509.13978v2,arxiv
+LLM Agents for Knowledge Discovery in Atomic Layer Processing,2025,http://arxiv.org/abs/2509.26201v1,2509.26201v1,,,cs.AI,"cs.AI,cond-mat.mes-hall,cond-mat.mtrl-sci",https://arxiv.org/pdf/2509.26201v1,arxiv
+LLM Assisted Coding with Metamorphic Specification Mutation Agent,2025,http://arxiv.org/abs/2511.18249v1,2511.18249v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2511.18249v1,arxiv
+LLM-Agent-Controller: A Universal Multi-Agent Large Language Model System as a Control Engineer,2025,http://arxiv.org/abs/2505.19567v1,2505.19567v1,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2505.19567v1,arxiv
+LLM-Agents Driven Automated Simulation Testing and Analysis of small Uncrewed Aerial Systems,2025,http://arxiv.org/abs/2501.11864v1,2501.11864v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2501.11864v1,arxiv
+LLM/Agent-as-Data-Analyst: A Survey,2025,http://arxiv.org/abs/2509.23988v3,2509.23988v3,,,cs.AI,"cs.AI,cs.DB",https://arxiv.org/pdf/2509.23988v3,arxiv
+LMR-BENCH: Evaluating LLM Agent's Ability on Reproducing Language Modeling Research,2025,http://arxiv.org/abs/2506.17335v1,2506.17335v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2506.17335v1,arxiv
+Language Model Agents Under Attack: A Cross Model-Benchmark of Profit-Seeking Behaviors in Customer Service,2025,http://arxiv.org/abs/2512.24415v1,2512.24415v1,,,cs.CR,"cs.CR,cs.HC",https://arxiv.org/pdf/2512.24415v1,arxiv
+"Large Language Model Agent Personality and Response Appropriateness: Evaluation by Human Linguistic Experts, LLM-as-Judge, and Natural Language Processing Model",2025,http://arxiv.org/abs/2510.23875v1,2510.23875v1,,,cs.HC,cs.HC,https://arxiv.org/pdf/2510.23875v1,arxiv
+Large Language Model Agent for Modular Task Execution in Drug Discovery,2025,http://arxiv.org/abs/2507.02925v3,2507.02925v3,,,cs.LG,"cs.LG,cs.CL,q-bio.BM",https://arxiv.org/pdf/2507.02925v3,arxiv
+Large Language Model Agent for Structural Drawing Generation Using ReAct Prompt Engineering and Retrieval Augmented Generation,2025,http://arxiv.org/abs/2507.19771v1,2507.19771v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2507.19771v1,arxiv
+Large Language Model Agents for Radio Map Generation and Wireless Network Planning,2025,http://arxiv.org/abs/2501.11283v2,2501.11283v2,,,cs.IT,cs.IT,https://arxiv.org/pdf/2501.11283v2,arxiv
+Learning When to Plan: Efficiently Allocating Test-Time Compute for LLM Agents,2025,http://arxiv.org/abs/2509.03581v2,2509.03581v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.03581v2,arxiv
+Learning to Contextualize Web Pages for Enhanced Decision Making by LLM Agents,2025,http://arxiv.org/abs/2503.10689v2,2503.10689v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.10689v2,arxiv
+Learning to Make Friends: Coaching LLM Agents toward Emergent Social Ties,2025,http://arxiv.org/abs/2510.19299v1,2510.19299v1,,,cs.AI,"cs.AI,cs.MA,cs.SI",https://arxiv.org/pdf/2510.19299v1,arxiv
+Les Dissonances: Cross-Tool Harvesting and Polluting in Pool-of-Tools Empowered LLM Agents,2025,http://arxiv.org/abs/2504.03111v3,2504.03111v3,,,cs.CR,cs.CR,https://arxiv.org/pdf/2504.03111v3,arxiv
+Leveraging In-Context Learning for Language Model Agents,2025,http://arxiv.org/abs/2506.13109v1,2506.13109v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2506.13109v1,arxiv
+Leveraging LLM Agents and Digital Twins for Fault Handling in Process Plants,2025,http://arxiv.org/abs/2505.02076v1,2505.02076v1,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2505.02076v1,arxiv
+LifelongAgentBench: Evaluating LLM Agents as Lifelong Learners,2025,http://arxiv.org/abs/2505.11942v3,2505.11942v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.11942v3,arxiv
+LoCoBench-Agent: An Interactive Benchmark for LLM Agents in Long-Context Software Engineering,2025,http://arxiv.org/abs/2511.13998v1,2511.13998v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2511.13998v1,arxiv
+LocAgent: Graph-Guided LLM Agents for Code Localization,2025,http://arxiv.org/abs/2503.09089v2,2503.09089v2,,,cs.SE,"cs.SE,cs.AI,cs.CL",https://arxiv.org/pdf/2503.09089v2,arxiv
+MADREC: A Multi-Aspect Driven LLM Agent for Explainable and Adaptive Recommendation,2025,http://arxiv.org/abs/2510.13371v1,2510.13371v1,,,cs.IR,"cs.IR,cs.AI",https://arxiv.org/pdf/2510.13371v1,arxiv
+MAGELLAN: Metacognitive predictions of learning progress guide autotelic LLM agents in large goal spaces,2025,http://arxiv.org/abs/2502.07709v3,2502.07709v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.07709v3,arxiv
+MAR:Multi-Agent Reflexion Improves Reasoning Abilities in LLMs,2025,http://arxiv.org/abs/2512.20845v1,2512.20845v1,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2512.20845v1,arxiv
+MCP Security Bench (MSB): Benchmarking Attacks Against Model Context Protocol in LLM Agents,2025,http://arxiv.org/abs/2510.15994v1,2510.15994v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2510.15994v1,arxiv
+"MCP-Flow: Facilitating LLM Agents to Master Real-World, Diverse and Scaling MCP Tools",2025,http://arxiv.org/abs/2510.24284v2,2510.24284v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.24284v2,arxiv
+MCP-Zero: Active Tool Discovery for Autonomous LLM Agents,2025,http://arxiv.org/abs/2506.01056v4,2506.01056v4,,,cs.AI,"cs.AI,cs.SE",https://arxiv.org/pdf/2506.01056v4,arxiv
+MCPAgentBench: A Real-world Task Benchmark for Evaluating LLM Agent MCP Tool Use,2025,http://arxiv.org/abs/2512.24565v3,2512.24565v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.24565v3,arxiv
+MCPEval: Automatic MCP-based Deep Evaluation for AI Agent Models,2025,http://arxiv.org/abs/2507.12806v2,2507.12806v2,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2507.12806v2,arxiv
+MIRAGE-Bench: LLM Agent is Hallucinating and Where to Find Them,2025,http://arxiv.org/abs/2507.21017v1,2507.21017v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2507.21017v1,arxiv
+ML-Agent: Reinforcing LLM Agents for Autonomous Machine Learning Engineering,2025,http://arxiv.org/abs/2505.23723v1,2505.23723v1,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2505.23723v1,arxiv
+MLE-Dojo: Interactive Environments for Empowering LLM Agents in Machine Learning Engineering,2025,http://arxiv.org/abs/2505.07782v1,2505.07782v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2505.07782v1,arxiv
+MSCoRe: A Benchmark for Multi-Stage Collaborative Reasoning in LLM Agents,2025,http://arxiv.org/abs/2509.17628v1,2509.17628v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2509.17628v1,arxiv
+MarketSenseAI 2.0: Enhancing Stock Analysis through LLM Agents,2025,http://arxiv.org/abs/2502.00415v2,2502.00415v2,,,q-fin.CP,"q-fin.CP,cs.AI,cs.CL,cs.MA,q-fin.PM",https://arxiv.org/pdf/2502.00415v2,arxiv
+Measuring temporal effects of agent knowledge by date-controlled tool use,2025,http://arxiv.org/abs/2503.04188v2,2503.04188v2,,,cs.CL,"cs.CL,cs.IR",https://arxiv.org/pdf/2503.04188v2,arxiv
+Measuring the Security of Mobile LLM Agents under Adversarial Prompts from Untrusted Third-Party Channels,2025,http://arxiv.org/abs/2510.27140v2,2510.27140v2,,,cs.CR,cs.CR,https://arxiv.org/pdf/2510.27140v2,arxiv
+MedKGent: A Large Language Model Agent Framework for Constructing Temporally Evolving Medical Knowledge Graph,2025,http://arxiv.org/abs/2508.12393v2,2508.12393v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2508.12393v2,arxiv
+MedicalOS: An LLM Agent based Operating System for Digital Healthcare,2025,http://arxiv.org/abs/2509.11507v1,2509.11507v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.11507v1,arxiv
+MemGuide: Intent-Driven Memory Selection for Goal-Oriented Multi-Session LLM Agents,2025,http://arxiv.org/abs/2505.20231v2,2505.20231v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2505.20231v2,arxiv
+MemInsight: Autonomous Memory Augmentation for LLM Agents,2025,http://arxiv.org/abs/2503.21760v2,2503.21760v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2503.21760v2,arxiv
+MemR$^3$: Memory Retrieval via Reflective Reasoning for LLM Agents,2025,http://arxiv.org/abs/2512.20237v1,2512.20237v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.20237v1,arxiv
+MemTool: Optimizing Short-Term Memory Management for Dynamic Tool Calling in LLM Agent Multi-Turn Conversations,2025,http://arxiv.org/abs/2507.21428v1,2507.21428v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2507.21428v1,arxiv
+Memento: Fine-tuning LLM Agents without Fine-tuning LLMs,2025,http://arxiv.org/abs/2508.16153v2,2508.16153v2,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2508.16153v2,arxiv
+Memory Injection Attacks on LLM Agents via Query-Only Interaction,2025,http://arxiv.org/abs/2503.03704v4,2503.03704v4,,,cs.LG,cs.LG,https://arxiv.org/pdf/2503.03704v4,arxiv
+Memory-Augmented State Machine Prompting: A Novel LLM Agent Framework for Real-Time Strategy Games,2025,http://arxiv.org/abs/2510.18395v1,2510.18395v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.18395v1,arxiv
+Memory-R1: Enhancing Large Language Model Agents to Manage and Utilize Memories via Reinforcement Learning,2025,http://arxiv.org/abs/2508.19828v5,2508.19828v5,,,cs.CL,"cs.CL,cs.MA",https://arxiv.org/pdf/2508.19828v5,arxiv
+MemoryGraft: Persistent Compromise of LLM Agents via Poisoned Experience Retrieval,2025,http://arxiv.org/abs/2512.16962v1,2512.16962v1,,,cs.CR,"cs.CR,cs.AI,cs.LG",https://arxiv.org/pdf/2512.16962v1,arxiv
+Merge and Conquer: Evolutionarily Optimizing AI for 2048,2025,http://arxiv.org/abs/2510.20205v1,2510.20205v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.20205v1,arxiv
+Meta-Policy Reflexion: Reusable Reflective Memory and Rule Admissibility for Resource-Efficient LLM Agent,2025,http://arxiv.org/abs/2509.03990v2,2509.03990v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.03990v2,arxiv
+Meta-RAG on Large Codebases Using Code Summarization,2025,http://arxiv.org/abs/2508.02611v1,2508.02611v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2508.02611v1,arxiv
+MicroRCA-Agent: Microservice Root Cause Analysis Method Based on Large Language Model Agents,2025,http://arxiv.org/abs/2509.15635v1,2509.15635v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.15635v1,arxiv
+MindFlow: Revolutionizing E-commerce Customer Support with Multimodal LLM Agents,2025,http://arxiv.org/abs/2507.05330v1,2507.05330v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2507.05330v1,arxiv
+MindGuard: Intrinsic Decision Inspection for Securing LLM Agents Against Metadata Poisoning,2025,http://arxiv.org/abs/2508.20412v3,2508.20412v3,,,cs.CR,cs.CR,https://arxiv.org/pdf/2508.20412v3,arxiv
+Model Context Protocol-based Internet of Experts For Wireless Environment-aware LLM Agents,2025,http://arxiv.org/abs/2505.01834v1,2505.01834v1,,,cs.NI,cs.NI,https://arxiv.org/pdf/2505.01834v1,arxiv
+MoralReason: Generalizable Moral Decision Alignment For LLM Agents Using Reasoning-Level Reinforcement Learning,2025,http://arxiv.org/abs/2511.12271v1,2511.12271v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.12271v1,arxiv
+More Vulnerable than You Think: On the Stability of Tool-Integrated LLM Agents,2025,http://arxiv.org/abs/2506.21967v1,2506.21967v1,,,cs.CL,"cs.CL,cs.LG",https://arxiv.org/pdf/2506.21967v1,arxiv
+MuaLLM: A Multimodal Large Language Model Agent for Circuit Design Assistance with Hybrid Contextual Retrieval-Augmented Generation,2025,http://arxiv.org/abs/2508.08137v1,2508.08137v1,,,cs.LG,"cs.LG,cs.AI,eess.SY",https://arxiv.org/pdf/2508.08137v1,arxiv
+Multi-Agent-as-Judge: Aligning LLM-Agent-Based Automated Evaluation with Multi-Dimensional Human Evaluation,2025,http://arxiv.org/abs/2507.21028v1,2507.21028v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2507.21028v1,arxiv
+Multi-dimensional Data Analysis and Applications Basing on LLM Agents and Knowledge Graph Interactions,2025,http://arxiv.org/abs/2510.15258v2,2510.15258v2,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2510.15258v2,arxiv
+Multiple LLM Agents Debate for Equitable Cultural Alignment,2025,http://arxiv.org/abs/2505.24671v2,2505.24671v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2505.24671v2,arxiv
+NetworkGames: Simulating Cooperation in Network Games with Personality-driven LLM Agents,2025,http://arxiv.org/abs/2511.21783v1,2511.21783v1,,,physics.soc-ph,"physics.soc-ph,cs.GT",https://arxiv.org/pdf/2511.21783v1,arxiv
+Nuclear Deployed: Analyzing Catastrophic Risks in Decision-making of Autonomous LLM Agents,2025,http://arxiv.org/abs/2502.11355v3,2502.11355v3,,,cs.CL,"cs.CL,cs.AI,cs.CR,cs.CY",https://arxiv.org/pdf/2502.11355v3,arxiv
+"OMS: On-the-fly, Multi-Objective, Self-Reflective Ad Keyword Generation via LLM Agent",2025,http://arxiv.org/abs/2507.02353v1,2507.02353v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2507.02353v1,arxiv
+OPT-BENCH: Evaluating LLM Agent on Large-Scale Search Spaces Optimization Problems,2025,http://arxiv.org/abs/2506.10764v1,2506.10764v1,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2506.10764v1,arxiv
+OR-LLM-Agent: Automating Modeling and Solving of Operations Research Optimization Problems with Reasoning LLM,2025,http://arxiv.org/abs/2503.10009v3,2503.10009v3,,,cs.AI,"cs.AI,math.OC",https://arxiv.org/pdf/2503.10009v3,arxiv
+ORFS-agent: Tool-Using Agents for Chip Design Optimization,2025,http://arxiv.org/abs/2506.08332v2,2506.08332v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2506.08332v2,arxiv
+OSC: Cognitive Orchestration through Dynamic Knowledge Alignment in Multi-Agent LLM Collaboration,2025,http://arxiv.org/abs/2509.04876v1,2509.04876v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.04876v1,arxiv
+OdysseyBench: Evaluating LLM Agents on Long-Horizon Complex Office Application Workflows,2025,http://arxiv.org/abs/2508.09124v1,2508.09124v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2508.09124v1,arxiv
+OmniReflect: Discovering Transferable Constitutions for LLM agents via Neuro-Symbolic Reflections,2025,http://arxiv.org/abs/2506.17449v1,2506.17449v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2506.17449v1,arxiv
+On the Role of Contextual Information and Ego States in LLM Agent Behavior for Transactional Analysis Dialogues,2025,http://arxiv.org/abs/2512.17060v1,2512.17060v1,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2512.17060v1,arxiv
+On the Soundness and Consistency of LLM Agents for Executing Test Cases Written in Natural Language,2025,http://arxiv.org/abs/2509.19136v2,2509.19136v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2509.19136v2,arxiv
+One Tool Is Enough: Reinforcement Learning for Repository-Level LLM Agents,2025,http://arxiv.org/abs/2512.20957v4,2512.20957v4,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2512.20957v4,arxiv
+Open CaptchaWorld: A Comprehensive Web-based Platform for Testing and Benchmarking Multimodal LLM Agents,2025,http://arxiv.org/abs/2505.24878v1,2505.24878v1,,,cs.AI,"cs.AI,cs.CL,cs.CV,cs.LG",https://arxiv.org/pdf/2505.24878v1,arxiv
+OpenFOAMGPT: a RAG-Augmented LLM Agent for OpenFOAM-Based Computational Fluid Dynamics,2025,http://arxiv.org/abs/2501.06327v1,2501.06327v1,10.1063/5.0257555,,physics.flu-dyn,"physics.flu-dyn,physics.comp-ph",https://arxiv.org/pdf/2501.06327v1,arxiv
+Opponent Shaping in LLM Agents,2025,http://arxiv.org/abs/2510.08255v1,2510.08255v1,,,cs.LG,"cs.LG,cs.AI,cs.CL,cs.MA",https://arxiv.org/pdf/2510.08255v1,arxiv
+Orak: A Foundational Benchmark for Training and Evaluating LLM Agents on Diverse Video Games,2025,http://arxiv.org/abs/2506.03610v2,2506.03610v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2506.03610v2,arxiv
+OrcaLoca: An LLM Agent Framework for Software Issue Localization,2025,http://arxiv.org/abs/2502.00350v2,2502.00350v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2502.00350v2,arxiv
+"Overhearing LLM Agents: A Survey, Taxonomy, and Roadmap",2025,http://arxiv.org/abs/2509.16325v1,2509.16325v1,,,cs.CL,"cs.CL,cs.AI,cs.HC",https://arxiv.org/pdf/2509.16325v1,arxiv
+PaSa: An LLM Agent for Comprehensive Academic Paper Search,2025,http://arxiv.org/abs/2501.10120v2,2501.10120v2,,,cs.IR,"cs.IR,cs.LG",https://arxiv.org/pdf/2501.10120v2,arxiv
+Pandora: A Code-Driven Large Language Model Agent for Unified Reasoning Across Diverse Structured Knowledge,2025,http://arxiv.org/abs/2504.12734v2,2504.12734v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2504.12734v2,arxiv
+PanelTR: Zero-Shot Table Reasoning Framework Through Multi-Agent Scientific Discussion,2025,http://arxiv.org/abs/2508.06110v1,2508.06110v1,10.1109/IJCNN64981.2025.11228106,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2508.06110v1,arxiv
+Path-Constrained Retrieval: A Structural Approach to Reliable LLM Agent Reasoning Through Graph-Scoped Semantic Search,2025,http://arxiv.org/abs/2511.18313v1,2511.18313v1,,,cs.CL,"cs.CL,cs.DB,cs.IR,cs.LG",https://arxiv.org/pdf/2511.18313v1,arxiv
+PersonaAgent: When Large Language Model Agents Meet Personalization at Test Time,2025,http://arxiv.org/abs/2506.06254v1,2506.06254v1,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2506.06254v1,arxiv
+Personalized Attacks of Social Engineering in Multi-turn Conversations: LLM Agents for Simulation and Detection,2025,http://arxiv.org/abs/2503.15552v2,2503.15552v2,,,cs.CR,"cs.CR,cs.CL",https://arxiv.org/pdf/2503.15552v2,arxiv
+PilotRL: Training Language Model Agents via Global Planning-Guided Progressive Reinforcement Learning,2025,http://arxiv.org/abs/2508.00344v4,2508.00344v4,,,cs.CL,cs.CL,https://arxiv.org/pdf/2508.00344v4,arxiv
+Plan-Then-Execute: An Empirical Study of User Trust and Team Performance When Using LLM Agents As A Daily Assistant,2025,http://arxiv.org/abs/2502.01390v1,2502.01390v1,10.1145/3706598.3713218,,cs.HC,"cs.HC,cs.CL",https://arxiv.org/pdf/2502.01390v1,arxiv
+Plan-over-Graph: Towards Parallelable LLM Agent Schedule,2025,http://arxiv.org/abs/2502.14563v1,2502.14563v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.14563v1,arxiv
+Planning without Search: Refining Frontier LLMs with Offline Goal-Conditioned RL,2025,http://arxiv.org/abs/2505.18098v2,2505.18098v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2505.18098v2,arxiv
+PlotEdit: Natural Language-Driven Accessible Chart Editing in PDFs via Multimodal LLM Agents,2025,http://arxiv.org/abs/2501.11233v1,2501.11233v1,,,cs.IR,"cs.IR,cs.CL,cs.MA",https://arxiv.org/pdf/2501.11233v1,arxiv
+Plug-and-Play Dramaturge: A Divide-and-Conquer Approach for Iterative Narrative Script Refinement via Collaborative LLM Agents,2025,http://arxiv.org/abs/2510.05188v1,2510.05188v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.05188v1,arxiv
+Position: Episodic Memory is the Missing Piece for Long-Term LLM Agents,2025,http://arxiv.org/abs/2502.06975v1,2502.06975v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.06975v1,arxiv
+Position: Scaling LLM Agents Requires Asymptotic Analysis with LLM Primitives,2025,http://arxiv.org/abs/2502.04358v2,2502.04358v2,,,cs.CL,"cs.CL,cs.AI,cs.CC,cs.LG,cs.NE",https://arxiv.org/pdf/2502.04358v2,arxiv
+Position: Stop Acting Like Language Model Agents Are Normal Agents,2025,http://arxiv.org/abs/2502.10420v1,2502.10420v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2502.10420v1,arxiv
+Position: Uncertainty Quantification Needs Reassessment for Large-language Model Agents,2025,http://arxiv.org/abs/2505.22655v1,2505.22655v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2505.22655v1,arxiv
+Poster: Enhancing GNN Robustness for Network Intrusion Detection via Agent-based Analysis,2025,http://arxiv.org/abs/2506.20806v1,2506.20806v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2506.20806v1,arxiv
+Pro2Guard: Proactive Runtime Enforcement of LLM Agent Safety via Probabilistic Model Checking,2025,http://arxiv.org/abs/2508.00500v2,2508.00500v2,,,cs.AI,"cs.AI,cs.SE",https://arxiv.org/pdf/2508.00500v2,arxiv
+ProAgent: Harnessing On-Demand Sensory Contexts for Proactive LLM Agent Systems,2025,http://arxiv.org/abs/2512.06721v1,2512.06721v1,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2512.06721v1,arxiv
+Probabilistic Modeling of Intentions in Socially Intelligent LLM Agents,2025,http://arxiv.org/abs/2510.18476v1,2510.18476v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2510.18476v1,arxiv
+Procedural Environment Generation for Tool-Use Agents,2025,http://arxiv.org/abs/2506.11045v2,2506.11045v2,,,cs.LG,cs.LG,https://arxiv.org/pdf/2506.11045v2,arxiv
+Process Reward Models for LLM Agents: Practical Framework and Directions,2025,http://arxiv.org/abs/2502.10325v1,2502.10325v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2502.10325v1,arxiv
+Process-Supervised Reinforcement Learning for Interactive Multimodal Tool-Use Agents,2025,http://arxiv.org/abs/2509.14480v1,2509.14480v1,,,cs.CL,"cs.CL,cs.AI,cs.MA",https://arxiv.org/pdf/2509.14480v1,arxiv
+Progent: Programmable Privilege Control for LLM Agents,2025,http://arxiv.org/abs/2504.11703v2,2504.11703v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2504.11703v2,arxiv
+Prompt Flow Integrity to Prevent Privilege Escalation in LLM Agents,2025,http://arxiv.org/abs/2503.15547v2,2503.15547v2,,,cs.CR,"cs.CR,cs.AI,cs.MA",https://arxiv.org/pdf/2503.15547v2,arxiv
+Prompt Injection Attack to Tool Selection in LLM Agents,2025,http://arxiv.org/abs/2504.19793v3,2504.19793v3,,,cs.CR,cs.CR,https://arxiv.org/pdf/2504.19793v3,arxiv
+Prompt Optimization Across Multiple Agents for Representing Diverse Human Populations,2025,http://arxiv.org/abs/2510.07064v1,2510.07064v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.07064v1,arxiv
+Prompt template for a fictitious LLM agent in a content-flagging experiment,2025,http://arxiv.org/abs/2507.21842v1,2507.21842v1,,,cs.CY,cs.CY,https://arxiv.org/pdf/2507.21842v1,arxiv
+Q-KVComm: Efficient Multi-Agent Communication Via Adaptive KV Cache Compression,2025,http://arxiv.org/abs/2512.17914v1,2512.17914v1,,,cs.CL,"cs.CL,cs.MA",https://arxiv.org/pdf/2512.17914v1,arxiv
+QUITE: A Query Rewrite System Beyond Rules with LLM Agents,2025,http://arxiv.org/abs/2506.07675v3,2506.07675v3,,,cs.DB,"cs.DB,cs.AI",https://arxiv.org/pdf/2506.07675v3,arxiv
+RAG-Enhanced Collaborative LLM Agents for Drug Discovery,2025,http://arxiv.org/abs/2502.17506v3,2502.17506v3,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2502.17506v3,arxiv
+RAGEN: Understanding Self-Evolution in LLM Agents via Multi-Turn Reinforcement Learning,2025,http://arxiv.org/abs/2504.20073v2,2504.20073v2,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2504.20073v2,arxiv
+"RAIDER: Tool-Equipped Large Language Model Agent for Robotic Action Issue Detection, Explanation and Recovery",2025,http://arxiv.org/abs/2503.17703v2,2503.17703v2,,,cs.RO,cs.RO,https://arxiv.org/pdf/2503.17703v2,arxiv
+RAS-Eval: A Comprehensive Benchmark for Security Evaluation of LLM Agents in Real-World Environments,2025,http://arxiv.org/abs/2506.15253v1,2506.15253v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2506.15253v1,arxiv
+RELATE-Sim: Leveraging Turning Point Theory and LLM Agents to Predict and Understand Long-Term Relationship Dynamics through Interactive Narrative Simulations,2025,http://arxiv.org/abs/2510.00414v1,2510.00414v1,,,cs.HC,cs.HC,https://arxiv.org/pdf/2510.00414v1,arxiv
+REMSA: An LLM Agent for Foundation Model Selection in Remote Sensing,2025,http://arxiv.org/abs/2511.17442v1,2511.17442v1,,,cs.CV,"cs.CV,cs.AI",https://arxiv.org/pdf/2511.17442v1,arxiv
+RFCAudit: An LLM Agent for Functional Bug Detection in Network Protocols,2025,http://arxiv.org/abs/2506.00714v2,2506.00714v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2506.00714v2,arxiv
+RRO: LLM Agent Optimization Through Rising Reward Trajectories,2025,http://arxiv.org/abs/2505.20737v1,2505.20737v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.20737v1,arxiv
+RadOnc-GPT: An Autonomous LLM Agent for Real-Time Patient Outcomes Labeling at Scale,2025,http://arxiv.org/abs/2509.25540v2,2509.25540v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.25540v2,arxiv
+ReAcTree: Hierarchical LLM Agent Trees with Control Flow for Long-Horizon Task Planning,2025,http://arxiv.org/abs/2511.02424v1,2511.02424v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.02424v1,arxiv
+Reasoning-Style Poisoning of LLM Agents via Stealthy Style Transfer: Process-Level Attacks and Runtime Monitoring in RSV Space,2025,http://arxiv.org/abs/2512.14448v1,2512.14448v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2512.14448v1,arxiv
+ReflAct: World-Grounded Decision Making in LLM Agents via Goal-State Reflection,2025,http://arxiv.org/abs/2505.15182v2,2505.15182v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2505.15182v2,arxiv
+Reinforcement Learning-Augmented LLM Agents for Collaborative Decision Making and Performance Optimization,2025,http://arxiv.org/abs/2512.24609v1,2512.24609v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.24609v1,arxiv
+Reinforcing Multi-Turn Reasoning in LLM Agents via Turn-Level Reward Design,2025,http://arxiv.org/abs/2505.11821v2,2505.11821v2,,,cs.LG,cs.LG,https://arxiv.org/pdf/2505.11821v2,arxiv
+Reliable Weak-to-Strong Monitoring of LLM Agents,2025,http://arxiv.org/abs/2508.19461v1,2508.19461v1,,,cs.AI,"cs.AI,cs.CR,cs.LG",https://arxiv.org/pdf/2508.19461v1,arxiv
+RepliBench: Evaluating the Autonomous Replication Capabilities of Language Model Agents,2025,http://arxiv.org/abs/2504.18565v2,2504.18565v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2504.18565v2,arxiv
+Retrieval Augmented Generation-Enhanced Distributed LLM Agents for Generalizable Traffic Signal Control with Emergency Vehicles,2025,http://arxiv.org/abs/2510.26242v1,2510.26242v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.26242v1,arxiv
+Retrospex: Language Agent Meets Offline Reinforcement Learning Critic,2025,http://arxiv.org/abs/2505.11807v2,2505.11807v2,10.18653/v1/2024.emnlp-main.268,"Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, pages 4650-4666, ACL Anthology, 2024",cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2505.11807v2,arxiv
+"Review of Case-Based Reasoning for LLM Agents: Theoretical Foundations, Architectural Components, and Cognitive Integration",2025,http://arxiv.org/abs/2504.06943v2,2504.06943v2,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2504.06943v2,arxiv
+Robotouille: An Asynchronous Planning Benchmark for LLM Agents,2025,http://arxiv.org/abs/2502.05227v1,2502.05227v1,,,cs.RO,"cs.RO,cs.AI,cs.CL",https://arxiv.org/pdf/2502.05227v1,arxiv
+Routine: A Structural Planning Framework for LLM Agent System in Enterprise,2025,http://arxiv.org/abs/2507.14447v2,2507.14447v2,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2507.14447v2,arxiv
+"SABER: Small Actions, Big Errors -- Safeguarding Mutating Steps in LLM Agents",2025,http://arxiv.org/abs/2512.07850v1,2512.07850v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2512.07850v1,arxiv
+SAND: Boosting LLM Agents with Self-Taught Action Deliberation,2025,http://arxiv.org/abs/2507.07441v2,2507.07441v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2507.07441v2,arxiv
+SCALE: Towards Collaborative Content Analysis in Social Science with Large Language Model Agents and Human Intervention,2025,http://arxiv.org/abs/2502.10937v2,2502.10937v2,,,cs.AI,"cs.AI,cs.CL,cs.MA",https://arxiv.org/pdf/2502.10937v2,arxiv
+SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks,2025,http://arxiv.org/abs/2506.11791v2,2506.11791v2,,,cs.LG,"cs.LG,cs.CR",https://arxiv.org/pdf/2506.11791v2,arxiv
+SENTINEL: A Multi-Level Formal Framework for Safety Evaluation of LLM-based Embodied Agents,2025,http://arxiv.org/abs/2510.12985v1,2510.12985v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2510.12985v1,arxiv
+SHADE-Arena: Evaluating Sabotage and Monitoring in LLM Agents,2025,http://arxiv.org/abs/2506.15740v2,2506.15740v2,,,cs.AI,"cs.AI,cs.CR,cs.LG",https://arxiv.org/pdf/2506.15740v2,arxiv
+SIRAJ: Diverse and Efficient Red-Teaming for LLM Agents via Distilled Structured Reasoning,2025,http://arxiv.org/abs/2510.26037v1,2510.26037v1,,,cs.CR,"cs.CR,cs.AI,cs.CL",https://arxiv.org/pdf/2510.26037v1,arxiv
+SPA-RL: Reinforcing LLM Agents via Stepwise Progress Attribution,2025,http://arxiv.org/abs/2505.20732v1,2505.20732v1,,,cs.CL,"cs.CL,cs.LG",https://arxiv.org/pdf/2505.20732v1,arxiv
+SPOT!: Map-Guided LLM Agent for Unsupervised Multi-CCTV Dynamic Object Tracking,2025,http://arxiv.org/abs/2512.20975v2,2512.20975v2,,,cs.CV,cs.CV,https://arxiv.org/pdf/2512.20975v2,arxiv
+SPeCtrum: A Grounded Framework for Multidimensional Identity Representation in LLM-Based Agent,2025,http://arxiv.org/abs/2502.08599v1,2502.08599v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2502.08599v1,arxiv
+STAC: When Innocent Tools Form Dangerous Chains to Jailbreak LLM Agents,2025,http://arxiv.org/abs/2509.25624v1,2509.25624v1,,,cs.CR,"cs.CR,cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2509.25624v1,arxiv
+STELLA: Self-Evolving LLM Agent for Biomedical Research,2025,http://arxiv.org/abs/2507.02004v1,2507.02004v1,,,cs.AI,"cs.AI,cs.CL,q-bio.BM",https://arxiv.org/pdf/2507.02004v1,arxiv
+STeCa: Step-level Trajectory Calibration for LLM Agent Learning,2025,http://arxiv.org/abs/2502.14276v2,2502.14276v2,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2502.14276v2,arxiv
+SWEET-RL: Training Multi-Turn LLM Agents on Collaborative Reasoning Tasks,2025,http://arxiv.org/abs/2503.15478v1,2503.15478v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2503.15478v1,arxiv
+SafeMind: Benchmarking and Mitigating Safety Risks in Embodied LLM Agents,2025,http://arxiv.org/abs/2509.25885v1,2509.25885v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.25885v1,arxiv
+SafeScientist: Toward Risk-Aware Scientific Discoveries by LLM Agents,2025,http://arxiv.org/abs/2505.23559v1,2505.23559v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2505.23559v1,arxiv
+ScaleMCP: Dynamic and Auto-Synchronizing Model Context Protocol Tools for LLM Agents,2025,http://arxiv.org/abs/2505.06416v1,2505.06416v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2505.06416v1,arxiv
+Scaling Long-Horizon LLM Agent via Context-Folding,2025,http://arxiv.org/abs/2510.11967v1,2510.11967v1,,,cs.CL,"cs.CL,cs.LG",https://arxiv.org/pdf/2510.11967v1,arxiv
+Scan-do Attitude: Towards Autonomous CT Protocol Management using a Large Language Model Agent,2025,http://arxiv.org/abs/2509.20270v1,2509.20270v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2509.20270v1,arxiv
+ScoreFlow: Mastering LLM Agent Workflows via Score-based Preference Optimization,2025,http://arxiv.org/abs/2502.04306v1,2502.04306v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2502.04306v1,arxiv
+Secure Multi-LLM Agentic AI and Agentification for Edge General Intelligence by Zero-Trust: A Survey,2025,http://arxiv.org/abs/2508.19870v1,2508.19870v1,,,cs.NI,cs.NI,https://arxiv.org/pdf/2508.19870v1,arxiv
+SecureFixAgent: A Hybrid LLM Agent for Automated Python Static Vulnerability Repair,2025,http://arxiv.org/abs/2509.16275v1,2509.16275v1,,,cs.CR,"cs.CR,cs.AI,cs.SE",https://arxiv.org/pdf/2509.16275v1,arxiv
+Self-Challenging Language Model Agents,2025,http://arxiv.org/abs/2506.01716v1,2506.01716v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2506.01716v1,arxiv
+Self-Generated In-Context Examples Improve LLM Agents for Sequential Decision-Making Tasks,2025,http://arxiv.org/abs/2505.00234v3,2505.00234v3,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2505.00234v3,arxiv
+Semantically-Aware LLM Agent to Enhance Privacy in Conversational AI Services,2025,http://arxiv.org/abs/2510.27016v1,2510.27016v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.27016v1,arxiv
+"ShapeCraft: LLM Agents for Structured, Textured and Interactive 3D Modeling",2025,http://arxiv.org/abs/2510.17603v1,2510.17603v1,,,cs.CV,cs.CV,https://arxiv.org/pdf/2510.17603v1,arxiv
+Shapley-Coop: Credit Assignment for Emergent Cooperation in Self-Interested LLM Agents,2025,http://arxiv.org/abs/2506.07388v1,2506.07388v1,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2506.07388v1,arxiv
+SignalLLM: A General-Purpose LLM Agent Framework for Automated Signal Processing,2025,http://arxiv.org/abs/2509.17197v2,2509.17197v2,,,cs.LG,"cs.LG,cs.AI,eess.SP",https://arxiv.org/pdf/2509.17197v2,arxiv
+SimuHome: A Temporal- and Environment-Aware Benchmark for Smart Home LLM Agents,2025,http://arxiv.org/abs/2509.24282v2,2509.24282v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2509.24282v2,arxiv
+Simulating Filter Bubble on Short-video Recommender System with Large Language Model Agents,2025,http://arxiv.org/abs/2504.08742v1,2504.08742v1,,,cs.IR,"cs.IR,cs.AI",https://arxiv.org/pdf/2504.08742v1,arxiv
+Simulating Macroeconomic Expectations using LLM Agents,2025,http://arxiv.org/abs/2505.17648v4,2505.17648v4,,,econ.GN,"econ.GN,cs.AI",https://arxiv.org/pdf/2505.17648v4,arxiv
+Simulating Rumor Spreading in Social Networks using LLM Agents,2025,http://arxiv.org/abs/2502.01450v1,2502.01450v1,,,cs.SI,"cs.SI,cs.AI",https://arxiv.org/pdf/2502.01450v1,arxiv
+Simulating and Experimenting with Social Media Mobilization Using LLM Agents,2025,http://arxiv.org/abs/2510.26494v1,2510.26494v1,,,cs.SI,"cs.SI,cs.AI",https://arxiv.org/pdf/2510.26494v1,arxiv
+SkyRL-Agent: Efficient RL Training for Multi-turn LLM Agent,2025,http://arxiv.org/abs/2511.16108v1,2511.16108v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.16108v1,arxiv
+SoK: Trust-Authorization Mismatch in LLM Agent Interactions,2025,http://arxiv.org/abs/2512.06914v1,2512.06914v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2512.06914v1,arxiv
+SocioVerse: A World Model for Social Simulation Powered by LLM Agents and A Pool of 10 Million Real-World Users,2025,http://arxiv.org/abs/2504.10157v3,2504.10157v3,,,cs.CL,"cs.CL,cs.CY",https://arxiv.org/pdf/2504.10157v3,arxiv
+Solving the Granularity Mismatch: Hierarchical Preference Learning for Long-Horizon LLM Agents,2025,http://arxiv.org/abs/2510.03253v1,2510.03253v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2510.03253v1,arxiv
+Spec2RTL-Agent: Automated Hardware Code Generation from Complex Specifications Using LLM Agent Systems,2025,http://arxiv.org/abs/2506.13905v2,2506.13905v2,,,cs.AR,cs.AR,https://arxiv.org/pdf/2506.13905v2,arxiv
+Spiral of Silence in Large Language Model Agents,2025,http://arxiv.org/abs/2510.02360v2,2510.02360v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2510.02360v2,arxiv
+StaffPro: an LLM Agent for Joint Staffing and Profiling,2025,http://arxiv.org/abs/2507.21636v1,2507.21636v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2507.21636v1,arxiv
+Standard Benchmarks Fail -- Auditing LLM Agents in Finance Must Prioritize Risk,2025,http://arxiv.org/abs/2502.15865v2,2502.15865v2,,,q-fin.GN,"q-fin.GN,cs.AI,cs.CL",https://arxiv.org/pdf/2502.15865v2,arxiv
+StockBench: Can LLM Agents Trade Stocks Profitably In Real-world Markets?,2025,http://arxiv.org/abs/2510.02209v1,2510.02209v1,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2510.02209v1,arxiv
+StorageXTuner: An LLM Agent-Driven Automatic Tuning Framework for Heterogeneous Storage Systems,2025,http://arxiv.org/abs/2510.25017v1,2510.25017v1,,,cs.DB,"cs.DB,cs.AI,cs.CL",https://arxiv.org/pdf/2510.25017v1,arxiv
+Structured Personalization: Modeling Constraints as Matroids for Data-Minimal LLM Agents,2025,http://arxiv.org/abs/2512.11907v1,2512.11907v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.11907v1,arxiv
+Structured Uncertainty guided Clarification for LLM Agents,2025,http://arxiv.org/abs/2511.08798v1,2511.08798v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2511.08798v1,arxiv
+Super-additive Cooperation in Language Model Agents,2025,http://arxiv.org/abs/2508.15510v1,2508.15510v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2508.15510v1,arxiv
+Surgical AI Copilot: Energy-Based Fourier Gradient Low-Rank Adaptation for Surgical LLM Agent Reasoning and Planning,2025,http://arxiv.org/abs/2503.09474v2,2503.09474v2,,,cs.CV,cs.CV,https://arxiv.org/pdf/2503.09474v2,arxiv
+Survey of LLM Agent Communication with MCP: A Software Design Pattern Centric Review,2025,http://arxiv.org/abs/2506.05364v1,2506.05364v1,,,cs.SE,cs.SE,https://arxiv.org/pdf/2506.05364v1,arxiv
+Survey of Specialized Large Language Model,2025,http://arxiv.org/abs/2508.19667v1,2508.19667v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2508.19667v1,arxiv
+Swarms of Large Language Model Agents for Protein Sequence Design with Experimental Validation,2025,http://arxiv.org/abs/2511.22311v1,2511.22311v1,,,cs.AI,"cs.AI,cond-mat.mes-hall,cond-mat.soft,cs.CL,cs.LG",https://arxiv.org/pdf/2511.22311v1,arxiv
+TAMO: Fine-Grained Root Cause Analysis via Tool-Assisted LLM Agent with Multi-Modality Observation Data in Cloud-Native Systems,2025,http://arxiv.org/abs/2504.20462v5,2504.20462v5,,,cs.AI,cs.AI,https://arxiv.org/pdf/2504.20462v5,arxiv
+TEXT2DB: Integration-Aware Information Extraction with Large Language Model Agents,2025,http://arxiv.org/abs/2510.24014v2,2510.24014v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.24014v2,arxiv
+TP-RAG: Benchmarking Retrieval-Augmented Large Language Model Agents for Spatiotemporal-Aware Travel Planning,2025,http://arxiv.org/abs/2504.08694v1,2504.08694v1,10.18653/v1/2025.emnlp-main.626,Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing,cs.CL,cs.CL,https://arxiv.org/pdf/2504.08694v1,arxiv
+TReMu: Towards Neuro-Symbolic Temporal Reasoning for LLM-Agents with Memory in Multi-Session Dialogues,2025,http://arxiv.org/abs/2502.01630v2,2502.01630v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2502.01630v2,arxiv
+Talking with Oompa Loompas: A novel framework for evaluating linguistic acquisition of LLM agents,2025,http://arxiv.org/abs/2509.07389v1,2509.07389v1,,,cs.CL,"cs.CL,cs.AI,cs.HC,cs.LG",https://arxiv.org/pdf/2509.07389v1,arxiv
+Task Memory Engine (TME): Enhancing State Awareness for Multi-Step LLM Agent Tasks,2025,http://arxiv.org/abs/2504.08525v4,2504.08525v4,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2504.08525v4,arxiv
+Task Memory Engine: Spatial Memory for Robust Multi-Step LLM Agents,2025,http://arxiv.org/abs/2505.19436v1,2505.19436v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2505.19436v1,arxiv
+"Taxonomy, Evaluation and Exploitation of IPI-Centric LLM Agent Defense Frameworks",2025,http://arxiv.org/abs/2511.15203v1,2511.15203v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2511.15203v1,arxiv
+Temperature and Persona Shape LLM Agent Consensus With Minimal Accuracy Gains in Qualitative Coding,2025,http://arxiv.org/abs/2507.11198v1,2507.11198v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2507.11198v1,arxiv
+The Agentic Leash: Extracting Causal Feedback Fuzzy Cognitive Maps with LLMs,2025,http://arxiv.org/abs/2601.00097v2,2601.00097v2,,,cs.AI,"cs.AI,cs.CL,cs.HC,cs.IR",https://arxiv.org/pdf/2601.00097v2,arxiv
+The Behavior Gap: Evaluating Zero-shot LLM Agents in Complex Task-Oriented Dialogs,2025,http://arxiv.org/abs/2506.12266v1,2506.12266v1,,,cs.CL,"cs.CL,cs.AI,cs.HC,cs.LG",https://arxiv.org/pdf/2506.12266v1,arxiv
+The Dark Side of LLMs: Agent-based Attacks for Complete Computer Takeover,2025,http://arxiv.org/abs/2507.06850v5,2507.06850v5,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2507.06850v5,arxiv
+The Effect of State Representation on LLM Agent Behavior in Dynamic Routing Games,2025,http://arxiv.org/abs/2506.15624v1,2506.15624v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2506.15624v1,arxiv
+The Emergence of Altruism in Large-Language-Model Agents Society,2025,http://arxiv.org/abs/2509.22537v1,2509.22537v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.22537v1,arxiv
+The Evolution of Alpha in Finance Harnessing Human Insight and LLM Agents,2025,http://arxiv.org/abs/2505.14727v1,2505.14727v1,,,cs.LG,"cs.LG,q-fin.CP",https://arxiv.org/pdf/2505.14727v1,arxiv
+The Power of Personality: A Human Simulation Perspective to Investigate Large Language Model Agents,2025,http://arxiv.org/abs/2502.20859v2,2502.20859v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2502.20859v2,arxiv
+The Power of Stories: Narrative Priming Shapes How LLM Agents Collaborate and Compete,2025,http://arxiv.org/abs/2505.03961v2,2505.03961v2,,,cs.AI,"cs.AI,cs.CL,cs.MA",https://arxiv.org/pdf/2505.03961v2,arxiv
+The Real Barrier to LLM Agent Usability is Agentic ROI,2025,http://arxiv.org/abs/2505.17767v1,2505.17767v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2505.17767v1,arxiv
+Time to Talk: LLM Agents for Asynchronous Group Communication in Mafia Games,2025,http://arxiv.org/abs/2506.05309v2,2506.05309v2,,,cs.MA,"cs.MA,cs.AI,cs.CL",https://arxiv.org/pdf/2506.05309v2,arxiv
+"TimeCAP: Learning to Contextualize, Augment, and Predict Time Series Events with Large Language Model Agents",2025,http://arxiv.org/abs/2502.11418v2,2502.11418v2,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2502.11418v2,arxiv
+To Protect the LLM Agent Against the Prompt Injection Attack with Polymorphic Prompt,2025,http://arxiv.org/abs/2506.05739v1,2506.05739v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2506.05739v1,arxiv
+ToolScope: Enhancing LLM Agent Tool Use through Tool Merging and Context-Aware Filtering,2025,http://arxiv.org/abs/2510.20036v1,2510.20036v1,,,cs.CL,"cs.CL,cs.SE",https://arxiv.org/pdf/2510.20036v1,arxiv
+Toward Efficient Exploration by Large Language Model Agents,2025,http://arxiv.org/abs/2504.20997v1,2504.20997v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2504.20997v1,arxiv
+Toward Verifiable Misinformation Detection: A Multi-Tool LLM Agent Framework,2025,http://arxiv.org/abs/2508.03092v1,2508.03092v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2508.03092v1,arxiv
+Toward a Trustworthy Optimization Modeling Agent via Verifiable Synthetic Data Generation,2025,http://arxiv.org/abs/2508.03117v1,2508.03117v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2508.03117v1,arxiv
+Towards Adaptive Feedback with AI: Comparing the Feedback Quality of LLMs and Teachers on Experimentation Protocols,2025,http://arxiv.org/abs/2502.12842v1,2502.12842v1,,,cs.AI,"cs.AI,cs.HC",https://arxiv.org/pdf/2502.12842v1,arxiv
+Towards Agentic OS: An LLM Agent Framework for Linux Schedulers,2025,http://arxiv.org/abs/2509.01245v4,2509.01245v4,,MLforSystem 2025,cs.AI,"cs.AI,cs.MA,cs.OS",https://arxiv.org/pdf/2509.01245v4,arxiv
+"Towards Effective Offensive Security LLM Agents: Hyperparameter Tuning, LLM as a Judge, and a Lightweight CTF Benchmark",2025,http://arxiv.org/abs/2508.05674v1,2508.05674v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2508.05674v1,arxiv
+Towards Efficient Hypergraph and Multi-LLM Agent Recommender Systems,2025,http://arxiv.org/abs/2512.06590v1,2512.06590v1,,,cs.IR,"cs.IR,cs.AI,cs.MA",https://arxiv.org/pdf/2512.06590v1,arxiv
+Towards LLM Agents for Earth Observation,2025,http://arxiv.org/abs/2504.12110v2,2504.12110v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2504.12110v2,arxiv
+Towards Natural Language Communication for Cooperative Autonomous Driving via Self-Play,2025,http://arxiv.org/abs/2505.18334v1,2505.18334v1,,,cs.RO,"cs.RO,cs.AI,cs.MA",https://arxiv.org/pdf/2505.18334v1,arxiv
+Towards Robust Visual Continual Learning with Multi-Prototype Supervision,2025,http://arxiv.org/abs/2509.16011v1,2509.16011v1,,,cs.CV,cs.CV,https://arxiv.org/pdf/2509.16011v1,arxiv
+Towards Trustworthy Legal AI through LLM Agents and Formal Reasoning,2025,http://arxiv.org/abs/2511.21033v1,2511.21033v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2511.21033v1,arxiv
+Towards a Design Guideline for RPA Evaluation: A Survey of Large Language Model-Based Role-Playing Agents,2025,http://arxiv.org/abs/2502.13012v3,2502.13012v3,,,cs.HC,"cs.HC,cs.CL",https://arxiv.org/pdf/2502.13012v3,arxiv
+Towards autonomous quantum physics research using LLM agents with access to intelligent tools,2025,http://arxiv.org/abs/2511.11752v1,2511.11752v1,,,cs.AI,"cs.AI,cs.DL,quant-ph",https://arxiv.org/pdf/2511.11752v1,arxiv
+Training Language Model Agents to Find Vulnerabilities with CTF-Dojo,2025,http://arxiv.org/abs/2508.18370v2,2508.18370v2,,,cs.SE,"cs.SE,cs.CL,cs.CR,cs.LG",https://arxiv.org/pdf/2508.18370v2,arxiv
+Training Task Reasoning LLM Agents for Multi-turn Task Planning via Single-turn Reinforcement Learning,2025,http://arxiv.org/abs/2509.20616v2,2509.20616v2,,,cs.LG,"cs.LG,eess.SY",https://arxiv.org/pdf/2509.20616v2,arxiv
+Tree Search for LLM Agent Reinforcement Learning,2025,http://arxiv.org/abs/2509.21240v2,2509.21240v2,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2509.21240v2,arxiv
+UDora: A Unified Red Teaming Framework against LLM Agents by Dynamically Hijacking Their Own Reasoning,2025,http://arxiv.org/abs/2503.01908v3,2503.01908v3,,,cs.CR,"cs.CR,cs.AI,cs.LG",https://arxiv.org/pdf/2503.01908v3,arxiv
+UXAgent: A System for Simulating Usability Testing of Web Design with LLM Agents,2025,http://arxiv.org/abs/2504.09407v3,2504.09407v3,,,cs.CL,"cs.CL,cs.HC",https://arxiv.org/pdf/2504.09407v3,arxiv
+UXAgent: An LLM Agent-Based Usability Testing Framework for Web Design,2025,http://arxiv.org/abs/2502.12561v3,2502.12561v3,10.1145/3706599.3719729,,cs.HC,"cs.HC,cs.CL",https://arxiv.org/pdf/2502.12561v3,arxiv
+"Understanding LLM Agent Behaviours via Game Theory: Strategy Recognition, Biases and Multi-Agent Dynamics",2025,http://arxiv.org/abs/2512.07462v2,2512.07462v2,,,cs.MA,"cs.MA,cs.AI,cs.GT,cs.LG,math.DS",https://arxiv.org/pdf/2512.07462v2,arxiv
+"Unsupervised Feature Transformation via In-context Generation, Generator-critic LLM Agents, and Duet-play Teaming",2025,http://arxiv.org/abs/2504.21304v1,2504.21304v1,,,cs.LG,cs.LG,https://arxiv.org/pdf/2504.21304v1,arxiv
+Unveiling Privacy Risks in LLM Agent Memory,2025,http://arxiv.org/abs/2502.13172v2,2502.13172v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2502.13172v2,arxiv
+Use of Retrieval-Augmented Large Language Model Agent for Long-Form COVID-19 Fact-Checking,2025,http://arxiv.org/abs/2512.00007v1,2512.00007v1,,,cs.IR,"cs.IR,cs.AI,cs.CL",https://arxiv.org/pdf/2512.00007v1,arxiv
+UserCentrix: An Agentic Memory-augmented AI Framework for Smart Spaces,2025,http://arxiv.org/abs/2505.00472v1,2505.00472v1,,,cs.AI,"cs.AI,cs.DC,cs.MA,cs.NI",https://arxiv.org/pdf/2505.00472v1,arxiv
+VTS-LLM: Domain-Adaptive LLM Agent for Enhancing Awareness in Vessel Traffic Services through Natural Language,2025,http://arxiv.org/abs/2505.00989v1,2505.00989v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2505.00989v1,arxiv
+Value-Based Large Language Model Agent Simulation for Mutual Evaluation of Trust and Interpersonal Closeness,2025,http://arxiv.org/abs/2507.11979v2,2507.11979v2,10.1038/s41598-025-25531-1,"Scientific Reports volume 15, Article number: 41653 (2025)",cs.CL,"cs.CL,cs.MA",https://arxiv.org/pdf/2507.11979v2,arxiv
+VeriGuard: Enhancing LLM Agent Safety via Verified Code Generation,2025,http://arxiv.org/abs/2510.05156v1,2510.05156v1,,,cs.SE,"cs.SE,cs.AI,cs.CR",https://arxiv.org/pdf/2510.05156v1,arxiv
+VeriLA: A Human-Centered Evaluation Framework for Interpretable Verification of LLM Agent Failures,2025,http://arxiv.org/abs/2503.12651v1,2503.12651v1,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2503.12651v1,arxiv
+Vulnerability Mitigation System (VMS): LLM Agent and Evaluation Framework for Autonomous Penetration Testing,2025,http://arxiv.org/abs/2507.21113v1,2507.21113v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2507.21113v1,arxiv
+WALL-E 2.0: World Alignment by NeuroSymbolic Learning improves World Model-based LLM Agents,2025,http://arxiv.org/abs/2504.15785v1,2504.15785v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2504.15785v1,arxiv
+WINELL: Wikipedia Never-Ending Updating with LLM Agents,2025,http://arxiv.org/abs/2508.03728v1,2508.03728v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2508.03728v1,arxiv
+Warehouse Spatial Question Answering with LLM Agent,2025,http://arxiv.org/abs/2507.10778v2,2507.10778v2,,,cs.CV,"cs.CV,cs.AI",https://arxiv.org/pdf/2507.10778v2,arxiv
+We Should Identify and Mitigate Third-Party Safety Risks in MCP-Powered Agent Systems,2025,http://arxiv.org/abs/2506.13666v1,2506.13666v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2506.13666v1,arxiv
+WebATLAS: An LLM Agent with Experience-Driven Memory and Action Simulation,2025,http://arxiv.org/abs/2510.22732v2,2510.22732v2,,,cs.LG,"cs.LG,cs.AI,cs.CL,cs.IR,cs.MA,cs.RO",https://arxiv.org/pdf/2510.22732v2,arxiv
+WebLists: Extracting Structured Information From Complex Interactive Websites Using Executable LLM Agents,2025,http://arxiv.org/abs/2504.12682v1,2504.12682v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2504.12682v1,arxiv
+What Do LLM Agents Do When Left Alone? Evidence of Spontaneous Meta-Cognitive Patterns,2025,http://arxiv.org/abs/2509.21224v1,2509.21224v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.21224v1,arxiv
+What Makes LLM Agent Simulations Useful for Policy? Insights From an Iterative Design Engagement in Emergency Preparedness,2025,http://arxiv.org/abs/2509.21868v1,2509.21868v1,,,cs.HC,"cs.HC,cs.CL",https://arxiv.org/pdf/2509.21868v1,arxiv
+When AI Agents Collude Online: Financial Fraud Risks by Collaborative LLM Agents on Social Platforms,2025,http://arxiv.org/abs/2511.06448v1,2511.06448v1,,,cs.MA,"cs.MA,cs.AI,cs.CL,cs.SI",https://arxiv.org/pdf/2511.06448v1,arxiv
+When Refusals Fail: Unstable Safety Mechanisms in Long-Context LLM Agents,2025,http://arxiv.org/abs/2512.02445v1,2512.02445v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2512.02445v1,arxiv
+When Trust Collides: Decoding Human-LLM Cooperation Dynamics through the Prisoner's Dilemma,2025,http://arxiv.org/abs/2503.07320v2,2503.07320v2,,,cs.HC,"cs.HC,cs.AI",https://arxiv.org/pdf/2503.07320v2,arxiv
+Where LLM Agents Fail and How They can Learn From Failures,2025,http://arxiv.org/abs/2509.25370v1,2509.25370v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2509.25370v1,arxiv
+Why Do Language Model Agents Whistleblow?,2025,http://arxiv.org/abs/2511.17085v2,2511.17085v2,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2511.17085v2,arxiv
+Will Systems of LLM Agents Cooperate: An Investigation into a Social Dilemma,2025,http://arxiv.org/abs/2501.16173v1,2501.16173v1,,,cs.MA,"cs.MA,cs.GT",https://arxiv.org/pdf/2501.16173v1,arxiv
+World Modelling Improves Language Model Agents,2025,http://arxiv.org/abs/2506.02918v2,2506.02918v2,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2506.02918v2,arxiv
+World model inspired sarcasm reasoning with large language model agents,2025,http://arxiv.org/abs/2512.24329v1,2512.24329v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2512.24329v1,arxiv
+WorldCraft: Photo-Realistic 3D World Creation and Customization via LLM Agents,2025,http://arxiv.org/abs/2502.15601v2,2502.15601v2,,,cs.CV,"cs.CV,cs.AI,cs.GR",https://arxiv.org/pdf/2502.15601v2,arxiv
+Your LLM Agents are Temporally Blind: The Misalignment Between Tool Use Decisions and Human Time Perception,2025,http://arxiv.org/abs/2510.23853v2,2510.23853v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2510.23853v2,arxiv
+Zero-Shot Large Language Model Agents for Fully Automated Radiotherapy Treatment Planning,2025,http://arxiv.org/abs/2510.11754v1,2510.11754v1,,,physics.med-ph,"physics.med-ph,cs.AI,cs.RO",https://arxiv.org/pdf/2510.11754v1,arxiv
+Zero-shot 3D Map Generation with LLM Agents: A Dual-Agent Architecture for Procedural Content Generation,2025,http://arxiv.org/abs/2512.10501v2,2512.10501v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2512.10501v2,arxiv
+debug-gym: A Text-Based Environment for Interactive Debugging,2025,http://arxiv.org/abs/2503.21557v1,2503.21557v1,,,cs.AI,"cs.AI,cs.CL,cs.PL,cs.SE",https://arxiv.org/pdf/2503.21557v1,arxiv
+iAgent: LLM Agent as a Shield between User and Recommender Systems,2025,http://arxiv.org/abs/2502.14662v4,2502.14662v4,,,cs.CL,"cs.CL,cs.IR",https://arxiv.org/pdf/2502.14662v4,arxiv
+scAgent: Universal Single-Cell Annotation via a LLM Agent,2025,http://arxiv.org/abs/2504.04698v1,2504.04698v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2504.04698v1,arxiv
+A Human-Computer Collaborative Tool for Training a Single Large Language Model Agent into a Network through Few Examples,2024,http://arxiv.org/abs/2404.15974v1,2404.15974v1,,,cs.HC,cs.HC,https://arxiv.org/pdf/2404.15974v1,arxiv
+A Human-Like Reasoning Framework for Multi-Phases Planning Task with Large Language Models,2024,http://arxiv.org/abs/2405.18208v1,2405.18208v1,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2405.18208v1,arxiv
+AGILE: A Novel Reinforcement Learning Framework of LLM Agents,2024,http://arxiv.org/abs/2405.14751v2,2405.14751v2,,,cs.LG,cs.LG,https://arxiv.org/pdf/2405.14751v2,arxiv
+AI Metropolis: Scaling Large Language Model-based Multi-Agent Simulation with Out-of-order Execution,2024,http://arxiv.org/abs/2411.03519v1,2411.03519v1,,,cs.DC,"cs.DC,cs.AI,cs.LG,cs.MA",https://arxiv.org/pdf/2411.03519v1,arxiv
+AIOS: LLM Agent Operating System,2024,http://arxiv.org/abs/2403.16971v5,2403.16971v5,,,cs.OS,"cs.OS,cs.AI,cs.CL",https://arxiv.org/pdf/2403.16971v5,arxiv
+Adaptive In-conversation Team Building for Language Model Agents,2024,http://arxiv.org/abs/2405.19425v3,2405.19425v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2405.19425v3,arxiv
+Adsorb-Agent: Autonomous Identification of Stable Adsorption Configurations via Large Language Model Agent,2024,http://arxiv.org/abs/2410.16658v4,2410.16658v4,,,cs.CL,"cs.CL,cond-mat.mtrl-sci",https://arxiv.org/pdf/2410.16658v4,arxiv
+Agent-SafetyBench: Evaluating the Safety of LLM Agents,2024,http://arxiv.org/abs/2412.14470v2,2412.14470v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2412.14470v2,arxiv
+AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents,2024,http://arxiv.org/abs/2401.13178v2,2401.13178v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2401.13178v2,arxiv
+AgentHarm: A Benchmark for Measuring Harmfulness of LLM Agents,2024,http://arxiv.org/abs/2410.09024v3,2410.09024v3,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2410.09024v3,arxiv
+AgentLite: A Lightweight Library for Building and Advancing Task-Oriented LLM Agent System,2024,http://arxiv.org/abs/2402.15538v1,2402.15538v1,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2402.15538v1,arxiv
+AgentOps: Enabling Observability of LLM Agents,2024,http://arxiv.org/abs/2411.05285v2,2411.05285v2,,,cs.AI,"cs.AI,cs.SE",https://arxiv.org/pdf/2411.05285v2,arxiv
+AgentPoison: Red-teaming LLM Agents via Poisoning Memory or Knowledge Bases,2024,http://arxiv.org/abs/2407.12784v1,2407.12784v1,,,cs.LG,"cs.LG,cs.CR,cs.IR",https://arxiv.org/pdf/2407.12784v1,arxiv
+AgentQuest: A Modular Benchmark Framework to Measure Progress and Improve LLM Agents,2024,http://arxiv.org/abs/2404.06411v1,2404.06411v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2404.06411v1,arxiv
+AgentSquare: Automatic LLM Agent Search in Modular Design Space,2024,http://arxiv.org/abs/2410.06153v3,2410.06153v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2410.06153v3,arxiv
+An LLM Agent for Automatic Geospatial Data Analysis,2024,http://arxiv.org/abs/2410.18792v2,2410.18792v2,,,cs.CY,"cs.CY,cs.CL",https://arxiv.org/pdf/2410.18792v2,arxiv
+"AnyTool: Self-Reflective, Hierarchical Agents for Large-Scale API Calls",2024,http://arxiv.org/abs/2402.04253v1,2402.04253v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2402.04253v1,arxiv
+Application of LLM Agents in Recruitment: A Novel Framework for Resume Screening,2024,http://arxiv.org/abs/2401.08315v2,2401.08315v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2401.08315v2,arxiv
+ArCHer: Training Language Model Agents via Hierarchical Multi-Turn RL,2024,http://arxiv.org/abs/2402.19446v1,2402.19446v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2402.19446v1,arxiv
+AriGraph: Learning Knowledge Graph World Models with Episodic Memory for LLM Agents,2024,http://arxiv.org/abs/2407.04363v3,2407.04363v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2407.04363v3,arxiv
+Artificial Leviathan: Exploring Social Evolution of LLM Agents Through the Lens of Hobbesian Social Contract Theory,2024,http://arxiv.org/abs/2406.14373v2,2406.14373v2,,,cs.AI,"cs.AI,cs.CL,cs.CY,cs.HC,cs.MA",https://arxiv.org/pdf/2406.14373v2,arxiv
+Assistive Large Language Model Agents for Socially-Aware Negotiation Dialogues,2024,http://arxiv.org/abs/2402.01737v3,2402.01737v3,10.18653/v1/2024.findings-emnlp.473,Findings of the Association for Computational Linguistics: EMNLP 2024,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2402.01737v3,arxiv
+AutoFlow: Automated Workflow Generation for Large Language Model Agents,2024,http://arxiv.org/abs/2407.12821v1,2407.12821v1,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2407.12821v1,arxiv
+AutoGuide: Automated Generation and Selection of Context-Aware Guidelines for Large Language Model Agents,2024,http://arxiv.org/abs/2403.08978v2,2403.08978v2,,,cs.CL,"cs.CL,cs.LG",https://arxiv.org/pdf/2403.08978v2,arxiv
+AutoManual: Constructing Instruction Manuals by LLM Agents via Interactive Environmental Learning,2024,http://arxiv.org/abs/2405.16247v4,2405.16247v4,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2405.16247v4,arxiv
+AvaTaR: Optimizing LLM Agents for Tool Usage via Contrastive Reasoning,2024,http://arxiv.org/abs/2406.11200v3,2406.11200v3,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2406.11200v3,arxiv
+BLADE: Benchmarking Language Model Agents for Data-Driven Science,2024,http://arxiv.org/abs/2408.09667v3,2408.09667v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2408.09667v3,arxiv
+BadAgent: Inserting and Activating Backdoor Attacks in LLM Agents,2024,http://arxiv.org/abs/2406.03007v1,2406.03007v1,,,cs.CL,"cs.CL,cs.AI,cs.CR,cs.LG",https://arxiv.org/pdf/2406.03007v1,arxiv
+Be More Real: Travel Diary Generation Using LLM Agents and Individual Profiles,2024,http://arxiv.org/abs/2407.18932v2,2407.18932v2,,,cs.CY,"cs.CY,cs.AI",https://arxiv.org/pdf/2407.18932v2,arxiv
+Behavior Trees Enable Structured Programming of Language Model Agents,2024,http://arxiv.org/abs/2404.07439v1,2404.07439v1,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2404.07439v1,arxiv
+Better than Your Teacher: LLM Agents that learn from Privileged AI Feedback,2024,http://arxiv.org/abs/2410.05434v1,2410.05434v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2410.05434v1,arxiv
+Beyond Numeric Rewards: In-Context Dueling Bandits with LLM Agents,2024,http://arxiv.org/abs/2407.01887v4,2407.01887v4,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2407.01887v4,arxiv
+Breaking Agents: Compromising Autonomous LLM Agents Through Malfunction Amplification,2024,http://arxiv.org/abs/2407.20859v1,2407.20859v1,,,cs.CR,"cs.CR,cs.LG",https://arxiv.org/pdf/2407.20859v1,arxiv
+ByteComposer: a Human-like Melody Composition Method based on Language Model Agent,2024,http://arxiv.org/abs/2402.17785v2,2402.17785v2,,,cs.SD,"cs.SD,cs.AI,eess.AS",https://arxiv.org/pdf/2402.17785v2,arxiv
+CRMArena: Understanding the Capacity of LLM Agents to Perform Professional CRM Tasks in Realistic Environments,2024,http://arxiv.org/abs/2411.02305v2,2411.02305v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2411.02305v2,arxiv
+Cached Model-as-a-Resource: Provisioning Large Language Model Agents for Edge Intelligence in Space-air-ground Integrated Networks,2024,http://arxiv.org/abs/2403.05826v2,2403.05826v2,,,cs.NI,"cs.NI,eess.SP",https://arxiv.org/pdf/2403.05826v2,arxiv
+Can Large Language Model Agents Simulate Human Trust Behavior?,2024,http://arxiv.org/abs/2402.04559v4,2402.04559v4,,,cs.AI,"cs.AI,cs.CL,cs.HC",https://arxiv.org/pdf/2402.04559v4,arxiv
+Can Machines Think Like Humans? A Behavioral Evaluation of LLM Agents in Dictator Games,2024,http://arxiv.org/abs/2410.21359v3,2410.21359v3,,,cs.CL,"cs.CL,cs.AI,cs.CY,cs.LG,econ.GN",https://arxiv.org/pdf/2410.21359v3,arxiv
+Can We Rely on LLM Agents to Draft Long-Horizon Plans? Let's Take TravelPlanner as an Example,2024,http://arxiv.org/abs/2408.06318v1,2408.06318v1,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2408.06318v1,arxiv
+Catastrophic Cyber Capabilities Benchmark (3CB): Robustly Evaluating LLM Agent Cyber Offense Capabilities,2024,http://arxiv.org/abs/2410.09114v2,2410.09114v2,,,cs.CR,"cs.CR,cs.AI,cs.LG,cs.PF",https://arxiv.org/pdf/2410.09114v2,arxiv
+ChatCite: LLM Agent with Human Workflow Guidance for Comparative Literature Summary,2024,http://arxiv.org/abs/2403.02574v1,2403.02574v1,,,cs.IR,"cs.IR,cs.AI,cs.CL",https://arxiv.org/pdf/2403.02574v1,arxiv
+ChatPattern: Layout Pattern Customization via Natural Language,2024,http://arxiv.org/abs/2403.15434v1,2403.15434v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2403.15434v1,arxiv
+ChemMiner: A Large Language Model Agent System for Chemical Literature Data Mining,2024,http://arxiv.org/abs/2402.12993v2,2402.12993v2,,,cs.IR,"cs.IR,cs.AI,cs.LG,q-bio.QM",https://arxiv.org/pdf/2402.12993v2,arxiv
+CoCo-Agent: A Comprehensive Cognitive MLLM Agent for Smartphone GUI Automation,2024,http://arxiv.org/abs/2402.11941v3,2402.11941v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2402.11941v3,arxiv
+CodeNav: Beyond tool-use to using real-world codebases with LLM agents,2024,http://arxiv.org/abs/2406.12276v1,2406.12276v1,,,cs.AI,"cs.AI,cs.CL,cs.SE",https://arxiv.org/pdf/2406.12276v1,arxiv
+CodexGraph: Bridging Large Language Models and Code Repositories via Code Graph Databases,2024,http://arxiv.org/abs/2408.03910v2,2408.03910v2,,,cs.SE,"cs.SE,cs.AI,cs.CL",https://arxiv.org/pdf/2408.03910v2,arxiv
+Concept-Guided LLM Agents for Human-AI Safety Codesign,2024,http://arxiv.org/abs/2404.15317v1,2404.15317v1,,"Proceedings of the AAAI-make Spring Symposium, 2024",cs.SE,"cs.SE,cs.HC,cs.LG",https://arxiv.org/pdf/2404.15317v1,arxiv
+ControlAgent: Automating Control System Design via Novel Integration of LLM Agents and Domain Expertise,2024,http://arxiv.org/abs/2410.19811v1,2410.19811v1,,,eess.SY,"eess.SY,cs.AI,cs.CL,cs.LG,math.OC",https://arxiv.org/pdf/2410.19811v1,arxiv
+Controlling Large Language Model Agents with Entropic Activation Steering,2024,http://arxiv.org/abs/2406.00244v2,2406.00244v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2406.00244v2,arxiv
+Conversate: Supporting Reflective Learning in Interview Practice Through Interactive Simulation and Dialogic Feedback,2024,http://arxiv.org/abs/2410.05570v2,2410.05570v2,10.1145/3701188,,cs.HC,cs.HC,https://arxiv.org/pdf/2410.05570v2,arxiv
+Cooperate or Collapse: Emergence of Sustainable Cooperation in a Society of LLM Agents,2024,http://arxiv.org/abs/2404.16698v4,2404.16698v4,,,cs.CL,cs.CL,https://arxiv.org/pdf/2404.16698v4,arxiv
+Cultural Evolution of Cooperation among LLM Agents,2024,http://arxiv.org/abs/2412.10270v1,2412.10270v1,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2412.10270v1,arxiv
+DS-Agent: Automated Data Science by Empowering Large Language Models with Case-Based Reasoning,2024,http://arxiv.org/abs/2402.17453v5,2402.17453v5,,,cs.LG,cs.LG,https://arxiv.org/pdf/2402.17453v5,arxiv
+Data Interpreter: An LLM Agent For Data Science,2024,http://arxiv.org/abs/2402.18679v4,2402.18679v4,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2402.18679v4,arxiv
+DebUnc: Improving Large Language Model Agent Communication With Uncertainty Metrics,2024,http://arxiv.org/abs/2407.06426v2,2407.06426v2,,,cs.CL,"cs.CL,cs.AI,cs.MA",https://arxiv.org/pdf/2407.06426v2,arxiv
+Depending on yourself when you should: Mentoring LLM with RL agents to become the master in cybersecurity games,2024,http://arxiv.org/abs/2403.17674v1,2403.17674v1,,,cs.CR,"cs.CR,cs.AI,cs.MA",https://arxiv.org/pdf/2403.17674v1,arxiv
+Designing Heterogeneous LLM Agents for Financial Sentiment Analysis,2024,http://arxiv.org/abs/2401.05799v1,2401.05799v1,10.1145/3688399,,cs.CL,"cs.CL,cs.AI,cs.MA,q-fin.GN",https://arxiv.org/pdf/2401.05799v1,arxiv
+Devil's Advocate: Anticipatory Reflection for LLM Agents,2024,http://arxiv.org/abs/2405.16334v4,2405.16334v4,,,cs.AI,cs.AI,https://arxiv.org/pdf/2405.16334v4,arxiv
+Divide and Conquer: Language Models can Plan and Self-Correct for Compositional Text-to-Image Generation,2024,http://arxiv.org/abs/2401.15688v2,2401.15688v2,,,cs.CV,cs.CV,https://arxiv.org/pdf/2401.15688v2,arxiv
+Do LLM Agents Have Regret? A Case Study in Online Learning and Games,2024,http://arxiv.org/abs/2403.16843v5,2403.16843v5,,,cs.LG,"cs.LG,cs.AI,cs.GT",https://arxiv.org/pdf/2403.16843v5,arxiv
+DropMicroFluidAgents (DMFAs): Autonomous Droplet Microfluidic Research Framework Through Large Language Model Agents,2024,http://arxiv.org/abs/2501.14772v1,2501.14772v1,,,cs.CY,"cs.CY,cs.AI",https://arxiv.org/pdf/2501.14772v1,arxiv
+DynaSaur: Large Language Agents Beyond Predefined Actions,2024,http://arxiv.org/abs/2411.01747v3,2411.01747v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2411.01747v3,arxiv
+EHRAgent: Code Empowers Large Language Models for Few-shot Complex Tabular Reasoning on Electronic Health Records,2024,http://arxiv.org/abs/2401.07128v3,2401.07128v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2401.07128v3,arxiv
+Editable Scene Simulation for Autonomous Driving via Collaborative LLM-Agents,2024,http://arxiv.org/abs/2402.05746v3,2402.05746v3,,,cs.CV,cs.CV,https://arxiv.org/pdf/2402.05746v3,arxiv
+Educational-Psychological Dialogue Robot Based on Multi-Agent Collaboration,2024,http://arxiv.org/abs/2412.03847v1,2412.03847v1,,ICSR 2024,cs.CL,cs.CL,https://arxiv.org/pdf/2412.03847v1,arxiv
+Elicitron: An LLM Agent-Based Simulation Framework for Design Requirements Elicitation,2024,http://arxiv.org/abs/2404.16045v1,2404.16045v1,,,cs.HC,"cs.HC,cs.AI,cs.MA",https://arxiv.org/pdf/2404.16045v1,arxiv
+Embodied LLM Agents Learn to Cooperate in Organized Teams,2024,http://arxiv.org/abs/2403.12482v2,2403.12482v2,,,cs.AI,"cs.AI,cs.CL,cs.CY,cs.MA",https://arxiv.org/pdf/2403.12482v2,arxiv
+Empirical Asset Pricing with Large Language Model Agents,2024,http://arxiv.org/abs/2409.17266v2,2409.17266v2,,,cs.AI,"cs.AI,cs.CE",https://arxiv.org/pdf/2409.17266v2,arxiv
+Empowering Large Language Model Agents through Action Learning,2024,http://arxiv.org/abs/2402.15809v2,2402.15809v2,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2402.15809v2,arxiv
+Enabling Generative Design Tools with LLM Agents for Mechanical Computation Devices: A Case Study,2024,http://arxiv.org/abs/2405.17837v3,2405.17837v3,,,cs.HC,cs.HC,https://arxiv.org/pdf/2405.17837v3,arxiv
+Enhancing Cluster Resilience: LLM-agent Based Autonomous Intelligent Cluster Diagnosis System and Evaluation Framework,2024,http://arxiv.org/abs/2411.05349v1,2411.05349v1,,,cs.AI,"cs.AI,cs.DC",https://arxiv.org/pdf/2411.05349v1,arxiv
+Enhancing Decision-Making for LLM Agents via Step-Level Q-Value Models,2024,http://arxiv.org/abs/2409.09345v1,2409.09345v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2409.09345v1,arxiv
+Enhancing LLM Agents for Code Generation with Possibility and Pass-rate Prioritized Experience Replay,2024,http://arxiv.org/abs/2410.12236v2,2410.12236v2,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2410.12236v2,arxiv
+EscapeBench: Towards Advancing Creative Intelligence of Language Model Agents,2024,http://arxiv.org/abs/2412.13549v2,2412.13549v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2412.13549v2,arxiv
+Evaluating and Enhancing LLMs Agent based on Theory of Mind in Guandan: A Multi-Player Cooperative Game under Imperfect Information,2024,http://arxiv.org/abs/2408.02559v1,2408.02559v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2408.02559v1,arxiv
+Evaluation-Driven Development and Operations of LLM Agents: A Process Model and Reference Architecture,2024,http://arxiv.org/abs/2411.13768v3,2411.13768v3,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2411.13768v3,arxiv
+Evolution of Social Norms in LLM Agents using Natural Language,2024,http://arxiv.org/abs/2409.00993v1,2409.00993v1,,,cs.MA,cs.MA,https://arxiv.org/pdf/2409.00993v1,arxiv
+Executable Code Actions Elicit Better LLM Agents,2024,http://arxiv.org/abs/2402.01030v4,2402.01030v4,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2402.01030v4,arxiv
+Explainable Behavior Cloning: Teaching Large Language Model Agents through Learning by Demonstration,2024,http://arxiv.org/abs/2410.22916v1,2410.22916v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2410.22916v1,arxiv
+Exploring Prosocial Irrationality for LLM Agents: A Social Cognition View,2024,http://arxiv.org/abs/2405.14744v5,2405.14744v5,,,cs.CY,cs.CY,https://arxiv.org/pdf/2405.14744v5,arxiv
+Exploring and Controlling Diversity in LLM-Agent Conversation,2024,http://arxiv.org/abs/2412.21102v3,2412.21102v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2412.21102v3,arxiv
+"FairMindSim: Alignment of Behavior, Emotion, and Belief in Humans and LLM Agents Amid Ethical Dilemmas",2024,http://arxiv.org/abs/2410.10398v2,2410.10398v2,,,cs.CE,"cs.CE,cs.AI",https://arxiv.org/pdf/2410.10398v2,arxiv
+Federated In-Context LLM Agent Learning,2024,http://arxiv.org/abs/2412.08054v1,2412.08054v1,,,cs.LG,"cs.LG,cs.AI,cs.CL,cs.CR",https://arxiv.org/pdf/2412.08054v1,arxiv
+Fixing Security Vulnerabilities with AI in OSS-Fuzz,2024,http://arxiv.org/abs/2411.03346v2,2411.03346v2,,,cs.CR,"cs.CR,cs.SE",https://arxiv.org/pdf/2411.03346v2,arxiv
+FoodPuzzle: Developing Large Language Model Agents as Flavor Scientists,2024,http://arxiv.org/abs/2409.12832v3,2409.12832v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2409.12832v3,arxiv
+From Barriers to Tactics: A Behavioral Science-Informed Agentic Workflow for Personalized Nutrition Coaching,2024,http://arxiv.org/abs/2410.14041v1,2410.14041v1,,,cs.LG,"cs.LG,cs.CL",https://arxiv.org/pdf/2410.14041v1,arxiv
+From Language Models to Practical Self-Improving Computer Agents,2024,http://arxiv.org/abs/2404.11964v1,2404.11964v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2404.11964v1,arxiv
+From Novice to Expert: LLM Agent Policy Optimization via Step-wise Reinforcement Learning,2024,http://arxiv.org/abs/2411.03817v3,2411.03817v3,,,cs.AI,"cs.AI,cs.CL,cs.HC,cs.RO",https://arxiv.org/pdf/2411.03817v3,arxiv
+From Words to Worlds: Transforming One-line Prompt into Immersive Multi-modal Digital Stories with Communicative LLM Agent,2024,http://arxiv.org/abs/2406.10478v2,2406.10478v2,,,cs.CL,"cs.CL,cs.AI,cs.GR",https://arxiv.org/pdf/2406.10478v2,arxiv
+Frontier AI Ethics: Anticipating and Evaluating the Societal Impacts of Language Model Agents,2024,http://arxiv.org/abs/2404.06750v2,2404.06750v2,,,cs.CY,"cs.CY,cs.AI",https://arxiv.org/pdf/2404.06750v2,arxiv
+GameBench: Evaluating Strategic Reasoning Abilities of LLM Agents,2024,http://arxiv.org/abs/2406.06613v2,2406.06613v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2406.06613v2,arxiv
+GenoTEX: An LLM Agent Benchmark for Automated Gene Expression Data Analysis,2024,http://arxiv.org/abs/2406.15341v3,2406.15341v3,,,cs.LG,"cs.LG,cs.AI,q-bio.GN",https://arxiv.org/pdf/2406.15341v3,arxiv
+GuardAgent: Safeguard LLM Agents by a Guard Agent via Knowledge-Enabled Reasoning,2024,http://arxiv.org/abs/2406.09187v3,2406.09187v3,,,cs.LG,cs.LG,https://arxiv.org/pdf/2406.09187v3,arxiv
+Guide-LLM: An Embodied LLM Agent and Text-Based Topological Map for Robotic Guidance of People with Visual Impairments,2024,http://arxiv.org/abs/2410.20666v2,2410.20666v2,,,cs.RO,"cs.RO,cs.AI,cs.CL",https://arxiv.org/pdf/2410.20666v2,arxiv
+HR-Agent: A Task-Oriented Dialogue (TOD) LLM Agent Tailored for HR Applications,2024,http://arxiv.org/abs/2410.11239v1,2410.11239v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2410.11239v1,arxiv
+HR-MultiWOZ: A Task Oriented Dialogue (TOD) Dataset for HR LLM Agent,2024,http://arxiv.org/abs/2402.01018v1,2402.01018v1,,EACL 2024,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2402.01018v1,arxiv
+HackSynth: LLM Agent and Evaluation Framework for Autonomous Penetration Testing,2024,http://arxiv.org/abs/2412.01778v1,2412.01778v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2412.01778v1,arxiv
+Hacking CTFs with Plain Agents,2024,http://arxiv.org/abs/2412.02776v1,2412.02776v1,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2412.02776v1,arxiv
+Hackphyr: A Local Fine-Tuned LLM Agent for Network Security Environments,2024,http://arxiv.org/abs/2409.11276v1,2409.11276v1,,,cs.CR,cs.CR,https://arxiv.org/pdf/2409.11276v1,arxiv
+HighwayLLM: Decision-Making and Navigation in Highway Driving with RL-Informed Language Model,2024,http://arxiv.org/abs/2405.13547v1,2405.13547v1,,,cs.RO,"cs.RO,cs.AI",https://arxiv.org/pdf/2405.13547v1,arxiv
+How Well Can LLMs Negotiate? NegotiationArena Platform and Analysis,2024,http://arxiv.org/abs/2402.05863v1,2402.05863v1,,,cs.AI,"cs.AI,cs.CL,cs.GT",https://arxiv.org/pdf/2402.05863v1,arxiv
+Human-Centered LLM-Agent User Interface: A Position Paper,2024,http://arxiv.org/abs/2405.13050v2,2405.13050v2,,,cs.HC,"cs.HC,cs.AI",https://arxiv.org/pdf/2405.13050v2,arxiv
+HumanEvalComm: Benchmarking the Communication Competence of Code Generation for LLMs and LLM Agent,2024,http://arxiv.org/abs/2406.00215v3,2406.00215v3,10.1145/3715109,"ACM Trans. Softw. Eng. Methodol., Published Jan 2025",cs.SE,cs.SE,https://arxiv.org/pdf/2406.00215v3,arxiv
+"IDEA: Enhancing the Rule Learning Ability of Large Language Model Agent through Induction, Deduction, and Abduction",2024,http://arxiv.org/abs/2408.10455v6,2408.10455v6,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2408.10455v6,arxiv
+Identifying Performance-Sensitive Configurations in Software Systems through Code Analysis with LLM Agents,2024,http://arxiv.org/abs/2406.12806v1,2406.12806v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2406.12806v1,arxiv
+Imprompter: Tricking LLM Agents into Improper Tool Use,2024,http://arxiv.org/abs/2410.14923v2,2410.14923v2,,,cs.CR,cs.CR,https://arxiv.org/pdf/2410.14923v2,arxiv
+Incorporating Large Language Models into Production Systems for Enhanced Task Automation and Flexibility,2024,http://arxiv.org/abs/2407.08550v1,2407.08550v1,10.51202/9783181024379,,cs.AI,"cs.AI,cs.ET,cs.MA,cs.RO,eess.SY",https://arxiv.org/pdf/2407.08550v1,arxiv
+InjecAgent: Benchmarking Indirect Prompt Injections in Tool-Integrated Large Language Model Agents,2024,http://arxiv.org/abs/2403.02691v3,2403.02691v3,,,cs.CL,"cs.CL,cs.CR",https://arxiv.org/pdf/2403.02691v3,arxiv
+Interacting Large Language Model Agents. Interpretable Models and Social Learning,2024,http://arxiv.org/abs/2411.01271v2,2411.01271v2,,,cs.LG,"cs.LG,cs.AI,cs.ET,cs.MA,eess.SY",https://arxiv.org/pdf/2411.01271v2,arxiv
+Into the Unknown Unknowns: Engaged Human Learning through Participation in Language Model Agent Conversations,2024,http://arxiv.org/abs/2408.15232v2,2408.15232v2,,,cs.CL,"cs.CL,cs.AI,cs.IR",https://arxiv.org/pdf/2408.15232v2,arxiv
+LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild,2024,http://arxiv.org/abs/2410.13919v2,2410.13919v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2410.13919v2,arxiv
+LLM Agent for Fire Dynamics Simulations,2024,http://arxiv.org/abs/2412.17146v1,2412.17146v1,,,cs.AI,"cs.AI,physics.flu-dyn",https://arxiv.org/pdf/2412.17146v1,arxiv
+LLM Agents as 6G Orchestrator: A Paradigm for Task-Oriented Physical-Layer Automation,2024,http://arxiv.org/abs/2410.03688v1,2410.03688v1,,,cs.NI,"cs.NI,cs.AI",https://arxiv.org/pdf/2410.03688v1,arxiv
+LLM Agents can Autonomously Exploit One-day Vulnerabilities,2024,http://arxiv.org/abs/2404.08144v2,2404.08144v2,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2404.08144v2,arxiv
+LLM Agents can Autonomously Hack Websites,2024,http://arxiv.org/abs/2402.06664v3,2402.06664v3,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2402.06664v3,arxiv
+LLM Agents in Interaction: Measuring Personality Consistency and Linguistic Alignment in Interacting Populations of Large Language Models,2024,http://arxiv.org/abs/2402.02896v1,2402.02896v1,,,cs.CL,"cs.CL,cs.AI,cs.CY,cs.MA",https://arxiv.org/pdf/2402.02896v1,arxiv
+LLM-Agent-UMF: LLM-based Agent Unified Modeling Framework for Seamless Design of Multi Active/Passive Core-Agent Architectures,2024,http://arxiv.org/abs/2409.11393v3,2409.11393v3,10.1016/j.inffus.2025.103865,Information Fusion 127 (2026) 103865,cs.SE,"cs.SE,cs.AI,cs.CR,cs.MA",https://arxiv.org/pdf/2409.11393v3,arxiv
+"LLMs May Not Be Human-Level Players, But They Can Be Testers: Measuring Game Difficulty with LLM Agents",2024,http://arxiv.org/abs/2410.02829v1,2410.02829v1,,,cs.AI,"cs.AI,cs.HC,cs.LG",https://arxiv.org/pdf/2410.02829v1,arxiv
+Language agents achieve superhuman synthesis of scientific knowledge,2024,http://arxiv.org/abs/2409.13740v2,2409.13740v2,,,cs.CL,"cs.CL,cs.AI,cs.IR,physics.soc-ph",https://arxiv.org/pdf/2409.13740v2,arxiv
+Large Language Model Agent as a Mechanical Designer,2024,http://arxiv.org/abs/2404.17525v3,2404.17525v3,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2404.17525v3,arxiv
+Large Language Model Agent for Fake News Detection,2024,http://arxiv.org/abs/2405.01593v1,2405.01593v1,,,cs.CL,"cs.CL,cs.AI,cs.IR",https://arxiv.org/pdf/2405.01593v1,arxiv
+Large Language Model Agent for Hyper-Parameter Optimization,2024,http://arxiv.org/abs/2402.01881v3,2402.01881v3,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2402.01881v3,arxiv
+Large Language Model Agent in Financial Trading: A Survey,2024,http://arxiv.org/abs/2408.06361v1,2408.06361v1,,,q-fin.TR,"q-fin.TR,cs.CL",https://arxiv.org/pdf/2408.06361v1,arxiv
+Large Language Model Agents for Improving Engagement with Behavior Change Interventions: Application to Digital Mindfulness,2024,http://arxiv.org/abs/2407.13067v1,2407.13067v1,,,cs.HC,"cs.HC,cs.AI,cs.CY",https://arxiv.org/pdf/2407.13067v1,arxiv
+Large Language Model Sentinel: LLM Agent for Adversarial Purification,2024,http://arxiv.org/abs/2405.20770v4,2405.20770v4,,,cs.CL,"cs.CL,cs.AI,cs.CR",https://arxiv.org/pdf/2405.20770v4,arxiv
+Large Language Models Are Neurosymbolic Reasoners,2024,http://arxiv.org/abs/2401.09334v1,2401.09334v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2401.09334v1,arxiv
+Large Language Models as Urban Residents: An LLM Agent Framework for Personal Mobility Generation,2024,http://arxiv.org/abs/2402.14744v3,2402.14744v3,,,cs.AI,"cs.AI,cs.CL,cs.CY,cs.LG",https://arxiv.org/pdf/2402.14744v3,arxiv
+Large Language Models based Multi-Agent Framework for Objective Oriented Control Design in Power Electronics,2024,http://arxiv.org/abs/2406.12628v1,2406.12628v1,,,eess.SY,eess.SY,https://arxiv.org/pdf/2406.12628v1,arxiv
+Large language model empowered participatory urban planning,2024,http://arxiv.org/abs/2402.01698v1,2402.01698v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2402.01698v1,arxiv
+LegalAgentBench: Evaluating LLM Agents in Legal Domain,2024,http://arxiv.org/abs/2412.17259v1,2412.17259v1,,,cs.CL,"cs.CL,cs.IR",https://arxiv.org/pdf/2412.17259v1,arxiv
+LightVA: Lightweight Visual Analytics with LLM Agent-Based Task Planning and Execution,2024,http://arxiv.org/abs/2411.05651v2,2411.05651v2,10.1109/TVCG.2024.3496112,IEEE Transactions on Visualization and Computer Graphics 2024,cs.HC,cs.HC,https://arxiv.org/pdf/2411.05651v2,arxiv
+MAGIC: Mastering Physical Adversarial Generation in Context through Collaborative LLM Agents,2024,http://arxiv.org/abs/2412.08014v2,2412.08014v2,,,cs.CV,"cs.CV,cs.AI",https://arxiv.org/pdf/2412.08014v2,arxiv
+MEGAnno+: A Human-LLM Collaborative Annotation System,2024,http://arxiv.org/abs/2402.18050v1,2402.18050v1,,,cs.CL,"cs.CL,cs.HC",https://arxiv.org/pdf/2402.18050v1,arxiv
+MIRAI: Evaluating LLM Agents for Event Forecasting,2024,http://arxiv.org/abs/2407.01231v1,2407.01231v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2407.01231v1,arxiv
+MLR-Copilot: Autonomous Machine Learning Research based on Large Language Models Agents,2024,http://arxiv.org/abs/2408.14033v3,2408.14033v3,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2408.14033v3,arxiv
+MathLearner: A Large Language Model Agent Framework for Learning to Solve Mathematical Problems,2024,http://arxiv.org/abs/2408.01779v1,2408.01779v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2408.01779v1,arxiv
+MathViz-E: A Case-study in Domain-Specialized Tool-Using Agents,2024,http://arxiv.org/abs/2407.17544v1,2407.17544v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2407.17544v1,arxiv
+MeNTi: Bridging Medical Calculator and LLM Agent with Nested Tool Calling,2024,http://arxiv.org/abs/2410.13610v3,2410.13610v3,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2410.13610v3,arxiv
+Memory-Augmented Agent Training for Business Document Understanding,2024,http://arxiv.org/abs/2412.15274v1,2412.15274v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2412.15274v1,arxiv
+Molly: Making Large Language Model Agents Solve Python Problem More Logically,2024,http://arxiv.org/abs/2412.18093v1,2412.18093v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2412.18093v1,arxiv
+Moral Alignment for LLM Agents,2024,http://arxiv.org/abs/2410.01639v4,2410.01639v4,,,cs.LG,"cs.LG,cs.AI,cs.CY",https://arxiv.org/pdf/2410.01639v4,arxiv
+MuLan: Multimodal-LLM Agent for Progressive and Interactive Multi-Object Diffusion,2024,http://arxiv.org/abs/2402.12741v2,2402.12741v2,,,cs.CV,cs.CV,https://arxiv.org/pdf/2402.12741v2,arxiv
+Mutual Enhancement of Large Language and Reinforcement Learning Models through Bi-Directional Feedback Mechanisms: A Planning Case Study,2024,http://arxiv.org/abs/2401.06603v2,2401.06603v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2401.06603v2,arxiv
+Offline Training of Language Model Agents with Functions as Learnable Weights,2024,http://arxiv.org/abs/2402.11359v4,2402.11359v4,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2402.11359v4,arxiv
+On the Structural Memory of LLM Agents,2024,http://arxiv.org/abs/2412.15266v1,2412.15266v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2412.15266v1,arxiv
+"Open Models, Closed Minds? On Agents Capabilities in Mimicking Human Personalities through Open Large Language Models",2024,http://arxiv.org/abs/2401.07115v3,2401.07115v3,,,cs.AI,"cs.AI,cs.CL,cs.CY,cs.HC,physics.soc-ph",https://arxiv.org/pdf/2401.07115v3,arxiv
+OpenCity: A Scalable Platform to Simulate Urban Activities with Massive LLM Agents,2024,http://arxiv.org/abs/2410.21286v1,2410.21286v1,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2410.21286v1,arxiv
+PEAR: A Robust and Flexible Automation Framework for Ptychography Enabled by Multiple Large Language Model Agents,2024,http://arxiv.org/abs/2410.09034v1,2410.09034v1,,,cs.CE,"cs.CE,cs.AI,cs.CL,cs.MA",https://arxiv.org/pdf/2410.09034v1,arxiv
+PRACT: Optimizing Principled Reasoning and Acting of LLM Agent,2024,http://arxiv.org/abs/2410.18528v1,2410.18528v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2410.18528v1,arxiv
+"Perceive, Reflect, and Plan: Designing LLM Agent for Goal-Directed City Navigation without Instructions",2024,http://arxiv.org/abs/2408.04168v3,2408.04168v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2408.04168v3,arxiv
+"Personal LLM Agents: Insights and Survey about the Capability, Efficiency and Security",2024,http://arxiv.org/abs/2401.05459v2,2401.05459v2,,,cs.HC,"cs.HC,cs.AI,cs.SE",https://arxiv.org/pdf/2401.05459v2,arxiv
+Personalizing Prostate Cancer Education for Patients Using an EHR-Integrated LLM Agent,2024,http://arxiv.org/abs/2409.19100v2,2409.19100v2,,npj Digital Medicine 2025,cs.HC,cs.HC,https://arxiv.org/pdf/2409.19100v2,arxiv
+Plancraft: an evaluation dataset for planning with LLM agents,2024,http://arxiv.org/abs/2412.21033v2,2412.21033v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2412.21033v2,arxiv
+Preemptive Detection and Correction of Misaligned Actions in LLM Agents,2024,http://arxiv.org/abs/2407.11843v4,2407.11843v4,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2407.11843v4,arxiv
+Privacy Leakage Overshadowed by Views of AI: A Study on Human Oversight of Privacy in Language Model Agent,2024,http://arxiv.org/abs/2411.01344v3,2411.01344v3,,,cs.HC,"cs.HC,cs.AI,cs.CR",https://arxiv.org/pdf/2411.01344v3,arxiv
+Proactive Agent: Shifting LLM Agents from Reactive Responses to Active Assistance,2024,http://arxiv.org/abs/2410.12361v3,2410.12361v3,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2410.12361v3,arxiv
+Probing the Capacity of Language Model Agents to Operationalize Disparate Experiential Context Despite Distraction,2024,http://arxiv.org/abs/2411.12828v1,2411.12828v1,,Findings Assoc. Comput. Linguistics: EMNLP 2024 15447-15459 (2024),cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2411.12828v1,arxiv
+PsychoGAT: A Novel Psychological Measurement Paradigm through Interactive Fiction Games with LLM Agents,2024,http://arxiv.org/abs/2402.12326v2,2402.12326v2,,,cs.CL,"cs.CL,cs.CY,cs.HC,cs.LG,cs.MA",https://arxiv.org/pdf/2402.12326v2,arxiv
+PyBench: Evaluating LLM Agent on various real-world coding tasks,2024,http://arxiv.org/abs/2407.16732v2,2407.16732v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2407.16732v2,arxiv
+R-Judge: Benchmarking Safety Risk Awareness for LLM Agents,2024,http://arxiv.org/abs/2401.10019v3,2401.10019v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2401.10019v3,arxiv
+RAP: Retrieval-Augmented Planning with Contextual Memory for Multimodal LLM Agents,2024,http://arxiv.org/abs/2402.03610v1,2402.03610v1,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2402.03610v1,arxiv
+RePrompt: Planning by Automatic Prompt Engineering for Large Language Models Agents,2024,http://arxiv.org/abs/2406.11132v2,2406.11132v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2406.11132v2,arxiv
+Recursive Introspection: Teaching Language Model Agents How to Self-Improve,2024,http://arxiv.org/abs/2407.18219v2,2407.18219v2,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2407.18219v2,arxiv
+Reframe Anything: LLM Agent for Open World Video Reframing,2024,http://arxiv.org/abs/2403.06070v1,2403.06070v1,,,cs.CV,"cs.CV,cs.HC",https://arxiv.org/pdf/2403.06070v1,arxiv
+Reinforcement Learning for Aligning Large Language Models Agents with Interactive Environments: Quantifying and Mitigating Prompt Overfitting,2024,http://arxiv.org/abs/2410.19920v3,2410.19920v3,,,cs.LG,cs.LG,https://arxiv.org/pdf/2410.19920v3,arxiv
+Reproducing and Extending Experiments in Behavioral Strategy with Large Language Models,2024,http://arxiv.org/abs/2410.06932v1,2410.06932v1,,,econ.GN,"econ.GN,cs.AI",https://arxiv.org/pdf/2410.06932v1,arxiv
+SAC-GLAM: Improving Online RL for LLM agents with Soft Actor-Critic and Hindsight Relabeling,2024,http://arxiv.org/abs/2410.12481v1,2410.12481v1,,,cs.LG,"cs.LG,cs.AI",https://arxiv.org/pdf/2410.12481v1,arxiv
+SAUP: Situation Awareness Uncertainty Propagation on LLM Agent,2024,http://arxiv.org/abs/2412.01033v1,2412.01033v1,,,cs.CL,"cs.CL,cs.LG",https://arxiv.org/pdf/2412.01033v1,arxiv
+SELA: Tree-Search Enhanced LLM Agents for Automated Machine Learning,2024,http://arxiv.org/abs/2410.17238v1,2410.17238v1,,,cs.AI,"cs.AI,cs.CL,cs.LG,cs.SE",https://arxiv.org/pdf/2410.17238v1,arxiv
+SMoA: Improving Multi-agent Large Language Models with Sparse Mixture-of-Agents,2024,http://arxiv.org/abs/2411.03284v1,2411.03284v1,,,cs.AI,"cs.AI,cs.CL,cs.MA",https://arxiv.org/pdf/2411.03284v1,arxiv
+SOEN-101: Code Generation by Emulating Software Process Models Using Large Language Model Agents,2024,http://arxiv.org/abs/2403.15852v2,2403.15852v2,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2403.15852v2,arxiv
+STEER: Assessing the Economic Rationality of Large Language Models,2024,http://arxiv.org/abs/2402.09552v2,2402.09552v2,,,cs.CL,"cs.CL,econ.GN",https://arxiv.org/pdf/2402.09552v2,arxiv
+STRIDE: A Tool-Assisted LLM Agent Framework for Strategic and Interactive Decision-Making,2024,http://arxiv.org/abs/2405.16376v2,2405.16376v2,,,cs.CL,"cs.CL,cs.GT",https://arxiv.org/pdf/2405.16376v2,arxiv
+Safe Guard: an LLM-agent for Real-time Voice-based Hate Speech Detection in Social Virtual Reality,2024,http://arxiv.org/abs/2409.15623v1,2409.15623v1,,,eess.AS,"eess.AS,cs.AI,cs.SD",https://arxiv.org/pdf/2409.15623v1,arxiv
+SafeAgentBench: A Benchmark for Safe Task Planning of Embodied LLM Agents,2024,http://arxiv.org/abs/2412.13178v5,2412.13178v5,,,cs.CR,"cs.CR,cs.AI,cs.RO",https://arxiv.org/pdf/2412.13178v5,arxiv
+SceneCraft: An LLM Agent for Synthesizing 3D Scene as Blender Code,2024,http://arxiv.org/abs/2403.01248v1,2403.01248v1,,,cs.CV,"cs.CV,cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2403.01248v1,arxiv
+ScreenAgent: A Vision Language Model-driven Computer Control Agent,2024,http://arxiv.org/abs/2402.07945v1,2402.07945v1,10.24963/ijcai.2024/711,Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence (IJCAI 2024),cs.HC,"cs.HC,cs.AI,cs.CV",https://arxiv.org/pdf/2402.07945v1,arxiv
+Self-Reflection in LLM Agents: Effects on Problem-Solving Performance,2024,http://arxiv.org/abs/2405.06682v3,2405.06682v3,10.1109/FLLM63129.2024.10852493,"2nd International Conference on Foundation and Large Language Models (FLLM 2024), pp. 476-483",cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2405.06682v3,arxiv
+Small LLMs Are Weak Tool Learners: A Multi-LLM Agent,2024,http://arxiv.org/abs/2401.07324v3,2401.07324v3,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2401.07324v3,arxiv
+Soft Self-Consistency Improves Language Model Agents,2024,http://arxiv.org/abs/2402.13212v2,2402.13212v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2402.13212v2,arxiv
+SpecRover: Code Intent Extraction via LLMs,2024,http://arxiv.org/abs/2408.02232v4,2408.02232v4,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2408.02232v4,arxiv
+Star-Agents: Automatic Data Optimization with LLM Agents for Instruction Tuning,2024,http://arxiv.org/abs/2411.14497v1,2411.14497v1,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2411.14497v1,arxiv
+StateAct: Enhancing LLM Base Agents via Self-prompting and State-tracking,2024,http://arxiv.org/abs/2410.02810v3,2410.02810v3,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2410.02810v3,arxiv
+Synergizing LLM Agents and Knowledge Graph for Socioeconomic Prediction in LBSN,2024,http://arxiv.org/abs/2411.00028v2,2411.00028v2,,,cs.CL,"cs.CL,cs.AI,cs.LG,cs.SI",https://arxiv.org/pdf/2411.00028v2,arxiv
+TRAD: Enhancing LLM Agents with Step-Wise Thought Retrieval and Aligned Decision,2024,http://arxiv.org/abs/2403.06221v1,2403.06221v1,,,cs.AI,"cs.AI,cs.CL,cs.IR",https://arxiv.org/pdf/2403.06221v1,arxiv
+TapeAgents: a Holistic Framework for Agent Development and Optimization,2024,http://arxiv.org/abs/2412.08445v1,2412.08445v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2412.08445v1,arxiv
+Tapilot-Crossing: Benchmarking and Evolving LLMs Towards Interactive Data Analysis Agents,2024,http://arxiv.org/abs/2403.05307v1,2403.05307v1,,,cs.AI,cs.AI,https://arxiv.org/pdf/2403.05307v1,arxiv
+Teams of LLM Agents can Exploit Zero-Day Vulnerabilities,2024,http://arxiv.org/abs/2406.01637v2,2406.01637v2,,,cs.MA,"cs.MA,cs.AI",https://arxiv.org/pdf/2406.01637v2,arxiv
+Testing Uncertainty of Large Language Models for Physics Knowledge and Reasoning,2024,http://arxiv.org/abs/2411.14465v1,2411.14465v1,,,cs.CL,"cs.CL,cs.LG",https://arxiv.org/pdf/2411.14465v1,arxiv
+Testing and Understanding Erroneous Planning in LLM Agents through Synthesized User Inputs,2024,http://arxiv.org/abs/2404.17833v1,2404.17833v1,,,cs.AI,"cs.AI,cs.PL",https://arxiv.org/pdf/2404.17833v1,arxiv
+The Drama Machine: Simulating Character Development with LLM Agents,2024,http://arxiv.org/abs/2408.01725v2,2408.01725v2,,,cs.CY,cs.CY,https://arxiv.org/pdf/2408.01725v2,arxiv
+The Emerged Security and Privacy of LLM Agent: A Survey with Case Studies,2024,http://arxiv.org/abs/2407.19354v2,2407.19354v2,10.1145/3773080,,cs.CR,cs.CR,https://arxiv.org/pdf/2407.19354v2,arxiv
+The Future of Scientific Publishing: Automated Article Generation,2024,http://arxiv.org/abs/2404.17586v1,2404.17586v1,,,cs.HC,"cs.HC,cs.AI,cs.ET",https://arxiv.org/pdf/2404.17586v1,arxiv
+The Stepwise Deception: Simulating the Evolution from True News to Fake News with LLM Agents,2024,http://arxiv.org/abs/2410.19064v2,2410.19064v2,,,cs.SI,"cs.SI,cs.AI",https://arxiv.org/pdf/2410.19064v2,arxiv
+The Task Shield: Enforcing Task Alignment to Defend Against Indirect Prompt Injection in LLM Agents,2024,http://arxiv.org/abs/2412.16682v1,2412.16682v1,,,cs.CR,"cs.CR,cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2412.16682v1,arxiv
+TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks,2024,http://arxiv.org/abs/2412.14161v3,2412.14161v3,,,cs.CL,cs.CL,https://arxiv.org/pdf/2412.14161v3,arxiv
+Towards Achieving Human Parity on End-to-end Simultaneous Speech Translation via LLM Agent,2024,http://arxiv.org/abs/2407.21646v2,2407.21646v2,,,cs.CL,"cs.CL,cs.SD,eess.AS",https://arxiv.org/pdf/2407.21646v2,arxiv
+Towards Logically Sound Natural Language Reasoning with Logic-Enhanced Language Model Agents,2024,http://arxiv.org/abs/2408.16081v2,2408.16081v2,,,cs.AI,"cs.AI,cs.CL,cs.GT,cs.LO",https://arxiv.org/pdf/2408.16081v2,arxiv
+Towards Robust Automation of Surgical Systems via Digital Twin-based Scene Representations from Foundation Models,2024,http://arxiv.org/abs/2409.13107v2,2409.13107v2,,,cs.RO,cs.RO,https://arxiv.org/pdf/2409.13107v2,arxiv
+Towards a Realistic Long-Term Benchmark for Open-Web Research Agents,2024,http://arxiv.org/abs/2409.14913v2,2409.14913v2,,,cs.CL,"cs.CL,cs.IR,cs.LG",https://arxiv.org/pdf/2409.14913v2,arxiv
+Transforming Wearable Data into Personal Health Insights using Large Language Model Agents,2024,http://arxiv.org/abs/2406.06464v4,2406.06464v4,,,cs.AI,"cs.AI,cs.CL",https://arxiv.org/pdf/2406.06464v4,arxiv
+Tree Search for Language Model Agents,2024,http://arxiv.org/abs/2407.01476v3,2407.01476v3,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2407.01476v3,arxiv
+Trial and Error: Exploration-Based Trajectory Optimization for LLM Agents,2024,http://arxiv.org/abs/2403.02502v2,2403.02502v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2403.02502v2,arxiv
+Understanding the Weakness of Large Language Model Agents within a Complex Android Environment,2024,http://arxiv.org/abs/2402.06596v1,2402.06596v1,,,cs.AI,"cs.AI,cs.HC,cs.SE",https://arxiv.org/pdf/2402.06596v1,arxiv
+Understanding the planning of LLM agents: A survey,2024,http://arxiv.org/abs/2402.02716v1,2402.02716v1,,,cs.AI,"cs.AI,cs.CL,cs.LG",https://arxiv.org/pdf/2402.02716v1,arxiv
+UrbanKGent: A Unified Large Language Model Agent Framework for Urban Knowledge Graph Construction,2024,http://arxiv.org/abs/2402.06861v2,2402.06861v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2402.06861v2,arxiv
+Using a Feedback Loop for LLM-based Infrastructure as Code Generation,2024,http://arxiv.org/abs/2411.19043v1,2411.19043v1,,,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2411.19043v1,arxiv
+WALL-E: World Alignment by Rule Learning Improves World Model-based LLM Agents,2024,http://arxiv.org/abs/2410.07484v2,2410.07484v2,,,cs.AI,cs.AI,https://arxiv.org/pdf/2410.07484v2,arxiv
+WESE: Weak Exploration to Strong Exploitation for LLM Agents,2024,http://arxiv.org/abs/2404.07456v1,2404.07456v1,,,cs.AI,"cs.AI,cs.MA",https://arxiv.org/pdf/2404.07456v1,arxiv
+WaitGPT: Monitoring and Steering Conversational LLM Agent in Data Analysis with On-the-Fly Code Visualization,2024,http://arxiv.org/abs/2408.01703v1,2408.01703v1,10.1145/3654777.3676374,,cs.HC,cs.HC,https://arxiv.org/pdf/2408.01703v1,arxiv
+Watch Every Step! LLM Agent Learning via Iterative Step-Level Process Refinement,2024,http://arxiv.org/abs/2406.11176v2,2406.11176v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2406.11176v2,arxiv
+Web Retrieval Agents for Evidence-Based Misinformation Detection,2024,http://arxiv.org/abs/2409.00009v2,2409.00009v2,,,cs.IR,"cs.IR,cs.AI",https://arxiv.org/pdf/2409.00009v2,arxiv
+When LLMs Go Online: The Emerging Threat of Web-Enabled LLMs,2024,http://arxiv.org/abs/2410.14569v3,2410.14569v3,,,cs.CR,"cs.CR,cs.AI",https://arxiv.org/pdf/2410.14569v3,arxiv
+"When Large Language Model Agents Meet 6G Networks: Perception, Grounding, and Alignment",2024,http://arxiv.org/abs/2401.07764v2,2401.07764v2,,,cs.AI,"cs.AI,cs.NI",https://arxiv.org/pdf/2401.07764v2,arxiv
+"You Name It, I Run It: An LLM Agent to Execute Tests of Arbitrary Projects",2024,http://arxiv.org/abs/2412.10133v2,2412.10133v2,,ISSTA 2025,cs.SE,"cs.SE,cs.AI",https://arxiv.org/pdf/2412.10133v2,arxiv
+ALYMPICS: LLM Agents Meet Game Theory -- Exploring Strategic Decision-Making with AI Agents,2023,http://arxiv.org/abs/2311.03220v4,2311.03220v4,,,cs.CL,"cs.CL,cs.AI,cs.GT",https://arxiv.org/pdf/2311.03220v4,arxiv
+AVIS: Autonomous Visual Information Seeking with Large Language Model Agent,2023,http://arxiv.org/abs/2306.08129v3,2306.08129v3,,,cs.CV,"cs.CV,cs.AI,cs.CL",https://arxiv.org/pdf/2306.08129v3,arxiv
+AdaPlanner: Adaptive Planning from Feedback with Language Models,2023,http://arxiv.org/abs/2305.16653v1,2305.16653v1,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2305.16653v1,arxiv
+Adapting LLM Agents with Universal Feedback in Communication,2023,http://arxiv.org/abs/2310.01444v3,2310.01444v3,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2310.01444v3,arxiv
+Agent-OM: Leveraging LLM Agents for Ontology Matching,2023,http://arxiv.org/abs/2312.00326v24,2312.00326v24,,,cs.AI,"cs.AI,cs.CL,cs.IR",https://arxiv.org/pdf/2312.00326v24,arxiv
+Empowering Working Memory for Large Language Model Agents,2023,http://arxiv.org/abs/2312.17259v2,2312.17259v2,,,cs.CL,"cs.CL,cs.AI",https://arxiv.org/pdf/2312.17259v2,arxiv
+Evaluating Language-Model Agents on Realistic Autonomous Tasks,2023,http://arxiv.org/abs/2312.11671v2,2312.11671v2,,,cs.CL,"cs.CL,cs.AI,cs.LG",https://arxiv.org/pdf/2312.11671v2,arxiv
+Exploring Collaboration Mechanisms for LLM Agents: A Social Psychology View,2023,http://arxiv.org/abs/2310.02124v3,2310.02124v3,,,cs.CL,"cs.CL,cs.AI,cs.CY,cs.LG,cs.MA",https://arxiv.org/pdf/2310.02124v3,arxiv
+Exposing Limitations of Language Model Agents in Sequential-Task Compositions on the Web,2023,http://arxiv.org/abs/2311.18751v3,2311.18751v3,,,cs.LG,"cs.LG,cs.AI,cs.CL",https://arxiv.org/pdf/2311.18751v3,arxiv
+GestureGPT: Toward Zero-Shot Free-Form Hand Gesture Understanding with Large Language Model Agents,2023,http://arxiv.org/abs/2310.12821v5,2310.12821v5,10.1145/3698145,"Proc. ACM Hum.-Comput. Interact., Vol. 8, No. ISS, Article 545, 2024, 38 pages",cs.CL,"cs.CL,cs.HC",https://arxiv.org/pdf/2310.12821v5,arxiv
+LASER: LLM Agent with State-Space Exploration for Web Navigation,2023,http://arxiv.org/abs/2309.08172v2,2309.08172v2,,,cs.CL,cs.CL,https://arxiv.org/pdf/2309.08172v2,arxiv
+"Language Models, Agent Models, and World Models: The LAW for Machine Reasoning and Planning",2023,http://arxiv.org/abs/2312.05230v1,2312.05230v1,,,cs.AI,"cs.AI,cs.CL,cs.CV,cs.LG,cs.RO",https://arxiv.org/pdf/2312.05230v1,arxiv
+Large Language Models Play StarCraft II: Benchmarks and A Chain of Summarization Approach,2023,http://arxiv.org/abs/2312.11865v3,2312.11865v3,,,cs.AI,cs.AI,https://arxiv.org/pdf/2312.11865v3,arxiv
+MathChat: Converse to Tackle Challenging Math Problems with LLM Agents,2023,http://arxiv.org/abs/2306.01337v3,2306.01337v3,,,cs.CL,"cs.CL,stat.ML",https://arxiv.org/pdf/2306.01337v3,arxiv
+ReST meets ReAct: Self-Improvement for Multi-Step Reasoning LLM Agent,2023,http://arxiv.org/abs/2312.10003v1,2312.10003v1,,,cs.CL,cs.CL,https://arxiv.org/pdf/2312.10003v1,arxiv
+"Reason for Future, Act for Now: A Principled Framework for Autonomous LLM Agents with Provable Sample Efficiency",2023,http://arxiv.org/abs/2309.17382v3,2309.17382v3,,,cs.AI,"cs.AI,cs.LG",https://arxiv.org/pdf/2309.17382v3,arxiv

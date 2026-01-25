@@ -126,7 +126,7 @@ C5: sections/*.md → output/DRAFT.md → latex/main.tex → latex/main.pdf     
 ## 示例产物（v0.1，包含完整中间产物）
 该版本由 codex 中的 gpt-5.2-xhigh 运行约 2 小时 生成，过程中仅进行过 一次 human-in-the-loop（C2 阶段） 介入。
 路径：`example/e2e-agent-survey-latex-verify-****时间戳/`（pipeline：`pipelines/arxiv-survey-latex.pipeline.md`）。
-配置摘要（示例 run）：`draft_profile: lite` / `evidence_mode: abstract` / `core_size: 220`（详见 `queries.md`）。
+配置摘要（示例 run）：`draft_profile: survey` / `evidence_mode: abstract` / `core_size: 220`（详见 `queries.md`）。
 推荐默认（对齐最终交付）：`draft_profile: survey`（默认）或 `draft_profile: deep`（更严格）。
 
 目录速览（每个文件夹干嘛用）：

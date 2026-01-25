@@ -40,7 +40,7 @@ Required fields:
 1. Read `outline/evidence_drafts.jsonl`.
 2. Prefer anchors that contain:
    - a number (%, counts, scores)
-   - an explicit benchmark/dataset/metric token
+   - an explicit benchmark/dataset/metric name
    - an explicit limitation/failure statement
 3. Filter anchors to only citation keys present in `citations/ref.bib`.
 4. Write `outline/anchor_sheet.jsonl`.

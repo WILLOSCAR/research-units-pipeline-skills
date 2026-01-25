@@ -150,6 +150,10 @@ def main() -> int:
     profile = _pipeline_profile(workspace)
     draft_profile = _draft_profile(workspace)
 
+    # Tables (survey deliverable): count Markdown tables in the merged draft.
+    table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", draft)
+    table_n = len(table_seps)
+
     # Placeholder leakage.
     if "…" in draft:
         blocking.append("draft contains unicode ellipsis (…)")
@@ -157,6 +161,9 @@ def main() -> int:
         blocking.append("draft contains truncation dots (...)")
     if re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", draft):
         blocking.append("draft contains TODO/TBD/FIXME placeholders")
+
+    if profile == "arxiv-survey" and table_n < 2:
+        blocking.append(f"draft has too few tables ({table_n}; expected >= 2)")
 
     # Evidence-policy disclaimer spam: keep this once in front matter, not repeated per H3.
     evidence_disclaimer_details: list[tuple[str, int, list[str]]] = []
@@ -411,10 +418,7 @@ def main() -> int:
             per_h3 = 12
             base = 30
             frac = 0.55
-        elif draft_profile == "lite":
-            per_h3 = 6
-            base = 14
-            frac = 0.30
+            floor = 110
         else:
             per_h3 = 10
             # Survey deliverable expectation: keep global unique citations high enough
@@ -454,10 +458,7 @@ def main() -> int:
 
         max_uncited = 0.25
         if profile == "arxiv-survey":
-            if draft_profile == "deep":
-                max_uncited = 0.15
-            elif draft_profile != "lite":
-                max_uncited = 0.20
+            max_uncited = 0.15 if draft_profile == "deep" else 0.20
 
         if rate > max_uncited:
             blocking.append(
@@ -536,6 +537,7 @@ def main() -> int:
         "",
         "## Summary",
         f"- Unique citations in draft: {len(cited)}",
+        f"- Markdown tables in draft: {table_n}",
         f"- Outline H3 expected: {len(set(expected.values())) if expected else 0}",
         f"- Draft H3 found: {len(found)}",
         "",

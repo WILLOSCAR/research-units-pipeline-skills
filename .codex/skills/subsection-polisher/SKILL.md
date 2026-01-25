@@ -181,7 +181,7 @@ Use these as rewrite *intentions*, not copy-paste templates.
 
 Stop and go upstream if:
 - you cannot write a contrast without guessing (evidence pack is title/abstract-only)
-- the subsection lacks evaluation anchors (no benchmarks/metrics/protocol tokens in notes)
+- the subsection lacks evaluation anchors (no benchmarks/metrics/protocol details in notes)
 - you keep needing out-of-scope citations to make the argument work
 
 ## Acceptance checklist

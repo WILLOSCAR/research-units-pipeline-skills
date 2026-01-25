@@ -56,6 +56,8 @@ This is a deterministic conversion step; prose quality should already be address
 - Language default: the scaffold uses `article` (English-looking front matter). If the draft contains CJK characters, it switches to `ctexart` so the PDF renders correctly.
 - Conversion rules (high level):
   - Headings `##/###/####` → `\section/\subsection/\subsubsection` (strips leading numeric prefixes like `1.2`).
+  - Headings starting with `Appendix` / `附录` trigger `\appendix` once, then render as appendix sections.
+  - Bold caption lines like `**Table 1. ...**` / `**Appendix Table A1. ...**` immediately before a Markdown table become a LaTeX `table` float with `\caption{...}` and a stable `\label{tab:...}`.
   - `## Abstract` → `abstract` environment.
   - `[@Key]` or `[@Key1; @Key2]` → `\citep{Key}` / `\citep{Key1,Key2}`.
   - Inline markdown `**bold**` / `*italic*` / `` `code` `` → `\textbf{}` / `\emph{}` / `\texttt{}`.

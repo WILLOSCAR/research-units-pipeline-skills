@@ -1,0 +1,5 @@
+## Conclusion
+
+LLM agents are best understood as closed-loop systems whose behavior is jointly determined by the model, the interface contract, and the evaluation protocol. Across tool use, planning, memory, adaptation, and multi-agent coordination, the most persistent source of disagreement in the literature is not whether a technique "works", but under which protocol assumptions the reported gains are interpretable and transferable [@Yao2022React; @Mohammadi2025Evaluation; @Liu2025Mcpagentbench].
+
+Looking forward, progress on agents will be easier to audit if papers make key protocol details explicit (tool catalog, budget/cost model, environment stochasticity, threat model) and if benchmarks evaluate the full tool-use pipeline rather than isolated components. A protocol-first reporting norm would narrow the gap between impressive demos and deployable systems, and make cross-paper synthesis a structural property of the field rather than an after-the-fact editorial exercise [@Fu2025Eval; @Zhang2025Security; @Khatchadourian2026Replayable].

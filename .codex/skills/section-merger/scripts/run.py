@@ -67,6 +67,33 @@ def _parse_transitions(text: str) -> tuple[dict[tuple[str, str], str], dict[tupl
     return h3_map, h2_map
 
 
+_TABLE_SEP = re.compile(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$")
+
+
+def _count_md_tables(text: str) -> int:
+    # Count table separator lines (one per Markdown table).
+    return len(re.findall(_TABLE_SEP, text or ""))
+
+
+def _clean_tables_for_insertion(text: str) -> str:
+    # `outline/tables_appendix.md` is inserted without headings to avoid ToC bloat.
+    out: list[str] = []
+    for raw in (text or "").splitlines():
+        s = raw.strip()
+        if not s:
+            out.append("")
+            continue
+        if s.startswith("#"):
+            continue
+        out.append(raw.rstrip())
+    return "\n".join(out).strip()
+
+
+def _is_related_work(title: str) -> bool:
+    t = re.sub(r"\s+", " ", (title or "").strip().lower())
+    return "related work" in t
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", required=True)
@@ -80,8 +107,10 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, ensure_dir, load_yaml, parse_semicolon_list
+    from tooling.quality_gate import _pipeline_profile
 
     workspace = Path(args.workspace).resolve()
+    profile = _pipeline_profile(workspace)
 
     inputs = parse_semicolon_list(args.inputs)
     outputs = parse_semicolon_list(args.outputs) or ["output/DRAFT.md", "output/MERGE_REPORT.md"]
@@ -143,34 +172,50 @@ def main() -> int:
             if sid:
                 unit_files.append(f"sections/{_slug_unit_id(sid)}.md")
 
+    # Tables are part of the default deliverable for arxiv-survey pipelines.
+    tables_rel = "outline/tables_appendix.md"
+    tables_off = (workspace / "outline" / "tables.insert.off").exists()
+    require_tables = profile == "arxiv-survey" and not tables_off
+
+    tables_text = ""
+    tables_n = 0
+
     # Probe all required inputs. We do NOT write a partial draft with TODO markers.
     for rel in required_global + unit_files + required_transitions:
         _require(rel)
 
+    if require_tables:
+        p = workspace / tables_rel
+        if not p.exists() or p.stat().st_size <= 0:
+            missing.append(tables_rel)
+        else:
+            tables_text = _clean_tables_for_insertion(_read_text(p))
+            tables_n = _count_md_tables(tables_text)
+            if tables_n < 2:
+                missing.append(f"{tables_rel} (expected >=2 Markdown tables)")
+
     status = "PASS" if not missing else "FAIL"
 
-    rep_lines = [
-        "# Merge report",
-        "",
-        f"- Status: {status}",
-        f"- Draft: `{draft_rel}`",
-        f"- Missing inputs: {len(missing)}",
-        "",
-    ]
     if missing:
-        rep_lines.append("## Missing files")
+        rep_lines = [
+            "# Merge report",
+            "",
+            f"- Status: {status}",
+            f"- Draft: `{draft_rel}`",
+            f"- Missing inputs: {len(missing)}",
+        ]
+        if profile == "arxiv-survey":
+            rep_lines.append(f"- Tables required: {'yes' if require_tables else 'no'}")
+            if require_tables:
+                rep_lines.append(f"- Tables detected (outline): {tables_n}")
+        rep_lines.extend(["", "## Missing files"])
         for rel in sorted(set(missing)):
             rep_lines.append(f"- `{rel}`")
         rep_lines.append("")
-
-    atomic_write_text(report_path, "\n".join(rep_lines).rstrip() + "\n")
-
-    if missing:
-        # Block: do not generate a partial draft.
+        atomic_write_text(report_path, "\n".join(rep_lines).rstrip() + "\n")
         return 2
 
-    ensure_dir(draft_path.parent)
-
+    # Title from GOAL.md (first non-heading line).
     goal = _read_text(workspace / "GOAL.md").strip().splitlines()
     title = "Survey"
     for ln in goal:
@@ -182,6 +227,7 @@ def main() -> int:
 
     transitions_text = _read_text(workspace / "outline" / "transitions.md")
     h3_trans, h2_trans = _parse_transitions(transitions_text)
+
     # By default, do not inject between-H2 narrator transitions into the paper body.
     # If you really want H2->H2 transitions inserted, create: outline/transitions.insert_h2.ok
     insert_h2_transitions = (workspace / "outline" / "transitions.insert_h2.ok").exists()
@@ -190,6 +236,9 @@ def main() -> int:
 
     out_lines.append(_require("sections/abstract.md").strip())
     out_lines.append("")
+
+    tables_inserted = False
+    tables_insert_note = ""
 
     for idx, sec in enumerate(outline_sections):
         sec_title = sec["title"]
@@ -222,6 +271,7 @@ def main() -> int:
             out_lines.append(_read_text(workspace / body_rel).strip())
             out_lines.append("")
 
+
         if insert_h2_transitions and idx + 1 < len(outline_sections):
             nxt_title = outline_sections[idx + 1]["title"]
             t = h2_trans.get((sec_title, nxt_title), "").strip()
@@ -234,7 +284,35 @@ def main() -> int:
     out_lines.append(_require("sections/conclusion.md").strip())
     out_lines.append("")
 
+    if require_tables:
+        out_lines.append("## Appendix: Tables")
+        out_lines.append("")
+        out_lines.append(tables_text)
+        out_lines.append("")
+        tables_inserted = True
+        tables_insert_note = "appendix"
+
+    ensure_dir(draft_path.parent)
     atomic_write_text(draft_path, "\n".join([ln for ln in out_lines if ln is not None]).rstrip() + "\n")
+
+    rep_lines = [
+        "# Merge report",
+        "",
+        "- Status: PASS",
+        f"- Draft: `{draft_rel}`",
+        "- Missing inputs: 0",
+    ]
+    if profile == "arxiv-survey":
+        rep_lines.append(f"- Tables required: {'yes' if require_tables else 'no'}")
+        if require_tables:
+            rep_lines.append(f"- Tables detected (outline): {tables_n}")
+            rep_lines.append(f"- Tables inserted: {'yes' if tables_inserted else 'no'}")
+            if tables_inserted:
+                rep_lines.append(f"- Tables insertion: {tables_insert_note}")
+                rep_lines.append(f"- Tables source: `{tables_rel}`")
+    rep_lines.append("")
+    atomic_write_text(report_path, "\n".join(rep_lines).rstrip() + "\n")
+
     return 0
 
 

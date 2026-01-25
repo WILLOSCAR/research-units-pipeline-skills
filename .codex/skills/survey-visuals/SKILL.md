@@ -1,21 +1,24 @@
 ---
 name: survey-visuals
 description: |
-  Draft non-prose visuals artifacts (tables, timeline, figure specs) for a survey, grounded in evidence and using citation keys from `citations/ref.bib`.
-  **Trigger**: survey visuals, tables, timeline, figures, visuals, 图表, 时间线, figure spec.
-  **Use when**: survey 的 C4（NO PROSE），已有 outline + claim/evidence + citations，需要先把对比表/演化时间线/图规格落盘。
-  **Skip if**: 缺少 `citations/ref.bib`（或 evidence 还没整理到位，导致表格只能写空洞模板）。
+  Draft non-prose visuals artifacts (timeline, figure specs) for a survey, grounded in evidence and using citation keys from `citations/ref.bib`.
+  **Trigger**: survey visuals, timeline, figures, visuals, 图表, 时间线, figure spec.
+  **Use when**: survey 的 C4（NO PROSE），已有 outline + claim/evidence + citations，需要先把时间线/图规格落盘。
+  **Skip if**: 你只关心正文（可跳过）；或缺少 `citations/ref.bib`。
   **Network**: none.
-  **Guardrail**: NO PROSE；表格/时间线/图规格必须具体且可核对（含 citations），禁止遗留 TODO/SCAFFOLD。
+  **Guardrail**: NO PROSE；产物必须具体且可核对（含 citations），禁止遗留 TODO/SCAFFOLD。
 ---
 
-# Survey Visuals (NO PROSE)
+# Survey Visuals (timeline + figure specs; NO PROSE)
 
-Create non-prose “visual thinking” artifacts that make the actual writing stage less template-y:
-
-- comparison tables (method + evaluation)
+This skill creates non-prose artifacts that make the writing stage less template-y:
 - timeline / evolution bullets
 - figure specs (what to draw, why it matters, what papers support it)
+
+Tables are handled by dedicated table skills:
+- `table-schema` -> `outline/table_schema.md`
+- `table-filler` -> `outline/tables_index.md` (internal index)
+- `appendix-table-writer` -> `outline/tables_appendix.md` (reader-facing Appendix tables)
 
 ## Inputs
 
@@ -26,38 +29,32 @@ Create non-prose “visual thinking” artifacts that make the actual writing st
 
 ## Outputs
 
-- `outline/tables.md`
 - `outline/timeline.md`
 - `outline/figures.md`
 
+## Workflow inputs (explicit)
+
+- Use `outline/outline.yml` + `outline/claim_evidence_matrix.md` to decide what to visualize.
+- Use `papers/paper_notes.jsonl` for year/milestone candidates.
+- Use only citation keys from `citations/ref.bib`.
+
 ## Workflow (heuristic)
-Uses: `outline/outline.yml`, `outline/claim_evidence_matrix.md`.
 
-
-1. Read the outline + claim–evidence matrix and pick the **comparison axes** that recur across sections:
-   - control loop / planner-executor split
-   - tool interface & orchestration
-   - memory / retrieval / reflection
-   - environments & benchmarks
-   - safety / security / alignment surfaces
-2. Tables (`outline/tables.md`):
-   - Write **≥2 Markdown tables** with real entries and citations.
-   - Prefer one “method matrix” and one “evaluation/benchmark matrix”.
-3. Timeline (`outline/timeline.md`):
-   - Write year → key milestone bullets (aim for breadth and citations).
-4. Figures (`outline/figures.md`):
-   - Write 2–4 figure specs that a human could draw:
-     - purpose (“what insight this figure communicates”)
+1) Read the outline + claim-evidence matrix and pick recurring comparison axes.
+2) Timeline (`outline/timeline.md`):
+   - Write year -> key milestone bullets (aim for breadth and citations).
+3) Figures (`outline/figures.md`):
+   - Write 2-4 figure specs that a human could draw:
+     - purpose (what insight this figure communicates)
      - required elements (boxes/arrows/axes)
      - what papers support each element (cite keys)
-5. Use only citation keys present in `citations/ref.bib`.
+4) Use only citation keys present in `citations/ref.bib`.
 
 ## Quality checklist
 
 - [ ] No `TODO` and no `<!-- SCAFFOLD ... -->` markers remain in the outputs.
-- [ ] `outline/tables.md` contains ≥2 Markdown tables with real content and citations.
-- [ ] `outline/timeline.md` contains ≥8 year bullets and each bullet has ≥1 citation marker `[@...]`.
-- [ ] `outline/figures.md` contains ≥2 figure specs and each mentions at least one supporting citation.
+- [ ] `outline/timeline.md` contains >=8 year bullets and each bullet has >=1 citation marker `[@...]`.
+- [ ] `outline/figures.md` contains >=2 figure specs and each mentions at least one supporting citation.
 
 ## Helper script (optional)
 
@@ -68,48 +65,37 @@ Uses: `outline/outline.yml`, `outline/claim_evidence_matrix.md`.
 
 ### All Options
 
-- See `--help` (this helper is intentionally minimal)
+- `--workspace <workspace_dir>` (required)
+- `--unit-id <id>` (optional; used only for runner bookkeeping)
+- `--inputs <a;b;c>` (optional; defaults to the four Inputs listed above)
+- `--outputs <timeline_rel;figures_rel>` (optional; defaults to `outline/timeline.md;outline/figures.md`)
+- `--checkpoint <C#>` (optional; ignored by the helper)
 
 ### Examples
 
-- Generate baseline visuals, then refine manually:
-  - Run the helper once, then refine `outline/tables.md`, `outline/timeline.md`, `outline/figures.md` for better coverage/accuracy (without leaving placeholders).
+- Generate timeline + figures with defaults:
+
+  `python .codex/skills/survey-visuals/scripts/run.py --workspace workspaces/<ws>`
+
+- Generate to custom output paths:
+
+  `python .codex/skills/survey-visuals/scripts/run.py --workspace workspaces/<ws> --outputs outline/timeline.md;outline/figures.md`
 
 ### Notes
 
-- The helper generates baseline visuals and never overwrites non-placeholder artifacts.
-- If `papers/paper_notes.jsonl` exists it will prefill candidate rows/bullets with `paper_id` + `bibkey` citation markers.
-- In `pipeline.py --strict` it will be blocked only if placeholder markers remain (and if minimum table/timeline/figure requirements are not met).
+- The helper is intentionally minimal and never overwrites non-placeholder artifacts.
+- In strict mode it blocks only if placeholder markers remain (and if minimum timeline/figure requirements are not met).
 
 ## Troubleshooting
 
-### Common Issues
+### Issue: timeline is thin or citation-free
 
-#### Issue: Visuals are still scaffolds (`TODO`/template)
+Fix:
+- Prefer fewer, higher-signal milestones, but ensure each bullet has >=1 `[@...]`.
+- Route upstream if notes are thin: strengthen `paper-notes` / `evidence-draft` rather than padding.
 
-**Symptom**:
-- Quality gate blocks `survey-visuals` outputs.
+### Issue: figure specs read like prose
 
-**Causes**:
-- Helper script generated scaffolds, but tables/timeline/figures were not rewritten.
-
-**Solutions**:
-- Fill `outline/tables.md` with ≥2 real comparison tables (include citations in rows).
-- Fill `outline/timeline.md` with ≥8 dated milestones (each with citations).
-- Fill `outline/figures.md` with ≥2 figure specs (purpose/elements/citations).
-
-#### Issue: Missing citation keys
-
-**Symptom**:
-- You can’t cite in visuals (no `[@Key]`).
-
-**Causes**:
-- `citations/ref.bib` not generated yet, or notes have no `bibkey`.
-
-**Solutions**:
-- Run `citation-verifier` and ensure `papers/paper_notes.jsonl` includes `bibkey`.
-
-### Recovery Checklist
-
-- [ ] No `TODO`/scaffold markers remain in visuals artifacts.
-- [ ] Tables/timeline/figures contain citations from `citations/ref.bib`.
+Fix:
+- Keep specs as draw-instructions: purpose + elements + what each element is supported by (cite keys).
+- Move narrative explanation into the main text; this file should stay non-prose.

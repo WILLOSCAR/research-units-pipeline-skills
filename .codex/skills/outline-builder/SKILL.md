@@ -94,7 +94,7 @@ Optional style calibration (recommended for paper-like structure):
 - **Template bullets everywhere** → replace with domain terms + evaluation axes specific to that subsection.
 - **Bullets too vague** (“Discuss limitations”) → name *which* limitations and *how to test* them.
 - **Outline too flat/too deep** → aim for a paper-like ToC (final ~6–8 H2) with fewer, thicker H3s.
-- **Too many H3 subsections** → merge adjacent H3s and write fewer, thicker subsections (paper-like default; budget depends on queries.md draft_profile: lite<=8, survey<=10, deep<=12).
+- **Too many H3 subsections** → merge adjacent H3s and write fewer, thicker subsections (paper-like default; budget depends on queries.md draft_profile: survey<=10, deep<=12).
 - **Missing Stage A fields** → add `Intent/RQ/Evidence needs/Expected cites` bullets so later mapping/evidence drafting can be audited.
 
 ## Helper script (optional)

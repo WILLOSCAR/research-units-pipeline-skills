@@ -1,7 +1,16 @@
 ---
 name: arxiv-survey
-version: 3.0
+version: 3.3
 target_artifacts:
+  - STATUS.md
+  - UNITS.csv
+  - CHECKPOINTS.md
+  - DECISIONS.md
+  - GOAL.md
+  - queries.md
+  - papers/papers_raw.jsonl
+  - papers/papers_dedup.jsonl
+  - papers/core_set.csv
   - papers/retrieval_report.md
   - outline/taxonomy.yml
   - outline/outline.yml
@@ -17,12 +26,18 @@ target_artifacts:
   - outline/evidence_bindings.jsonl
   - outline/evidence_binding_report.md
   - outline/claim_evidence_matrix.md
+  - outline/table_schema.md
+  - outline/tables_index.md
+  - outline/tables_appendix.md
+  - output/TABLES_APPENDIX_REPORT.md
   - outline/evidence_drafts.jsonl
   - outline/anchor_sheet.jsonl
   - outline/writer_context_packs.jsonl
   - citations/ref.bib
   - citations/verified.jsonl
   - sections/sections_manifest.jsonl
+  - ?sections/h3_bodies.refined.ok
+  - ?sections/style_harmonized.refined.ok
   - sections/abstract.md
   - sections/discussion.md
   - sections/conclusion.md
@@ -99,7 +114,7 @@ human_checkpoint:
 Notes:
 - Evidence-first expectation: each subsection should be written as a *question to answer* (RQ) plus *evidence needs* (what kind of citations/results are required), not just generic scaffold bullets.
 - Coverage default: `section-mapper` uses a higher per-subsection mapping target for `arxiv-survey` (configurable via `queries.md` `per_subsection`) so later evidence binding and writing have enough in-scope citations to choose from.
-- Budget policy (paper-like): avoid H3 explosion; the outline gate uses `queries.md:draft_profile` to set max H3 (lite<=8, survey<=10, deep<=12).
+- Budget policy (paper-like): avoid H3 explosion; the outline gate uses `queries.md:draft_profile` to set max H3 (survey<=10, deep<=12).
 - If the outline is over-fragmented, use `outline-budgeter` (NO PROSE) to merge adjacent H3s into fewer, thicker units, then rerun `section-mapper` → `outline-refiner` before `Approve C2`.
 
 ## Stage 3 - Evidence (C3) [NO PROSE]
@@ -117,33 +132,38 @@ produces:
 
 Notes:
 - `queries.md` can set `evidence_mode: "abstract"|"fulltext"` (default template uses `abstract`).
-- `queries.md` can set `draft_profile: "lite"|"survey"|"deep"` to control writing gate strictness (default: `survey`).
+- `queries.md` can set `draft_profile: "survey"|"deep"` to control writing gate strictness (default: `survey`).
 - If `evidence_mode: "fulltext"`, `pdf-text-extractor` can be tuned via `fulltext_max_papers`, `fulltext_max_pages`, `fulltext_min_chars`.
 - `subsection-briefs` converts each H3 into a verifiable writing card (scope_rule/rq/axes/clusters/paragraph_plan) so writing does not copy outline scaffolds.
-- Strict-mode refinement markers (recommended): treat briefs as *contracts*, not scaffolds. After you manually refine them, create:
+- Optional refinement markers (recommended): treat briefs as *contracts*, not scaffolds. If you manually refine them and want to prevent regeneration, create:
   - `outline/subsection_briefs.refined.ok`
   - `outline/chapter_briefs.refined.ok`
-  In strict runs, these markers are used as explicit “reviewed/refined” signals so bootstrap JSONL can’t silently pass into C5 writing.
+  These markers are used as explicit “reviewed/refined” signals and as a freeze switch (scripts won’t overwrite refined briefs).
 
 ## Stage 4 - Citations + evidence packs (C4) [NO PROSE]
 required_skills:
 - citation-verifier
 - evidence-binder
 - evidence-draft
+- table-schema
 - anchor-sheet
+- table-filler
+- appendix-table-writer
 - schema-normalizer
 - writer-context-pack
 - evidence-selfloop
 - claim-matrix-rewriter
 optional_skills:
-- table-schema
-- table-filler
 - survey-visuals
 produces:
 - citations/ref.bib
 - citations/verified.jsonl
 - outline/evidence_bindings.jsonl
 - outline/evidence_binding_report.md
+- outline/table_schema.md
+- outline/tables_index.md
+- outline/tables_appendix.md
+- output/TABLES_APPENDIX_REPORT.md
 - outline/evidence_drafts.jsonl
 - outline/anchor_sheet.jsonl
 - output/SCHEMA_NORMALIZATION_REPORT.md
@@ -155,13 +175,16 @@ Notes:
 - `evidence-draft` turns paper notes into per-subsection evidence packs (claim candidates + concrete comparisons + eval protocol + limitations) that the writer must follow.
 - `claim-matrix-rewriter` makes `outline/claim_evidence_matrix.md` a projection/index of evidence packs (not an outline expansion), so writer guidance stays evidence-first.
 - `writer-context-pack` builds a deterministic per-H3 drafting pack (briefs + evidence + anchors + allowed cites), reducing hollow writing and making C5 more debuggable.
-- Optional: `table-schema` + `table-filler` + `survey-visuals` can produce tables/timelines/figure specs as intermediate artifacts, but they are not inserted into the PDF by default.
-- Strict-mode refinement markers (recommended): after you spot-check and refine C4 artifacts, create:
+- Tables are part of the default survey deliverable, but split into two layers:
+  - `outline/tables_index.md` (internal index; produced by `table-filler`; useful for planning/debugging; NOT inserted into the paper)
+  - `outline/tables_appendix.md` (reader-facing; produced by `appendix-table-writer`; clean/publishable; inserted into the draft as an Appendix block by `section-merger`)
+- Optional: `survey-visuals` can still produce timeline/figure specs as intermediate artifacts.
+- Optional refinement markers (recommended): after you spot-check/refine C4 artifacts and want to freeze them, create:
   - `outline/evidence_bindings.refined.ok`
   - `outline/evidence_drafts.refined.ok`
   - `outline/anchor_sheet.refined.ok`
   - `outline/writer_context_packs.refined.ok`
-  In strict runs, these markers make “LLM refined the substrate” explicit and prevent scaffold-y packs/bindings from silently passing into writing.
+  These markers make “reviewed/refined” explicit and prevent accidental regeneration/overwrite; strict mode relies on content checks (placeholders/blocking_missing/scope), not marker presence.
 
 ## Stage 5 - Draft (C5) [PROSE AFTER C2]
 required_skills:
@@ -185,6 +208,9 @@ optional_skills:
 - subsection-polisher
 - redundancy-pruner
 - terminology-normalizer
+- opener-variator
+- limitation-weaver
+- evaluation-anchor-checker
 - latex-scaffold
 - latex-compile-qa
 produces:
@@ -206,6 +232,10 @@ produces:
 Notes:
 - Writing self-loop gate: `subsection-writer` ensures the full `sections/` file set exists (and emits `sections/sections_manifest.jsonl`); `writer-selfloop` blocks until depth/citation-scope/paper-voice checks pass, writing `output/WRITER_SELFLOOP_TODO.md` (PASS/FAIL).
 - Style hygiene (non-blocking): even on PASS, read `output/WRITER_SELFLOOP_TODO.md`'s `## Style Smells (non-blocking)` section. If it flags repeated slot phrases (e.g., `Two limitations ...`) or overused stems, run `style-harmonizer` on the listed files and re-run `writer-selfloop`.
+- Micro-fix routing (preferred over broad rewrites): if Style Smells are specific, use targeted micro-skills before a general harmonize pass:
+  - opener cadence / “overview” narration → `opener-variator`
+  - count-based limitation slots (“Two limitations…”) → `limitation-weaver`
+  - underspecified numeric/performance claims (missing task/metric/budget) → `evaluation-anchor-checker`
 - Triage rule (prevents “写作补洞”): if `writer-selfloop` FAILs because a subsection cannot meet `must_use` *in-scope* (thin packs / missing anchors / out-of-scope citation pressure), stop and rerun the evidence loop (`evidence-selfloop` + upstream C2/C3/C4) instead of padding prose.
 - WebWeaver-style “planner vs writer” split (single agent, two passes):
   - Planner pass: for each section/subsection, pick the exact citation IDs to use from the evidence bank (`outline/evidence_drafts.jsonl`) and keep scope consistent with the outline.
@@ -213,11 +243,10 @@ Notes:
 - Treat this stage as an iteration loop: draft per H3 → logic-polish (thesis + connectors) → weave transitions → merge → de-template/cohere → global review → (if gaps) back to C3/C4 → regenerate.
 - Post-merge voice gate: `post-merge-voice-gate` treats `outline/transitions.md` as a high-frequency injection source. If it FAILs, fix the *source* (usually transitions via `transition-weaver`, or the owning `sections/*.md`) and re-merge; do not “patch around it” in `draft-polisher`.
 - Depth target (profile-aware): each H3 should be “少而厚” (avoid stubs). Use `queries.md:draft_profile` as the contract:
-  - `lite`: >=6 paragraphs + >=7 unique cites
   - `survey`: >=9 paragraphs + >=10 unique cites
   - `deep`: >=10 paragraphs + >=12 unique cites
   In all profiles, require >=2 concrete contrasts + evaluation anchoring + a cross-paper synthesis paragraph + an explicit limitation.
-- Profile semantics: `lite` is for pipeline verification (fewer pages + lower global unique-citation target). For a citation-rich survey deliverable, use `draft_profile: survey` (default).
+- Profile semantics: `survey` is the default deliverable contract; `deep` is stricter (and typically pairs well with `evidence_mode: fulltext`).
 - Coherence target (paper-like): for every H2 chapter with H3 subsections, write a short **chapter lead** block (`sections/S<sec_id>_lead.md`) that previews the comparison axes and how the H3s connect (no new headings; avoid generic glue).
 - Anti-template style contract (paper-like, not “outline narration”):
   - Avoid meta openers like “This subsection surveys/argues …” and slide-like navigation (“Next, we move from … / We now turn to …”).
@@ -226,7 +255,7 @@ Notes:
   - Keep evidence-policy disclaimers **once** in front matter (not repeated across H3s).
   - If you cite numbers, include minimal evaluation context (task + metric + constraint/budget/cost) in the same paragraph.
 - `section-merger` merges `sections/*.md` plus `outline/transitions.md` (within-chapter H3→H3 by default). Between-H2 transition insertion is optional: create `outline/transitions.insert_h2.ok` in the workspace if you want narrator-style handoffs included.
-  - Evidence-first visuals (`outline/tables.md`, `outline/timeline.md`, `outline/figures.md`) are intermediate artifacts by default; weave them into prose intentionally (or keep them out of the main draft) to avoid inflating the PDF ToC with thin, reader-facing-empty sections.
+- Tables are part of the default deliverable: `outline/tables_appendix.md` is inserted into the draft by `section-merger` as a single Appendix block (index tables in `outline/tables_index.md` remain intermediate) unless `outline/tables.insert.off` exists. Other visuals (`outline/timeline.md`, `outline/figures.md`) remain intermediate by default.
 - Citation scope policy: citations are subsection-first (from `outline/evidence_bindings.jsonl`), with limited reuse allowed within the same H2 chapter to reduce brittleness; avoid cross-chapter “free cite” drift.
   - Controlled flexibility: bibkeys mapped to >= `queries.md:global_citation_min_subsections` subsections (default 3) are treated as cross-cutting/global; see `allowed_bibkeys_global` in writer packs / `sections_manifest.jsonl`.
 - If global unique citations are low, run `citation-diversifier` → `citation-injector` *before* `draft-polisher` (the polisher treats citation keys as immutable).

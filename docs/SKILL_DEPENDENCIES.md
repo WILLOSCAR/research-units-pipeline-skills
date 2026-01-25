@@ -25,6 +25,29 @@ flowchart LR
   F_outline_evidence_drafts_jsonl --> S_anchor_sheet
   F_outline_anchor_sheet_jsonl["`outline/anchor_sheet.jsonl`"]:::file
   S_anchor_sheet --> F_outline_anchor_sheet_jsonl
+  S_appendix_table_writer["`appendix-table-writer`"]:::skill
+  F_GOAL_md["`GOAL.md`"]:::file
+  F_GOAL_md --> S_appendix_table_writer
+  F_citations_ref_bib --> S_appendix_table_writer
+  F_outline_anchor_sheet_jsonl --> S_appendix_table_writer
+  F_outline_evidence_drafts_jsonl --> S_appendix_table_writer
+  F_outline_subsection_briefs_jsonl["`outline/subsection_briefs.jsonl`"]:::file
+  F_outline_subsection_briefs_jsonl --> S_appendix_table_writer
+  F_outline_table_schema_md["`outline/table_schema.md`"]:::file
+  F_outline_table_schema_md --> S_appendix_table_writer
+  F_outline_tables_index_md["`outline/tables_index.md`"]:::file
+  F_outline_tables_index_md --> S_appendix_table_writer
+  F_outline_tables_appendix_md["`outline/tables_appendix.md`"]:::file
+  S_appendix_table_writer --> F_outline_tables_appendix_md
+  S_artifact_contract_auditor["`artifact-contract-auditor`"]:::skill
+  F_PIPELINE_lock_md["`PIPELINE.lock.md`"]:::file
+  F_PIPELINE_lock_md --> S_artifact_contract_auditor
+  F_UNITS_csv["`UNITS.csv`"]:::file
+  F_UNITS_csv --> S_artifact_contract_auditor
+  F_pipelines_pipeline_md["`pipelines/*.pipeline.md`"]:::file
+  F_pipelines_pipeline_md --> S_artifact_contract_auditor
+  F_output_CONTRACT_REPORT_md["`output/CONTRACT_REPORT.md`"]:::file
+  S_artifact_contract_auditor --> F_output_CONTRACT_REPORT_md
   S_arxiv_search["`arxiv-search`"]:::skill
   F_queries_md["`queries.md`"]:::file
   F_queries_md --> S_arxiv_search
@@ -37,14 +60,20 @@ flowchart LR
   F_papers_extraction_table_csv --> S_bias_assessor
   S_bias_assessor --> F_papers_extraction_table_csv
   S_chapter_briefs["`chapter-briefs`"]:::skill
-  F_GOAL_md["`GOAL.md`"]:::file
   F_GOAL_md --> S_chapter_briefs
   F_outline_outline_yml["`outline/outline.yml`"]:::file
   F_outline_outline_yml --> S_chapter_briefs
-  F_outline_subsection_briefs_jsonl["`outline/subsection_briefs.jsonl`"]:::file
   F_outline_subsection_briefs_jsonl --> S_chapter_briefs
   F_outline_chapter_briefs_jsonl["`outline/chapter_briefs.jsonl`"]:::file
   S_chapter_briefs --> F_outline_chapter_briefs_jsonl
+  S_chapter_lead_writer["`chapter-lead-writer`"]:::skill
+  F_citations_ref_bib --> S_chapter_lead_writer
+  F_outline_chapter_briefs_jsonl --> S_chapter_lead_writer
+  F_outline_outline_yml --> S_chapter_lead_writer
+  F_outline_writer_context_packs_jsonl["`outline/writer_context_packs.jsonl`"]:::file
+  F_outline_writer_context_packs_jsonl --> S_chapter_lead_writer
+  F_sections_S_sec_id__lead_md["`sections/S<sec_id>_lead.md`"]:::file
+  S_chapter_lead_writer --> F_sections_S_sec_id__lead_md
   S_citation_anchoring["`citation-anchoring`"]:::skill
   F_output_DRAFT_md["`output/DRAFT.md`"]:::file
   F_output_DRAFT_md --> S_citation_anchoring
@@ -55,7 +84,6 @@ flowchart LR
   S_citation_diversifier["`citation-diversifier`"]:::skill
   F_citations_ref_bib --> S_citation_diversifier
   F_outline_outline_yml --> S_citation_diversifier
-  F_outline_writer_context_packs_jsonl["`outline/writer_context_packs.jsonl`"]:::file
   F_outline_writer_context_packs_jsonl --> S_citation_diversifier
   F_output_DRAFT_md --> S_citation_diversifier
   F_output_CITATION_BUDGET_REPORT_md["`output/CITATION_BUDGET_REPORT.md`"]:::file
@@ -112,6 +140,17 @@ flowchart LR
   F_output_DRAFT_md --> S_draft_polisher
   S_draft_polisher --> F_output_DRAFT_md
   S_draft_polisher --> F_output_citation_anchors_prepolish_jsonl
+  S_evaluation_anchor_checker["`evaluation-anchor-checker`"]:::skill
+  F_citations_ref_bib --> S_evaluation_anchor_checker
+  F_outline_anchor_sheet_jsonl --> S_evaluation_anchor_checker
+  F_outline_evidence_drafts_jsonl --> S_evaluation_anchor_checker
+  F_outline_writer_context_packs_jsonl --> S_evaluation_anchor_checker
+  F_sections_md["`sections/*.md`"]:::file
+  F_sections_md --> S_evaluation_anchor_checker
+  S_evaluation_anchor_checker --> F_output_DRAFT_md
+  F_output_eval_anchors_checked_refined_ok["`output/eval_anchors_checked.refined.ok`"]:::file
+  S_evaluation_anchor_checker --> F_output_eval_anchors_checked_refined_ok
+  S_evaluation_anchor_checker --> F_sections_md
   S_evidence_auditor["`evidence-auditor`"]:::skill
   F_output_CLAIMS_md --> S_evidence_auditor
   F_output_MISSING_EVIDENCE_md["`output/MISSING_EVIDENCE.md`"]:::file
@@ -135,6 +174,18 @@ flowchart LR
   S_evidence_draft --> F_outline_evidence_drafts_jsonl
   F_outline_evidence_drafts["`outline/evidence_drafts/`"]:::file
   S_evidence_draft --> F_outline_evidence_drafts
+  S_evidence_selfloop["`evidence-selfloop`"]:::skill
+  F_outline_anchor_sheet_jsonl --> S_evidence_selfloop
+  F_outline_evidence_binding_report_md --> S_evidence_selfloop
+  F_outline_evidence_bindings_jsonl --> S_evidence_selfloop
+  F_outline_evidence_drafts_jsonl --> S_evidence_selfloop
+  F_outline_subsection_briefs_jsonl --> S_evidence_selfloop
+  F_papers_fulltext_index_jsonl["`papers/fulltext_index.jsonl`"]:::file
+  F_papers_fulltext_index_jsonl --> S_evidence_selfloop
+  F_papers_paper_notes_jsonl --> S_evidence_selfloop
+  F_queries_md --> S_evidence_selfloop
+  F_output_EVIDENCE_SELFLOOP_TODO_md["`output/EVIDENCE_SELFLOOP_TODO.md`"]:::file
+  S_evidence_selfloop --> F_output_EVIDENCE_SELFLOOP_TODO_md
   S_exercise_builder["`exercise-builder`"]:::skill
   F_outline_module_plan_yml["`outline/module_plan.yml`"]:::file
   F_outline_module_plan_yml --> S_exercise_builder
@@ -146,6 +197,19 @@ flowchart LR
   F_papers_screening_log_csv["`papers/screening_log.csv`"]:::file
   F_papers_screening_log_csv --> S_extraction_form
   S_extraction_form --> F_papers_extraction_table_csv
+  S_front_matter_writer["`front-matter-writer`"]:::skill
+  F_DECISIONS_md --> S_front_matter_writer
+  F_GOAL_md --> S_front_matter_writer
+  F_citations_ref_bib --> S_front_matter_writer
+  F_outline_coverage_report_md["`outline/coverage_report.md`"]:::file
+  F_outline_coverage_report_md --> S_front_matter_writer
+  F_outline_mapping_tsv --> S_front_matter_writer
+  F_outline_outline_yml --> S_front_matter_writer
+  F_outline_writer_context_packs_jsonl --> S_front_matter_writer
+  F_papers_core_set_csv --> S_front_matter_writer
+  F_papers_retrieval_report_md["`papers/retrieval_report.md`"]:::file
+  F_papers_retrieval_report_md --> S_front_matter_writer
+  F_queries_md --> S_front_matter_writer
   S_global_reviewer["`global-reviewer`"]:::skill
   F_citations_ref_bib --> S_global_reviewer
   F_outline_claim_evidence_matrix_md --> S_global_reviewer
@@ -176,6 +240,12 @@ flowchart LR
   F_citations_ref_bib --> S_latex_scaffold
   F_output_DRAFT_md --> S_latex_scaffold
   S_latex_scaffold --> F_latex_main_tex
+  S_limitation_weaver["`limitation-weaver`"]:::skill
+  F_outline_writer_context_packs_jsonl --> S_limitation_weaver
+  F_output_WRITER_SELFLOOP_TODO_md["`output/WRITER_SELFLOOP_TODO.md`"]:::file
+  F_output_WRITER_SELFLOOP_TODO_md --> S_limitation_weaver
+  F_sections_S_sub_id_md --> S_limitation_weaver
+  S_limitation_weaver --> F_sections_S_sub_id_md
   S_literature_engineer["`literature-engineer`"]:::skill
   F_papers_arxiv_export_csv_json_jsonl_bib["`papers/arxiv_export.(csv|json|jsonl|bib)`"]:::file
   F_papers_arxiv_export_csv_json_jsonl_bib --> S_literature_engineer
@@ -188,7 +258,6 @@ flowchart LR
   F_queries_md --> S_literature_engineer
   S_literature_engineer --> F_papers_papers_raw_csv
   S_literature_engineer --> F_papers_papers_raw_jsonl
-  F_papers_retrieval_report_md["`papers/retrieval_report.md`"]:::file
   S_literature_engineer --> F_papers_retrieval_report_md
   S_module_planner["`module-planner`"]:::skill
   F_outline_concept_graph_yml --> S_module_planner
@@ -197,9 +266,13 @@ flowchart LR
   F_output_CLAIMS_md --> S_novelty_matrix
   F_output_NOVELTY_MATRIX_md["`output/NOVELTY_MATRIX.md`"]:::file
   S_novelty_matrix --> F_output_NOVELTY_MATRIX_md
+  S_opener_variator["`opener-variator`"]:::skill
+  F_outline_writer_context_packs_jsonl --> S_opener_variator
+  F_output_WRITER_SELFLOOP_TODO_md --> S_opener_variator
+  F_sections_S_sub_id_md --> S_opener_variator
+  S_opener_variator --> F_sections_S_sub_id_md
   S_outline_budgeter["`outline-budgeter`"]:::skill
   F_GOAL_md --> S_outline_budgeter
-  F_outline_coverage_report_md["`outline/coverage_report.md`"]:::file
   F_outline_coverage_report_md --> S_outline_budgeter
   F_outline_mapping_tsv --> S_outline_budgeter
   F_outline_outline_yml --> S_outline_budgeter
@@ -227,7 +300,6 @@ flowchart LR
   F_papers_core_set_csv --> S_paper_notes
   F_papers_fulltext_txt["`papers/fulltext/*.txt`"]:::file
   F_papers_fulltext_txt --> S_paper_notes
-  F_papers_fulltext_index_jsonl["`papers/fulltext_index.jsonl`"]:::file
   F_papers_fulltext_index_jsonl --> S_paper_notes
   S_paper_notes --> F_papers_paper_notes_jsonl
   S_pdf_text_extractor["`pdf-text-extractor`"]:::skill
@@ -248,7 +320,6 @@ flowchart LR
   S_pipeline_router["`pipeline-router`"]:::skill
   F_DECISIONS_md --> S_pipeline_router
   F_GOAL_md --> S_pipeline_router
-  F_PIPELINE_lock_md["`PIPELINE.lock.md`"]:::file
   F_PIPELINE_lock_md --> S_pipeline_router
   F_STATUS_md["`STATUS.md`"]:::file
   F_STATUS_md --> S_pipeline_router
@@ -259,6 +330,12 @@ flowchart LR
   S_pipeline_router --> F_PIPELINE_lock_md
   S_pipeline_router --> F_STATUS_md
   S_pipeline_router --> F_queries_md
+  S_post_merge_voice_gate["`post-merge-voice-gate`"]:::skill
+  F_outline_transitions_md["`outline/transitions.md`"]:::file
+  F_outline_transitions_md --> S_post_merge_voice_gate
+  F_output_DRAFT_md --> S_post_merge_voice_gate
+  F_output_POST_MERGE_VOICE_REPORT_md["`output/POST_MERGE_VOICE_REPORT.md`"]:::file
+  S_post_merge_voice_gate --> F_output_POST_MERGE_VOICE_REPORT_md
   S_prose_writer["`prose-writer`"]:::skill
   F_DECISIONS_md --> S_prose_writer
   F_citations_ref_bib --> S_prose_writer
@@ -268,11 +345,10 @@ flowchart LR
   F_outline_figures_md --> S_prose_writer
   F_outline_outline_yml --> S_prose_writer
   F_outline_subsection_briefs_jsonl --> S_prose_writer
-  F_outline_tables_md["`outline/tables.md`"]:::file
-  F_outline_tables_md --> S_prose_writer
+  F_outline_tables_appendix_md --> S_prose_writer
+  F_outline_tables_index_md --> S_prose_writer
   F_outline_timeline_md["`outline/timeline.md`"]:::file
   F_outline_timeline_md --> S_prose_writer
-  F_outline_transitions_md["`outline/transitions.md`"]:::file
   F_outline_transitions_md --> S_prose_writer
   S_prose_writer --> F_output_DRAFT_md
   F_output_SNAPSHOT_md["`output/SNAPSHOT.md`"]:::file
@@ -296,7 +372,6 @@ flowchart LR
   S_research_pipeline_runner --> F_GOAL_md
   S_research_pipeline_runner --> F_PIPELINE_lock_md
   S_research_pipeline_runner --> F_STATUS_md
-  F_UNITS_csv["`UNITS.csv`"]:::file
   S_research_pipeline_runner --> F_UNITS_csv
   F_workspaces_name["`workspaces/<name>/`"]:::file
   S_research_pipeline_runner --> F_workspaces_name
@@ -307,6 +382,17 @@ flowchart LR
   F_output_NOVELTY_MATRIX_md --> S_rubric_writer
   F_output_REVIEW_md["`output/REVIEW.md`"]:::file
   S_rubric_writer --> F_output_REVIEW_md
+  S_schema_normalizer["`schema-normalizer`"]:::skill
+  F_citations_ref_bib --> S_schema_normalizer
+  F_outline_anchor_sheet_jsonl --> S_schema_normalizer
+  F_outline_chapter_briefs_jsonl --> S_schema_normalizer
+  F_outline_evidence_bindings_jsonl --> S_schema_normalizer
+  F_outline_evidence_drafts_jsonl --> S_schema_normalizer
+  F_outline_outline_yml --> S_schema_normalizer
+  F_outline_subsection_briefs_jsonl --> S_schema_normalizer
+  F_outline_writer_context_packs_jsonl --> S_schema_normalizer
+  F_output_SCHEMA_NORMALIZATION_REPORT_md["`output/SCHEMA_NORMALIZATION_REPORT.md`"]:::file
+  S_schema_normalizer --> F_output_SCHEMA_NORMALIZATION_REPORT_md
   S_screening_manager["`screening-manager`"]:::skill
   F_output_PROTOCOL_md --> S_screening_manager
   F_papers_core_set_csv --> S_screening_manager
@@ -330,6 +416,7 @@ flowchart LR
   S_section_merger["`section-merger`"]:::skill
   F_GOAL_md --> S_section_merger
   F_outline_outline_yml --> S_section_merger
+  F_outline_tables_appendix_md --> S_section_merger
   F_outline_transitions_md --> S_section_merger
   F_sections_sections_manifest_jsonl["`sections/sections_manifest.jsonl`"]:::file
   F_sections_sections_manifest_jsonl --> S_section_merger
@@ -342,6 +429,13 @@ flowchart LR
   F_papers_papers_dedup_jsonl --> S_snapshot_writer
   F_queries_md --> S_snapshot_writer
   S_snapshot_writer --> F_output_SNAPSHOT_md
+  S_style_harmonizer["`style-harmonizer`"]:::skill
+  F_outline_writer_context_packs_jsonl --> S_style_harmonizer
+  F_output_WRITER_SELFLOOP_TODO_md --> S_style_harmonizer
+  F_sections_md --> S_style_harmonizer
+  S_style_harmonizer --> F_sections_md
+  F_sections_style_harmonized_refined_ok["`sections/style_harmonized.refined.ok`"]:::file
+  S_style_harmonizer --> F_sections_style_harmonized_refined_ok
   S_subsection_briefs["`subsection-briefs`"]:::skill
   F_GOAL_md --> S_subsection_briefs
   F_outline_claim_evidence_matrix_md --> S_subsection_briefs
@@ -354,7 +448,6 @@ flowchart LR
   F_outline_evidence_drafts_jsonl --> S_subsection_polisher
   F_outline_subsection_briefs_jsonl --> S_subsection_polisher
   F_outline_writer_context_packs_jsonl --> S_subsection_polisher
-  F_sections --> S_subsection_polisher
   F_sections_S_sub_id_md --> S_subsection_polisher
   S_subsection_polisher --> F_sections_S_sub_id_md
   S_subsection_writer["`subsection-writer`"]:::skill
@@ -367,19 +460,6 @@ flowchart LR
   F_outline_outline_yml --> S_subsection_writer
   F_outline_subsection_briefs_jsonl --> S_subsection_writer
   F_outline_writer_context_packs_jsonl --> S_subsection_writer
-  S_subsection_writer --> F_sections
-  F_sections_S_sec_id_md["`sections/S<sec_id>.md`"]:::file
-  S_subsection_writer --> F_sections_S_sec_id_md
-  F_sections_S_sec_id__lead_md["`sections/S<sec_id>_lead.md`"]:::file
-  S_subsection_writer --> F_sections_S_sec_id__lead_md
-  S_subsection_writer --> F_sections_S_sub_id_md
-  F_sections_abstract_md["`sections/abstract.md`"]:::file
-  S_subsection_writer --> F_sections_abstract_md
-  F_sections_conclusion_md["`sections/conclusion.md`"]:::file
-  S_subsection_writer --> F_sections_conclusion_md
-  F_sections_discussion_md["`sections/discussion.md`"]:::file
-  S_subsection_writer --> F_sections_discussion_md
-  S_subsection_writer --> F_sections_sections_manifest_jsonl
   S_survey_seed_harvest["`survey-seed-harvest`"]:::skill
   F_papers_papers_dedup_jsonl --> S_survey_seed_harvest
   S_survey_seed_harvest --> F_outline_taxonomy_yml
@@ -389,7 +469,6 @@ flowchart LR
   F_outline_outline_yml --> S_survey_visuals
   F_papers_paper_notes_jsonl --> S_survey_visuals
   S_survey_visuals --> F_outline_figures_md
-  S_survey_visuals --> F_outline_tables_md
   S_survey_visuals --> F_outline_timeline_md
   S_synthesis_writer["`synthesis-writer`"]:::skill
   F_DECISIONS_md --> S_synthesis_writer
@@ -399,11 +478,11 @@ flowchart LR
   S_synthesis_writer --> F_output_SYNTHESIS_md
   S_table_filler["`table-filler`"]:::skill
   F_citations_ref_bib --> S_table_filler
+  F_outline_anchor_sheet_jsonl --> S_table_filler
   F_outline_evidence_drafts_jsonl --> S_table_filler
   F_outline_subsection_briefs_jsonl --> S_table_filler
-  F_outline_table_schema_md["`outline/table_schema.md`"]:::file
   F_outline_table_schema_md --> S_table_filler
-  S_table_filler --> F_outline_tables_md
+  S_table_filler --> F_outline_tables_index_md
   S_table_schema["`table-schema`"]:::skill
   F_GOAL_md --> S_table_schema
   F_outline_evidence_drafts_jsonl --> S_table_schema
@@ -442,7 +521,6 @@ flowchart LR
   S_unit_executor --> F_UNITS_csv
   S_unit_planner["`unit-planner`"]:::skill
   F_PIPELINE_lock_md --> S_unit_planner
-  F_pipelines_pipeline_md["`pipelines/*.pipeline.md`"]:::file
   F_pipelines_pipeline_md --> S_unit_planner
   F_templates_UNITS_csv["`templates/UNITS.*.csv`"]:::file
   F_templates_UNITS_csv --> S_unit_planner
@@ -474,22 +552,14 @@ flowchart LR
   S_writer_context_pack --> F_outline_writer_context_packs_jsonl
   S_writer_selfloop["`writer-selfloop`"]:::skill
   F_citations_ref_bib --> S_writer_selfloop
-  F_outline_anchor_sheet_jsonl --> S_writer_selfloop
   F_outline_chapter_briefs_jsonl --> S_writer_selfloop
   F_outline_evidence_bindings_jsonl --> S_writer_selfloop
-  F_outline_evidence_drafts_jsonl --> S_writer_selfloop
   F_outline_subsection_briefs_jsonl --> S_writer_selfloop
   F_outline_writer_context_packs_jsonl --> S_writer_selfloop
-  F_output_QUALITY_GATE_md["`output/QUALITY_GATE.md`"]:::file
-  F_output_QUALITY_GATE_md --> S_writer_selfloop
-  F_sections --> S_writer_selfloop
-  F_sections_md["`sections/*.md`"]:::file
+  F_output_EVIDENCE_SELFLOOP_TODO_md --> S_writer_selfloop
   F_sections_md --> S_writer_selfloop
   F_sections_sections_manifest_jsonl --> S_writer_selfloop
-  F_output_WRITER_SELFLOOP_TODO_md["`output/WRITER_SELFLOOP_TODO.md`"]:::file
   S_writer_selfloop --> F_output_WRITER_SELFLOOP_TODO_md
-  S_writer_selfloop --> F_sections_S_sec_id__lead_md
-  S_writer_selfloop --> F_sections_S_sub_id_md
 ```
 
 ## Pipeline execution graphs (from templates/UNITS.*.csv)
@@ -528,23 +598,30 @@ flowchart LR
     U_U076["`U076`\n`chapter-briefs`"]:::unit
   end
 
-  subgraph "C4 - Citations + visuals"
+  subgraph "C4 - Citations + evidence packs"
     U_U090["`U090`\n`citation-verifier`"]:::unit
     U_U091["`U091`\n`evidence-binder`"]:::unit
     U_U092["`U092`\n`evidence-draft`"]:::unit
+    U_U0925["`U0925`\n`table-schema`"]:::unit
+    U_U0926["`U0926`\n`table-filler`"]:::unit
+    U_U0927["`U0927`\n`appendix-table-writer`"]:::unit
     U_U093["`U093`\n`anchor-sheet`"]:::unit
+    U_U0935["`U0935`\n`schema-normalizer`"]:::unit
     U_U099["`U099`\n`writer-context-pack`"]:::unit
+    U_U0995["`U0995`\n`evidence-selfloop`"]:::unit
     U_U094["`U094`\n`claim-matrix-rewriter`"]:::unit
-    U_U096["`U096`\n`table-schema`"]:::unit
-    U_U097["`U097`\n`table-filler`"]:::unit
-    U_U095["`U095`\n`survey-visuals`"]:::unit
   end
 
   subgraph "C5 - Draft + PDF"
+    U_U095["`U095`\n`front-matter-writer`"]:::unit
+    U_U096["`U096`\n`chapter-lead-writer`"]:::unit
     U_U100["`U100`\n`subsection-writer`"]:::unit
+    U_U1005["`U1005`\n`writer-selfloop`"]:::unit
+    U_U1006["`U1006`\n`style-harmonizer`"]:::unit
     U_U102["`U102`\n`section-logic-polisher`"]:::unit
     U_U098["`U098`\n`transition-weaver`"]:::unit
     U_U101["`U101`\n`section-merger`"]:::unit
+    U_U103["`U103`\n`post-merge-voice-gate`"]:::unit
     U_U104["`U104`\n`citation-diversifier`"]:::unit
     U_U1045["`U1045`\n`citation-injector`"]:::unit
     U_U105["`U105`\n`draft-polisher`"]:::unit
@@ -552,6 +629,7 @@ flowchart LR
     U_U109["`U109`\n`pipeline-auditor`"]:::unit
     U_U110["`U110`\n`latex-scaffold`"]:::unit
     U_U120["`U120`\n`latex-compile-qa`"]:::unit
+    U_U130["`U130`\n`artifact-contract-auditor`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -572,27 +650,40 @@ flowchart LR
   U_U075 --> U_U091
   U_U060 --> U_U091
   U_U091 --> U_U092
+  U_U092 --> U_U0925
+  U_U0925 --> U_U0926
+  U_U093 --> U_U0926
+  U_U0926 --> U_U0927
+  U_U093 --> U_U0927
   U_U092 --> U_U093
-  U_U093 --> U_U099
+  U_U093 --> U_U0935
+  U_U0935 --> U_U099
   U_U076 --> U_U099
+  U_U099 --> U_U0995
   U_U092 --> U_U094
-  U_U092 --> U_U096
-  U_U096 --> U_U097
-  U_U092 --> U_U097
-  U_U094 --> U_U095
+  U_U0995 --> U_U095
+  U_U0995 --> U_U096
+  U_U0995 --> U_U100
   U_U099 --> U_U100
   U_U076 --> U_U100
-  U_U100 --> U_U102
+  U_U095 --> U_U1005
+  U_U096 --> U_U1005
+  U_U100 --> U_U1005
+  U_U1005 --> U_U1006
+  U_U1006 --> U_U102
   U_U102 --> U_U098
   U_U100 --> U_U101
   U_U098 --> U_U101
-  U_U101 --> U_U104
+  U_U0927 --> U_U101
+  U_U101 --> U_U103
+  U_U103 --> U_U104
   U_U104 --> U_U1045
   U_U1045 --> U_U105
   U_U105 --> U_U108
   U_U108 --> U_U109
   U_U109 --> U_U110
   U_U110 --> U_U120
+  U_U120 --> U_U130
 ```
 
 ### arxiv-survey
@@ -629,28 +720,36 @@ flowchart LR
     U_U076["`U076`\n`chapter-briefs`"]:::unit
   end
 
-  subgraph "C4 - Citations + visuals"
+  subgraph "C4 - Citations + evidence packs"
     U_U090["`U090`\n`citation-verifier`"]:::unit
     U_U091["`U091`\n`evidence-binder`"]:::unit
     U_U092["`U092`\n`evidence-draft`"]:::unit
+    U_U0925["`U0925`\n`table-schema`"]:::unit
+    U_U0926["`U0926`\n`table-filler`"]:::unit
+    U_U0927["`U0927`\n`appendix-table-writer`"]:::unit
     U_U093["`U093`\n`anchor-sheet`"]:::unit
+    U_U0935["`U0935`\n`schema-normalizer`"]:::unit
     U_U099["`U099`\n`writer-context-pack`"]:::unit
+    U_U0995["`U0995`\n`evidence-selfloop`"]:::unit
     U_U094["`U094`\n`claim-matrix-rewriter`"]:::unit
-    U_U096["`U096`\n`table-schema`"]:::unit
-    U_U097["`U097`\n`table-filler`"]:::unit
-    U_U095["`U095`\n`survey-visuals`"]:::unit
   end
 
   subgraph "C5 - Draft"
+    U_U095["`U095`\n`front-matter-writer`"]:::unit
+    U_U096["`U096`\n`chapter-lead-writer`"]:::unit
     U_U100["`U100`\n`subsection-writer`"]:::unit
+    U_U1005["`U1005`\n`writer-selfloop`"]:::unit
+    U_U1006["`U1006`\n`style-harmonizer`"]:::unit
     U_U102["`U102`\n`section-logic-polisher`"]:::unit
     U_U098["`U098`\n`transition-weaver`"]:::unit
     U_U101["`U101`\n`section-merger`"]:::unit
+    U_U103["`U103`\n`post-merge-voice-gate`"]:::unit
     U_U104["`U104`\n`citation-diversifier`"]:::unit
     U_U1045["`U1045`\n`citation-injector`"]:::unit
     U_U105["`U105`\n`draft-polisher`"]:::unit
     U_U108["`U108`\n`global-reviewer`"]:::unit
     U_U109["`U109`\n`pipeline-auditor`"]:::unit
+    U_U130["`U130`\n`artifact-contract-auditor`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -671,25 +770,38 @@ flowchart LR
   U_U075 --> U_U091
   U_U060 --> U_U091
   U_U091 --> U_U092
+  U_U092 --> U_U0925
+  U_U0925 --> U_U0926
+  U_U093 --> U_U0926
+  U_U0926 --> U_U0927
+  U_U093 --> U_U0927
   U_U092 --> U_U093
-  U_U093 --> U_U099
+  U_U093 --> U_U0935
+  U_U0935 --> U_U099
   U_U076 --> U_U099
+  U_U099 --> U_U0995
   U_U092 --> U_U094
-  U_U092 --> U_U096
-  U_U096 --> U_U097
-  U_U092 --> U_U097
-  U_U094 --> U_U095
+  U_U0995 --> U_U095
+  U_U0995 --> U_U096
+  U_U0995 --> U_U100
   U_U099 --> U_U100
   U_U076 --> U_U100
-  U_U100 --> U_U102
+  U_U095 --> U_U1005
+  U_U096 --> U_U1005
+  U_U100 --> U_U1005
+  U_U1005 --> U_U1006
+  U_U1006 --> U_U102
   U_U102 --> U_U098
   U_U100 --> U_U101
   U_U098 --> U_U101
-  U_U101 --> U_U104
+  U_U0927 --> U_U101
+  U_U101 --> U_U103
+  U_U103 --> U_U104
   U_U104 --> U_U1045
   U_U1045 --> U_U105
   U_U105 --> U_U108
   U_U108 --> U_U109
+  U_U109 --> U_U130
 ```
 
 ### lit-snapshot
@@ -719,6 +831,7 @@ flowchart LR
 
   subgraph "C3 - Snapshot"
     U_U050["`U050`\n`snapshot-writer`"]:::unit
+    U_U060["`U060`\n`artifact-contract-auditor`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -729,6 +842,7 @@ flowchart LR
   U_U040 --> U_U042
   U_U042 --> U_U045
   U_U045 --> U_U050
+  U_U050 --> U_U060
 ```
 
 ### peer-review
@@ -754,6 +868,7 @@ flowchart LR
 
   subgraph "C3 - Rubric write-up"
     U_U030["`U030`\n`rubric-writer`"]:::unit
+    U_U040["`U040`\n`artifact-contract-auditor`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -762,6 +877,7 @@ flowchart LR
   U_U010 --> U_U025
   U_U020 --> U_U030
   U_U025 --> U_U030
+  U_U030 --> U_U040
 ```
 
 ### systematic-review
@@ -798,6 +914,7 @@ flowchart LR
 
   subgraph "C5 - Synthesis"
     U_U050["`U050`\n`synthesis-writer`"]:::unit
+    U_U060["`U060`\n`artifact-contract-auditor`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -809,6 +926,7 @@ flowchart LR
   U_U030 --> U_U040
   U_U040 --> U_U045
   U_U045 --> U_U050
+  U_U050 --> U_U060
 ```
 
 ### tutorial
@@ -837,6 +955,7 @@ flowchart LR
 
   subgraph "C3 - Writing"
     U_U050["`U050`\n`tutorial-module-writer`"]:::unit
+    U_U060["`U060`\n`artifact-contract-auditor`"]:::unit
   end
 
   U_U001 --> U_U002
@@ -846,4 +965,5 @@ flowchart LR
   U_U030 --> U_U035
   U_U035 --> U_U040
   U_U040 --> U_U050
+  U_U050 --> U_U060
 ```

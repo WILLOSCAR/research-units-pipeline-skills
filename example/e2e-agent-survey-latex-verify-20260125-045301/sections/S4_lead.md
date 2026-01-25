@@ -1,0 +1,4 @@
+Planning and memory determine how an agent behaves when a single prompt is not enough. Planning governs deliberation and control: how the agent decomposes tasks, explores alternatives, and decides when to commit actions under finite budgets. Memory governs state and evidence: what information the agent can reliably condition on, how it is retrieved, and how it is kept consistent over long horizons [@Yao2023Tree; @Shinn2023Reflexion; @Kang2025Distilling].
+
+We begin with planning and reasoning loops, where the central trade-off is between deliberation depth and protocol constraints such as latency, tool failures, and termination rules. We then turn to memory and retrieval, emphasizing how retrieval policies and summarization choices affect grounding and comparability, especially when evaluation depends on citations, long contexts, or persistent state [@Tawosi2025Meta; @Abbineni2025Muallm].
+

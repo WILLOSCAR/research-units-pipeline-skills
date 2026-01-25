@@ -10,6 +10,7 @@
 
 ```mermaid
 flowchart LR
+  classDef optional stroke-dasharray: 5 5;
   classDef human fill:#ffebee,stroke:#e53935,color:#b71c1c,stroke-width:2px;
 
   subgraph "C0 - Init"
@@ -41,36 +42,46 @@ flowchart LR
     CB[chapter-briefs]
   end
 
-  subgraph "C4 - Citations + visuals [NO PROSE]"
+  subgraph "C4 - Citations + evidence packs [NO PROSE]"
     CV[citation-verifier]
     EB[evidence-binder]
     ED[evidence-draft]
     AS[anchor-sheet]
-    WCP[writer-context-pack]
-    CMR[claim-matrix-rewriter]
     TS[table-schema]
     TF[table-filler]
-    SV[survey-visuals]
+    ATW[appendix-table-writer]
+    SN[schema-normalizer]
+    WCP[writer-context-pack]
+    ESL[evidence-selfloop]
+    CMR[claim-matrix-rewriter]
+    SV[survey-visuals]:::optional
   end
 
   subgraph "C5 - Writing [PROSE after C2]"
+    FMW[front-matter-writer]
+    CLW[chapter-lead-writer]
     SW[subsection-writer]
+    WSL[writer-selfloop]
+    SH[style-harmonizer]
     SLP[section-logic-polisher]
     TW[transition-weaver]
     MG[section-merger]
+    PMVG[post-merge-voice-gate]
     CD[citation-diversifier]
     CI[citation-injector]
     DP[draft-polisher]
     GR[global-reviewer]
     PA[pipeline-auditor]
+    ACA[artifact-contract-auditor]
     LS[latex-scaffold]:::optional
     LCQ[latex-compile-qa]:::optional
   end
 
-  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> WCP --> CMR --> TS --> TF --> SV --> SW --> SLP --> TW --> MG --> CD --> CI --> DP --> GR --> PA
+  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> TS --> TF --> ATW --> SN --> WCP --> ESL --> CMR --> FMW --> CLW --> SW --> WSL --> SH --> SLP --> TW --> MG --> PMVG --> CD --> CI --> DP --> GR --> PA --> ACA
   KX -.-> LE
   SSH -.-> TB
   OB -.-> OBU -.-> SM
+  CMR -.-> SV
   PA -.-> LS -.-> LCQ
 ```
 
@@ -110,23 +121,31 @@ flowchart LR
     CB[chapter-briefs]
   end
 
-  subgraph "C4 - Citations + visuals [NO PROSE]"
+  subgraph "C4 - Citations + evidence packs [NO PROSE]"
     CV[citation-verifier]
     EB[evidence-binder]
     ED[evidence-draft]
     AS[anchor-sheet]
-    WCP[writer-context-pack]
-    CMR[claim-matrix-rewriter]
     TS[table-schema]
     TF[table-filler]
-    SV[survey-visuals]
+    ATW[appendix-table-writer]
+    SN[schema-normalizer]
+    WCP[writer-context-pack]
+    ESL[evidence-selfloop]
+    CMR[claim-matrix-rewriter]
+    SV[survey-visuals]:::optional
   end
 
   subgraph "C5 - Writing + PDF [PROSE after C2]"
+    FMW[front-matter-writer]
+    CLW[chapter-lead-writer]
     SW[subsection-writer]
+    WSL[writer-selfloop]
+    SH[style-harmonizer]
     SLP[section-logic-polisher]
     TW[transition-weaver]
     MG[section-merger]
+    PMVG[post-merge-voice-gate]
     CD[citation-diversifier]
     CI[citation-injector]
     DP[draft-polisher]
@@ -134,12 +153,14 @@ flowchart LR
     PA[pipeline-auditor]
     LS[latex-scaffold]
     LCQ[latex-compile-qa]
+    ACA[artifact-contract-auditor]
   end
 
-  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> WCP --> CMR --> TS --> TF --> SV --> SW --> SLP --> TW --> MG --> CD --> CI --> DP --> GR --> PA --> LS --> LCQ
+  WS --> PR0 --> LE --> DR --> TB --> OB --> SM --> OR --> PR2 --> C2A --> PT --> PN --> SB --> CB --> CV --> EB --> ED --> AS --> TS --> TF --> ATW --> SN --> WCP --> ESL --> CMR --> FMW --> CLW --> SW --> WSL --> SH --> SLP --> TW --> MG --> PMVG --> CD --> CI --> DP --> GR --> PA --> LS --> LCQ --> ACA
   KX -.-> LE
   SSH -.-> TB
   OB -.-> OBU -.-> SM
+  CMR -.-> SV
 ```
 
 ## lit-snapshot (C0–C3)
