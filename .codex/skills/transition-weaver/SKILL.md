@@ -28,8 +28,12 @@ Transitions should answer:
 So each transition line must be safe to read as paper prose.
 
 Format contract (for merge insertion):
-- Only lines matching `- 3.1 → 3.2: <text>` are inserted by default (within-chapter H3 → next H3).
+- Only lines matching `- 3.1 -> 3.2: <text>` are inserted by default (within-chapter H3 -> next H3).
 - Keep `<text>` as one sentence without list formatting.
+
+Notes:
+- Use the ASCII arrow `->` (not a unicode arrow) to avoid invisible/control-character encoding issues.
+- `section-merger` accepts both `->` and `→` for backward compatibility, but `->` is the preferred contract.
 
 Hard rules:
 - Write the transition sentence as final prose: content-bearing, not process-bearing.

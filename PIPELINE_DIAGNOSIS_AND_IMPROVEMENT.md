@@ -291,3 +291,67 @@ Appendix 表格的最小 publishable 合同（建议作为长期质量门）：
 - `output/AUDIT_REPORT.md`：global unique citations >=150（推荐 >=165）
 - `output/LATEX_BUILD_REPORT.md`：SUCCESS（PDF 可读；Appendix tables 不像索引表）
 
+
+---
+
+## 7) 2026-01-26 delta：流程复查 + 回放结论（把不稳定因素变成可解释合同）
+
+### 7.1 transitions 的格式 token：从“易出乱码”到“可迁移、可验证”
+
+终稿倒推时发现一个典型的“流程级不稳定源”：`outline/transitions.md` 作为高频注入源，一旦出现不可见控制字符/编码乱码，后续 merge 与 voice gate 的行为会变得不可解释（看似是写作问题，实则是格式契约不稳）。
+
+设计改造方向（语义合同，而非补实现细节）：
+- 将 transitions 的插入格式 token 固定为 ASCII `->`（例如 `- 3.1 -> 3.2: <text>`），避免 unicode 箭头在不同编辑器/复制链路下被写成控制字符。
+- 兼容旧格式：允许历史 `→` 仍可被解析，但将 `->` 作为推荐合同，逐步迁移。
+- 质量门的角色：把“不可见控制字符/乱码 token”视作硬失败信号（这类失败不是内容问题，必须阻断并回退到 transitions 源修复）。
+
+改前 vs 改后：
+- 改前：同一份 transitions 可能在不同运行/环境下出现“看不见的字符”，导致 merge 后口吻门失败但难以定位。
+- 改后：transitions 的格式稳定为 ASCII，可被 gate 与 merger 可靠解析；失败时能明确路由到 `transition-weaver` 修复。
+
+潜在风险：
+- `->` 的视觉可读性略弱于 `→`；但这是用“轻微美观成本”换取“格式可验证性”的典型权衡。
+
+验证方式：
+- 复现：故意插入控制字符后应被 transitions gate 阻断。
+- 正向：用 `->` 格式写 transitions，`transition-weaver` → `section-merger` → `post-merge-voice-gate` 可稳定 PASS。
+
+### 7.2 post-merge voice gate 的一次有效拦截：slash-list 口吻污染（例如 `API/tool/environment`）
+
+回放中出现的一个高信号“中间态口吻”：在 Introduction 的定义段落中使用了 `API/tool/environment` 这种三连 slash-list。
+
+为什么必须拦截：
+- 这种写法在 planning notes/轴标签里很常见，但在论文 prose 中读者会直觉判断为“内部记录”或“槽位文本”，会显著降低成熟度。
+- 它往往不是事实错误，却是强口吻污染源；放任会在全文扩散（尤其在 Related Work 与 transitions 中）。
+
+修复原则（语义化、可复用）：
+- 将 slash-list 改写为读者化并列：`an API, a tool, or an environment` / `an API or tool interface to an external environment`。
+- 将“slash-list（>=3 token）”长期保留为 post-merge voice gate 的高信号阻断项，并把 rewrite recipe 写进前言/风格技能（减少反复返工）。
+
+验证方式：
+- post-merge voice gate 应能定位到具体句子，并明确 `source: draft`（而不是误判为 transitions）。
+
+### 7.3 A150++ 回放指标：已稳定 PASS，但“推荐引用目标”仍是可选而非默认收敛点
+
+回放 workspace（PASS）：`workspaces/e2e-agent-survey-latex-verify-20260125-225035/`
+
+关键观测值（用于解释“现在到底跑到什么量级”）：
+- C1：检索/去重池 `1800`；core set `300`；BibTeX entries `300`
+- C2：H3=8；每小节映射 `per_subsection=28`
+- C5：`post-merge-voice-gate` PASS；PDF `32` 页；Appendix tables `2`
+- Audit：global unique citations `154`（hard>=150 PASS；recommended>=165 仍有 gap=11）
+
+仍存在的结构性“波动源”（不是模型随机性）：
+- 当前 `citation-injector` 以 hard target（>=150）为通过条件；当 unique 已 >=150 时，即便仍低于 recommended（>=165），默认也会 no-op。
+- 结果是：在 A150++ 档位下，最终 unique citations 会稳定落在 150–165 区间，但“是否追到推荐目标”并不会自动收敛。
+
+可选改造方向（供你拍板；都是设计层语义合同的选择）：
+- 选项 A（更像默认交付）：将 recommended（>=165）提升为默认 citation self-loop 的目标（仍保留 hard>=150 的解释口径，但把推荐目标变成默认收敛点）。
+- 选项 B（显式开关）：在 `queries.md` 增加一个语义化开关（例如 `citation_target: hard|recommended`），默认 recommended；从而避免“看似同一档位但目标不同”的隐性差异。
+- 选项 C（档位拆分）：引入 `draft_profile: survey_plus`（或 A165）作为稳定交付档：profile 语义上承诺“默认追到 recommended”。
+
+风险评估：
+- 更高的 citation target 可能诱发“引用堆砌”风险；因此必须绑定 `citation-diversifier`→`citation-injector` 的注入风格合同（短句嵌入、按轴对比、避免段尾 cite dump）。
+
+验证方式：
+- A/B/C 任一方案都应能通过同一回放样例验证：让 `output/AUDIT_REPORT.md` 稳定达到目标区间，且不引入新的 voice smells（尤其是 `Representative works include...` 这种 citation dump 口吻）。

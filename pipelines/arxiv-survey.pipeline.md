@@ -39,6 +39,8 @@ target_artifacts:
   - sections/h3_bodies.refined.ok
   - sections/style_harmonized.refined.ok
   - sections/abstract.md
+  - sections/S1.md
+  - sections/S2.md
   - sections/discussion.md
   - sections/conclusion.md
   - output/QUALITY_GATE.md

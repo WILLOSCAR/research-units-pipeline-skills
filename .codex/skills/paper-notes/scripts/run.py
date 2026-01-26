@@ -107,7 +107,9 @@ def main() -> int:
             key_results = _infer_key_results(abstract=abstract, max_items=2)
             limitations = _infer_limitations(evidence_level=evidence_level, mapped_sections=mapped_sections, abstract=abstract)
         else:
-            summary_bullets = _abstract_to_bullets(abstract)
+            # A150++ scale: increase bullet coverage so the derived evidence bank has enough
+            # addressable snippets (>=7 items/paper on average) without inventing facts.
+            summary_bullets = _abstract_to_bullets(abstract, max_items=5)
             # Keep normal-priority notes lightweight, but still extract method/results so the evidence bank is usable.
             method = _infer_method(title=row["title"], abstract=abstract, bullets=summary_bullets)
             key_results = _infer_key_results(abstract=abstract, max_items=2)

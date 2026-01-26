@@ -52,14 +52,14 @@ def _parse_transitions(text: str) -> tuple[dict[tuple[str, str], str], dict[tupl
         line = raw.strip()
         if not line.startswith("-"):
             continue
-        # H3: - 2.1 → 2.2: ...
-        m = re.match(r"^\-\s+([0-9]+\.[0-9]+)\s+→\s+([0-9]+\.[0-9]+):\s+(.*)$", line)
+        # H3: - 2.1 -> 2.2: ... (accepts unicode arrow too)
+        m = re.match(r"^\-\s+([0-9]+\.[0-9]+)\s*(?:→|->)\s*([0-9]+\.[0-9]+):\s+(.*)$", line)
         if m:
             a, b, body = m.group(1), m.group(2), m.group(3)
             h3_map[(a, b)] = body.strip()
             continue
-        # H2: - Title A → Title B: ...
-        m2 = re.match(r"^\-\s+(.+?)\s+→\s+(.+?):\s+(.*)$", line)
+        # H2: - Title A -> Title B: ... (accepts unicode arrow too)
+        m2 = re.match(r"^\-\s+(.+?)\s*(?:→|->)\s*(.+?):\s+(.*)$", line)
         if m2:
             a, b, body = m2.group(1).strip(), m2.group(2).strip(), m2.group(3).strip()
             if a and b and body:

@@ -1470,13 +1470,29 @@ def _check_paper_notes(workspace: Path, outputs: list[str]) -> list[QualityIssue
                         message=f"`{bank_rel}` has no evidence items for some papers in notes (e.g., {sample}{suffix}).",
                     )
                 )
-            if len(bank) < len(seen):
-                issues.append(
-                    QualityIssue(
-                        code="evidence_bank_too_small",
-                        message=f"`{bank_rel}` has only {len(bank)} items for {len(seen)} papers; expect >=1 evidence item per paper on average.",
+            # A150++ scaling: require a denser evidence bank for arxiv-survey pipelines so later
+            # binding/packs can stay in-scope without pushing the writer into hollow prose.
+            if _pipeline_profile(workspace) == "arxiv-survey":
+                # Default contract: >=7 addressable evidence items per paper on average.
+                min_items = max(len(seen), int(len(seen) * 7))
+                if len(bank) < min_items:
+                    issues.append(
+                        QualityIssue(
+                            code="evidence_bank_too_small",
+                            message=(
+                                f"`{bank_rel}` has {len(bank)} items for {len(seen)} papers; "
+                                f"A150++ expects >= {min_items} (>=7 items/paper on average)."
+                            ),
+                        )
                     )
-                )
+            else:
+                if len(bank) < len(seen):
+                    issues.append(
+                        QualityIssue(
+                            code="evidence_bank_too_small",
+                            message=f"`{bank_rel}` has only {len(bank)} items for {len(seen)} papers; expect >=1 evidence item per paper on average.",
+                        )
+                    )
 
     return issues
 
@@ -3006,7 +3022,7 @@ def _check_transitions(workspace: Path, outputs: list[str]) -> list[QualityIssue
     h3_bullets = [
         ln
         for ln in bullets
-        if re.search(r"^\-\s*\d+\.\d+\s*→\s*\d+\.\d+\s*:", ln.strip())
+        if re.search(r"^\-\s*\d+\.\d+\s*(?:→|->)\s*\d+\.\d+\s*:", ln.strip())
     ]
 
     if expected_h3 and len(h3_bullets) < expected_h3:

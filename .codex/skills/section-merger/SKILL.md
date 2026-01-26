@@ -24,7 +24,8 @@ This skill is deterministic: it does not rewrite content or invent prose; it onl
 
 - By default, `section-merger` inserts only within-chapter H3->H3 transitions.
 - Optional: if you want between-H2 transitions inserted too, create `outline/transitions.insert_h2.ok` in the workspace.
-- Format contract: only lines matching `- 3.1 → 3.2: <text>` are injected by default.
+- Format contract: only lines matching `- 3.1 -> 3.2: <text>` are injected by default.
+- Compatibility: `→` is accepted, but `->` is the preferred contract (avoids control-character encoding issues).
 - Treat transitions as injected draft text: run `post-merge-voice-gate` after merging, and route fixes back to `outline/transitions.md` (do not patch the merged draft).
 
 ## Tables (two layers)

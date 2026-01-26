@@ -146,3 +146,41 @@ Last updated: 2026-01-25
 2) Related Work 是否允许少量自指表达（this survey/in this survey）？（建议：允许极少量，但禁止作为段首节奏）
 3) `argument-selfloop` 是否作为 C5 默认 gate（survey/deep 都启用）？（建议：是；否则“流畅但断链”会反复回归）
 
+
+---
+
+## 2026-01-26 delta（本轮复查新增 backlog）
+
+### P0-7 transitions 格式 token 固化为 ASCII `->`（稳定性优先）
+
+动机：
+- `outline/transitions.md` 是高频注入源；一旦出现不可见控制字符/乱码，merge 与 voice gate 会变得不可解释（看似写作问题，实则格式契约不稳）。
+
+设计要点：
+- transitions 插入格式推荐统一为：`- 3.1 -> 3.2: <text>`
+- 兼容旧格式：允许历史 `→` 继续被解析，但 `->` 作为推荐合同。
+
+验证方式：
+- transitions gate 能稳定 PASS；post-merge voice gate 不再因“格式字符污染”产生误报。
+
+### P0-8 citation self-loop 是否默认追到 recommended（>=165）？
+
+现状：
+- A150++ 下 hard=150 可 PASS，但 recommended=165 仍可能留下 gap（例如 gap=11），且默认不会自动收敛。
+
+可选方案：
+- A）将 recommended 提升为默认收敛目标（仍保留 hard 口径用于解释/容错）。
+- B）增加 `queries.md` 语义化开关：`citation_target: hard|recommended`（默认 recommended）。
+- C）新增 profile：`draft_profile: survey_plus`（语义承诺“默认追到 recommended”）。
+
+风险：
+- 目标上调可能诱发 citation dump；需要把“注入风格合同”（短句嵌入、按轴对比、避免段尾 dump）作为硬约束共同升级。
+
+### P1-2 保留 slash-list（>=3 token）作为高信号口吻污染拦截项
+
+动机：
+- 例如 `API/tool/environment` 这类写法在中间态常见，但在论文 prose 中是强“内部记录感”。
+
+设计要点：
+- 继续由 post-merge voice gate 阻断并路由到源文件修复。
+- 在 front matter / style skills 里加入明确 rewrite recipe（减少反复返工）。
