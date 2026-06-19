@@ -52,7 +52,7 @@ artifact, but it improves recovery locality and keeps repair state inspectable.
 - `tooling/harness.py`
 - `scripts/pipeline.py`
 - `tests/test_pipeline_harness_doctor.py`
-- `docs/DOCTOR_REPORT_SCHEMA.md`
-- `docs/HARNESS_ARCHITECTURE.md`
+- `docs/SCHEMAS.md`
+- `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md`
 - `docs/HARNESS_ROADMAP.md`
 - `docs/PROJECT_LANGUAGE.md`

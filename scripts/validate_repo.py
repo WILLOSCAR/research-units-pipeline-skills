@@ -24,28 +24,12 @@ from tooling.harness_contracts import (
     ADR_ALLOWED_STATUSES,
     ADR_REQUIRED_METADATA,
     ADR_REQUIRED_SECTIONS,
-    ARTIFACT_INTERFACE_REQUIRED_FIELDS,
-    ARTIFACT_INTERFACE_REQUIRED_FORMATS,
-    ARTIFACT_INTERFACE_REQUIRED_MAPPINGS,
-    ARTIFACT_INTERFACE_REQUIRED_SECTIONS,
+    AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_DOC_ENTRYPOINTS,
-    HARNESS_READINESS_AUDIT_SCRIPT,
-    HARNESS_RUN_WALKTHROUGH_REQUIRED_TERMS,
     HARNESS_README_LINKS,
-    HARNESS_SHOWCASE_AUDIT_GATE,
-    HARNESS_SHOWCASE_AUDIT_SCRIPT,
-    HARNESS_SHOWCASE_ASSET_PATHS,
-    HARNESS_SHOWCASE_FIXTURE_PATHS,
     HARNESS_SKILL_AUDIT_GATE,
-    SHOWCASE_FIXTURE_REFRESH_REQUIRED_TERMS,
-    AUTO_RESEARCH_REQUIRED_TERMS,
-    PATTERN_REGISTER_REQUIRED_ADOPTION_RULES,
-    PATTERN_REGISTER_REQUIRED_PATTERN_SOURCES,
-    PATTERN_REGISTER_REQUIRED_REFERENCE_CODEBASES,
-    PATTERN_REGISTER_REQUIRED_SECTIONS,
-    PATTERN_REGISTER_REQUIRED_STATUSES,
-    SCHEMA_REFERENCE_DOCS,
+    REPORT_SCHEMA_TERMS,
 )
 
 REQUIRED_UNITS_COLS = {
@@ -366,42 +350,21 @@ def _validate_docs() -> list[Finding]:
         findings.append(Finding("WARN", "Missing `SKILL_INDEX.md` (see TODO Sprint 1.1)."))
 
     graph_script = REPO_ROOT / "scripts" / "generate_skill_graph.py"
-    deps_doc = DOCS_DIR / "SKILL_DEPENDENCIES.md"
-
     if not graph_script.exists():
         findings.append(Finding("WARN", "Missing `scripts/generate_skill_graph.py` (see TODO Sprint 1.2)."))
 
-    if not deps_doc.exists():
-        findings.append(Finding("WARN", "Missing `docs/SKILL_DEPENDENCIES.md` (run `python scripts/generate_skill_graph.py`)."))
+    architecture_doc = DOCS_DIR / "AUTO_RESEARCH_DESIGN_SYSTEM.md"
+    if not architecture_doc.exists():
+        findings.append(Finding("WARN", "Missing `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md` (main architecture document)."))
     else:
-        text = deps_doc.read_text(encoding="utf-8", errors="ignore")
+        text = architecture_doc.read_text(encoding="utf-8", errors="ignore")
         if "```mermaid" not in text:
-            findings.append(Finding("WARN", "`docs/SKILL_DEPENDENCIES.md` has no Mermaid blocks (expected ` ```mermaid `)."))
-        else:
-            try:
-                from scripts import generate_skill_graph
-
-                expected = generate_skill_graph._render_markdown(
-                    skills=generate_skill_graph._load_skill_ios(SKILLS_DIR),
-                    pipelines=generate_skill_graph._load_pipelines(PIPELINES_DIR),
+            findings.append(
+                Finding(
+                    "WARN",
+                    "`docs/AUTO_RESEARCH_DESIGN_SYSTEM.md` has no Mermaid architecture diagram.",
                 )
-                if text != expected:
-                    findings.append(
-                        Finding(
-                            "WARN",
-                            "`docs/SKILL_DEPENDENCIES.md` is stale (run `python scripts/generate_skill_graph.py`).",
-                        )
-                    )
-            except Exception as exc:
-                findings.append(Finding("WARN", f"Could not freshness-check `docs/SKILL_DEPENDENCIES.md`: {exc}"))
-
-    pipeline_flows = DOCS_DIR / "PIPELINE_FLOWS.md"
-    if not pipeline_flows.exists():
-        findings.append(Finding("WARN", "Missing `docs/PIPELINE_FLOWS.md` (see TODO Sprint 5.1)."))
-    else:
-        text = pipeline_flows.read_text(encoding="utf-8", errors="ignore")
-        if "```mermaid" not in text:
-            findings.append(Finding("WARN", "`docs/PIPELINE_FLOWS.md` has no Mermaid blocks (expected ` ```mermaid `)."))
+            )
 
     findings.extend(_validate_harness_docs(repo_root=REPO_ROOT, docs_dir=DOCS_DIR))
 
@@ -430,46 +393,6 @@ def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:
                 )
             )
 
-    architecture_doc = docs_dir / "HARNESS_ARCHITECTURE.md"
-    if architecture_doc.exists():
-        text = architecture_doc.read_text(encoding="utf-8", errors="ignore")
-        missing_refs = [
-            link
-            for link in (
-                "docs/AUTO_RESEARCH_HARNESS.md",
-                "docs/HARNESS_OPERATING_MODEL.md",
-                "docs/PIPELINE_TAXONOMY.md",
-                "docs/PROJECT_LANGUAGE.md",
-                "docs/HARNESS_ROADMAP.md",
-                "docs/HARNESS_READINESS.md",
-                "docs/HARNESS_READINESS_AUDIT.md",
-                "docs/PATTERN_REGISTER.md",
-                "docs/HARNESS_SYSTEM_MAP.md",
-                "docs/HARNESS_SHOWCASE.md",
-                "docs/SHOWCASE_FIXTURE_REFRESH.md",
-                "docs/HARNESS_RUN_WALKTHROUGH.md",
-                "docs/HARNESS_IMPROVEMENT_LOOP.md",
-                "docs/ARTIFACT_INTERFACE_STANDARD.md",
-                "docs/SKILL_AUDIT_SCHEMA.md",
-                "docs/DOCTOR_REPORT_SCHEMA.md",
-                "docs/RUN_AUDIT_SCHEMA.md",
-                "docs/RUN_AUDIT_DIFF_SCHEMA.md",
-                "docs/SHOWCASE_AUDIT_SCHEMA.md",
-                "docs/IMPROVEMENT_REPORT_SCHEMA.md",
-                "docs/ARTIFACT_PACK_SCHEMA.md",
-            )
-            if link not in text
-        ]
-        if missing_refs:
-            findings.append(
-                Finding(
-                    "WARN",
-                    "`docs/HARNESS_ARCHITECTURE.md` is missing current-state references: "
-                    + ", ".join(missing_refs)
-                    + ".",
-                )
-            )
-
     findings.extend(
         _validate_pipeline_taxonomy(
             repo_root=repo_root,
@@ -479,205 +402,31 @@ def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:
     )
     findings.extend(_validate_adr_index(repo_root=repo_root, docs_dir=docs_dir))
     findings.extend(_validate_adr_contracts(repo_root=repo_root, docs_dir=docs_dir))
-    findings.extend(_validate_schema_reference_docs(repo_root=repo_root))
-    findings.extend(_validate_auto_research_harness_doc(repo_root=repo_root))
-    findings.extend(_validate_artifact_interface_standard(repo_root=repo_root))
-    findings.extend(_validate_harness_showcase(repo_root=repo_root))
-    findings.extend(_validate_showcase_fixture_refresh(repo_root=repo_root))
-    findings.extend(_validate_pattern_register(repo_root=repo_root))
+    findings.extend(_validate_schema_summary_doc(repo_root=repo_root))
+    findings.extend(_validate_auto_research_design_system_doc(repo_root=repo_root))
     findings.extend(_validate_local_harness_checks(repo_root=repo_root))
-    findings.extend(_validate_harness_readiness_audit(repo_root=repo_root))
-    findings.extend(_validate_harness_run_walkthrough(repo_root=repo_root))
 
     return findings
 
 
-def _validate_auto_research_harness_doc(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/AUTO_RESEARCH_HARNESS.md"
+def _validate_auto_research_design_system_doc(*, repo_root: Path) -> list[Finding]:
+    rel_path = "docs/AUTO_RESEARCH_DESIGN_SYSTEM.md"
     doc_path = repo_root / rel_path
     if not doc_path.exists():
         return []
 
     text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in AUTO_RESEARCH_REQUIRED_TERMS if term not in text]
+    missing = [term for term in AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS if term not in text]
     if missing:
         return [
             Finding(
                 "WARN",
-                f"`{rel_path}` is missing Auto Research Harness framing terms: "
+                f"`{rel_path}` is missing Auto Research Design System terms: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )
         ]
     return []
-
-
-def _validate_artifact_interface_standard(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/ARTIFACT_INTERFACE_STANDARD.md"
-    doc_path = repo_root / rel_path
-    if not doc_path.exists():
-        return []
-
-    text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    required_groups = {
-        "sections": ARTIFACT_INTERFACE_REQUIRED_SECTIONS,
-        "interface fields": ARTIFACT_INTERFACE_REQUIRED_FIELDS,
-        "format vocabulary": ARTIFACT_INTERFACE_REQUIRED_FORMATS,
-        "current repo mappings": ARTIFACT_INTERFACE_REQUIRED_MAPPINGS,
-    }
-    missing: list[str] = []
-    for label, needles in required_groups.items():
-        missing_bits = [needle for needle in needles if needle not in text]
-        if missing_bits:
-            missing.append(f"{label} {', '.join(f'`{bit}`' for bit in missing_bits)}")
-
-    if not missing:
-        return []
-
-    return [
-        Finding(
-            "WARN",
-            f"`{rel_path}` is missing artifact-interface contract metadata: "
-            + "; ".join(missing)
-            + ".",
-        )
-    ]
-
-
-def _validate_harness_showcase(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/HARNESS_SHOWCASE.md"
-    doc_path = repo_root / rel_path
-    if not doc_path.exists():
-        return []
-
-    text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    expected_paths = tuple(HARNESS_SHOWCASE_ASSET_PATHS) + tuple(HARNESS_SHOWCASE_FIXTURE_PATHS)
-    required_terms = (
-        "harness-showcase-audit.v1",
-        f"python {HARNESS_SHOWCASE_AUDIT_SCRIPT} --strict",
-    )
-    missing_links = [path for path in expected_paths if path not in text]
-    missing_paths = [path for path in expected_paths if not (repo_root / path).exists()]
-    missing_terms = [term for term in required_terms if term not in text]
-    problems: list[str] = []
-    if missing_links:
-        problems.append("showcase doc links " + ", ".join(f"`{path}`" for path in missing_links))
-    if missing_paths:
-        problems.append("fixture paths " + ", ".join(f"`{path}`" for path in missing_paths))
-    if missing_terms:
-        problems.append("audit metadata " + ", ".join(f"`{term}`" for term in missing_terms))
-    if problems:
-        return [
-            Finding(
-                "WARN",
-                f"`{rel_path}` is missing deliverable-first showcase evidence: "
-                + "; ".join(problems)
-                + ".",
-            )
-        ]
-    return []
-
-
-def _validate_showcase_fixture_refresh(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/SHOWCASE_FIXTURE_REFRESH.md"
-    doc_path = repo_root / rel_path
-    if not doc_path.exists():
-        return []
-
-    text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in SHOWCASE_FIXTURE_REFRESH_REQUIRED_TERMS if term not in text]
-    if not missing:
-        return []
-
-    return [
-        Finding(
-            "WARN",
-            f"`{rel_path}` is missing fixture-refresh contract terms: "
-            + ", ".join(f"`{term}`" for term in missing)
-            + ".",
-        )
-    ]
-
-
-def _validate_pattern_register(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/PATTERN_REGISTER.md"
-    doc_path = repo_root / rel_path
-    if not doc_path.exists():
-        return []
-
-    text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    required_groups = {
-        "sections": PATTERN_REGISTER_REQUIRED_SECTIONS,
-        "pattern sources": PATTERN_REGISTER_REQUIRED_PATTERN_SOURCES,
-        "reference codebases": PATTERN_REGISTER_REQUIRED_REFERENCE_CODEBASES,
-        "status vocabulary": PATTERN_REGISTER_REQUIRED_STATUSES,
-        "adoption rules": PATTERN_REGISTER_REQUIRED_ADOPTION_RULES,
-    }
-    missing: list[str] = []
-    for label, needles in required_groups.items():
-        missing_bits = [needle for needle in needles if needle not in text]
-        if missing_bits:
-            missing.append(f"{label} {', '.join(f'`{bit}`' for bit in missing_bits)}")
-
-    if not missing:
-        return []
-
-    return [
-        Finding(
-            "WARN",
-            f"`{rel_path}` is missing pattern-register contract metadata: "
-            + "; ".join(missing)
-            + ".",
-        )
-    ]
-
-
-def _validate_harness_readiness_audit(*, repo_root: Path) -> list[Finding]:
-    script_path = repo_root / HARNESS_READINESS_AUDIT_SCRIPT
-    if not script_path.exists():
-        return [Finding("WARN", f"Missing `{HARNESS_READINESS_AUDIT_SCRIPT}` (harness readiness audit).")]
-
-    doc_path = repo_root / "docs" / "HARNESS_READINESS_AUDIT.md"
-    if not doc_path.exists():
-        return []
-    text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    required_bits = (
-        "harness-readiness-audit.v1",
-        "python scripts/readiness_audit.py",
-        "docs/HARNESS_READINESS.md",
-    )
-    missing = [bit for bit in required_bits if bit not in text]
-    if missing:
-        return [
-            Finding(
-                "WARN",
-                "`docs/HARNESS_READINESS_AUDIT.md` is missing readiness audit metadata: "
-                + ", ".join(f"`{bit}`" for bit in missing)
-                + ".",
-            )
-        ]
-    return []
-
-
-def _validate_harness_run_walkthrough(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/HARNESS_RUN_WALKTHROUGH.md"
-    doc_path = repo_root / rel_path
-    if not doc_path.exists():
-        return []
-
-    text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in HARNESS_RUN_WALKTHROUGH_REQUIRED_TERMS if term not in text]
-    if not missing:
-        return []
-
-    return [
-        Finding(
-            "WARN",
-            f"`{rel_path}` is missing walkthrough command/artifact terms: "
-            + ", ".join(f"`{term}`" for term in missing)
-            + ".",
-        )
-    ]
 
 
 def _validate_local_harness_checks(*, repo_root: Path) -> list[Finding]:
@@ -789,26 +538,23 @@ def _validate_adr_contracts(*, repo_root: Path, docs_dir: Path) -> list[Finding]
     return findings
 
 
-def _validate_schema_reference_docs(*, repo_root: Path) -> list[Finding]:
-    findings: list[Finding] = []
-    for rel_path, required_bits in SCHEMA_REFERENCE_DOCS.items():
-        doc_path = repo_root / rel_path
-        if not doc_path.exists():
-            continue
-        text = doc_path.read_text(encoding="utf-8", errors="ignore")
-        missing = [
-            f"{label} `{needle}`"
-            for label, needle in required_bits.items()
-            if needle not in text
-        ]
-        if missing:
-            findings.append(
-                Finding(
-                    "WARN",
-                    f"`{rel_path}` is missing schema reference metadata: {', '.join(missing)}.",
-                )
-            )
-    return findings
+def _validate_schema_summary_doc(*, repo_root: Path) -> list[Finding]:
+    rel_path = "docs/SCHEMAS.md"
+    doc_path = repo_root / rel_path
+    if not doc_path.exists():
+        return []
+    text = doc_path.read_text(encoding="utf-8", errors="ignore")
+    missing = [term for term in REPORT_SCHEMA_TERMS if term not in text]
+    if not missing:
+        return []
+    return [
+        Finding(
+            "WARN",
+            f"`{rel_path}` is missing report schema terms: "
+            + ", ".join(f"`{term}`" for term in missing)
+            + ".",
+        )
+    ]
 
 
 def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_dir: Path) -> list[Finding]:

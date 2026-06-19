@@ -1,51 +1,40 @@
-# ADR 0006: Keep Showcase Audit As Repo-Local JSON Contract
+# ADR 0006: Deprecate Showcase Audit As Active Harness Contract
 
-- Status: accepted
+- Status: deprecated
 - Date: 2026-05-30
 
 ## Context
 
-`scripts/showcase_audit.py` now checks the portable examples under `example/`
-and is listed as a local harness check. That makes the showcase more than
-prose: it is a repeatable exhibit check for deliverable-first fixture health.
+The project previously carried a showcase audit around portable examples under
+`example/`. That made sense while the docs were trying to prove a
+deliverable-first exhibit, but it became a parallel story next to the current
+Auto Research Design System narrative.
 
-The command already emits Markdown for humans and JSON for tools through
-`python scripts/showcase_audit.py --format json`. Once a command is
-machine-readable and part of the local harness checks, future tooling should
-not infer its shape from examples or scrape the Markdown report.
+The active system now treats `paper-review` / Auto Review as the next proof.
+Keeping showcase audit as a maintained contract added script, fixture, schema,
+and test surface without advancing that proof.
 
 ## Decision
 
-Keep `harness-showcase-audit.v1` as a small repo-local JSON contract before
-adding formal JSON Schema files or an external dashboard.
+Deprecate showcase audit as an active harness contract.
 
-The contract is documented in `docs/SHOWCASE_AUDIT_SCHEMA.md` and checked by
-`scripts.showcase_audit.validate_showcase_audit_payload`. The local check
-remains:
-
-```bash
-python scripts/showcase_audit.py --strict
-```
-
-The schema covers repository path, verdict, showcase document path, check
-records, and the boundary note. It does not claim live workflow execution,
-retrieval quality, LaTeX compilation, or semantic benchmark quality.
+Remove it from the readiness gate, schema summary, validation contracts, and
+tests. Do not rebuild it unless a future public demo or benchmark track needs a
+checked fixture layer again.
 
 ## Consequences
 
-Future agents and lightweight tools can consume showcase audit JSON without
-reverse-engineering Markdown. The exhibit check stays file-first and cheap to
-run, which matches the current harness architecture.
+The codebase becomes easier to read: the core validation surface now protects
+current docs, workflow taxonomy, ADRs, readiness, skill audit, and workspace
+harness reports.
 
-If the showcase grows into a benchmark dashboard or multi-run exhibit system,
-that future work should build on this JSON contract or introduce a new schema
-version. It should not silently change `harness-showcase-audit.v1`.
+The tradeoff is that old showcase fixture health is no longer checked. This is
+acceptable because the next proof should be a completed `paper-review`
+workspace with rubric and scorecard, not another showcase layer.
 
 ## Related Files
 
-- `scripts/showcase_audit.py`
-- `docs/SHOWCASE_AUDIT_SCHEMA.md`
-- `docs/HARNESS_SHOWCASE.md`
+- `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md`
 - `docs/HARNESS_READINESS.md`
 - `docs/HARNESS_ROADMAP.md`
 - `tooling/harness_contracts.py`

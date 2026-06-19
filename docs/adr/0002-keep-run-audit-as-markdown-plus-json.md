@@ -62,6 +62,6 @@ stable benchmark corpus or regression dashboard.
 - `tooling/harness.py`
 - `scripts/pipeline.py`
 - `tests/test_pipeline_harness_doctor.py`
-- `docs/HARNESS_ARCHITECTURE.md`
+- `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md`
 - `docs/HARNESS_ROADMAP.md`
 - `docs/PROJECT_LANGUAGE.md`

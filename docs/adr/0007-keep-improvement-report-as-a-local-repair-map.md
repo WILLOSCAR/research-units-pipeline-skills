@@ -27,7 +27,7 @@ python scripts/pipeline.py improve --workspace workspaces/<name> --write
 
 The human report is `output/IMPROVEMENT_REPORT.md`. The machine-readable
 sidecar is `output/IMPROVEMENT_REPORT.json` with schema
-`improvement-report.v1`, documented in `docs/IMPROVEMENT_REPORT_SCHEMA.md` and
+`improvement-report.v1`, summarized in `docs/SCHEMAS.md` and
 checked by `tooling.harness.validate_improvement_payload`.
 
 The report maps:
@@ -53,7 +53,7 @@ extend `improvement-report.v1` rather than scraping prose.
 
 - `scripts/pipeline.py`
 - `tooling/harness.py`
-- `docs/IMPROVEMENT_REPORT_SCHEMA.md`
-- `docs/ARTIFACT_INTERFACE_STANDARD.md`
-- `docs/HARNESS_IMPROVEMENT_LOOP.md`
+- `docs/SCHEMAS.md`
+- `docs/PROJECT_LANGUAGE.md`
+- `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md`
 - `docs/HARNESS_ROADMAP.md`

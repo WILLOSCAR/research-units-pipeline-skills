@@ -39,8 +39,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate Mermaid graphs for skills/pipelines.")
     parser.add_argument(
         "--output",
-        default=str(REPO_ROOT / "docs" / "SKILL_DEPENDENCIES.md"),
-        help="Output Markdown path (default: docs/SKILL_DEPENDENCIES.md).",
+        default=str(REPO_ROOT / "workspaces" / "skill-graph.md"),
+        help="Output Markdown path (default: workspaces/skill-graph.md).",
     )
     args = parser.parse_args()
 
@@ -57,9 +57,10 @@ def main() -> int:
 
 def _render_markdown(*, skills: list[SkillIO], pipelines: list[tuple[Path, dict[str, Any], str, PipelineSpec | None]]) -> str:
     lines: list[str] = [
-        "# SKILL_DEPENDENCIES",
+        "# Skill Graph",
         "",
         "- Regenerate: `python scripts/generate_skill_graph.py`",
+        "- This is a generated developer aid. Keep durable architecture docs in `docs/`.",
         "",
         "## Global skill ⇄ artifact graph (from SKILL.md Inputs/Outputs)",
         "",

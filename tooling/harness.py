@@ -1141,7 +1141,7 @@ def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int,
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
-        "artifact_interface_standard": "docs/ARTIFACT_INTERFACE_STANDARD.md",
+        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
         "source_reports": {
             "doctor": {
                 "schema": str(doctor_payload.get("schema") or ""),
@@ -1237,7 +1237,7 @@ def build_artifact_pack_payload(*, workspace: Path, repo_root: Path) -> tuple[in
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
-        "artifact_interface_standard": "docs/ARTIFACT_INTERFACE_STANDARD.md",
+        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
         "source_reports": {
             "doctor": _source_report_record(doctor_payload),
             "run_audit": _source_report_record(audit_payload),

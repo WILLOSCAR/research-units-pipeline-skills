@@ -45,7 +45,7 @@ rather than replacing them prematurely.
 
 Schema changes should be deliberate. A breaking change to
 `run-audit-diff.v1` should preserve backward compatibility, introduce a new
-schema version, or update this ADR and `docs/RUN_AUDIT_DIFF_SCHEMA.md` with a
+schema version, or update this ADR and `docs/SCHEMAS.md` with a
 migration note.
 
 ## Related Files
@@ -53,7 +53,6 @@ migration note.
 - `tooling/harness.py`
 - `scripts/pipeline.py`
 - `tests/test_pipeline_harness_doctor.py`
-- `docs/RUN_AUDIT_DIFF_SCHEMA.md`
-- `docs/RUN_AUDIT_SCHEMA.md`
+- `docs/SCHEMAS.md`
 - `docs/HARNESS_ROADMAP.md`
 - `docs/PROJECT_LANGUAGE.md`

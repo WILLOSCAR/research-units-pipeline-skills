@@ -1,6 +1,0 @@
-id,title,role,why_it_is_included
-rag-architecture,RAG architecture and retrieval-generation coupling,architecture anchor,Explains why retrieval and generation failures must be separated.
-dense-retrieval,Dense retrieval for open-domain question answering,retrieval anchor,Clarifies candidate selection and ranking quality.
-faithfulness-eval,Faithfulness and attribution evaluation,grounding anchor,Frames claim support as distinct from answer fluency.
-rag-benchmark,RAG benchmark and task evaluation,benchmark anchor,Shows how end-to-end scores can hide component failures.
-survey-rag-eval,RAG evaluation survey,orientation anchor,Provides terminology breadth after the core axes are established.

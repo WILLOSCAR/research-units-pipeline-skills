@@ -8,13 +8,13 @@ Date: 2026-05-30
 
 `scripts/audit_skills.py` now emits both human-readable text and
 machine-readable JSON. The JSON payload is named `skill-audit-report.v1` and
-is documented in `docs/SKILL_AUDIT_SCHEMA.md`.
+is summarized in `docs/SCHEMAS.md`.
 
 The skill audit report is a static-analysis-like surface for this repository:
 it has stable rule ids, severities, repo-relative paths, line numbers, review
-categories, next actions, summary counts, and filters. `docs/PATTERN_REGISTER.md`
-maps this to SARIF as a useful external pattern for stable static-analysis
-interchange.
+categories, next actions, summary counts, and filters. SARIF remains a useful
+external pattern for stable static-analysis interchange, but it is not an
+implemented output format.
 
 However, the repo does not currently have an external consumer that requires
 SARIF. The local blocking check is
@@ -49,18 +49,15 @@ If SARIF becomes necessary, add a SARIF exporter as an adapter. Do not replace
   full schema surface before it is needed.
 - Repo-local tools should consume `skill-audit-report.v1` and validate it with
   `scripts.audit_skills.validate_skill_audit_payload` instead of scraping text.
-- `docs/SKILL_AUDIT_SCHEMA.md` remains the source of truth for the current
-  field contract.
-- `docs/PATTERN_REGISTER.md` should continue to list SARIF as a partial
-  pattern, not as an implemented output format.
+- `docs/SCHEMAS.md` remains the compact public summary for the current field
+  contract.
 - Any breaking change to the skill audit JSON contract should update
-  `docs/SKILL_AUDIT_SCHEMA.md`, `tooling/harness_contracts.py`, tests, and
+  `docs/SCHEMAS.md`, `tooling/harness_contracts.py`, tests, and
   this ADR or a superseding ADR.
 
 ## Related Files
 
 - `scripts/audit_skills.py`
-- `docs/SKILL_AUDIT_SCHEMA.md`
-- `docs/PATTERN_REGISTER.md`
+- `docs/SCHEMAS.md`
 - `tooling/harness_contracts.py`
 - `tests/test_harness_validation.py`

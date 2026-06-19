@@ -17,7 +17,6 @@ from tooling.harness_contracts import (
     EXECUTABLE_UNIT_TEMPLATES,
     HARNESS_LOCAL_CHECKS,
     HARNESS_README_LINKS,
-    HARNESS_SHOWCASE_AUDIT_GATE,
     HARNESS_SKILL_AUDIT_GATE,
     READINESS_AUDIT_SCHEMA,
     READINESS_MIN_ITERATIONS,
@@ -34,7 +33,6 @@ README_LINKS = HARNESS_README_LINKS
 WORKFLOWS = CURRENT_WORKFLOWS
 EXECUTABLE_PIPELINES = EXECUTABLE_PIPELINE_CONTRACTS
 SKILL_AUDIT_GATE = HARNESS_SKILL_AUDIT_GATE
-SHOWCASE_AUDIT_GATE = HARNESS_SHOWCASE_AUDIT_GATE
 LOCAL_CHECKS = HARNESS_LOCAL_CHECKS
 VALIDATION_SURFACES = READINESS_VALIDATION_SURFACES
 
@@ -297,13 +295,13 @@ def _check_local_harness_checks(*, repo_root: Path) -> ReadinessCheck:
             "local_harness_checks",
             "WARN",
             "Readiness docs do not list local harness check(s): " + _format_check_list(missing) + ".",
-            "Keep skill hygiene and portable showcase evidence visible as local checks.",
+            "Keep validation, readiness, and skill hygiene visible as local checks.",
         )
     return ReadinessCheck(
         "local_harness_checks",
         "PASS",
         "Readiness docs list " + _format_check_list(LOCAL_CHECKS) + ".",
-        "Treat new WARN findings and showcase regressions as actionable harness issues.",
+        "Treat new WARN findings as actionable harness issues.",
     )
 
 
