@@ -6,7 +6,7 @@
 ## Context
 
 The harness now has a workspace-level audit command:
-`python scripts/pipeline.py audit --workspace workspaces/<name> --write`.
+`uv run python scripts/pipeline.py audit --workspace workspaces/<name> --write`.
 
 That command writes:
 

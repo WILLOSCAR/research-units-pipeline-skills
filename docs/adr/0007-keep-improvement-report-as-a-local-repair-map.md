@@ -17,12 +17,12 @@ checkpoint state. They are not yet a representative semantic benchmark corpus.
 
 ## Decision
 
-Add `python scripts/pipeline.py improve --workspace <name>` as a local repair
+Add `uv run python scripts/pipeline.py improve --workspace <name>` as a local repair
 map. It reads doctor and run-audit evidence, then writes a human report plus a
 JSON sidecar when `--write` is used:
 
 ```bash
-python scripts/pipeline.py improve --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py improve --workspace workspaces/<name> --write
 ```
 
 The human report is `output/IMPROVEMENT_REPORT.md`. The machine-readable

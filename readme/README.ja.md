@@ -8,24 +8,25 @@
 
 現在の workflow 名をそのまま使ってください。旧 alias 名はアクティブなルーティングから外れています。
 
-## Workflow マップ
+## Entry マップ
 
-| Workflow | 主な用途 | 既定の成果物 | ガイド |
+| Entry | 主な用途 | 既定の成果物 | ガイド |
 |---|---|---|---|
 | `arxiv-survey` | PDF 以前の evidence-first survey 作成 | `output/DRAFT.md` | [Guide](arxiv-survey.md) |
 | `arxiv-survey-latex` | 同じ survey workflow で compile-ready な LaTeX/PDF まで必要な場合 | `output/DRAFT.md`, `latex/main.pdf` | [Guide](arxiv-survey.md) |
-| course paper / term report | `arxiv-survey` または `arxiv-survey-latex` を使う topic-to-report 用途 | report draft, optional PDF | [Guide](arxiv-survey.md) |
+| course paper / term report | `arxiv-survey` または `arxiv-survey-latex` を使う use-case overlay | report draft, optional PDF | [Guide EN](arxiv-survey.md) |
 | `research-brief` | あるトピックを素早く理解し、読む順番を整理する | `output/SNAPSHOT.md` | [Guide](research-brief.md) |
 | `paper-review` | 単一の paper / manuscript を追跡可能に評価する | `output/REVIEW.md` | [Guide](paper-review.md) |
 | `evidence-review` | protocol に基づく screening・extraction・bounded synthesis | `output/SYNTHESIS.md` | [Guide](evidence-review.md) |
 | `idea-brainstorm` | 文献に基づく研究アイデアメモ | `output/REPORT.md` | [Guide](idea-brainstorm.md) |
 | `source-tutorial` | 複数ソースを tutorial に変換し PDF / slides も出す | `output/TUTORIAL.md`, `latex/main.pdf`, `latex/slides/main.pdf` | [Guide](source-tutorial.md) |
-| `graduate-paper` | 中国語 thesis 資料を thesis workflow に再構成する | pipeline + thesis skill packages | [Guide](graduate-paper.md) |
+| `graduate-paper` | 中国語 thesis 資料の再構成。research-stage であり executable pipeline ではない | thesis design artifacts + skill packages | [Guide EN](graduate-paper.md) |
 
-## 並列な 3 つの Review 製品
+## 並列な 3 つの Research Judgment Entry
 
 - `research-brief`: 素早い把握と最初に読むべきもの
 - `paper-review`: 1 本の manuscript、traceable claims、recommendation
 - `evidence-review`: 複数研究、protocol、screening、bounded synthesis
 
 全体説明は [../README.md](../README.md) を参照してください。
+このページからリンクされる詳細ガイドは現在主に英語です。

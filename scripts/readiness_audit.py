@@ -18,6 +18,7 @@ from tooling.harness_contracts import (
     HARNESS_LOCAL_CHECKS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
+    PIPELINE_TAXONOMY_REQUIRED_TERMS,
     READINESS_AUDIT_SCHEMA,
     READINESS_MIN_ITERATIONS,
     READINESS_PROGRESS_PATH,
@@ -270,6 +271,14 @@ def _check_workflow_taxonomy(*, repo_root: Path) -> ReadinessCheck:
             "WARN",
             "Pipeline taxonomy is missing workflows: " + ", ".join(missing) + ".",
             "Update the taxonomy so all current workflows are represented.",
+        )
+    missing_terms = [term for term in PIPELINE_TAXONOMY_REQUIRED_TERMS if term not in text]
+    if missing_terms:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing required term(s): " + _format_check_list(missing_terms) + ".",
+            "Keep maturity, use-case overlays, and the Auto Review proof explicit.",
         )
     return ReadinessCheck(
         "workflow_taxonomy",

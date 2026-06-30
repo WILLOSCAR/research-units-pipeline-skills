@@ -23,13 +23,13 @@ Foundation is in place. Product proof is incomplete.
 ## Local Checks
 
 ```bash
-python scripts/validate_repo.py --no-check-quality --strict
-python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
-python scripts/audit_skills.py --fail-on WARN
-python -m pytest -q
+uv run python scripts/validate_repo.py --no-check-quality --strict
+uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
+uv run python scripts/audit_skills.py --fail-on WARN
+uv run --extra test python -m pytest -q
 ```
 
-`python scripts/audit_skills.py --fail-on WARN`
+`uv run python scripts/audit_skills.py --fail-on WARN`
 
 ## Closure Gate
 

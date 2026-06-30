@@ -89,7 +89,7 @@ Avoid:
 
 `outline/tables_appendix.md` must:
 - contain >=2 Markdown tables
-- use a caption line before each table, e.g. `**Appendix Table A1. ...**`
+- use a caption line before each table, e.g. `**Appendix Table A1. Representative systems by method family and evaluation setting**`
 - contain no headings (`#`, `##`, `###`) inside the file (the merger adds an Appendix heading)
 - contain no placeholders (`TODO`, `TBD`, `FIXME`, `...`, unicode ellipsis)
 - contain citations in rows using `[@BibKey]` (keys must exist in `citations/ref.bib`)

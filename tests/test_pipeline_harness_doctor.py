@@ -131,7 +131,7 @@ def test_doctor_reports_next_runnable_unit(tmp_path: Path) -> None:
         ],
     )
     (workspace / "STATUS.md").write_text("# Status\n\n## Current checkpoint\n- `C1`\n", encoding="utf-8")
-    (workspace / "PIPELINE.lock.md").write_text("pipeline: pipelines/tutorial.pipeline.md\n", encoding="utf-8")
+    (workspace / "PIPELINE.lock.md").write_text("pipeline: pipelines/source-tutorial.pipeline.md\n", encoding="utf-8")
     (workspace / "output").mkdir(parents=True)
     (workspace / "output" / "seed.md").write_text("seed\n", encoding="utf-8")
 
@@ -140,7 +140,7 @@ def test_doctor_reports_next_runnable_unit(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr or result.stdout
     assert "Next runnable: `U010` Write (`demo`)" in result.stdout
     assert "Kind: `run_next_unit`" in result.stdout
-    assert f"Command: `python scripts/pipeline.py run --workspace {workspace.resolve()}`" in result.stdout
+    assert f"Command: `uv run python scripts/pipeline.py run --workspace {workspace.resolve()}`" in result.stdout
     assert "Reason: Next runnable unit U010 is ready." in result.stdout
     assert "Current checkpoint: `C1`" in result.stdout
     assert "DONE: 1" in result.stdout
@@ -242,7 +242,7 @@ def test_doctor_reports_typed_remediation_for_missing_units(tmp_path: Path) -> N
     assert "Remediation: `restore_workspace_contract`" in result.stdout
     assert "Next action: Create or restore `UNITS.csv` from the selected pipeline unit template" in result.stdout
     assert "Kind: `repair_first`" in result.stdout
-    assert f"Command: `python scripts/pipeline.py improve --workspace {workspace.resolve()} --write`" in result.stdout
+    assert f"Command: `uv run python scripts/pipeline.py improve --workspace {workspace.resolve()} --write`" in result.stdout
     assert "`restore_workspace_contract`: 1" in result.stdout
 
 
@@ -277,13 +277,13 @@ def test_doctor_writes_durable_report_when_requested(tmp_path: Path) -> None:
     assert "# Pipeline doctor" in report
     assert "DONE: 1" in report
     assert "Kind: `audit_state`" in report
-    assert f"Command: `python scripts/pipeline.py audit --workspace {workspace.resolve()} --write`" in report
+    assert f"Command: `uv run python scripts/pipeline.py audit --workspace {workspace.resolve()} --write`" in report
     assert "No harness issues" in report
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["schema"] == "doctor-report.v1"
     assert payload["unit_status"] == {"DONE": 1}
     assert payload["resume_hint"]["kind"] == "audit_state"
-    assert payload["resume_hint"]["command"] == f"python scripts/pipeline.py audit --workspace {workspace.resolve()} --write"
+    assert payload["resume_hint"]["command"] == f"uv run python scripts/pipeline.py audit --workspace {workspace.resolve()} --write"
     assert payload["verdict"] == "PASS"
     assert validate_doctor_payload(payload) == []
 
@@ -299,7 +299,7 @@ def test_doctor_payload_validator_reports_schema_drift() -> None:
         "units_present": "yes",
         "unit_status": {"DONE": "1"},
         "next_runnable": {"unit_id": 10},
-        "resume_hint": {"kind": 10, "command": "python scripts/pipeline.py audit --workspace /tmp/ws --write"},
+        "resume_hint": {"kind": 10, "command": "uv run python scripts/pipeline.py audit --workspace /tmp/ws --write"},
         "harness_issues": [],
         "remediation_summary": {},
         "recent_reports": [],
@@ -478,7 +478,7 @@ def test_improve_writes_repair_suggestions_from_run_evidence(tmp_path: Path) -> 
     assert "Improvement report" in result.stdout
     assert "Target artifact contract" in result.stdout
     assert "repair_run_artifacts" in result.stdout
-    assert "python scripts/pipeline.py audit --workspace" in result.stdout
+    assert "uv run python scripts/pipeline.py audit --workspace" in result.stdout
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["schema"] == "improvement-report.v1"
     assert payload["verdict"] == "ATTENTION"

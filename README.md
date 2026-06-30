@@ -26,11 +26,11 @@ handles the semantic reading and writing.
 Use this repo when the output matters enough that you want files, checkpoints,
 and reviewable evidence rather than a one-off chat answer.
 
-| Goal | Workflow | Main deliverable |
+| Goal | Entry point | Main deliverable |
 |---|---|---|
 | Evidence-first literature survey | `arxiv-survey` | `output/DRAFT.md` |
 | Survey with LaTeX/PDF delivery | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
-| Course paper or end-of-term report from a topic | `arxiv-survey` or `arxiv-survey-latex` | report draft, optional PDF |
+| Course paper or end-of-term report from a topic | survey use-case overlay via `arxiv-survey` or `arxiv-survey-latex` | report draft, optional PDF |
 | Fast topic briefing and reading path | `research-brief` | `output/SNAPSHOT.md` |
 | Single-paper critique or referee-style review | `paper-review` | `output/REVIEW.md` |
 | Protocol-driven evidence synthesis | `evidence-review` | `output/SYNTHESIS.md` |
@@ -97,7 +97,7 @@ Write an arxiv-survey-latex survey about embodied agents and show me the outline
 Use arxiv-survey-latex to write a compact course paper on robot learning. Keep the outline reviewable before drafting and target a final PDF.
 ```
 
-For tighter control, name the pipeline contract directly:
+For tighter control, name the executable pipeline contract directly:
 
 - [pipelines/arxiv-survey.pipeline.md](pipelines/arxiv-survey.pipeline.md)
 - [pipelines/arxiv-survey-latex.pipeline.md](pipelines/arxiv-survey-latex.pipeline.md)
@@ -106,11 +106,14 @@ For tighter control, name the pipeline contract directly:
 - [pipelines/evidence-review.pipeline.md](pipelines/evidence-review.pipeline.md)
 - [pipelines/idea-brainstorm.pipeline.md](pipelines/idea-brainstorm.pipeline.md)
 - [pipelines/source-tutorial.pipeline.md](pipelines/source-tutorial.pipeline.md)
+
+Research-stage design document:
+
 - [pipelines/graduate-paper-pipeline.md](pipelines/graduate-paper-pipeline.md)
 
 Feature guides:
 
-| Workflow | English | 中文 |
+| Entry | English | 中文 |
 |---|---|---|
 | `arxiv-survey` / `arxiv-survey-latex` | [Guide](readme/arxiv-survey.md) | [说明](readme/arxiv-survey.zh-CN.md) |
 | `research-brief` | [Guide](readme/research-brief.md) | [说明](readme/research-brief.zh-CN.md) |
@@ -151,14 +154,15 @@ For the full architecture map and current function map, see
 The active workflow families are:
 
 - **Survey**: `arxiv-survey`, `arxiv-survey-latex`
-- **Review**: `research-brief`, `paper-review`, `evidence-review`
+- **Orientation**: `research-brief`
+- **Review**: `paper-review`, `evidence-review`
 - **Ideation**: `idea-brainstorm`
 - **Tutorial**: `source-tutorial`
 - **Thesis**: `graduate-paper`
 
 Seven workflows currently have pipeline contracts, unit templates, and harness
-validation. `graduate-paper` is a guided thesis workflow with thesis-oriented
-skills and design material; it is not yet a strict executable pipeline.
+validation. `graduate-paper` is guided thesis design material with
+thesis-oriented skills; it is not yet a strict executable pipeline.
 
 Course papers and end-of-term reports are treated as a survey use case, not a
 separate workflow family. Use `arxiv-survey` when Markdown is enough and
@@ -166,9 +170,11 @@ separate workflow family. Use `arxiv-survey` when Markdown is enough and
 
 The maintainer roadmap is focused on `paper-review`: a completed Auto Review
 workspace, semantic rubric, scorecard, final review, audit, improvement report,
-and artifact pack. Here, an artifact pack means a manifest of the files that
-make a run inspectable and portable. Do not add a new workflow family before
-that proof exists.
+and artifact pack. Some of those proof artifacts are not yet required by the
+current `paper-review` pipeline contract; the next proof should produce them
+around the current contract before the contract is promoted. Here, an artifact
+pack means a manifest of the files that make a run inspectable and portable.
+Do not add a new workflow family before that proof exists.
 
 For the current catalog and maturity map, see
 [docs/PIPELINE_TAXONOMY.md](docs/PIPELINE_TAXONOMY.md).
@@ -179,22 +185,22 @@ This section is for maintainers. Use these checks when changing pipeline
 contracts, skill IO, workspace artifacts, schemas, or validation rules.
 
 ```bash
-python -m pytest -q
-python scripts/validate_repo.py --no-check-quality --strict
-python scripts/audit_skills.py --fail-on WARN
-python scripts/audit_skills.py --review-category template_placeholder --limit 20
-python scripts/audit_skills.py --summary-only
-python scripts/generate_skill_graph.py
-python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
+uv run python scripts/validate_repo.py --no-check-quality --strict
+uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
+uv run python scripts/audit_skills.py --fail-on WARN
+uv run --extra test python -m pytest -q
+uv run python scripts/audit_skills.py --review-category template_placeholder --limit 20
+uv run python scripts/audit_skills.py --summary-only
+uv run python scripts/generate_skill_graph.py
 ```
 
 Workspace diagnostics:
 
 ```bash
-python scripts/pipeline.py doctor --workspace workspaces/<name> --write
-python scripts/pipeline.py audit --workspace workspaces/<name> --write
-python scripts/pipeline.py improve --workspace workspaces/<name> --write
-python scripts/pipeline.py pack --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py doctor --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py audit --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py improve --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py pack --workspace workspaces/<name> --write
 ```
 
 `doctor` diagnoses workspace state. `audit` summarizes the run. `improve`

@@ -54,8 +54,8 @@ topic -> retrieval -> outline -> evidence -> report draft -> optional PDF
 - 希望读起来像课程论文、技术报告，还是短综述
 
 如果只需要 Markdown 草稿，用 `arxiv-survey`。如果最后要交 PDF，用
-`arxiv-survey-latex`。对于较短的课程论文，请明确要求先给紧凑 outline 再进入 C2
-approval，避免默认 survey-grade 设置扩展成完整 review paper。
+`arxiv-survey-latex`。对于较短的课程论文，建议先确认紧凑提纲，再开始正文，
+避免系统按完整综述的规模展开。
 
 示例：
 
@@ -109,7 +109,7 @@ C5 不是“一次写完整篇”，而是包含：
 - unique citation 硬门槛 `>=150`
 - unique citation 推荐值 `>=165`
 
-这是一套 survey-grade 配置，不是快速 snapshot 模式。
+这是一套面向完整综述的默认配置，不是快速概览模式。
 
 当前 pipeline 还采用了 section-first 的结构策略：
 
@@ -156,6 +156,8 @@ C5 不是“一次写完整篇”，而是包含：
 | PDF 编译失败 | `output/LATEX_BUILD_REPORT.md`、`latex/main.tex` |
 
 ## 8. 怎么运行
+
+示例保留英文 workflow / pipeline 名称；具体要求可以用中文写。
 
 典型 prompt：
 
@@ -243,7 +245,7 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 
 以下情况不适合用 survey pipeline：
 
-- 你只需要一页的 snapshot
+- 你只需要一页速览
 - 你需要的是 brainstorm memo，不是论文
 - 你是在重构现有 thesis 工程，而不是从检索出发写综述
 

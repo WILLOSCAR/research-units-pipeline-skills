@@ -18,6 +18,11 @@ Use `paper-review` to produce:
 - semantic rubric;
 - scorecard.
 
+The current `paper-review` pipeline contract does not yet require every proof
+artifact above. Treat rubric, scorecard, improvement report, and artifact pack
+as the next completed-workspace evidence. Promote them into the contract only
+after the pilot shows the right artifact shape.
+
 ## Workstreams
 
 | Workstream | Status | Next move |
@@ -35,7 +40,7 @@ Use `paper-review` to produce:
 The repo has more than one hundred project skills. Do not rewrite all of them
 blindly. The safe path is:
 
-1. Use `python scripts/audit_skills.py --summary-only --fail-on NONE` to find
+1. Use `uv run python scripts/audit_skills.py --summary-only --fail-on NONE` to find
    low-risk compression targets.
 2. First remove reader-facing ellipsis placeholders, repeated examples, and
    path drift from skills whose outputs are copied into final artifacts.

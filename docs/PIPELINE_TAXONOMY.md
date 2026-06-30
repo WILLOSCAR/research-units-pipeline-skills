@@ -17,7 +17,7 @@ choose outcomes, maintainers inspect contracts.
 |---|---|---|---|---|---|---|
 | Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md` | `Executable` | High |
 | Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `latex/main.pdf` | `Executable variant` | High |
-| Review | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md` | `Executable` | Medium-high |
+| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md` | `Executable` | Medium-high |
 | Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md` | `Executable` | Medium; next proof |
 | Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md` | `Executable` | Medium-high |
 | Ideation | `idea-brainstorm` | `pipelines/idea-brainstorm.pipeline.md` | `templates/UNITS.idea-brainstorm.csv` | `output/REPORT.md`, `output/REPORT.json` | `Executable` | Medium |
@@ -31,7 +31,7 @@ workflow family.
 
 | Use case | Backing workflow | Why it is not separate |
 |---|---|---|
-| Course paper / end-of-term report from a topic | `arxiv-survey` or `arxiv-survey-latex` | The lifecycle is still topic -> retrieval -> outline -> evidence -> draft/PDF. The user should specify course constraints, page target, language, and PDF needs in the prompt. |
+| Course paper / end-of-term report from a topic | `arxiv-survey` or `arxiv-survey-latex` | The lifecycle is still topic -> retrieval -> outline -> evidence -> draft/PDF. The user should specify course constraints, page target, language, and PDF needs in the prompt. The backing workflow still inherits survey-grade defaults unless the operator writes lighter constraints into `queries.md` or the initial prompt. |
 
 ## Current Priority
 
@@ -43,5 +43,10 @@ The next product proof is `paper-review` / Auto Review:
 - doctor, run audit, improve, and artifact pack;
 - semantic rubric;
 - scorecard.
+
+The current `paper-review` contract guarantees the review path and final
+`output/REVIEW.md`. The proof artifacts above should be produced in a completed
+workspace first, then promoted into the contract only if their shape proves
+stable.
 
 Do not add a new workflow family until this proof exists.

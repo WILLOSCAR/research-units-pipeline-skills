@@ -8,7 +8,7 @@
 
 `source-tutorial` 用来把多源资料重构成一个更适合阅读、学习和讲解的教程。
 
-输入不是一个裸 topic，而是一组资料：
+输入不是单个研究主题，而是一组资料：
 
 - 网页
 - PDF
@@ -49,8 +49,8 @@
 
 当：
 
-- 输入是一组 source，而不是一个裸 topic；
-- 你要的是 reader-first tutorial，不是 literature survey；
+- 输入是一组 source，而不是单个研究主题；
+- 你要的是面向学习者的教程，不是 literature survey；
 - PDF 和 slides 需要和 tutorial 模块保持一致。
 
 就该用 `source-tutorial`。
@@ -88,6 +88,8 @@ slides 应该：
 - 单独阅读时也能看懂核心内容
 
 ## 6. 推荐 Prompt
+
+示例保留英文 workflow 名称；具体要求可以用中文写。
 
 ```text
 Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.

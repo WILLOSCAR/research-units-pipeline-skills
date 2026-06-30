@@ -95,6 +95,8 @@
 
 ## 9. 推荐 Prompt
 
+示例保留英文 workflow 名称；具体要求可以用中文写。
+
 ```text
 Use the paper-review workflow to assess this manuscript and give me a lab-style review with explicit claims, evidence gaps, and novelty concerns.
 ```

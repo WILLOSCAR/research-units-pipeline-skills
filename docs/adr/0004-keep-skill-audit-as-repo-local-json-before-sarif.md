@@ -18,8 +18,8 @@ implemented output format.
 
 However, the repo does not currently have an external consumer that requires
 SARIF. The local blocking check is
-`python scripts/audit_skills.py --fail-on WARN`, and future
-repo-local tooling can consume `python scripts/audit_skills.py --format json`
+`uv run python scripts/audit_skills.py --fail-on WARN`, and future
+repo-local tooling can consume `uv run python scripts/audit_skills.py --format json`
 with `scripts.audit_skills.validate_skill_audit_payload`.
 
 ## Decision

@@ -6,7 +6,8 @@
 
 ## 1. 这条流程是做什么的
 
-`evidence-review` 用来对一批候选研究做 protocol 驱动的证据综述。
+`evidence-review` 用来按预设研究问题和纳入/排除标准，对多篇研究做筛选、
+证据提取和结论整合。
 
 它适合回答的问题是：
 
@@ -44,7 +45,7 @@
 - bias assessment
 - bounded synthesis
 
-所以它必须保持独立执行合同，而不是被折叠成轻量 briefing 路径。
+所以它必须保持独立执行合同，而不是被折叠成轻量研究简报路径。
 
 ## 4. 数据流
 
@@ -102,6 +103,8 @@
 - 不要退化成普通长摘要
 
 ## 9. 推荐 Prompt
+
+示例保留英文 workflow 名称；具体要求可以用中文写。
 
 ```text
 Use the evidence-review workflow to run a PRISMA-style review on LLM agents for education, with protocol, screening, extraction, and a bounded synthesis.

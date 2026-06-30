@@ -2,7 +2,7 @@
 name: arxiv-survey
 version: 3.8
 profile: arxiv-survey
-routing_hints: [survey, review, 综述, 调研, literature review]
+routing_hints: [survey, review, 综述, 调研, literature review, course paper, term paper, end-of-term report, 课程论文, 期末报告]
 routing_default: true
 routing_priority: 10
 target_artifacts:

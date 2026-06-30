@@ -3,7 +3,7 @@ name: arxiv-survey-latex
 version: 3.8
 variant_of: arxiv-survey
 variant_overrides:
-  routing_hints: [latex, pdf, tex, 可编译, 编译]
+  routing_hints: [latex, pdf, tex, course paper pdf, term paper pdf, 可编译, 编译, 课程论文 PDF, 期末报告 PDF]
   routing_default: false
   routing_priority: 20
   units_template: templates/UNITS.arxiv-survey-latex.csv

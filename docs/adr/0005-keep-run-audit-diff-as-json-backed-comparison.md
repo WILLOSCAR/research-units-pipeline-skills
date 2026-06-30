@@ -19,7 +19,7 @@ database, benchmark dashboard, or external workflow runtime.
 Add a narrow repo-local comparison command:
 
 ```bash
-python scripts/pipeline.py audit-diff --before <RUN_AUDIT.json> --after <RUN_AUDIT.json> --write
+uv run python scripts/pipeline.py audit-diff --before <RUN_AUDIT.json> --after <RUN_AUDIT.json> --write
 ```
 
 The command consumes two valid `run-audit.v1` payloads and writes:

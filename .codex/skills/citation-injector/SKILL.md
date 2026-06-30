@@ -46,7 +46,7 @@ Use these as *sentence intentions* (paraphrase; do not copy verbatim).
 - `Systems such as X [@a] and Y [@b] instantiate <axis/design point>, whereas Z [@c] explores a contrasting point under a different protocol.`
 
 2) Parenthetical grounding (short, low-risk)
-- `... (e.g., X [@a], Y [@b], Z [@c]).`
+- `The same design pressure appears in nearby systems (e.g., X [@a], Y [@b], Z [@c]).`
 
 3) Cluster pointer + contrast hint
 - `Representative implementations span both <cluster A> (X [@a], Y [@b]) and <cluster B> (Z [@c]), suggesting that the trade-off hinges on <lens>.`
@@ -63,9 +63,9 @@ Use these as *sentence intentions* (paraphrase; do not copy verbatim).
 ## Anti-patterns (high-signal “budget dump” voice)
 
 Avoid these stems (they read like automated injection):
-- `A few representative references include ...`
-- `Notable lines of work include ...`
-- `Concrete examples include ...`
+- `A few representative references include X, Y, and Z.`
+- `Notable lines of work include X, Y, and Z.`
+- `Concrete examples include X, Y, and Z.`
 
 If your draft contains these, rewrite them immediately using the patterns above (keep citation keys unchanged).
 

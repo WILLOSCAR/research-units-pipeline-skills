@@ -18,12 +18,12 @@ existing workspace files without changing how workflows execute.
 
 ## Decision
 
-Add `python scripts/pipeline.py pack --workspace <name>` as a local artifact
+Add `uv run python scripts/pipeline.py pack --workspace <name>` as a local artifact
 pack manifest. It reads doctor, run-audit, and improvement-report evidence,
 then indexes workspace artifacts by review role:
 
 ```bash
-python scripts/pipeline.py pack --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py pack --workspace workspaces/<name> --write
 ```
 
 The human report is `output/ARTIFACT_PACK.md`. The machine-readable sidecar is

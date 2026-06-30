@@ -85,6 +85,8 @@ idea pipeline 和 survey path 一样都是 artifact-first，但它优化的是�
 
 ## 7. 怎么运行
 
+示例保留英文 workflow / pipeline 名称；具体要求可以用中文写。
+
 典型 prompt：
 
 ```text
@@ -168,7 +170,7 @@ direction pool 应该像一组彼此有区分度的学术方向，而不是一�
 
 以下情况不适合用 `idea-brainstorm`：
 
-- 你已经明确要写 literature review paper
+- 你已经明确要写文献综述论文
 - 交付物必须是 PDF 稿件
 - 你是在重构现有 thesis 工程
 

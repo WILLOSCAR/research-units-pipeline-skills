@@ -59,7 +59,10 @@ def _write_minimal_harness_docs(repo_root: Path) -> None:
         "# Workflow Catalog\n\n`graduate-paper`\n`Research-stage`\nUnit template: none yet\n",
         encoding="utf-8",
     )
-    (docs_dir / "PROJECT_LANGUAGE.md").write_text("# Project Language\n", encoding="utf-8")
+    (docs_dir / "PROJECT_LANGUAGE.md").write_text(
+        "# Project Language\n\n" + "\n".join(validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS) + "\n",
+        encoding="utf-8",
+    )
     (docs_dir / "HARNESS_ROADMAP.md").write_text("# Roadmap\n", encoding="utf-8")
     (docs_dir / "HARNESS_READINESS.md").write_text(
         "# Readiness\n\n" + "\n".join(validate_repo.HARNESS_LOCAL_CHECKS) + "\n",
@@ -176,9 +179,10 @@ def test_harness_docs_validation_reports_missing_local_harness_check(tmp_path: P
         (
             "WARN",
             "`docs/HARNESS_READINESS.md` should list local harness checks: "
-            "`python scripts/validate_repo.py --no-check-quality --strict`, "
-            "`python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict`, "
-            "`python scripts/audit_skills.py --fail-on WARN`.",
+            "`uv run python scripts/validate_repo.py --no-check-quality --strict`, "
+            "`uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict`, "
+            "`uv run python scripts/audit_skills.py --fail-on WARN`, "
+            "`uv run --extra test python -m pytest -q`.",
         )
     ]
 
@@ -214,6 +218,19 @@ def test_auto_research_design_system_validation_reports_missing_terms(tmp_path: 
     assert "Architecture Diagram" in findings[0].message
 
 
+def test_project_language_validation_reports_missing_terms(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "PROJECT_LANGUAGE.md").write_text("# Project Language\n\nWorkflow\n", encoding="utf-8")
+
+    findings = validate_repo._validate_project_language_doc(repo_root=tmp_path)
+
+    assert len(findings) == 1
+    assert findings[0].level == "WARN"
+    assert "`docs/PROJECT_LANGUAGE.md` is missing project language terms" in findings[0].message
+    assert "Use-case overlay" in findings[0].message
+
+
 def test_readiness_audit_parses_iteration_progress() -> None:
     assert readiness_audit.parse_iteration_progress("- Iterations completed: 20 of at least 10\n") == (20, 10)
     assert readiness_audit.parse_iteration_progress("no count here") is None
@@ -236,6 +253,13 @@ def test_pipeline_taxonomy_validation_reports_missing_executable_metadata(tmp_pa
     )
 
     assert [(item.level, item.message) for item in findings] == [
+        (
+            "WARN",
+            "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy terms: "
+            "`Maturity Levels`, `Executable`, `Executable variant`, `Research-stage`, "
+            "`Current Families`, `Use-Case Overlays`, `Course paper / end-of-term report`, "
+            "``arxiv-survey` or `arxiv-survey-latex``, `Current Priority`, ``paper-review``.",
+        ),
         (
             "WARN",
             "`docs/PIPELINE_TAXONOMY.md` is missing executable pipeline metadata for "
@@ -263,6 +287,13 @@ def test_pipeline_taxonomy_validation_reports_graduate_paper_maturity_drift(tmp_
     )
 
     assert [(item.level, item.message) for item in findings] == [
+        (
+            "WARN",
+            "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy terms: "
+            "`Maturity Levels`, `Executable`, `Executable variant`, `Research-stage`, `Current Families`, "
+            "`Use-Case Overlays`, `Course paper / end-of-term report`, "
+            "``arxiv-survey` or `arxiv-survey-latex``, `Current Priority`, ``paper-review``.",
+        ),
         (
             "WARN",
             "`docs/PIPELINE_TAXONOMY.md` is missing graduate-paper research-stage metadata: "

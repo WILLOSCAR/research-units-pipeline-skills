@@ -56,11 +56,12 @@ ADR_REQUIRED_SECTIONS = (
     "## Related Files",
 )
 
-HARNESS_SKILL_AUDIT_GATE = "python scripts/audit_skills.py --fail-on WARN"
+HARNESS_SKILL_AUDIT_GATE = "uv run python scripts/audit_skills.py --fail-on WARN"
 HARNESS_LOCAL_CHECKS = (
-    "python scripts/validate_repo.py --no-check-quality --strict",
-    "python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict",
+    "uv run python scripts/validate_repo.py --no-check-quality --strict",
+    "uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict",
     HARNESS_SKILL_AUDIT_GATE,
+    "uv run --extra test python -m pytest -q",
 )
 
 READINESS_AUDIT_SCHEMA = "harness-readiness-audit.v1"
@@ -141,5 +142,29 @@ AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS = (
     "What Is Not Done",
     "Drift Judgment",
     "Skill Invocation Boundary",
+    "`paper-review`",
+)
+
+PROJECT_LANGUAGE_REQUIRED_TERMS = (
+    "Workflow",
+    "Workspace",
+    "Unit",
+    "Artifact",
+    "Audit",
+    "Improvement",
+    "Use-case overlay",
+    "Project Memory",
+)
+
+PIPELINE_TAXONOMY_REQUIRED_TERMS = (
+    "Maturity Levels",
+    "Executable",
+    "Executable variant",
+    "Research-stage",
+    "Current Families",
+    "Use-Case Overlays",
+    "Course paper / end-of-term report",
+    "`arxiv-survey` or `arxiv-survey-latex`",
+    "Current Priority",
     "`paper-review`",
 )

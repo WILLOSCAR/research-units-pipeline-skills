@@ -39,7 +39,7 @@ Intent
 ```mermaid
 flowchart TD
     User["User intent"] --> Router["Workflow selection"]
-    Router --> Pipeline["Pipeline contract<br/>pipelines/*.pipeline.md"]
+    Router --> Pipeline["Pipeline contract or design doc<br/>pipelines/"]
     Pipeline --> Workspace["Workspace ledger<br/>PIPELINE.lock.md, UNITS.csv, STATUS.md"]
     Workspace --> Units["Units"]
     Units --> Skills["Project skills<br/>.codex/skills/*"]
@@ -56,10 +56,11 @@ flowchart TD
 | Family | Workflows | What works today | Completion |
 |---|---|---|---|
 | Survey | `arxiv-survey`, `arxiv-survey-latex` | Evidence-first survey pipeline, section artifacts, writing loop, LaTeX/PDF variant | High |
-| Review | `research-brief`, `paper-review`, `evidence-review` | Briefing, single-paper review, protocol evidence synthesis, shared review tooling | Medium-high |
+| Orientation | `research-brief` | Fast topic understanding, boundary finding, and reading-path briefing | Medium-high |
+| Review | `paper-review`, `evidence-review` | Single-paper review, protocol evidence synthesis, shared review tooling | Medium-high |
 | Tutorial | `source-tutorial` | Multi-source tutorial generation with tutorial, PDF, and slide deliverables | Medium-high |
 | Ideation | `idea-brainstorm` | Literature-grounded idea reports and JSON sidecar | Medium |
-| Thesis | `graduate-paper` | Guided Chinese thesis workflow and thesis skills | Low; not executable pipeline |
+| Thesis | `graduate-paper` | Guided Chinese thesis design document and thesis skills | Low; not executable pipeline |
 | Harness | all executable workflows | Workspace init, unit execution, doctor, audit, improve, pack, validation | Medium-high |
 | Evaluation | mainly review/harness | Structural validation and quality gates | Medium; semantic rubric still thin |
 
@@ -81,7 +82,8 @@ flowchart TD
   input, intermediate artifacts, final review, audit, improvement report,
   artifact pack, semantic rubric, and scorecard.
 - Semantic quality evaluation is not yet as strong as structural validation.
-- `graduate-paper` is not an executable pipeline.
+- `graduate-paper` is not an executable pipeline; it is a research-stage
+  design document at `pipelines/graduate-paper-pipeline.md`.
 - There is no database-backed run store, dashboard, external runtime, or stable
   benchmark corpus.
 - The repo still has many skills whose interface depth should be reviewed only

@@ -176,7 +176,7 @@ def run_one_unit(
             message=(
                 f"No executable script for skill '{skill}'. "
                 f"Run it manually by following `{skill_md}`, write the required outputs, "
-                f"then mark the unit DONE (e.g., `python scripts/pipeline.py mark --workspace {workspace} --unit-id {unit_id} --status DONE`)."
+                f"then mark the unit DONE (e.g., `uv run python scripts/pipeline.py mark --workspace {workspace} --unit-id {unit_id} --status DONE`)."
             ),
         )
 

@@ -59,7 +59,7 @@ def _render_markdown(*, skills: list[SkillIO], pipelines: list[tuple[Path, dict[
     lines: list[str] = [
         "# Skill Graph",
         "",
-        "- Regenerate: `python scripts/generate_skill_graph.py`",
+        "- Regenerate: `uv run python scripts/generate_skill_graph.py`",
         "- This is a generated developer aid. Keep durable architecture docs in `docs/`.",
         "",
         "## Global skill ⇄ artifact graph (from SKILL.md Inputs/Outputs)",

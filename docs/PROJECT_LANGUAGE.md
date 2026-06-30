@@ -14,8 +14,8 @@ Intent -> Workflow -> Workspace -> Unit -> Skill -> Artifact -> Audit -> Improve
 | Auto Research Design System | The whole repo: semantic skills plus file-first harness for end-to-end research work agents. |
 | Harness | Deterministic support layer for protocol, state, recovery, audit, validation, and handoff. |
 | Skill | Reusable semantic research or writing capability under `.codex/skills/`. |
-| Workflow | User-facing product path such as `paper-review`; backed by a pipeline contract. |
-| Pipeline | Concrete workflow contract under `pipelines/`. |
+| Workflow | User-facing product path such as `paper-review`; executable workflows are backed by a strict pipeline contract. |
+| Pipeline | Concrete workflow contract or research-stage design document under `pipelines/`. |
 | Use-case overlay | Product framing that reuses an existing workflow without adding a new pipeline, such as course paper / term report via `arxiv-survey`. |
 | Workspace | Durable ledger for one run under `workspaces/<name>/`. |
 | Unit | One executable row in `UNITS.csv`. |
@@ -48,3 +48,7 @@ Prefer paired surfaces when useful:
 Use `workflow` for the user-facing path and `pipeline` for the concrete file.
 Use `workspace` for the run directory and `execution ledger` only when
 explaining why the workspace matters.
+
+Use `use-case overlay` when a product need reuses an existing workflow without
+adding a new pipeline. Course papers and end-of-term reports are overlays on
+the survey workflows, not separate workflow slugs.

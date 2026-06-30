@@ -29,6 +29,8 @@ from tooling.harness_contracts import (
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
+    PIPELINE_TAXONOMY_REQUIRED_TERMS,
+    PROJECT_LANGUAGE_REQUIRED_TERMS,
     REPORT_SCHEMA_TERMS,
 )
 
@@ -404,6 +406,7 @@ def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:
     findings.extend(_validate_adr_contracts(repo_root=repo_root, docs_dir=docs_dir))
     findings.extend(_validate_schema_summary_doc(repo_root=repo_root))
     findings.extend(_validate_auto_research_design_system_doc(repo_root=repo_root))
+    findings.extend(_validate_project_language_doc(repo_root=repo_root))
     findings.extend(_validate_local_harness_checks(repo_root=repo_root))
 
     return findings
@@ -422,6 +425,26 @@ def _validate_auto_research_design_system_doc(*, repo_root: Path) -> list[Findin
             Finding(
                 "WARN",
                 f"`{rel_path}` is missing Auto Research Design System terms: "
+                + ", ".join(f"`{term}`" for term in missing)
+                + ".",
+            )
+        ]
+    return []
+
+
+def _validate_project_language_doc(*, repo_root: Path) -> list[Finding]:
+    rel_path = "docs/PROJECT_LANGUAGE.md"
+    doc_path = repo_root / rel_path
+    if not doc_path.exists():
+        return []
+
+    text = doc_path.read_text(encoding="utf-8", errors="ignore")
+    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    if missing:
+        return [
+            Finding(
+                "WARN",
+                f"`{rel_path}` is missing project language terms: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )
@@ -566,6 +589,17 @@ def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_di
         return findings
 
     text = taxonomy_doc.read_text(encoding="utf-8", errors="ignore")
+    missing_taxonomy_terms = [term for term in PIPELINE_TAXONOMY_REQUIRED_TERMS if term not in text]
+    if missing_taxonomy_terms:
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy terms: "
+                + ", ".join(f"`{term}`" for term in missing_taxonomy_terms)
+                + ".",
+            )
+        )
+
     for pipeline_path in sorted(pipelines_dir.glob("*.pipeline.md")):
         try:
             spec = PipelineSpec.load(pipeline_path)

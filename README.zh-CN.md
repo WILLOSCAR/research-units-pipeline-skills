@@ -2,7 +2,7 @@
 
 > 语言：[English](README.md) | **简体中文**
 
-一套面向 agent-assisted research work 的 Auto Research Design System。
+一套面向研究写作与资料整理的人机协作系统。
 
 这个仓库把 **semantic research skills** 和 **file-first harness** 组合在一起，
 适合在 Codex 这类 coding agent 中运行研究工作流。它的重点不是替人完成所有研究，
@@ -24,14 +24,14 @@ intent -> workflow -> workspace -> unit -> skill -> artifact -> audit -> improve
 当你想要的不是一段聊天回答，而是一套有文件、有 checkpoint、有可复核证据的研究
 交付物时，用这个仓库。
 
-| 目标 | Workflow | 主要交付物 |
+| 目标 | 入口 | 主要交付物 |
 |---|---|---|
 | 证据优先的文献综述 | `arxiv-survey` | `output/DRAFT.md` |
 | 带 LaTeX/PDF 交付的综述 | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
-| 从一个 topic 生成课程论文或期末报告 | `arxiv-survey` 或 `arxiv-survey-latex` | 报告草稿，可选 PDF |
-| 快速主题 briefing 和阅读路径 | `research-brief` | `output/SNAPSHOT.md` |
+| 从一个主题生成课程论文或期末报告 | survey 使用场景，复用 `arxiv-survey` 或 `arxiv-survey-latex` | 报告草稿，可选 PDF |
+| 快速主题研究简报和阅读路径 | `research-brief` | `output/SNAPSHOT.md` |
 | 单篇论文 critique / referee-style review | `paper-review` | `output/REVIEW.md` |
-| 带 protocol 的 evidence synthesis | `evidence-review` | `output/SYNTHESIS.md` |
+| 按 protocol 做证据筛选、提取和结论整合 | `evidence-review` | `output/SYNTHESIS.md` |
 | 基于文献的研究 idea | `idea-brainstorm` | `output/REPORT.md`, `output/REPORT.json` |
 | 从网页、PDF、笔记、repo docs 生成教程 | `source-tutorial` | `output/TUTORIAL.md`, PDF, slides |
 | 中文毕业论文材料组织引导 | `graduate-paper` | thesis project artifacts |
@@ -71,6 +71,8 @@ flowchart TD
 
 在这个仓库里启动 agent session，然后直接描述你要的结果：
 
+下面示例保留英文 workflow 名称；具体要求可以用中文写。
+
 ```text
 Use paper-review to critique this manuscript and give me a lab-style review.
 ```
@@ -91,7 +93,7 @@ Write an arxiv-survey-latex survey about embodied agents and show me the outline
 Use arxiv-survey-latex to write a compact course paper on robot learning. Keep the outline reviewable before drafting and target a final PDF.
 ```
 
-如果你想更精确地控制执行路径，可以直接点名 pipeline contract：
+如果你想更精确地控制执行路径，可以直接点名可执行 pipeline contract：
 
 - [pipelines/arxiv-survey.pipeline.md](pipelines/arxiv-survey.pipeline.md)
 - [pipelines/arxiv-survey-latex.pipeline.md](pipelines/arxiv-survey-latex.pipeline.md)
@@ -100,11 +102,14 @@ Use arxiv-survey-latex to write a compact course paper on robot learning. Keep t
 - [pipelines/evidence-review.pipeline.md](pipelines/evidence-review.pipeline.md)
 - [pipelines/idea-brainstorm.pipeline.md](pipelines/idea-brainstorm.pipeline.md)
 - [pipelines/source-tutorial.pipeline.md](pipelines/source-tutorial.pipeline.md)
+
+研究阶段设计文档：
+
 - [pipelines/graduate-paper-pipeline.md](pipelines/graduate-paper-pipeline.md)
 
 功能说明：
 
-| Workflow | English | 中文 |
+| 入口 | English | 中文 |
 |---|---|---|
 | `arxiv-survey` / `arxiv-survey-latex` | [Guide](readme/arxiv-survey.md) | [说明](readme/arxiv-survey.zh-CN.md) |
 | `research-brief` | [Guide](readme/research-brief.md) | [说明](readme/research-brief.zh-CN.md) |
@@ -145,23 +150,28 @@ harness。
 当前 workflow family 是：
 
 - **Survey**：`arxiv-survey`、`arxiv-survey-latex`
-- **Review**：`research-brief`、`paper-review`、`evidence-review`
+- **Orientation**：`research-brief`
+- **Review**：`paper-review`、`evidence-review`
 - **Ideation**：`idea-brainstorm`
 - **Tutorial**：`source-tutorial`
 - **Thesis**：`graduate-paper`
 
 其中 7 条 workflow 已经有 pipeline contract、unit template 和 harness validation。
-`graduate-paper` 仍然是 guided thesis workflow：有 thesis-oriented skills 和设计
+`graduate-paper` 仍然是中文毕业论文组织引导：有 thesis-oriented skills 和设计
 材料，但还不是严格的可执行 pipeline。
 
-课程论文和期末报告现在被视为 survey 的使用场景，而不是单独新增 workflow family。
+课程论文和期末报告现在被视为 survey 的使用场景 overlay，而不是单独新增
+workflow family。
 如果只需要 Markdown 草稿，用 `arxiv-survey`；如果课程最终需要 PDF，用
 `arxiv-survey-latex`。
 
 维护者路线图目前集中在 `paper-review`：完成一个 Auto Review workspace，包括
 semantic rubric、scorecard、final review、audit、improvement report 和 artifact
-pack。这里的 artifact pack 指的是一份交付物 manifest，用来说明这次 run 哪些文件
-构成了可检查、可迁移的结果。在这个 proof 出来之前，不建议新增 workflow family。
+pack。这里面有些 proof artifact 目前还不是 `paper-review` pipeline contract 的硬性
+产物；下一阶段应该先围绕当前 contract 跑出完整 proof，再决定是否把这些产物提升为
+contract 要求。这里的 artifact pack 指的是一份交付物 manifest，用来说明这次 run
+哪些文件构成了可检查、可迁移的结果。在这个 proof 出来之前，不建议新增 workflow
+family。
 
 当前 workflow catalog 和成熟度见
 [docs/PIPELINE_TAXONOMY.md](docs/PIPELINE_TAXONOMY.md)。
@@ -172,22 +182,22 @@ pack。这里的 artifact pack 指的是一份交付物 manifest，用来说明�
 schema 或 validation rule 时，使用这些检查：
 
 ```bash
-python -m pytest -q
-python scripts/validate_repo.py --no-check-quality --strict
-python scripts/audit_skills.py --fail-on WARN
-python scripts/audit_skills.py --review-category template_placeholder --limit 20
-python scripts/audit_skills.py --summary-only
-python scripts/generate_skill_graph.py
-python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
+uv run python scripts/validate_repo.py --no-check-quality --strict
+uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
+uv run python scripts/audit_skills.py --fail-on WARN
+uv run --extra test python -m pytest -q
+uv run python scripts/audit_skills.py --review-category template_placeholder --limit 20
+uv run python scripts/audit_skills.py --summary-only
+uv run python scripts/generate_skill_graph.py
 ```
 
 Workspace 诊断命令：
 
 ```bash
-python scripts/pipeline.py doctor --workspace workspaces/<name> --write
-python scripts/pipeline.py audit --workspace workspaces/<name> --write
-python scripts/pipeline.py improve --workspace workspaces/<name> --write
-python scripts/pipeline.py pack --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py doctor --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py audit --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py improve --workspace workspaces/<name> --write
+uv run python scripts/pipeline.py pack --workspace workspaces/<name> --write
 ```
 
 `doctor` 诊断 workspace 状态。`audit` 汇总 run。`improve` 把缺陷映射到修复面。

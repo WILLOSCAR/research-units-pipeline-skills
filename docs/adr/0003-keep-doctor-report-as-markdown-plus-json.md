@@ -6,7 +6,7 @@
 ## Context
 
 The harness already has a workspace diagnosis command:
-`python scripts/pipeline.py doctor --workspace workspaces/<name>`.
+`uv run python scripts/pipeline.py doctor --workspace workspaces/<name>`.
 
 With `--write`, the command previously persisted `output/DOCTOR_REPORT.md`.
 That made interrupted or handed-off work easier for humans to inspect, but it

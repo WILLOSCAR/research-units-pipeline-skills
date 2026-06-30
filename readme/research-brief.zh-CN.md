@@ -6,7 +6,7 @@
 
 ## 1. 这条流程是做什么的
 
-`research-brief` 用来让你快速搞懂一个主题，并产出一份紧凑、可读、可继续深挖的 briefing，而不是完整综述。
+`research-brief` 用来让你快速搞懂一个主题，并产出一份紧凑、可读、可继续深挖的研究简报，而不是完整综述。
 
 它要回答的核心问题是：
 
@@ -25,13 +25,13 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 
 - 只有一个 topic prompt
 - 手里已经有一个小论文池
-- 已经有 query seed，只想尽快变成 briefing
+- 已经有 query seed，只想尽快变成研究简报
 
 它优化的是“小而够用”的证据，而不是穷尽式检索。
 
 ## 3. 数据流
 
-`topic / small paper pool -> retrieval + dedupe -> small core set -> taxonomy + bullets-only outline -> compact snapshot -> deliverable self-check`
+`topic / small paper pool -> retrieval + dedupe -> small core set -> taxonomy + bullets-only outline -> 紧凑速览 -> deliverable self-check`
 
 核心不在于覆盖所有论文，而在于能快速回答三件事：
 
@@ -83,7 +83,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 | `C0` | 初始化 workspace 并种下 queries | `STATUS.md`、`UNITS.csv`、`DECISIONS.md`、`queries.md` |
 | `C1` | 检索并收敛出一个小而可用的 core set | `papers/papers_raw.jsonl`、`papers/core_set.csv` |
 | `C2` | 锁定主题边界和 bullets-only outline | `outline/taxonomy.yml`、`outline/outline.yml` |
-| `C3` | 写 briefing 并做成品自检 | `output/SNAPSHOT.md`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C3` | 写研究简报并做成品自检 | `output/SNAPSHOT.md`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. 质量目标
 
@@ -95,6 +95,8 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 - 保持紧凑，并带明确 paper pointers
 
 ## 9. 推荐 Prompt
+
+示例保留英文 workflow 名称；具体要求可以用中文写。
 
 ```text
 Use the research-brief workflow to give me a one-page briefing on robot test-time adaptation, with key themes and what to read first.
