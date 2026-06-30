@@ -30,6 +30,7 @@ and reviewable evidence rather than a one-off chat answer.
 |---|---|---|
 | Evidence-first literature survey | `arxiv-survey` | `output/DRAFT.md` |
 | Survey with LaTeX/PDF delivery | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
+| Course paper or end-of-term report from a topic | `arxiv-survey` or `arxiv-survey-latex` | report draft, optional PDF |
 | Fast topic briefing and reading path | `research-brief` | `output/SNAPSHOT.md` |
 | Single-paper critique or referee-style review | `paper-review` | `output/REVIEW.md` |
 | Protocol-driven evidence synthesis | `evidence-review` | `output/SYNTHESIS.md` |
@@ -90,6 +91,10 @@ Use source-tutorial to turn these webpages and repo docs into a tutorial with PD
 
 ```text
 Write an arxiv-survey-latex survey about embodied agents and show me the outline first.
+```
+
+```text
+Use arxiv-survey-latex to write a compact course paper on robot learning. Keep the outline reviewable before drafting and target a final PDF.
 ```
 
 For tighter control, name the pipeline contract directly:
@@ -154,6 +159,10 @@ The active workflow families are:
 Seven workflows currently have pipeline contracts, unit templates, and harness
 validation. `graduate-paper` is a guided thesis workflow with thesis-oriented
 skills and design material; it is not yet a strict executable pipeline.
+
+Course papers and end-of-term reports are treated as a survey use case, not a
+separate workflow family. Use `arxiv-survey` when Markdown is enough and
+`arxiv-survey-latex` when the class deliverable needs a PDF.
 
 The maintainer roadmap is focused on `paper-review`: a completed Auto Review
 workspace, semantic rubric, scorecard, final review, audit, improvement report,

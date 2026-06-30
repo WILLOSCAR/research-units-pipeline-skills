@@ -14,6 +14,7 @@ Usa directamente los nombres actuales de los workflows. Los alias antiguos ya no
 |---|---|---|---|
 | `arxiv-survey` | surveys basados en evidencia antes de la entrega en PDF | `output/DRAFT.md` | [Guide](arxiv-survey.md) |
 | `arxiv-survey-latex` | el mismo workflow de survey con salida compilable en LaTeX/PDF | `output/DRAFT.md`, `latex/main.pdf` | [Guide](arxiv-survey.md) |
+| course paper / term report | caso de uso topic-to-report basado en `arxiv-survey` o `arxiv-survey-latex` | borrador de reporte, PDF opcional | [Guide](arxiv-survey.md) |
 | `research-brief` | comprensión rápida de un tema y ruta de lectura | `output/SNAPSHOT.md` | [Guide](research-brief.md) |
 | `paper-review` | crítica trazable de un paper o manuscrito | `output/REVIEW.md` | [Guide](paper-review.md) |
 | `evidence-review` | screening, extracción y síntesis con protocolo explícito | `output/SYNTHESIS.md` | [Guide](evidence-review.md) |

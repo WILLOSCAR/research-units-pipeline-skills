@@ -16,6 +16,7 @@ Intent -> Workflow -> Workspace -> Unit -> Skill -> Artifact -> Audit -> Improve
 | Skill | Reusable semantic research or writing capability under `.codex/skills/`. |
 | Workflow | User-facing product path such as `paper-review`; backed by a pipeline contract. |
 | Pipeline | Concrete workflow contract under `pipelines/`. |
+| Use-case overlay | Product framing that reuses an existing workflow without adding a new pipeline, such as course paper / term report via `arxiv-survey`. |
 | Workspace | Durable ledger for one run under `workspaces/<name>/`. |
 | Unit | One executable row in `UNITS.csv`. |
 | Artifact | Durable intermediate or final file produced or consumed by units. |

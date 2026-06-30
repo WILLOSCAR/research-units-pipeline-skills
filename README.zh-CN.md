@@ -28,6 +28,7 @@ intent -> workflow -> workspace -> unit -> skill -> artifact -> audit -> improve
 |---|---|---|
 | 证据优先的文献综述 | `arxiv-survey` | `output/DRAFT.md` |
 | 带 LaTeX/PDF 交付的综述 | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
+| 从一个 topic 生成课程论文或期末报告 | `arxiv-survey` 或 `arxiv-survey-latex` | 报告草稿，可选 PDF |
 | 快速主题 briefing 和阅读路径 | `research-brief` | `output/SNAPSHOT.md` |
 | 单篇论文 critique / referee-style review | `paper-review` | `output/REVIEW.md` |
 | 带 protocol 的 evidence synthesis | `evidence-review` | `output/SYNTHESIS.md` |
@@ -84,6 +85,10 @@ Use source-tutorial to turn these webpages and repo docs into a tutorial with PD
 
 ```text
 Write an arxiv-survey-latex survey about embodied agents and show me the outline first.
+```
+
+```text
+Use arxiv-survey-latex to write a compact course paper on robot learning. Keep the outline reviewable before drafting and target a final PDF.
 ```
 
 如果你想更精确地控制执行路径，可以直接点名 pipeline contract：
@@ -148,6 +153,10 @@ harness。
 其中 7 条 workflow 已经有 pipeline contract、unit template 和 harness validation。
 `graduate-paper` 仍然是 guided thesis workflow：有 thesis-oriented skills 和设计
 材料，但还不是严格的可执行 pipeline。
+
+课程论文和期末报告现在被视为 survey 的使用场景，而不是单独新增 workflow family。
+如果只需要 Markdown 草稿，用 `arxiv-survey`；如果课程最终需要 PDF，用
+`arxiv-survey-latex`。
 
 维护者路线图目前集中在 `paper-review`：完成一个 Auto Review workspace，包括
 semantic rubric、scorecard、final review、audit、improvement report 和 artifact

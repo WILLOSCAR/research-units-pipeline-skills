@@ -15,6 +15,10 @@ It is broader than formal peer review. It also covers:
 - reproduce-or-skip decisions
 - referee-style critique
 
+It is not a topic explainer and not a literature survey. Keep the unit of
+analysis fixed to one paper, then judge that paper's claims, evidence, novelty,
+and risks.
+
 The output is:
 
 - `output/REVIEW.md`
@@ -68,6 +72,7 @@ Do not use it when:
 
 - you are trying to understand an entire topic area quickly
 - you need a screened evidence synthesis across many studies
+- you mainly want a reading path or course report from a broad topic
 
 ## 7. Stage Flow
 

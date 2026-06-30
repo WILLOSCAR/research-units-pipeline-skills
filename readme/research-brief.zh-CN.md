@@ -12,6 +12,9 @@
 
 `这个方向先该怎么理解，先该读什么？`
 
+它是一个第一轮 orientation 产品。适合在你还没决定要写 survey、课程论文、paper
+review 或 evidence review 之前，先判断注意力应该放在哪里。
+
 输出刻意保持轻量：
 
 - `output/SNAPSHOT.md`
@@ -62,6 +65,7 @@
 - 你需要 protocol + screening + extraction
 - 你要写正式 survey 或 PDF paper
 - 你要深度评审一篇单独 manuscript
+- 你已经足够了解 topic，可以直接进入课程论文或 survey outline
 
 ## 6. 它和相邻流程的区别
 

@@ -18,6 +18,9 @@
 
 - `output/SYNTHESIS.md`
 
+当答案必须能从 protocol 和 extraction table 回溯时，用这条 workflow。如果只是想
+快速入门或写课程报告，应该先用 `research-brief` 或 survey workflow。
+
 ## 2. 常见起始输入
 
 常见输入形态有：
@@ -76,6 +79,7 @@
 
 - 你只需要一份快速入门 memo
 - 你评估的是一篇单独 paper，而不是一个候选池
+- 你的 review question 还不够具体，无法写 inclusion/exclusion 规则
 
 ## 7. 阶段流
 

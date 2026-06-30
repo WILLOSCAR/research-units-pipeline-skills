@@ -18,6 +18,10 @@ The main output is:
 
 - `output/SYNTHESIS.md`
 
+Use this when the answer must be defensible from a protocol and extraction
+table. If the user only needs orientation or a class report, start with
+`research-brief` or the survey workflow instead.
+
 ## 2. Common Starting Inputs
 
 Typical starting inputs are:
@@ -74,6 +78,7 @@ Do not use it when:
 
 - you only need a quick orientation memo
 - you are evaluating one paper rather than a pool
+- you do not yet have a review question precise enough to write inclusion and exclusion rules
 
 ## 7. Stage Flow
 

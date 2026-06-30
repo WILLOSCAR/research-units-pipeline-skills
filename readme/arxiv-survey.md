@@ -35,15 +35,44 @@ In practice:
 - start from `arxiv-survey` if you are still iterating on writing quality and do not need PDF yet
 - use `arxiv-survey-latex` when PDF is part of the contract from the beginning
 
-## 3. What Makes This Workflow Different
+## 3. Course Paper / Term Report Use Case
+
+You can also use the survey workflow as a course-paper path:
+
+```text
+topic -> retrieval -> outline -> evidence -> report draft -> optional PDF
+```
+
+This does not need a separate workflow. It is the same survey pipeline with a
+different product brief. Tell the agent the course requirements up front:
+
+- topic and expected angle
+- language
+- page or word target
+- citation style or minimum citation count
+- whether PDF/LaTeX is required
+- whether the report should read like a class paper, technical report, or short survey
+
+Use `arxiv-survey` for a Markdown-first class report. Use `arxiv-survey-latex`
+when the final deliverable should be a PDF. For short course reports, explicitly
+ask for a compact outline before C2 approval so the default survey-grade setup
+does not expand into a full review paper.
+
+Example:
+
+```text
+Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages, keep the outline reviewable before drafting, and produce a final PDF.
+```
+
+## 4. What Makes This Workflow Different
 
 The survey pipeline is built around three constraints:
 
-### 3.1 Retrieval first
+### 4.1 Retrieval first
 
 The pipeline does not assume the user query is already a good outline. It retrieves a large candidate pool, deduplicates it, and only then starts building structure.
 
-### 3.2 No-prose middle stages
+### 4.2 No-prose middle stages
 
 Stages C2-C4 are intentionally structure-first and evidence-first:
 
@@ -55,7 +84,7 @@ Stages C2-C4 are intentionally structure-first and evidence-first:
 
 The point is to make the later draft traceable instead of relying on a single writing prompt.
 
-### 3.3 Writing happens under repeated gates
+### 4.3 Writing happens under repeated gates
 
 C5 is not a single draft call. It includes:
 
@@ -70,7 +99,7 @@ C5 is not a single draft call. It includes:
 
 That is where most quality improvements happen.
 
-## 4. Default Shape Of A Run
+## 5. Default Shape Of A Run
 
 The default survey contract is intentionally heavy:
 
@@ -90,7 +119,7 @@ The current pipeline also uses a section-first structure policy:
 - section briefs before final H3 writing
 - target of `3` H3 subsections for each core chapter
 
-## 5. Stage Flow
+## 6. Stage Flow
 
 | Stage | Purpose | Main outputs |
 |---|---|---|
@@ -101,7 +130,7 @@ The current pipeline also uses a section-first structure policy:
 | `C4` | citations and evidence packs | `citations/ref.bib`, `outline/evidence_drafts.jsonl`, `outline/anchor_sheet.jsonl`, `outline/writer_context_packs.jsonl` |
 | `C5` | drafting, self-loops, merge, audit, optional PDF | `sections/*.md`, `output/DRAFT.md`, `output/AUDIT_REPORT.md`, plus `latex/*` in the LaTeX variant |
 
-### 5.1 The critical checkpoint
+### 6.1 The critical checkpoint
 
 The key approval point is `C2`.
 
@@ -113,7 +142,7 @@ Before that, the pipeline is still deciding:
 
 After that, prose is allowed.
 
-## 6. The Files You Will Actually Open
+## 7. The Files You Will Actually Open
 
 If a survey run feels off, do not inspect everything. Open the files that correspond to the current failure mode:
 
@@ -127,7 +156,7 @@ If a survey run feels off, do not inspect everything. Open the files that corres
 | final draft still fails QA | `output/AUDIT_REPORT.md`, `output/CONTRACT_REPORT.md` |
 | PDF build fails | `output/LATEX_BUILD_REPORT.md`, `latex/main.tex` |
 
-## 7. How To Run It
+## 8. How To Run It
 
 Typical prompt:
 
@@ -139,6 +168,12 @@ If you want the PDF path explicitly:
 
 ```text
 Use pipelines/arxiv-survey-latex.pipeline.md and write a survey on embodied AI.
+```
+
+If you want a course paper or end-of-term report:
+
+```text
+Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages and produce a final PDF.
 ```
 
 If you want a markdown-only survey first:
@@ -153,7 +188,7 @@ If you want less interruption:
 Use the arxiv-survey-latex pipeline and auto-approve the outline.
 ```
 
-## 8. Core Skills Behind The Workflow
+## 9. Core Skills Behind The Workflow
 
 The survey path is not a single monolithic skill. Its main behavior comes from a chain of skills, especially:
 
@@ -166,9 +201,9 @@ The survey path is not a single monolithic skill. Its main behavior comes from a
 
 If the output quality is not good enough, the right fix is usually in one of those upstream skills rather than a one-off patch to `output/DRAFT.md`.
 
-## 9. Common Failure Modes
+## 10. Common Failure Modes
 
-### 9.1 The outline is too generic
+### 10.1 The outline is too generic
 
 Usually the problem is upstream:
 
@@ -178,7 +213,7 @@ Usually the problem is upstream:
 
 Do not try to fix this by polishing prose first.
 
-### 9.2 The draft reads like a generator
+### 10.2 The draft reads like a generator
 
 This usually means:
 
@@ -189,7 +224,7 @@ This usually means:
 
 The fix is typically upstream in briefs, evidence packs, or writing skills.
 
-### 9.3 The survey has coverage but weak synthesis
+### 10.3 The survey has coverage but weak synthesis
 
 That often means too many papers are present only as citations, not as comparison structure. Inspect:
 
@@ -197,7 +232,7 @@ That often means too many papers are present only as citations, not as compariso
 - `outline/evidence_drafts.jsonl`
 - `output/ARGUMENT_SELFLOOP_TODO.md`
 
-### 9.4 The PDF compiles, but the paper still feels weak
+### 10.4 The PDF compiles, but the paper still feels weak
 
 Compilation success only means the delivery layer is working. The actual quality signals are:
 
@@ -205,7 +240,7 @@ Compilation success only means the delivery layer is working. The actual quality
 - `output/GLOBAL_REVIEW.md`
 - `output/PARAGRAPH_CURATION_REPORT.md`
 
-## 10. When Not To Use This Workflow
+## 11. When Not To Use This Workflow
 
 Do not use the survey pipeline when:
 

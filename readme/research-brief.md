@@ -12,6 +12,10 @@ The core question is:
 
 `What should I understand first, and what should I read first?`
 
+It is a first-pass orientation product. Use it before a survey, course paper,
+paper review, or evidence review when you are still deciding where attention
+should go.
+
 The output stays intentionally light:
 
 - `output/SNAPSHOT.md`
@@ -60,6 +64,7 @@ Do not use it when:
 - you need protocol + screening + extraction
 - you need a full survey draft or PDF paper
 - you are evaluating a single manuscript in depth
+- you already know the topic well enough to start a course paper or survey outline
 
 ## 6. How It Differs From Adjacent Workflows
 

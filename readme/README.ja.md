@@ -14,6 +14,7 @@
 |---|---|---|---|
 | `arxiv-survey` | PDF 以前の evidence-first survey 作成 | `output/DRAFT.md` | [Guide](arxiv-survey.md) |
 | `arxiv-survey-latex` | 同じ survey workflow で compile-ready な LaTeX/PDF まで必要な場合 | `output/DRAFT.md`, `latex/main.pdf` | [Guide](arxiv-survey.md) |
+| course paper / term report | `arxiv-survey` または `arxiv-survey-latex` を使う topic-to-report 用途 | report draft, optional PDF | [Guide](arxiv-survey.md) |
 | `research-brief` | あるトピックを素早く理解し、読む順番を整理する | `output/SNAPSHOT.md` | [Guide](research-brief.md) |
 | `paper-review` | 単一の paper / manuscript を追跡可能に評価する | `output/REVIEW.md` | [Guide](paper-review.md) |
 | `evidence-review` | protocol に基づく screening・extraction・bounded synthesis | `output/SYNTHESIS.md` | [Guide](evidence-review.md) |

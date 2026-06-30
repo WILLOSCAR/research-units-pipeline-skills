@@ -23,6 +23,9 @@
 - `latex/main.pdf`
 - `latex/slides/main.pdf`
 
+当资料已经存在、但需要被重组成更适合学习的教程时，用这条 workflow。如果你只有
+一个 topic，希望系统先去找论文，应该先走 survey 或 brief workflow。
+
 ## 2. 它和一般教程生成器的区别
 
 它不是：
@@ -42,7 +45,23 @@
 - YouTube：建议显式提供 `transcript_locator`
 - Bilibili：如果公开视频本身有 subtitle，可尝试自动拉取
 
-## 3. 阶段流
+## 3. 什么时候该用它
+
+当：
+
+- 输入是一组 source，而不是一个裸 topic；
+- 你要的是 reader-first tutorial，不是 literature survey；
+- PDF 和 slides 需要和 tutorial 模块保持一致。
+
+就该用 `source-tutorial`。
+
+不要在下面这些情况用它：
+
+- 你需要 retrieval-first literature review；
+- 你要评估单篇 paper；
+- 你只需要快速入门 memo。
+
+## 4. 阶段流
 
 | 阶段 | 目的 | 主要产物 |
 |---|---|---|
@@ -52,7 +71,7 @@
 | `C3` | 写 tutorial 并跑教程专用 QA | `output/TUTORIAL.md`、`output/TUTORIAL_SELFLOOP_TODO.md` |
 | `C4` | 生成 article/slides 交付层并审计合同 | `latex/main.pdf`、`latex/slides/main.pdf`、build reports、`output/CONTRACT_REPORT.md` |
 
-## 4. 质量目标
+## 5. 质量目标
 
 这个 tutorial 应该：
 
@@ -67,3 +86,9 @@ slides 应该：
 - 和 tutorial 模块结构对齐
 - 适合讲授
 - 单独阅读时也能看懂核心内容
+
+## 6. 推荐 Prompt
+
+```text
+Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.
+```

@@ -23,6 +23,10 @@ The output is still a tutorial first:
 - `latex/main.pdf`
 - `latex/slides/main.pdf`
 
+Use this when the source material already exists and needs to be reorganized
+for learning. If the user only has a topic and wants papers retrieved, use a
+survey or brief workflow first.
+
 ## 2. What Makes It Different
 
 This workflow is not:
@@ -42,7 +46,21 @@ Practical rule:
 - YouTube: provide `transcript_locator`
 - Bilibili: public subtitles may be fetched automatically when available
 
-## 3. Stage Flow
+## 3. When To Use It
+
+Use `source-tutorial` when:
+
+- the input is a source set, not just a topic;
+- you want a reader-first tutorial rather than a literature survey;
+- PDF and slides should stay aligned with the tutorial modules.
+
+Do not use it when:
+
+- you need retrieval-first literature review;
+- you need a single-paper critique;
+- you only need a quick orientation memo.
+
+## 4. Stage Flow
 
 | Stage | Purpose | Main outputs |
 |---|---|---|
@@ -52,7 +70,7 @@ Practical rule:
 | `C3` | write the tutorial and run tutorial-specific QA | `output/TUTORIAL.md`, `output/TUTORIAL_SELFLOOP_TODO.md` |
 | `C4` | generate article/slides delivery and audit contract | `latex/main.pdf`, `latex/slides/main.pdf`, build reports, `output/CONTRACT_REPORT.md` |
 
-## 4. Quality Bar
+## 5. Quality Bar
 
 The tutorial should:
 
@@ -68,7 +86,7 @@ Slides should:
 - work for presentation
 - still be understandable when read alone
 
-## 5. Recommended Prompt
+## 6. Recommended Prompt
 
 ```text
 Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.

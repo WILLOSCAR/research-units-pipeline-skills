@@ -24,6 +24,15 @@ choose outcomes, maintainers inspect contracts.
 | Tutorial | `source-tutorial` | `pipelines/source-tutorial.pipeline.md` | `templates/UNITS.source-tutorial.csv` | `output/TUTORIAL.md`, PDF, slides | `Executable` | Medium-high |
 | Thesis | `graduate-paper` | `pipelines/graduate-paper-pipeline.md` | Unit template: none yet | thesis project artifacts | `Research-stage` | Low |
 
+## Use-Case Overlays
+
+Some product needs reuse an existing workflow instead of becoming a new
+workflow family.
+
+| Use case | Backing workflow | Why it is not separate |
+|---|---|---|
+| Course paper / end-of-term report from a topic | `arxiv-survey` or `arxiv-survey-latex` | The lifecycle is still topic -> retrieval -> outline -> evidence -> draft/PDF. The user should specify course constraints, page target, language, and PDF needs in the prompt. |
+
 ## Current Priority
 
 The next product proof is `paper-review` / Auto Review:

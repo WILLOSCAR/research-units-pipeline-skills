@@ -15,6 +15,9 @@
 - reproduce 前的 worth-it 判断
 - referee-style critique
 
+它不是主题解释器，也不是 literature survey。分析单位要始终固定在一篇论文上，
+然后判断这篇论文的 claims、evidence、novelty 和风险。
+
 输出是：
 
 - `output/REVIEW.md`
@@ -70,6 +73,7 @@
 
 - 你是在快速理解整个方向
 - 你要做多篇文献上的 screened evidence synthesis
+- 你真正想要的是某个大 topic 的阅读路径或课程报告
 
 ## 7. 阶段流
 

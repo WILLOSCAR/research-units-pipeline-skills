@@ -35,15 +35,43 @@
 - 如果你还在重点迭代写作质量，不急着出 PDF，可以先用 `arxiv-survey`
 - 如果 PDF 本身就是合同的一部分，直接用 `arxiv-survey-latex`
 
-## 3. 这条工作流有什么不同
+## 3. 课程论文 / 期末报告用法
+
+survey workflow 也可以作为课程论文或期末报告路径：
+
+```text
+topic -> retrieval -> outline -> evidence -> report draft -> optional PDF
+```
+
+这里不需要新增一条 workflow。它本质上还是同一条 survey pipeline，只是产品 brief
+变成“围绕一个 topic 产出可提交的课程报告”。使用时最好一开始就告诉 agent：
+
+- 课程 topic 和你希望强调的角度
+- 输出语言
+- 页数或字数目标
+- 引用格式或最低引用数量
+- 是否需要 PDF / LaTeX
+- 希望读起来像课程论文、技术报告，还是短综述
+
+如果只需要 Markdown 草稿，用 `arxiv-survey`。如果最后要交 PDF，用
+`arxiv-survey-latex`。对于较短的课程论文，请明确要求先给紧凑 outline 再进入 C2
+approval，避免默认 survey-grade 设置扩展成完整 review paper。
+
+示例：
+
+```text
+Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages, keep the outline reviewable before drafting, and produce a final PDF.
+```
+
+## 4. 这条工作流有什么不同
 
 survey pipeline 的核心约束有三点：
 
-### 3.1 先检索，再定结构
+### 4.1 先检索，再定结构
 
 它不会把用户的一句话主题直接当成最终大纲，而是先拉一个足够大的候选论文池，去重后再逐步收敛结构。
 
-### 3.2 中间阶段禁止长 prose
+### 4.2 中间阶段禁止长 prose
 
 C2-C4 故意是 structure-first、evidence-first：
 
@@ -55,7 +83,7 @@ C2-C4 故意是 structure-first、evidence-first：
 
 目的是让后面的草稿是可追溯的，而不是只靠一个写作 prompt。
 
-### 3.3 写作是在反复 gate 下完成的
+### 4.3 写作是在反复 gate 下完成的
 
 C5 不是“一次写完整篇”，而是包含：
 
@@ -70,7 +98,7 @@ C5 不是“一次写完整篇”，而是包含：
 
 真正的大部分质量提升都发生在这里。
 
-## 4. 一次 run 的默认姿态
+## 5. 一次 run 的默认姿态
 
 当前默认 survey 合同是比较重的：
 
@@ -90,7 +118,7 @@ C5 不是“一次写完整篇”，而是包含：
 - 在最终 H3 写作前先出 section briefs
 - 每个核心章节目标是 `3` 个 H3 subsection
 
-## 5. 阶段流
+## 6. 阶段流
 
 | 阶段 | 目标 | 主要输出 |
 |---|---|---|
@@ -101,7 +129,7 @@ C5 不是“一次写完整篇”，而是包含：
 | `C4` | 生成 citations 和 evidence packs | `citations/ref.bib`、`outline/evidence_drafts.jsonl`、`outline/anchor_sheet.jsonl`、`outline/writer_context_packs.jsonl` |
 | `C5` | 写作、自循环、合并、审计、可选 PDF | `sections/*.md`、`output/DRAFT.md`、`output/AUDIT_REPORT.md`，LaTeX 变体还会生成 `latex/*` |
 
-### 5.1 最关键的 checkpoint
+### 6.1 最关键的 checkpoint
 
 最关键的审批点是 `C2`。
 
@@ -113,7 +141,7 @@ C5 不是“一次写完整篇”，而是包含：
 
 过了这一步，才允许写 prose。
 
-## 6. 真正应该打开哪些文件
+## 7. 真正应该打开哪些文件
 
 当一条 survey run 看起来不对时，不要试图把所有文件都看一遍。先看和当前失败类型最相关的文件：
 
@@ -127,7 +155,7 @@ C5 不是“一次写完整篇”，而是包含：
 | 最终草稿 QA 仍失败 | `output/AUDIT_REPORT.md`、`output/CONTRACT_REPORT.md` |
 | PDF 编译失败 | `output/LATEX_BUILD_REPORT.md`、`latex/main.tex` |
 
-## 7. 怎么运行
+## 8. 怎么运行
 
 典型 prompt：
 
@@ -139,6 +167,12 @@ Write a LaTeX survey about embodied AI and show me the outline first.
 
 ```text
 Use pipelines/arxiv-survey-latex.pipeline.md and write a survey on embodied AI.
+```
+
+如果你想写课程论文或期末报告：
+
+```text
+Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages and produce a final PDF.
 ```
 
 如果你想先走 markdown-only survey：
@@ -153,7 +187,7 @@ Use pipelines/arxiv-survey.pipeline.md and draft a survey on test-time adaptatio
 Use the arxiv-survey-latex pipeline and auto-approve the outline.
 ```
 
-## 8. 这条工作流背后的核心 skills
+## 9. 这条工作流背后的核心 skills
 
 survey 路径不是一个单体 skill，它是由一串 skills 串起来的，主要包括：
 
@@ -166,9 +200,9 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 
 如果最终产物质量不够，真正应该修的通常是这些上游 skills，而不是直接去补 `output/DRAFT.md`。
 
-## 9. 常见失败模式
+## 10. 常见失败模式
 
-### 9.1 outline 太泛
+### 10.1 outline 太泛
 
 通常是上游问题：
 
@@ -178,7 +212,7 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 
 不要先靠润色 prose 来掩盖这个问题。
 
-### 9.2 草稿读起来像生成器产物
+### 10.2 草稿读起来像生成器产物
 
 这通常意味着：
 
@@ -189,7 +223,7 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 
 真正的修法一般在 briefs、evidence packs 或 writing skills 上游。
 
-### 9.3 覆盖面够了，但综合性还是弱
+### 10.3 覆盖面够了，但综合性还是弱
 
 这常常意味着很多论文只作为 citation 出现，但没有真正进入比较结构。优先检查：
 
@@ -197,7 +231,7 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 - `outline/evidence_drafts.jsonl`
 - `output/ARGUMENT_SELFLOOP_TODO.md`
 
-### 9.4 PDF 能编译，但论文还是不够好
+### 10.4 PDF 能编译，但论文还是不够好
 
 编译成功只代表交付层可用，不代表内容质量过关。真正看质量的是：
 
@@ -205,7 +239,7 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 - `output/GLOBAL_REVIEW.md`
 - `output/PARAGRAPH_CURATION_REPORT.md`
 
-## 10. 什么情况下不要用这条工作流
+## 11. 什么情况下不要用这条工作流
 
 以下情况不适合用 survey pipeline：
 

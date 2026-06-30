@@ -14,6 +14,7 @@
 |---|---|---|---|
 | `arxiv-survey` | PDF 이전 단계의 evidence-first survey 작성 | `output/DRAFT.md` | [Guide](arxiv-survey.md) |
 | `arxiv-survey-latex` | 같은 survey workflow 에서 compile-ready LaTeX/PDF 까지 필요한 경우 | `output/DRAFT.md`, `latex/main.pdf` | [Guide](arxiv-survey.md) |
+| course paper / term report | `arxiv-survey` 또는 `arxiv-survey-latex` 로 topic-to-report 수행 | report draft, optional PDF | [Guide](arxiv-survey.md) |
 | `research-brief` | 어떤 주제를 빠르게 이해하고 읽기 순서를 정리 | `output/SNAPSHOT.md` | [Guide](research-brief.md) |
 | `paper-review` | 단일 paper / manuscript 를 추적 가능하게 평가 | `output/REVIEW.md` | [Guide](paper-review.md) |
 | `evidence-review` | protocol 기반 screening, extraction, bounded synthesis | `output/SYNTHESIS.md` | [Guide](evidence-review.md) |
