@@ -4,6 +4,7 @@ import csv
 import json
 import os
 import re
+import shlex
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -39,6 +40,24 @@ def atomic_write_text(path: Path, content: str) -> None:
         except OSError:
             pass
         raise
+
+
+def shell_quote(value: str | Path) -> str:
+    return shlex.quote(str(value))
+
+
+def pipeline_cli_command(action: str, *, workspace: str | Path, extra_args: Iterable[str] = ()) -> str:
+    parts = [
+        "uv",
+        "run",
+        "python",
+        "scripts/pipeline.py",
+        action,
+        "--workspace",
+        str(workspace),
+        *list(extra_args),
+    ]
+    return " ".join(shell_quote(part) for part in parts)
 
 
 def backup_existing(path: Path) -> Path:

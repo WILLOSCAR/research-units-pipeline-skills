@@ -72,6 +72,26 @@ def test_all_executable_pipelines_initialize_workspace(tmp_path: Path) -> None:
     assert failures == []
 
 
+def test_kickoff_prints_copyable_run_command(tmp_path: Path) -> None:
+    workspace = tmp_path / "kick off ws"
+    result = run_command(
+        "scripts/pipeline.py",
+        "kickoff",
+        "--topic",
+        "robot adaptation",
+        "--pipeline",
+        "research-brief",
+        "--workspace",
+        str(workspace),
+        "--overwrite",
+        "--overwrite-units",
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "<ws>" not in result.stdout
+    assert f"uv run python scripts/pipeline.py run --workspace '{workspace.resolve()}'" in result.stdout
+
+
 def test_skill_dependency_graph_can_be_rendered_from_current_skill_contracts() -> None:
     rendered = generate_skill_graph._render_markdown(
         skills=generate_skill_graph._load_skill_ios(generate_skill_graph.SKILLS_DIR),

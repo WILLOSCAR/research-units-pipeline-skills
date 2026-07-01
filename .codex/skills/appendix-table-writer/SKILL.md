@@ -91,7 +91,7 @@ Avoid:
 - contain >=2 Markdown tables
 - use a caption line before each table, e.g. `**Appendix Table A1. Representative systems by method family and evaluation setting**`
 - contain no headings (`#`, `##`, `###`) inside the file (the merger adds an Appendix heading)
-- contain no placeholders (`TODO`, `TBD`, `FIXME`, `...`, unicode ellipsis)
+- contain no placeholders (`TODO`, `TBD`, `FIXME`, ASCII three-dot ellipsis, unicode ellipsis)
 - contain citations in rows using `[@BibKey]` (keys must exist in `citations/ref.bib`)
 - avoid pipeline jargon and index-like column names
 
@@ -154,7 +154,7 @@ If you cannot fill a row without guessing:
 ### Quick Start
 
 - `python .codex/skills/appendix-table-writer/scripts/run.py --help`
-- `python .codex/skills/appendix-table-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/appendix-table-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -172,7 +172,7 @@ If you cannot fill a row without guessing:
 
 - Validate a workspace that writes appendix tables to a non-standard path:
 
-  `python .codex/skills/appendix-table-writer/scripts/run.py --workspace workspaces/<ws> --outputs outline/tables_appendix.md`
+  `uv run python .codex/skills/appendix-table-writer/scripts/run.py --workspace <workspace> --outputs outline/tables_appendix.md`
 
 Notes:
 - This script writes `outline/tables_appendix.md` from the existing evidence artifacts and then validates the result.

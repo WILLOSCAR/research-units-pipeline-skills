@@ -24,6 +24,9 @@ choose outcomes, maintainers inspect contracts.
 | Tutorial | `source-tutorial` | `pipelines/source-tutorial.pipeline.md` | `templates/UNITS.source-tutorial.csv` | `output/TUTORIAL.md`, PDF, slides | `Executable` | Medium-high |
 | Thesis | `graduate-paper` | `pipelines/graduate-paper-pipeline.md` | Unit template: none yet | thesis project artifacts | `Research-stage` | Low |
 
+`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`; it keeps the
+survey workflow and adds compile-ready TeX/PDF artifacts.
+
 ## Use-Case Overlays
 
 Some product needs reuse an existing workflow instead of becoming a new
@@ -44,9 +47,12 @@ The next product proof is `paper-review` / Auto Review:
 - semantic rubric;
 - scorecard.
 
-The current `paper-review` contract guarantees the review path and final
-`output/REVIEW.md`. The proof artifacts above should be produced in a completed
-workspace first, then promoted into the contract only if their shape proves
-stable.
+The current `paper-review` contract already requires `output/PAPER.md`,
+`output/CLAIMS.md`, `output/MISSING_EVIDENCE.md`, `output/NOVELTY_MATRIX.md`,
+`output/REVIEW.md`, `output/DELIVERABLE_SELFLOOP_TODO.md`,
+`output/QUALITY_GATE.md`, `output/RUN_ERRORS.md`, and
+`output/CONTRACT_REPORT.md`. Rubric, scorecard, improvement report, and
+artifact pack are the proof artifacts that should be produced around a
+completed workspace before they are promoted into the executable contract.
 
 Do not add a new workflow family until this proof exists.

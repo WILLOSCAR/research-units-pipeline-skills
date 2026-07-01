@@ -42,6 +42,42 @@ def _readme_with_harness_links() -> str:
     return "\n".join(validate_repo.HARNESS_README_LINKS) + "\n"
 
 
+def _valid_taxonomy_text() -> str:
+    rows = [
+        "| Family | Workflow | Contract | Unit template | Deliverable | Maturity | Completion |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for family, workflow, maturity, completion in validate_repo.PIPELINE_TAXONOMY_ROW_REQUIREMENTS:
+        slug = workflow.strip("`")
+        if slug == "graduate-paper":
+            contract = "`pipelines/graduate-paper-pipeline.md`"
+            template = "Unit template: none yet"
+            deliverable = "thesis project artifacts"
+        else:
+            contract = f"`pipelines/{slug}.pipeline.md`"
+            template = f"`templates/UNITS.{slug}.csv`"
+            deliverable = "`output/REVIEW.md`" if slug == "paper-review" else "deliverable"
+        rows.append(f"| {family} | {workflow} | {contract} | {template} | {deliverable} | {maturity} | {completion} |")
+
+    return (
+        "# Workflow Catalog\n\n"
+        "## Maturity Levels\n\n"
+        "- `Executable`\n"
+        "- `Executable variant`\n"
+        "- `Research-stage`\n\n"
+        "## Current Families\n\n"
+        + "\n".join(rows)
+        + "\n\n"
+        "`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`.\n\n"
+        "## Use-Case Overlays\n\n"
+        "Course paper / end-of-term report from a topic uses survey workflows.\n\n"
+        "## Current Priority\n\n"
+        "`paper-review`\n\n"
+        + "\n".join(validate_repo.PAPER_REVIEW_TAXONOMY_ARTIFACTS)
+        + "\n"
+    )
+
+
 def _write_minimal_harness_docs(repo_root: Path) -> None:
     docs_dir = repo_root / "docs"
     adr_dir = docs_dir / "adr"
@@ -55,10 +91,7 @@ def _write_minimal_harness_docs(repo_root: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
-    (docs_dir / "PIPELINE_TAXONOMY.md").write_text(
-        "# Workflow Catalog\n\n`graduate-paper`\n`Research-stage`\nUnit template: none yet\n",
-        encoding="utf-8",
-    )
+    (docs_dir / "PIPELINE_TAXONOMY.md").write_text(_valid_taxonomy_text(), encoding="utf-8")
     (docs_dir / "PROJECT_LANGUAGE.md").write_text(
         "# Project Language\n\n" + "\n".join(validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS) + "\n",
         encoding="utf-8",
@@ -244,7 +277,7 @@ def test_pipeline_taxonomy_validation_reports_missing_executable_metadata(tmp_pa
         name="demo",
         units_template="templates/UNITS.demo.csv",
     )
-    (docs_dir / "PIPELINE_TAXONOMY.md").write_text("# Workflow Catalog\n", encoding="utf-8")
+    (docs_dir / "PIPELINE_TAXONOMY.md").write_text(_valid_taxonomy_text(), encoding="utf-8")
 
     findings = validate_repo._validate_pipeline_taxonomy(
         repo_root=tmp_path,
@@ -255,18 +288,44 @@ def test_pipeline_taxonomy_validation_reports_missing_executable_metadata(tmp_pa
     assert [(item.level, item.message) for item in findings] == [
         (
             "WARN",
-            "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy terms: "
-            "`Maturity Levels`, `Executable`, `Executable variant`, `Research-stage`, "
-            "`Current Families`, `Use-Case Overlays`, `Course paper / end-of-term report`, "
-            "``arxiv-survey` or `arxiv-survey-latex``, `Current Priority`, ``paper-review``.",
-        ),
-        (
-            "WARN",
             "`docs/PIPELINE_TAXONOMY.md` is missing executable pipeline metadata for "
             "`demo`: pipeline name `demo`, contract path `pipelines/demo.pipeline.md`, "
             "unit template `templates/UNITS.demo.csv`.",
         )
     ]
+
+
+def test_pipeline_taxonomy_validation_checks_terms_without_pipelines_dir(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "PIPELINE_TAXONOMY.md").write_text("# Workflow Catalog\n", encoding="utf-8")
+
+    findings = validate_repo._validate_pipeline_taxonomy(
+        repo_root=tmp_path,
+        pipelines_dir=tmp_path / "missing-pipelines",
+        docs_dir=docs_dir,
+    )
+
+    assert findings
+    assert findings[0].level == "WARN"
+    assert "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy terms" in findings[0].message
+
+
+def test_pipeline_taxonomy_validation_blocks_course_paper_pipeline(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    pipelines_dir = tmp_path / "pipelines"
+    pipelines_dir.mkdir()
+    (pipelines_dir / "course-paper.pipeline.md").write_text("# Pipeline: course-paper\n", encoding="utf-8")
+    (docs_dir / "PIPELINE_TAXONOMY.md").write_text(_valid_taxonomy_text(), encoding="utf-8")
+
+    findings = validate_repo._validate_pipeline_taxonomy(
+        repo_root=tmp_path,
+        pipelines_dir=pipelines_dir,
+        docs_dir=docs_dir,
+    )
+
+    assert any("Use-case overlays must not become separate pipeline contracts" in item.message for item in findings)
 
 
 def test_pipeline_taxonomy_validation_reports_graduate_paper_maturity_drift(tmp_path: Path) -> None:
@@ -275,10 +334,8 @@ def test_pipeline_taxonomy_validation_reports_graduate_paper_maturity_drift(tmp_
     pipelines_dir = tmp_path / "pipelines"
     pipelines_dir.mkdir()
     (pipelines_dir / "graduate-paper-pipeline.md").write_text("# Pipeline: graduate-paper\n", encoding="utf-8")
-    (docs_dir / "PIPELINE_TAXONOMY.md").write_text(
-        "`graduate-paper`\n`pipelines/graduate-paper-pipeline.md`\n",
-        encoding="utf-8",
-    )
+    taxonomy_text = _valid_taxonomy_text().replace("| Thesis | `graduate-paper` | `pipelines/graduate-paper-pipeline.md` | Unit template: none yet | thesis project artifacts | `Research-stage` | Low |\n", "")
+    (docs_dir / "PIPELINE_TAXONOMY.md").write_text(taxonomy_text, encoding="utf-8")
 
     findings = validate_repo._validate_pipeline_taxonomy(
         repo_root=tmp_path,
@@ -289,15 +346,14 @@ def test_pipeline_taxonomy_validation_reports_graduate_paper_maturity_drift(tmp_
     assert [(item.level, item.message) for item in findings] == [
         (
             "WARN",
-            "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy terms: "
-            "`Maturity Levels`, `Executable`, `Executable variant`, `Research-stage`, `Current Families`, "
-            "`Use-Case Overlays`, `Course paper / end-of-term report`, "
-            "``arxiv-survey` or `arxiv-survey-latex``, `Current Priority`, ``paper-review``.",
+            "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy row semantics for "
+            "`graduate-paper`: `Thesis`, ``graduate-paper``, ``Research-stage``, `Low`.",
         ),
         (
             "WARN",
             "`docs/PIPELINE_TAXONOMY.md` is missing graduate-paper research-stage metadata: "
-            "research-stage maturity `Research-stage`, missing unit template marker Unit template: none yet.",
+            "pipeline name `graduate-paper`, contract document `pipelines/graduate-paper-pipeline.md`, "
+            "missing unit template marker Unit template: none yet.",
         )
     ]
 

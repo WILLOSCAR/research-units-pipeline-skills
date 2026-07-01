@@ -6,17 +6,17 @@
 
 ## 1. 这条流程是做什么的
 
-`paper-review` 用来对单篇 paper / manuscript 做可追溯的评估。
+`paper-review` 用来对单篇论文或稿件做可追溯的评估。
 
 它不只等于正式审稿，也适用于：
 
-- 组会 paper review
+- 组会论文评审
 - 论文 triage
-- reproduce 前的 worth-it 判断
+- 复现前的投入价值判断
 - referee-style critique
 
 它不是主题解释器，也不是 literature survey。分析单位要始终固定在一篇论文上，
-然后判断这篇论文的 claims、evidence、novelty 和风险。
+然后判断这篇论文的主张、证据、新颖性和风险。
 
 输出是：
 
@@ -26,11 +26,11 @@
 
 常见输入包括：
 
-- 本地 manuscript，格式可以是 markdown / text / PDF
+- 本地论文稿件，格式可以是 markdown / text / PDF
 - 一段你直接贴进来的论文正文，后续会沉淀成 `output/PAPER.md`
 - 论文加参考文献列表，如果你还想一起做 overlap / delta 定位
 
-分析单位始终是一篇 paper / manuscript，而不是整个方向的语料池。
+分析单位始终是一篇论文或稿件，而不是整个方向的语料池。
 
 ## 3. 核心合同
 
@@ -63,7 +63,7 @@
 
 当：
 
-- 输入是一篇单独的 paper / manuscript
+- 输入是一篇单独论文或稿件
 - 你想知道它的主张是否站得住
 - 你想一起看 novelty、soundness、clarity、impact
 

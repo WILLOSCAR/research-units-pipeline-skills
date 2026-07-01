@@ -109,3 +109,7 @@
 ```text
 Use the evidence-review workflow to run a PRISMA-style review on LLM agents for education, with protocol, screening, extraction, and a bounded synthesis.
 ```
+
+```text
+使用 evidence-review 做一个教育场景 LLM agent 的证据综述。研究问题是：这类系统是否改善学习反馈质量？纳入标准：2022 年之后、有真实用户或课堂评估。排除标准：纯观点文章、没有评估结果的 demo。请先写 protocol，再做 screening 和 extraction。
+```

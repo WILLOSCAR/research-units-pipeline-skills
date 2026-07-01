@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from tooling.common import atomic_write_text, copy_tree, resolve_pipeline_spec_path, today_iso
+from tooling.common import atomic_write_text, copy_tree, pipeline_cli_command, resolve_pipeline_spec_path, today_iso
 from tooling.executor import run_one_unit
 from tooling.harness import (
     build_artifact_pack_payload,
@@ -259,7 +259,10 @@ def main() -> int:
                     break
             return 0 if last_result is None or last_result.status in {"DONE", "IDLE"} else 2
 
-        print("Next: run `uv run python scripts/pipeline.py run --workspace <ws>` (it will pause if a HUMAN approval is required)")
+        print(
+            f"Next: run `{pipeline_cli_command('run', workspace=workspace)}` "
+            "(it will pause if a HUMAN approval is required)"
+        )
         return 0
 
     if args.cmd == "run-one":

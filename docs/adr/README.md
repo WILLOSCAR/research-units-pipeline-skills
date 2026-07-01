@@ -1,7 +1,8 @@
 # Architecture Decision Records
 
-This directory records repo-level architecture decisions that affect project
-structure, contracts, validation, harness behavior, or long-term maintenance.
+This directory records repo-level architecture decisions for the Auto Research
+Design System. ADRs are for choices that affect project structure, contracts,
+validation, harness behavior, or long-term maintenance.
 
 Use `DECISIONS.md` inside a workspace for run-local choices. Use ADRs here when
 the decision should guide future contributors and agents across runs.

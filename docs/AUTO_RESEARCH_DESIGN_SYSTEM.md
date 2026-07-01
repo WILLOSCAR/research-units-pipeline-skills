@@ -2,10 +2,11 @@
 
 This is the main architecture document for the project.
 
-The project is a backend-oriented Auto Research design system for end-to-end
-work agents. It combines semantic skills with a file-first harness so a model
-can turn a research request into durable workspace artifacts, run audits, and
-bounded improvement records.
+The project is a backend-oriented Auto Research design system built from two
+cooperating layers: semantic research skills and a file-first harness. Skills
+do the reading, synthesis, review, and writing work; the harness constrains the
+run with workspace state, unit ledgers, artifact contracts, audits, recovery,
+and bounded improvement records.
 
 It is not a generic workflow engine, a prompt bundle, or a fully autonomous
 scientist. It is an execution design system for research work.
@@ -57,7 +58,8 @@ flowchart TD
 |---|---|---|---|
 | Survey | `arxiv-survey`, `arxiv-survey-latex` | Evidence-first survey pipeline, section artifacts, writing loop, LaTeX/PDF variant | High |
 | Orientation | `research-brief` | Fast topic understanding, boundary finding, and reading-path briefing | Medium-high |
-| Review | `paper-review`, `evidence-review` | Single-paper review, protocol evidence synthesis, shared review tooling | Medium-high |
+| Review | `paper-review` | Single-paper review with claim/evidence/novelty artifacts and final review | Medium; next proof |
+| Review | `evidence-review` | Protocol evidence synthesis with screening and extraction artifacts | Medium-high |
 | Tutorial | `source-tutorial` | Multi-source tutorial generation with tutorial, PDF, and slide deliverables | Medium-high |
 | Ideation | `idea-brainstorm` | Literature-grounded idea reports and JSON sidecar | Medium |
 | Thesis | `graduate-paper` | Guided Chinese thesis design document and thesis skills | Low; not executable pipeline |
@@ -72,8 +74,8 @@ flowchart TD
 - Workspaces persist state outside chat memory.
 - Project skills produce durable artifacts rather than only chat responses.
 - Harness commands can diagnose, audit, improve, and pack a workspace.
-- Validation protects pipeline contracts, docs entrypoints, schema references,
-  ADR format, and taxonomy drift.
+- Validation protects pipeline contracts, workflow family/maturity rows,
+  docs entrypoints, schema references, ADR format, and taxonomy drift.
 - Review workflows now share Python helper modules under `tooling/review_*`.
 
 ## What Is Not Done

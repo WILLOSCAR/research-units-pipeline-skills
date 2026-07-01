@@ -35,7 +35,7 @@ This skill is intentionally **conservative and scriptable**:
 
 - Only inject keys listed for that H3 in the budget report.
 - Do not introduce new numbers, new benchmarks, or superiority claims.
-- Do not add narration templates (`This subsection ...`, `Next, we ...`).
+- Do not add narration templates such as `This subsection discusses` or `Next, we examine`.
 - Do not produce cite dumps like `[@a; @b; @c]` as the only citations in a paragraph.
 
 ## Paper-voice injection patterns (safe sentence shapes)
@@ -63,9 +63,9 @@ Use these as *sentence intentions* (paraphrase; do not copy verbatim).
 ## Anti-patterns (high-signal “budget dump” voice)
 
 Avoid these stems (they read like automated injection):
-- `A few representative references include X, Y, and Z.`
-- `Notable lines of work include X, Y, and Z.`
-- `Concrete examples include X, Y, and Z.`
+- `A few representative references include`
+- `Notable lines of work include`
+- `Concrete examples include`
 
 If your draft contains these, rewrite them immediately using the patterns above (keep citation keys unchanged).
 
@@ -112,7 +112,7 @@ You usually do not run this manually; it exists so a pipeline runner can determi
 
 ### Quick Start
 
-- `python .codex/skills/citation-injector/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/citation-injector/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -125,4 +125,4 @@ You usually do not run this manually; it exists so a pipeline runner can determi
 ### Examples
 
 - After you generate the budget report and want the script to apply the baseline injection:
-  - `python .codex/skills/citation-injector/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/citation-injector/scripts/run.py --workspace <workspace>`

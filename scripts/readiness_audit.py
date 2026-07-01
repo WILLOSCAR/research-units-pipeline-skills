@@ -18,7 +18,11 @@ from tooling.harness_contracts import (
     HARNESS_LOCAL_CHECKS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
+    PAPER_REVIEW_TAXONOMY_ARTIFACTS,
+    PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
+    PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
+    PROJECT_LANGUAGE_REQUIRED_TERMS,
     READINESS_AUDIT_SCHEMA,
     READINESS_MIN_ITERATIONS,
     READINESS_PROGRESS_PATH,
@@ -93,6 +97,7 @@ def build_readiness_audit(*, repo_root: Path, progress_path: Path) -> dict[str, 
         _check_required_paths(repo_root=repo_root, rel_paths=REQUIRED_DOCS, check_id="docs", label="required docs"),
         _check_readme_links(repo_root=repo_root),
         _check_adr_set(repo_root=repo_root),
+        _check_project_language(repo_root=repo_root),
         _check_workflow_taxonomy(repo_root=repo_root),
         _check_required_paths(
             repo_root=repo_root,
@@ -280,11 +285,66 @@ def _check_workflow_taxonomy(*, repo_root: Path) -> ReadinessCheck:
             "Pipeline taxonomy is missing required term(s): " + _format_check_list(missing_terms) + ".",
             "Keep maturity, use-case overlays, and the Auto Review proof explicit.",
         )
+    table_rows = [line for line in text.splitlines() if line.strip().startswith("|")]
+    missing_rows = [
+        required_bits[1]
+        for required_bits in PIPELINE_TAXONOMY_ROW_REQUIREMENTS
+        if not any(all(bit in row for bit in required_bits) for row in table_rows)
+    ]
+    if missing_rows:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing row semantic(s): " + _format_check_list(missing_rows) + ".",
+            "Keep workflow family, maturity, and completion status aligned with the canonical taxonomy.",
+        )
+    missing_variant = [term for term in PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS if term not in text]
+    if missing_variant:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing variant term(s): " + _format_check_list(missing_variant) + ".",
+            "Keep `arxiv-survey-latex` documented as a variant of `arxiv-survey`.",
+        )
+    missing_review_artifacts = [artifact for artifact in PAPER_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_review_artifacts:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing paper-review artifact(s): " + _format_check_list(missing_review_artifacts) + ".",
+            "Keep existing paper-review contract artifacts separate from future proof artifacts.",
+        )
     return ReadinessCheck(
         "workflow_taxonomy",
         "PASS",
         f"Pipeline taxonomy references all {len(WORKFLOWS)} current workflows.",
         "Keep maturity and executable status explicit as workflows evolve.",
+    )
+
+
+def _check_project_language(*, repo_root: Path) -> ReadinessCheck:
+    language_path = repo_root / "docs" / "PROJECT_LANGUAGE.md"
+    if not language_path.exists():
+        return ReadinessCheck(
+            "project_language",
+            "WARN",
+            "Missing `docs/PROJECT_LANGUAGE.md`.",
+            "Restore canonical project language before closure.",
+        )
+    text = language_path.read_text(encoding="utf-8", errors="ignore")
+    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    if missing:
+        return ReadinessCheck(
+            "project_language",
+            "WARN",
+            "Project language is missing required term(s): " + _format_check_list(missing) + ".",
+            "Keep canonical terms stable across README, docs, validation, and reports.",
+        )
+    return ReadinessCheck(
+        "project_language",
+        "PASS",
+        f"Project language defines all {len(PROJECT_LANGUAGE_REQUIRED_TERMS)} canonical terms.",
+        "Update this contract when the project vocabulary intentionally changes.",
     )
 
 

@@ -147,6 +147,29 @@ def test_doctor_reports_next_runnable_unit(tmp_path: Path) -> None:
     assert "TODO: 1" in result.stdout
 
 
+def test_doctor_resume_command_quotes_workspace_paths_with_spaces(tmp_path: Path) -> None:
+    workspace = tmp_path / "ws with space"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U010",
+                "title": "Write",
+                "skill": "demo",
+                "owner": "CODEX",
+                "outputs": "output/write.md",
+                "status": "TODO",
+            },
+        ],
+    )
+
+    result = run_command("scripts/pipeline.py", "doctor", "--workspace", str(workspace))
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    quoted_workspace = f"'{workspace.resolve()}'"
+    assert f"Command: `uv run python scripts/pipeline.py run --workspace {quoted_workspace}`" in result.stdout
+
+
 def test_doctor_flags_units_dependency_and_artifact_problems(tmp_path: Path) -> None:
     workspace = tmp_path / "ws"
     write_units(

@@ -14,6 +14,7 @@ from tooling.common import (
     load_workspace_pipeline_spec,
     now_iso_seconds,
     parse_semicolon_list,
+    pipeline_cli_command,
     set_decisions_approval,
     update_status_field,
     update_status_log,
@@ -176,7 +177,7 @@ def run_one_unit(
             message=(
                 f"No executable script for skill '{skill}'. "
                 f"Run it manually by following `{skill_md}`, write the required outputs, "
-                f"then mark the unit DONE (e.g., `uv run python scripts/pipeline.py mark --workspace {workspace} --unit-id {unit_id} --status DONE`)."
+                f"then mark the unit DONE (e.g., `{pipeline_cli_command('mark', workspace=workspace, extra_args=('--unit-id', unit_id, '--status', 'DONE'))}`)."
             ),
         )
 

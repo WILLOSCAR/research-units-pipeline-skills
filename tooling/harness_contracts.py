@@ -146,13 +146,17 @@ AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS = (
 )
 
 PROJECT_LANGUAGE_REQUIRED_TERMS = (
+    "Auto Research Design System",
+    "Harness",
+    "Skill",
     "Workflow",
+    "Pipeline",
+    "Use-case overlay",
     "Workspace",
     "Unit",
     "Artifact",
     "Audit",
     "Improvement",
-    "Use-case overlay",
     "Project Memory",
 )
 
@@ -164,7 +168,41 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
     "Current Families",
     "Use-Case Overlays",
     "Course paper / end-of-term report",
-    "`arxiv-survey` or `arxiv-survey-latex`",
     "Current Priority",
     "`paper-review`",
+)
+
+PIPELINE_TAXONOMY_ROW_REQUIREMENTS = (
+    ("Survey", "`arxiv-survey`", "`Executable`", "High"),
+    ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "High"),
+    ("Orientation", "`research-brief`", "`Executable`", "Medium-high"),
+    ("Review", "`paper-review`", "`Executable`", "Medium; next proof"),
+    ("Review", "`evidence-review`", "`Executable`", "Medium-high"),
+    ("Ideation", "`idea-brainstorm`", "`Executable`", "Medium"),
+    ("Tutorial", "`source-tutorial`", "`Executable`", "Medium-high"),
+    ("Thesis", "`graduate-paper`", "`Research-stage`", "Low"),
+)
+
+PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS = (
+    "`arxiv-survey-latex`",
+    "`arxiv-survey`",
+    "Executable variant",
+)
+
+PAPER_REVIEW_TAXONOMY_ARTIFACTS = (
+    "output/PAPER.md",
+    "output/CLAIMS.md",
+    "output/MISSING_EVIDENCE.md",
+    "output/NOVELTY_MATRIX.md",
+    "output/REVIEW.md",
+    "output/DELIVERABLE_SELFLOOP_TODO.md",
+    "output/QUALITY_GATE.md",
+    "output/RUN_ERRORS.md",
+    "output/CONTRACT_REPORT.md",
+)
+
+FORBIDDEN_OVERLAY_PIPELINE_FILENAMES = (
+    "course-paper.pipeline.md",
+    "term-paper.pipeline.md",
+    "end-of-term-report.pipeline.md",
 )

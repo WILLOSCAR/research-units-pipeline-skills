@@ -1,6 +1,8 @@
-# Agent Survey Reference Corpus (arXiv)
+# Agent Survey Reference Corpus
 
-Purpose: keep a small, open-access PDF/text corpus of recent **LLM agent** survey papers to learn typical paper structure, subsection sizing, and argument style.
+Purpose: keep a small, open-access arXiv corpus of recent **LLM agent** survey
+papers. This is a reference surface for survey-writing skills: structure,
+subsection sizing, citation density, and argument style.
 
 ## What’s in this folder
 
@@ -14,10 +16,10 @@ Purpose: keep a small, open-access PDF/text corpus of recent **LLM agent** surve
 
 ## Download + extract
 
-Run the skill:
+Run the corpus skill from the repo root:
 
 ```bash
-python .codex/skills/agent-survey-corpus/scripts/run.py --workspace . --max-pages 20
+uv run python .codex/skills/agent-survey-corpus/scripts/run.py --workspace . --max-pages 20
 ```
 
 Notes:

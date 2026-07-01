@@ -4,10 +4,10 @@
 
 一套面向研究写作与资料整理的人机协作系统。
 
-这个仓库把 **semantic research skills** 和 **file-first harness** 组合在一起，
-适合在 Codex 这类 coding agent 中运行研究工作流。它的重点不是替人完成所有研究，
-而是把一次研究请求推进成一套可落盘、可检查、可恢复、可审计、可继续改进的
-workspace。
+这个仓库把两件事组合在一起：一组会读、会综述、会评审、会写作的研究技能
+（skills），以及一层把过程落到文件里的执行约束（harness）。它适合在 Codex 这类
+coding agent 中运行研究工作流。它的重点不是替人完成所有研究，而是把一次研究请求
+推进成一个可落盘、可检查、可恢复、可审计、可继续改进的工作区（workspace）。
 
 最短链路是：
 
@@ -24,34 +24,33 @@ intent -> workflow -> workspace -> unit -> skill -> artifact -> audit -> improve
 当你想要的不是一段聊天回答，而是一套有文件、有 checkpoint、有可复核证据的研究
 交付物时，用这个仓库。
 
-| 目标 | 入口 | 主要交付物 |
+| 目标 | 使用路径 | 主要交付物 |
 |---|---|---|
 | 证据优先的文献综述 | `arxiv-survey` | `output/DRAFT.md` |
 | 带 LaTeX/PDF 交付的综述 | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
-| 从一个主题生成课程论文或期末报告 | survey 使用场景，复用 `arxiv-survey` 或 `arxiv-survey-latex` | 报告草稿，可选 PDF |
+| 从一个主题生成课程论文或期末报告 | 复用 `arxiv-survey` 生成 Markdown，或复用 `arxiv-survey-latex` 生成 PDF；这不是单独的新 workflow | 报告草稿，可选 PDF |
 | 快速主题研究简报和阅读路径 | `research-brief` | `output/SNAPSHOT.md` |
 | 单篇论文 critique / referee-style review | `paper-review` | `output/REVIEW.md` |
 | 按 protocol 做证据筛选、提取和结论整合 | `evidence-review` | `output/SYNTHESIS.md` |
 | 基于文献的研究 idea | `idea-brainstorm` | `output/REPORT.md`, `output/REPORT.json` |
 | 从网页、PDF、笔记、repo docs 生成教程 | `source-tutorial` | `output/TUTORIAL.md`, PDF, slides |
-| 中文毕业论文材料组织引导 | `graduate-paper` | thesis project artifacts |
+| 中文毕业论文材料组织引导 | `graduate-paper` | 论文工程材料 |
 
-多数使用者只需要选择 workflow，然后检查 workspace 里的输出。维护者才需要深入
-这些 workflow 背后的 pipeline contract、project skills、harness scripts 和
-validation rules。
+多数使用者只需要选择一条使用路径，然后检查 workspace 里的输出。维护者才需要深入
+这些路径背后的可执行合同、项目内 skills、harness 脚本和校验规则。
 
 ## 一次运行如何工作
 
 ```mermaid
 flowchart TD
-    A["User intent"] --> B["Workflow contract"]
-    B --> C["Workspace ledger"]
+    A["User intent"] --> B["可执行 workflow contract 或研究阶段设计"]
+    B --> C["Workspace 账本"]
     C --> D["Units"]
     D --> E["Project skills"]
     E --> F["Artifacts"]
     F --> G["Harness audit"]
     G --> H["Deliverable"]
-    G --> I["Improvement record"]
+    G --> I["改进记录"]
     I --> B
 ```
 
@@ -75,6 +74,10 @@ flowchart TD
 
 ```text
 Use paper-review to critique this manuscript and give me a lab-style review.
+```
+
+```text
+使用 paper-review 评估这篇论文：请先抽取主要 claims，再指出 evidence gap、novelty 风险和最终建议。
 ```
 
 ```text
@@ -109,7 +112,7 @@ Use arxiv-survey-latex to write a compact course paper on robot learning. Keep t
 
 功能说明：
 
-| 入口 | English | 中文 |
+| 使用路径 | English | 中文 |
 |---|---|---|
 | `arxiv-survey` / `arxiv-survey-latex` | [Guide](readme/arxiv-survey.md) | [说明](readme/arxiv-survey.zh-CN.md) |
 | `research-brief` | [Guide](readme/research-brief.md) | [说明](readme/research-brief.zh-CN.md) |

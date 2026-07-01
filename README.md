@@ -26,11 +26,11 @@ handles the semantic reading and writing.
 Use this repo when the output matters enough that you want files, checkpoints,
 and reviewable evidence rather than a one-off chat answer.
 
-| Goal | Entry point | Main deliverable |
+| Goal | Path to use | Main deliverable |
 |---|---|---|
 | Evidence-first literature survey | `arxiv-survey` | `output/DRAFT.md` |
 | Survey with LaTeX/PDF delivery | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
-| Course paper or end-of-term report from a topic | survey use-case overlay via `arxiv-survey` or `arxiv-survey-latex` | report draft, optional PDF |
+| Course paper or end-of-term report from a topic | Use `arxiv-survey` for Markdown or `arxiv-survey-latex` for PDF; this is a use-case overlay, not a new workflow | report draft, optional PDF |
 | Fast topic briefing and reading path | `research-brief` | `output/SNAPSHOT.md` |
 | Single-paper critique or referee-style review | `paper-review` | `output/REVIEW.md` |
 | Protocol-driven evidence synthesis | `evidence-review` | `output/SYNTHESIS.md` |
@@ -38,15 +38,15 @@ and reviewable evidence rather than a one-off chat answer.
 | Tutorial from webpages, PDFs, notes, or repo docs | `source-tutorial` | `output/TUTORIAL.md`, PDF, slides |
 | Guided Chinese thesis organization | `graduate-paper` | thesis project artifacts |
 
-Most users choose a workflow and inspect the workspace outputs. Maintainers
-work on the pipeline contracts, project skills, harness scripts, and validation
-rules behind those workflows.
+Most users choose one of these paths and inspect the workspace outputs.
+Maintainers work on the pipeline contracts, project skills, harness scripts,
+and validation rules behind those paths.
 
 ## How A Run Works
 
 ```mermaid
 flowchart TD
-    A["User intent"] --> B["Workflow contract"]
+    A["User intent"] --> B["Executable workflow contract or research-stage design"]
     B --> C["Workspace ledger"]
     C --> D["Units"]
     D --> E["Project skills"]
@@ -113,7 +113,7 @@ Research-stage design document:
 
 Feature guides:
 
-| Entry | English | 中文 |
+| Path | English | 中文 |
 |---|---|---|
 | `arxiv-survey` / `arxiv-survey-latex` | [Guide](readme/arxiv-survey.md) | [说明](readme/arxiv-survey.zh-CN.md) |
 | `research-brief` | [Guide](readme/research-brief.md) | [说明](readme/research-brief.zh-CN.md) |

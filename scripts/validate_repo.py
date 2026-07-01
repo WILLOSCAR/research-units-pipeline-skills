@@ -29,7 +29,11 @@ from tooling.harness_contracts import (
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
+    FORBIDDEN_OVERLAY_PIPELINE_FILENAMES,
+    PAPER_REVIEW_TAXONOMY_ARTIFACTS,
+    PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
+    PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
     PROJECT_LANGUAGE_REQUIRED_TERMS,
     REPORT_SCHEMA_TERMS,
 )
@@ -585,8 +589,6 @@ def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_di
     taxonomy_doc = docs_dir / "PIPELINE_TAXONOMY.md"
     if not taxonomy_doc.exists():
         return findings
-    if not pipelines_dir.exists():
-        return findings
 
     text = taxonomy_doc.read_text(encoding="utf-8", errors="ignore")
     missing_taxonomy_terms = [term for term in PIPELINE_TAXONOMY_REQUIRED_TERMS if term not in text]
@@ -599,6 +601,46 @@ def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_di
                 + ".",
             )
         )
+
+    row_findings = _validate_taxonomy_rows(text)
+    findings.extend(row_findings)
+
+    missing_variant_terms = [term for term in PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS if term not in text]
+    if missing_variant_terms:
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing arxiv-survey-latex variant semantics: "
+                + ", ".join(f"`{term}`" for term in missing_variant_terms)
+                + ".",
+            )
+        )
+
+    missing_paper_review_artifacts = [artifact for artifact in PAPER_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_paper_review_artifacts:
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing paper-review contract artifacts: "
+                + ", ".join(f"`{artifact}`" for artifact in missing_paper_review_artifacts)
+                + ".",
+            )
+        )
+
+    forbidden_pipeline_paths = [pipelines_dir / filename for filename in FORBIDDEN_OVERLAY_PIPELINE_FILENAMES]
+    present_forbidden = [path for path in forbidden_pipeline_paths if path.exists()]
+    if present_forbidden:
+        findings.append(
+            Finding(
+                "WARN",
+                "Use-case overlays must not become separate pipeline contracts; remove or reclassify: "
+                + ", ".join(f"`{_rel_path(path, repo_root)}`" for path in present_forbidden)
+                + ".",
+            )
+        )
+
+    if not pipelines_dir.exists():
+        return findings
 
     for pipeline_path in sorted(pipelines_dir.glob("*.pipeline.md")):
         try:
@@ -646,6 +688,23 @@ def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_di
                 )
             )
 
+    return findings
+
+
+def _validate_taxonomy_rows(text: str) -> list[Finding]:
+    table_rows = [line for line in text.splitlines() if line.strip().startswith("|")]
+    findings: list[Finding] = []
+    for required_bits in PIPELINE_TAXONOMY_ROW_REQUIREMENTS:
+        if any(all(bit in row for bit in required_bits) for row in table_rows):
+            continue
+        workflow = required_bits[1]
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy row semantics for "
+                f"{workflow}: " + ", ".join(f"`{bit}`" for bit in required_bits) + ".",
+            )
+        )
     return findings
 
 

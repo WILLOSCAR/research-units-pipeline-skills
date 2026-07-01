@@ -13,6 +13,7 @@ from tooling.common import (
     ensure_dir,
     now_iso_seconds,
     parse_semicolon_list,
+    pipeline_cli_command,
     resolve_pipeline_spec_path,
 )
 
@@ -1436,12 +1437,12 @@ def _issue_upstream_interface(code: str) -> str:
 
 def _issue_validation_command(code: str, workspace: Path) -> str:
     if code in {"missing_target_artifact", "missing_done_output"}:
-        return f"uv run python scripts/pipeline.py audit --workspace {workspace} --write"
+        return pipeline_cli_command("audit", workspace=workspace, extra_args=("--write",))
     if code in {"missing_units", "missing_units_field", "missing_unit_id", "duplicate_unit_id", "invalid_status", "invalid_owner"}:
-        return f"uv run python scripts/pipeline.py doctor --workspace {workspace} --write"
+        return pipeline_cli_command("doctor", workspace=workspace, extra_args=("--write",))
     if code in {"missing_dependency", "dependency_cycle", "human_checkpoint_missing"}:
-        return f"uv run python scripts/pipeline.py doctor --workspace {workspace} --write"
-    return f"uv run python scripts/pipeline.py improve --workspace {workspace} --write"
+        return pipeline_cli_command("doctor", workspace=workspace, extra_args=("--write",))
+    return pipeline_cli_command("improve", workspace=workspace, extra_args=("--write",))
 
 
 def _doctor_resume_hint(
@@ -1453,7 +1454,7 @@ def _doctor_resume_hint(
     if any(issue.level == "ERROR" for issue in issues):
         return {
             "kind": "repair_first",
-            "command": f"uv run python scripts/pipeline.py improve --workspace {workspace} --write",
+            "command": pipeline_cli_command("improve", workspace=workspace, extra_args=("--write",)),
             "reason": "Doctor found error-level harness issues; repair or classify them before running more units.",
         }
 
@@ -1461,13 +1462,13 @@ def _doctor_resume_hint(
         unit_id = str(next_runnable.get("unit_id") or "the next unit")
         return {
             "kind": "run_next_unit",
-            "command": f"uv run python scripts/pipeline.py run --workspace {workspace}",
+            "command": pipeline_cli_command("run", workspace=workspace),
             "reason": f"Next runnable unit {unit_id} is ready.",
         }
 
     return {
         "kind": "audit_state",
-        "command": f"uv run python scripts/pipeline.py audit --workspace {workspace} --write",
+        "command": pipeline_cli_command("audit", workspace=workspace, extra_args=("--write",)),
         "reason": "No runnable unit is currently available; audit the run state before continuing.",
     }
 

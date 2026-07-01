@@ -94,3 +94,7 @@ slides 应该：
 ```text
 Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.
 ```
+
+```text
+使用 source-tutorial，把我提供的网页、PDF 和 GitHub docs 整理成面向初学者的教程。如果包含视频，请优先使用我给出的 transcript_locator；没有 transcript 的视频不要当作主要证据。
+```

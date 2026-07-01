@@ -1463,7 +1463,7 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
     common = [
         "- Treat the current outputs as a starting point (often a scaffold).",
         f"- Follow `{skill_md}` to refine the required artifacts until the issues above no longer apply.",
-        f"- Then mark `{unit_id}` as `DONE` in `UNITS.csv` (or run `uv run python scripts/pipeline.py mark --workspace <ws> --unit-id {unit_id} --status DONE --note \"LLM refined\"`).",
+        f"- Then mark `{unit_id}` as `DONE` in `UNITS.csv` (or run `uv run python scripts/pipeline.py mark --workspace <workspace> --unit-id {unit_id} --status DONE --note \"LLM refined\"`, replacing `<workspace>` with the run directory).",
     ]
 
     by_skill: dict[str, list[str]] = {

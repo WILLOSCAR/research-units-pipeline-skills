@@ -23,7 +23,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 
 这条流程可以从几种不同输入启动：
 
-- 只有一个 topic prompt
+- 只有一个主题描述
 - 手里已经有一个小论文池
 - 已经有 query seed，只想尽快变成研究简报
 
@@ -41,7 +41,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 
 ## 4. 交付合同
 
-`output/SNAPSHOT.md` 应该保持紧凑、以 pointers 为中心。稳定结构是：
+`output/SNAPSHOT.md` 应该保持紧凑，以阅读线索为中心。稳定结构是：
 
 - `## Scope`
 - `## Key themes`
@@ -56,7 +56,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 
 - 开组会前想先快速入门
 - 需要一页高信号速览，而不是长文
-- 手里只有 topic 或一个小论文池，还没有完整 evidence program
+- 手里只有主题或一个小论文池，还没有完整证据计划
 
 就该用它。
 
@@ -92,7 +92,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 - 先把 topic boundary 讲清楚
 - 用“判断/主题/对比”来组织，而不是空泛目录旁白
 - 明确告诉读者先读什么
-- 保持紧凑，并带明确 paper pointers
+- 保持紧凑，并给出明确的论文阅读线索
 
 ## 9. 推荐 Prompt
 
