@@ -1,0 +1,59 @@
+{
+  "schema": "completed-run-evidence.v1",
+  "captured_at": "2026-07-14T03:46:34+08:00",
+  "workflow": "arxiv-survey-latex",
+  "profile": "course_paper",
+  "goal": "Write an 8-10 page course paper on how retrieval-augmented generation systems should be evaluated, with a final PDF.",
+  "run_state": "COMPLETED",
+  "units": {
+    "total": 49,
+    "done": 49,
+    "active": 0
+  },
+  "artifact_audit": {
+    "verdict": "PASS",
+    "target_artifacts_present": 73,
+    "target_artifacts_missing": 0,
+    "harness_errors": 0,
+    "harness_warnings": 0
+  },
+  "delivery": {
+    "format": "PDF",
+    "pages": 10,
+    "page_size": "A4",
+    "requested_pages": "8-10"
+  },
+  "merge": {
+    "verdict": "PASS",
+    "missing_inputs": 0,
+    "stale_manifest_entries": 0,
+    "transition_injection": false
+  },
+  "files": {
+    "GOAL.md": {
+      "sha256": "6266b3e87629405c279d777cf8e47ac9e1edf4b1045c8e511a7b384c42d2ae0b"
+    },
+    "DRAFT.md": {
+      "sha256": "cc7def4ea640107190f62f46e17a8228410a604090357eb69795b77c42b21d3b"
+    },
+    "main.tex": {
+      "sha256": "9f126fdd2b351e5bb407aabb4f7a829f37a52eb0f8b38e00a890c1af74e20147"
+    },
+    "paper.pdf": {
+      "sha256": "4dc25cb2a9a46167d8d394c90aa3c96be75391936a883465e437b8c67b1ef8e3"
+    },
+    "UNITS.csv": {
+      "sha256": "7c41cc3e13cd7a17c42e43c478080f5009c2fcac8d9edf226ebd05e6b45f0436"
+    },
+    "references.bib": {
+      "sha256": "8878dd63a02f6dfa09249c26cf1e8eb5562bbf88fb5adc3cd7be9a468023be52"
+    }
+  },
+  "limitations": [
+    "single topic",
+    "no held-out evaluator",
+    "no expert quality comparison",
+    "no reliable model, token, cost, or latency telemetry",
+    "not a reproducible archive of the complete local Workspace"
+  ]
+}

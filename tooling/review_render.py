@@ -3,9 +3,21 @@ from __future__ import annotations
 from collections import Counter
 
 
+def _markdown_table(headers: list[str], rows: list[list[str]]) -> str:
+    def clean(value: object) -> str:
+        return str(value or "").replace("|", "\\|").replace("\n", " ").strip()
+
+    lines = [
+        "| " + " | ".join(clean(header) for header in headers) + " |",
+        "|" + "|".join("---" for _ in headers) + "|",
+    ]
+    lines.extend("| " + " | ".join(clean(value) for value in row) + " |" for row in rows)
+    return "\n".join(lines)
+
+
 def render_claims_markdown(claims: list[dict[str, str]]) -> str:
-    empirical = [c for c in claims if c.get("type") == "empirical"]
-    conceptual = [c for c in claims if c.get("type") == "conceptual"]
+    empirical = [c for c in claims if (c.get("claim_type") or c.get("type")) == "empirical"]
+    conceptual = [c for c in claims if (c.get("claim_type") or c.get("type")) == "conceptual"]
     lines = ["# Claims", ""]
     for title, bucket in (("Empirical claims", empirical), ("Conceptual claims", conceptual)):
         lines.extend([f"## {title}", ""])
@@ -14,13 +26,17 @@ def render_claims_markdown(claims: list[dict[str, str]]) -> str:
             lines.append("")
             continue
         for claim in bucket:
+            claim_id = claim.get("claim_id") or claim.get("id", "")
+            claim_text = claim.get("text") or claim.get("claim", "")
+            claim_type = claim.get("claim_type") or claim.get("type", "")
+            source = claim.get("source_pointer") or claim.get("source", "")
             lines.extend(
                 [
-                    f"### {claim['id']}",
-                    f"- Claim: {claim['claim']}",
-                    f"- Type: {claim['type']}",
+                    f"### {claim_id}",
+                    f"- Claim: {claim_text}",
+                    f"- Type: {claim_type}",
                     f"- Scope: {claim['scope']}",
-                    f"- Source: {claim['source']}",
+                    f"- Source: {source}",
                     "",
                 ]
             )
@@ -32,7 +48,7 @@ def render_gap_report_markdown(gaps: list[dict[str, str]]) -> str:
     for gap in gaps:
         lines.extend(
             [
-                f"### {gap['id']}",
+                f"### {gap.get('gap_id') or gap.get('id', '')}",
                 f"- Claim ID: {gap['claim_id']}",
                 f"- Claim: {gap['claim']}",
                 f"- Evidence present: {gap['evidence_present']}",
@@ -90,7 +106,7 @@ def render_rubric_review_markdown(*, claim_count: int, gap_count: int, major_gap
         for gap in major_gaps:
             lines.extend(
                 [
-                    f"- Problem: {gap['gap']}",
+                    f"- Claim {gap.get('claim_id', 'unknown')} / Gap {gap.get('gap_id', 'unknown')}: {gap['gap']}",
                     "- Why it matters: the current evidence chain is not strong enough for a confident acceptance decision.",
                     f"- Minimal fix: {gap['minimal_fix']}",
                 ]
@@ -109,46 +125,56 @@ def render_rubric_review_markdown(*, claim_count: int, gap_count: int, major_gap
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_research_brief_markdown(*, sections: list[str], bullets: list[str], pointers: list[str], paper_count: int) -> str:
-    chosen = pointers[: min(12, len(pointers))]
-    scope_bullets = bullets[:3] or [f"Focus on {sections[0]}." if sections else "Focus on the target topic."]
-    theme_bullets = bullets[3:9] or bullets[:6] or [f"The literature clusters around {sections[0]}." if sections else "The literature has a small set of recurring themes."]
+def render_research_brief_markdown(*, goal: str, papers: list[dict[str, str]], sections: list[str]) -> str:
+    chosen = papers[: min(8, len(papers))]
+    lenses = [
+        title
+        for title in sections
+        if title.strip().lower() not in {"introduction", "related work", "conclusion"}
+    ][:4]
+    lens_text = ", ".join(lenses) if lenses else "methods, evaluation, and deployment risks"
+    request = " ".join(goal.replace("# Goal", "").split()) or "Orient the reader to the target topic."
 
-    lines = ["# Research Brief", "", "## Scope"]
-    for idx, bullet in enumerate(scope_bullets, start=1):
-        pointer = chosen[(idx - 1) % len(chosen)] if chosen else "the current core set"
-        lines.append(f"- {bullet.rstrip('.')} with concrete anchors in {pointer}.")
-    lines.extend(
-        [
-            "",
-            "## Evidence policy",
-            f"- This brief uses {paper_count} papers from `papers/core_set.csv` and stays pointer-heavy rather than narrative-heavy.",
-            "",
-            "## Taxonomy",
-        ]
-    )
-    for title in sections[:6]:
-        lines.append(f"- {title}")
-    lines.extend(["", "## Key themes"])
-    for idx, bullet in enumerate(theme_bullets[:6], start=1):
-        if chosen:
-            a = chosen[(idx - 1) % len(chosen)]
-            b = chosen[idx % len(chosen)] if len(chosen) > 1 else a
-            lines.append(f"- {bullet.rstrip('.')} This is easiest to contrast through {a} versus {b}.")
-        else:
-            lines.append(f"- {bullet.rstrip('.')}.")
+    lines = [
+        "# Research Brief",
+        "",
+        "## Scope",
+        f"- Requested outcome: {request}",
+        f"- Evidence boundary: this is a focused orientation based on {len(papers)} selected papers, not an exhaustive literature claim.",
+        f"- Comparison lenses: {lens_text}.",
+        "",
+        "## Key themes",
+    ]
+    for paper in chosen[:6]:
+        pointer = _brief_pointer(paper)
+        abstract = str(paper.get("abstract") or "").strip()
+        insight = abstract or f"Use this paper to understand {paper.get('title') or 'the topic'}"
+        lines.append(f"- {insight.rstrip('.')} [{pointer}].")
+
     lines.extend(["", "## What to read first"])
-    for pointer in chosen:
-        lines.append(f"- {pointer}")
+    for paper in chosen[:6]:
+        pointer = _brief_pointer(paper)
+        abstract = str(paper.get("abstract") or "").strip()
+        reason = abstract or "Representative item from the ranked core set."
+        lines.append(f"- {pointer}: {reason.rstrip('.')}.")
+
     lines.extend(
         [
             "",
             "## Open problems / risks",
-            f"- The current paper set still leaves open questions around {sections[-1] if sections else 'evaluation scope'} and transferability.",
-            "- Several themes need stronger benchmark alignment before they can support survey-grade claims.",
+            "- The core set is deliberately compact; missing terminology or adjacent communities can still change the topic boundary.",
+            "- Abstract-level descriptions are useful for orientation but cannot support strong causal, comparative, or reproducibility claims without full-text checking.",
+            "- Evaluation settings, safety constraints, and transfer conditions should be compared before turning this briefing into a larger evidence synthesis.",
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _brief_pointer(paper: dict[str, str]) -> str:
+    paper_id = str(paper.get("paper_id") or "unknown").strip()
+    title = str(paper.get("title") or "Untitled paper").strip()
+    url = str(paper.get("url") or "").strip()
+    return f"{paper_id} - {title}" + (f" ({url})" if url else "")
 
 
 def render_evidence_synthesis_markdown(rows: list[dict[str, str]]) -> str:
@@ -157,6 +183,21 @@ def render_evidence_synthesis_markdown(rows: list[dict[str, str]]) -> str:
     rob_counts = Counter(str(row.get("rob_overall") or "unclear").strip() or "unclear" for row in rows)
     year_span = f"{min(years)}-{max(years)}" if years else "unknown"
     task_summary = ", ".join(sorted(set(tasks))) if tasks else "mixed tasks with sparse deterministic labels"
+    paper_ids = [str(row.get("paper_id") or "").strip() for row in rows if str(row.get("paper_id") or "").strip()]
+    evidence_rows = []
+    for row in rows:
+        evidence_rows.append(
+            [
+                str(row.get("paper_id") or ""),
+                str(row.get("title") or ""),
+                str(row.get("population_or_setting") or "not reported"),
+                str(row.get("task") or "not reported"),
+                str(row.get("metric") or "not reported"),
+                str(row.get("study_type") or "not reported"),
+                str(row.get("rob_overall") or "unclear"),
+                str(row.get("evidence_pointer") or row.get("url") or ""),
+            ]
+        )
 
     lines = [
         "# Evidence Review Synthesis",
@@ -169,8 +210,14 @@ def render_evidence_synthesis_markdown(rows: list[dict[str, str]]) -> str:
         f"- Year span: {year_span}",
         f"- Task coverage: {task_summary}",
         "",
+        "## Extracted evidence table",
+        _markdown_table(
+            ["Paper ID", "Study", "Population / setting", "Task", "Metric", "Study type", "Overall RoB", "Evidence pointer"],
+            evidence_rows,
+        ),
+        "",
         "## Findings by theme",
-        f"- The current extracted evidence clusters around {task_summary}.",
+        f"- The current extracted evidence clusters around {task_summary} ({', '.join(paper_ids)}).",
         "- The deterministic pass keeps findings conservative and avoids claiming effects not present in the table.",
         "",
         "## Risk of bias",
@@ -178,7 +225,7 @@ def render_evidence_synthesis_markdown(rows: list[dict[str, str]]) -> str:
         "- Protocol detail and confounding control remain the main reasons to keep conclusions bounded.",
         "",
         "## Supported conclusions",
-        "- The extracted evidence supports descriptive conclusions about the included study pool and its reported tasks/metrics.",
+        f"- Across {len(rows)} included studies ({', '.join(paper_ids)}), the extracted evidence supports descriptive conclusions about the reported tasks, settings, and metrics.",
         "",
         "## Needs more evidence",
         "- Strong comparative or causal claims still need richer extraction fields, stronger protocol detail, or more complete reporting.",

@@ -39,7 +39,7 @@ When you cannot/should not download PDFs (restricted network, rate limits, no pe
 
 - PDF naming convention: `papers/pdfs/<paper_id>.pdf` where `<paper_id>` matches `papers/core_set.csv`.
 - Set `- evidence_mode: "fulltext"` in `queries.md`.
-- Run: `python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <ws> --local-pdfs-only`
+- Run: `uv run python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <workspace> --local-pdfs-only`
 
 If PDFs are missing, the script writes a to-do list:
 
@@ -61,14 +61,14 @@ If PDFs are missing, the script writes a to-do list:
 
 - [ ] `papers/fulltext_index.jsonl` exists and is non-empty.
 - [ ] If `evidence_mode: "fulltext"`: at least a small but non-trivial subset has extracted text (strict mode blocks if extraction coverage is near-zero).
-- [ ] If `evidence_mode: "abstract"`: the index records clearly reflect skip status (no downloads attempted).
+- [ ] If `evidence_mode: "abstract"`: the index covers every `papers/core_set.csv` paper and every record clearly reflects `skip_mode_abstract` (no downloads attempted). `fulltext_max_papers` does not truncate this zero-download index.
 
 ## Script
 
 ### Quick Start
 
-- `python .codex/skills/pdf-text-extractor/scripts/run.py --help`
-- `python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/pdf-text-extractor/scripts/run.py --help`
+- `uv run python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -84,9 +84,9 @@ If PDFs are missing, the script writes a to-do list:
 - Abstract mode (no downloads):
   - Set `- evidence_mode: "abstract"` in `queries.md`, then run the script (it will emit `papers/fulltext_index.jsonl` with skip statuses)
 - Fulltext mode with local PDFs only:
-  - Set `- evidence_mode: "fulltext"` in `queries.md`, put PDFs under `papers/pdfs/`, then run: `python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <ws> --local-pdfs-only`
+  - Set `- evidence_mode: "fulltext"` in `queries.md`, put PDFs under `papers/pdfs/`, then run: `uv run python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <workspace> --local-pdfs-only`
 - Fulltext mode with smaller budget:
-  - `python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <ws> --max-papers 20 --max-pages 4 --min-chars 1200`
+  - `uv run python .codex/skills/pdf-text-extractor/scripts/run.py --workspace <workspace> --max-papers 20 --max-pages 4 --min-chars 1200`
 
 ### Notes
 

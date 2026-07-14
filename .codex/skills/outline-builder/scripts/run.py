@@ -30,7 +30,14 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import backup_existing, dump_yaml, load_yaml, parse_semicolon_list, read_jsonl
+    from tooling.common import (
+        backup_existing,
+        dump_yaml,
+        load_yaml,
+        parse_semicolon_list,
+        read_jsonl,
+        refinement_marker_is_current,
+    )
 
     workspace = Path(args.workspace).resolve()
     inputs = parse_semicolon_list(args.inputs) or ["outline/taxonomy.yml"]
@@ -45,9 +52,12 @@ def main() -> int:
 
     section_first_inputs = len(inputs) >= 2 and inputs[0].endswith("chapter_skeleton.yml") and inputs[1].endswith("section_briefs.jsonl")
     freeze_marker = out_path.parent / "outline.refined.ok"
+    prerequisites = [out_path, DEFAULTS_PATH, Path(__file__), *[workspace / item for item in inputs]]
     if out_path.exists() and out_path.stat().st_size > 0:
-        if freeze_marker.exists():
+        if refinement_marker_is_current(freeze_marker, prerequisites):
             return 0
+        if freeze_marker.exists():
+            freeze_marker.unlink()
         existing = out_path.read_text(encoding="utf-8", errors="ignore")
         if not _is_placeholder(existing):
             backup_existing(out_path)

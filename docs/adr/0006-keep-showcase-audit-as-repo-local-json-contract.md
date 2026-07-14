@@ -32,6 +32,10 @@ The tradeoff is that old showcase fixture health is no longer checked. This is
 acceptable because the next proof should be a completed `paper-review`
 workspace with rubric and scorecard, not another showcase layer.
 
+A later, explicitly curated completed-Run snapshot may be protected by its own
+targeted test. That does not reinstate a generic audit that scans arbitrary
+example directories or makes old Workspaces part of the active product contract.
+
 ## Related Files
 
 - `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md`

@@ -81,7 +81,7 @@ Machine-readable contract:
 
 ### Quick Start
 
-- `python .codex/skills/thesis-workspace-init/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/thesis-workspace-init/scripts/run.py --workspace <workspace>`
 
 ### All Options
 

@@ -294,7 +294,7 @@ def main() -> int:
         ],
         "Targets": [
             "## Targets",
-            f"- Candidate retrieval pool: {targets_template.get('candidate_retrieval_pool', '>=800')}",
+            f"- Candidate retrieval pool: {targets_template.get('candidate_retrieval_pool', '80-240 focused candidates')}",
             f"- Core set size: {core_size}",
             f"- Signal table rows: {targets_template.get('signal_table_rows', '10-20')}",
             f"- Direction pool size: {direction_pool_min}-{direction_pool_max}",

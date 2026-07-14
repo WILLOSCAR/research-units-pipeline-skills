@@ -18,6 +18,8 @@
 主要输出是：
 
 - `output/SYNTHESIS.md`
+- `output/EVIDENCE_SCORECARD.md`
+- `output/EVIDENCE_SCORECARD.json`
 
 当答案必须能从 protocol 和 extraction table 回溯时，用这条 workflow。如果只是想
 快速入门或写课程报告，应该先用 `research-brief` 或 survey workflow。
@@ -49,7 +51,7 @@
 
 ## 4. 数据流
 
-`review question -> operational protocol -> auditable candidate pool -> screening log -> extraction table + bias fields -> bounded synthesis -> deliverable self-check`
+`review question -> operational protocol -> auditable candidate pool -> clause-linked screening -> extraction table + bias fields -> paper-linked synthesis -> evidence scorecard`
 
 也就是说，后面的每个工件都应该能从 protocol 和 screened pool 回溯出来。
 
@@ -58,6 +60,7 @@
 `output/SYNTHESIS.md` 应该稳定包含这些部分：
 
 - `## Included studies summary`
+- `## Extracted evidence table`
 - `## Findings by theme`
 - `## Risk of bias`
 - `## Supported conclusions`
@@ -91,7 +94,7 @@
 | `C2` | 建立可审计的 candidate pool | `papers/papers_raw.jsonl`、`papers/papers_dedup.jsonl`、`papers/core_set.csv` |
 | `C3` | 按 protocol 条款做 screening | `papers/screening_log.csv` |
 | `C4` | 提取研究字段和 bias 数据 | `papers/extraction_table.csv` |
-| `C5` | 写 synthesis 并做成品自检 | `output/SYNTHESIS.md`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C5` | 写 synthesis、评分并做成品自检 | `output/SYNTHESIS.md`、`output/EVIDENCE_SCORECARD.*`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. 质量目标
 
@@ -102,12 +105,19 @@
 - 显式交代限制与偏倚
 - 不要退化成普通长摘要
 
-## 9. 推荐 Prompt
+## 9. 当前可靠性边界
+
+这条 Workflow 已有经过测试的 Failure -> Repair -> Rerun 路径，覆盖 Protocol
+可执行性、按 Clause 记录的 Screening、Extraction 完整度和 Synthesis Pointer。
+Scorecard 检查的是可观察的可追溯性，不代表检索已经穷尽，也不判断科学结论必然为真。
+更大的候选池、异质研究设计和专家对照仍属于后续验证范围。
+
+## 10. 推荐 Prompt
 
 示例保留英文 workflow 名称；具体要求可以用中文写。
 
 ```text
-Use the evidence-review workflow to run a PRISMA-style review on LLM agents for education, with protocol, screening, extraction, and a bounded synthesis.
+Use the evidence-review workflow to run a protocol-driven review on LLM agents for education, with clause-linked screening, structured extraction, bias assessment, and a bounded synthesis.
 ```
 
 ```text

@@ -4,7 +4,7 @@ description: |
   Curate reader-facing survey tables for the Appendix (clean layout + high information density), using only in-scope evidence and existing citation keys.
   **Trigger**: appendix tables, publishable tables, survey tables, reader tables, 附录表格, 可发表表格, 综述表格.
   **Use when**: you have C4 artifacts (evidence packs + anchor sheet + citations) and want tables that look like a real survey (not internal logs).
-  **Skip if**: `outline/tables_appendix.md` already exists and is refined (>=2 tables; citation-backed; no placeholders; not index-y).
+  **Skip if**: `outline/tables_appendix.md` already exists and is refined (meets the active profile table count; citation-backed; no placeholders; not index-y).
   **Network**: none.
   **Guardrail**: no invented facts; no pipeline jargon; no paragraph cells; use only keys present in `citations/ref.bib`.
 ---
@@ -88,7 +88,7 @@ Avoid:
 ## Table contract (publishable, Appendix-ready)
 
 `outline/tables_appendix.md` must:
-- contain >=2 Markdown tables
+- contain >=1 Markdown table for `course_paper`, or >=2 for `survey` / `deep`
 - use a caption line before each table, e.g. `**Appendix Table A1. Representative systems by method family and evaluation setting**`
 - contain no headings (`#`, `##`, `###`) inside the file (the merger adds an Appendix heading)
 - contain no placeholders (`TODO`, `TBD`, `FIXME`, ASCII three-dot ellipsis, unicode ellipsis)
@@ -98,6 +98,7 @@ Avoid:
 ## Workflow (explicit inputs)
 
 - Start from `GOAL.md` (scope) and `outline/table_schema.md` (what each table must answer).
+- Read `queries.md:draft_profile` when present; `course_paper` uses one strong reader table by default, while `survey` / `deep` retain at least two.
 - Use `outline/tables_index.md` as a shortlist source, but do not paste it verbatim.
 - Fill rows/cells using `outline/subsection_briefs.jsonl`, `outline/evidence_drafts.jsonl`, and `outline/anchor_sheet.jsonl` (no guessing).
 - Validate every cited key against `citations/ref.bib`.
@@ -153,12 +154,12 @@ If you cannot fill a row without guessing:
 
 ### Quick Start
 
-- `python .codex/skills/appendix-table-writer/scripts/run.py --help`
+- `uv run python .codex/skills/appendix-table-writer/scripts/run.py --help`
 - `uv run python .codex/skills/appendix-table-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
-- `--workspace <workspace_dir>` (required)
+- `--workspace <workspace>` (required)
 - `--unit-id <id>` (optional; used only for runner bookkeeping)
 - `--inputs <a;b;c>` (optional; ignored by the validator; kept for runner compatibility)
 - `--outputs <relpath>` (optional; defaults to `outline/tables_appendix.md`)
@@ -168,7 +169,7 @@ If you cannot fill a row without guessing:
 
 - Validate the default appendix tables file:
 
-  `python .codex/skills/appendix-table-writer/scripts/run.py --workspace workspaces/e2e-agent-survey-latex-verify-YYYYMMDD-HHMMSS`
+  `uv run python .codex/skills/appendix-table-writer/scripts/run.py --workspace workspaces/e2e-agent-survey-latex-verify-YYYYMMDD-HHMMSS`
 
 - Validate a workspace that writes appendix tables to a non-standard path:
 

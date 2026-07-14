@@ -54,8 +54,8 @@ Optional (best-effort diagnosis; may be missing early in the pipeline):
 
 ### Quick Start
 
-- `python .codex/skills/outline-refiner/scripts/run.py --help`
-- `python .codex/skills/outline-refiner/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/outline-refiner/scripts/run.py --help`
+- `uv run python .codex/skills/outline-refiner/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -68,7 +68,7 @@ Optional (best-effort diagnosis; may be missing early in the pipeline):
 ### Examples
 
 - Planner-pass diagnostics after `section-mapper`:
-  - `python .codex/skills/outline-refiner/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/outline-refiner/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

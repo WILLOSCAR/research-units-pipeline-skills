@@ -15,6 +15,11 @@ ROB_COLUMNS = [
 ]
 
 
+def _is_reported(value: object) -> bool:
+    text = str(value or "").strip().lower()
+    return bool(text) and not text.startswith("not reported") and not text.startswith("not classifiable")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace", required=True)
@@ -50,7 +55,7 @@ def main() -> int:
 
     updated = []
     for row in rows:
-        measurement = "low" if str(row.get("metric") or "").strip() else "unclear"
+        measurement = "low" if _is_reported(row.get("metric")) else "unclear"
         selection = "unclear"
         confounding = "unclear"
         reporting = "low" if str(row.get("title") or "").strip() and str(row.get("url") or "").strip() else "unclear"

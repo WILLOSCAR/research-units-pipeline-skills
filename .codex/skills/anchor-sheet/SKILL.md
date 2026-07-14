@@ -67,8 +67,8 @@ Note:
 
 ### Quick Start
 
-- `python .codex/skills/anchor-sheet/scripts/run.py --help`
-- `python .codex/skills/anchor-sheet/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/anchor-sheet/scripts/run.py --help`
+- `uv run python .codex/skills/anchor-sheet/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -81,9 +81,9 @@ Note:
 ### Examples
 
 - Default IO:
-  - `python .codex/skills/anchor-sheet/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/anchor-sheet/scripts/run.py --workspace <workspace>`
 - Explicit IO:
-  - `python .codex/skills/anchor-sheet/scripts/run.py --workspace workspaces/<ws> --inputs "outline/evidence_drafts.jsonl;citations/ref.bib" --outputs "outline/anchor_sheet.jsonl"`
+  - `uv run python .codex/skills/anchor-sheet/scripts/run.py --workspace <workspace> --inputs "outline/evidence_drafts.jsonl;citations/ref.bib" --outputs "outline/anchor_sheet.jsonl"`
 
 ### Refinement marker (recommended; prevents churn)
 

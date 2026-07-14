@@ -1,12 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "research-units-pipeline-skills"
 version = "0.1.0"
-description = "Semantic research skills with a deterministic pipeline harness."
+description = "An end-to-end Auto Research design system built from semantic skills and a recoverable harness."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "PyYAML>=6.0",
 ]
+
+[project.scripts]
+rh = "tooling.product_cli:main"
+
+[tool.setuptools]
+packages = ["tooling"]
 
 [project.optional-dependencies]
 test = [

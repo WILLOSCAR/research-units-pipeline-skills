@@ -41,7 +41,7 @@ Use `scripts/run.py` only for deterministic binding and report materialization:
 
 ### Quick Start
 
-- `python .codex/skills/section-bindings/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/section-bindings/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -54,4 +54,4 @@ Use `scripts/run.py` only for deterministic binding and report materialization:
 ### Examples
 
 - Bind papers to chapters before H3 decomposition:
-  - `python .codex/skills/section-bindings/scripts/run.py --workspace workspaces/<ws> --inputs 'papers/core_set.csv;outline/chapter_skeleton.yml;papers/papers_dedup.jsonl' --outputs 'outline/section_bindings.jsonl;outline/section_binding_report.md'`
+  - `uv run python .codex/skills/section-bindings/scripts/run.py --workspace <workspace> --inputs 'papers/core_set.csv;outline/chapter_skeleton.yml;papers/papers_dedup.jsonl' --outputs 'outline/section_bindings.jsonl;outline/section_binding_report.md'`

@@ -133,7 +133,7 @@ You usually do not run this manually; it exists so a pipeline runner can determi
 
 ### Quick Start
 
-- `python .codex/skills/transition-weaver/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/transition-weaver/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -146,7 +146,7 @@ You usually do not run this manually; it exists so a pipeline runner can determi
 ### Examples
 
 - Validate after you write `outline/transitions.md`:
-  - `python .codex/skills/transition-weaver/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/transition-weaver/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 
@@ -156,6 +156,9 @@ Fix:
 - Ensure subsection briefs include subsection-specific bridge signals (`bridge_terms` / `contrast_hook`).
 - Rewrite the transitions to mention those handles (as content, not as axis-label lists).
 
-### Note: between-H2 transitions
+### Note: insertion is explicit
 
-By default, `section-merger` inserts within-chapter H3->H3 transitions only (more paper-like). If you want between-H2 transitions inserted too, create `outline/transitions.insert_h2.ok` in the workspace.
+By default, `section-merger` does not insert generated transitions. Create
+`outline/transitions.insert_h3.ok` for within-chapter H3 transitions or
+`outline/transitions.insert_h2.ok` for between-H2 transitions, then run the
+post-merge voice gate.

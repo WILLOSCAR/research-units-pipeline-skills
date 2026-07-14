@@ -17,7 +17,10 @@ Purpose: close the main “paper feel” gap that remains even when a subsection
 
 This is a **local, per-H3** polish step that happens after drafting and before merging.
 
-Note: if the main problem is redundancy/overgrowth (sections only get longer), use `paragraph-curator` for a select->fuse pass. This skill stays focused on thesis + bridges.
+Note: if the main problem is paragraph-count overgrowth, run
+`paragraph-curator` after this check. It only merges adjacent paragraph
+boundaries and preserves all prose; semantic redundancy still belongs to the
+owning writer.
 
 
 ## What this skill blocks on (and what it does not)
@@ -84,7 +87,9 @@ Manual / LLM-first (in place):
   - Prefer subject-first sentences and mid-sentence glue (because/while/which) over paragraph-start adverbs.
   - Avoid PPT navigation (`Next, we ...`, `We now turn to ...`).
 
-3) Rerun the checker until `output/SECTION_LOGIC_REPORT.md` is PASS, then proceed to `transition-weaver` and `section-merger`.
+3) Rerun the checker until `output/SECTION_LOGIC_REPORT.md` is PASS, then
+proceed to `paragraph-curator`, `evaluation-anchor-checker`, the final
+`argument-selfloop` snapshot, and merge.
 
 ## Examples
 
@@ -121,7 +126,7 @@ Better (explicit tie):
 
 ### Quick Start
 
-- `python .codex/skills/section-logic-polisher/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/section-logic-polisher/scripts/run.py --workspace <workspace>`
 
 Notes:
 - The script is a checker; it does not rewrite prose.
@@ -140,8 +145,8 @@ Notes:
 
 - Default run:
 
-  `python .codex/skills/section-logic-polisher/scripts/run.py --workspace workspaces/<ws>`
+  `uv run python .codex/skills/section-logic-polisher/scripts/run.py --workspace <workspace>`
 
 - Explicit output path (rare override; prefer defaults):
 
-  `python .codex/skills/section-logic-polisher/scripts/run.py --workspace workspaces/<ws> --outputs output/SECTION_LOGIC_REPORT.md`
+  `uv run python .codex/skills/section-logic-polisher/scripts/run.py --workspace <workspace> --outputs output/SECTION_LOGIC_REPORT.md`

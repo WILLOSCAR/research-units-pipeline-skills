@@ -1,10 +1,10 @@
 unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
-U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace模板文件齐全（含 error sinks: QUALITY_GATE/RUN_ERRORS）,C0,TODO,,CODEX
+U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;PIPELINE.lock.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace模板文件齐全（含 error sinks: QUALITY_GATE/RUN_ERRORS）,C0,TODO,,CODEX
 U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,DECISIONS含C0问题块；queries.md 已基于 GOAL seed（可留空用于本 pipeline）,C0,TODO,U001,CODEX
 U005,Ingest manuscript text into output/PAPER.md,META,manuscript-ingest,,output/PAPER.md,output/PAPER.md 包含可用于引用定位的全文文本（不要总结/改写）,C1,TODO,U002,CODEX
-U010,Extract claims and contributions,STRUCTURE,claims-extractor,output/PAPER.md,output/CLAIMS.md,每个 claim 可定位到原文段落/页码,C1,TODO,U005,CODEX
-U020,Audit evidence for each claim,EVIDENCE,evidence-auditor,output/CLAIMS.md,output/MISSING_EVIDENCE.md,每条 claim 有 evidence 或明确缺口,C2,TODO,U010,CODEX
-U025,Build novelty/prior-work matrix,EVIDENCE,novelty-matrix,output/CLAIMS.md,output/NOVELTY_MATRIX.md,至少5篇相关工作（或说明为何不可得）；每行有 overlap/delta 证据说明,C2,TODO,U010,CODEX
-U030,Write rubric-based review,WRITE,rubric-writer,output/CLAIMS.md;output/MISSING_EVIDENCE.md;output/NOVELTY_MATRIX.md,output/REVIEW.md,覆盖 novelty/soundness/clarity/impact 并给出建议,C3,TODO,U020;U025,CODEX
-U035,Self-loop review to PASS (fix-on-fail),QA,deliverable-selfloop,output/REVIEW.md;output/CLAIMS.md;output/MISSING_EVIDENCE.md;output/NOVELTY_MATRIX.md,output/REVIEW.md;output/DELIVERABLE_SELFLOOP_TODO.md,DELIVERABLE_SELFLOOP_TODO.md 为 PASS；每条主要意见可追溯到 claim/gap 且建议可执行,C3,TODO,U030,CODEX
+U010,Extract claims and contributions,STRUCTURE,claims-extractor,output/PAPER.md,output/CLAIMS.md;output/CLAIMS.jsonl,每个 claim 可定位到原文段落/页码；CLAIMS.jsonl 可供 Harness 读取,C1,TODO,U005,CODEX
+U020,Audit evidence for each claim,EVIDENCE,evidence-auditor,output/CLAIMS.md;output/CLAIMS.jsonl,output/MISSING_EVIDENCE.md;output/EVIDENCE_AUDIT.jsonl,每条 claim 有 evidence 或明确缺口；结构化记录可按 claim_id 连接,C2,TODO,U010,CODEX
+U025,Build novelty/prior-work matrix,EVIDENCE,novelty-matrix,output/CLAIMS.md;output/CLAIMS.jsonl,output/NOVELTY_MATRIX.md;output/NOVELTY_MATRIX.tsv,至少5篇相关工作（或说明为何不可得）；每行有 overlap/delta 证据说明,C2,TODO,U010,CODEX
+U030,Write rubric-based review,WRITE,rubric-writer,output/CLAIMS.jsonl;output/EVIDENCE_AUDIT.jsonl;output/NOVELTY_MATRIX.tsv,output/REVIEW.md,覆盖 novelty/soundness/clarity/impact；主要意见带 claim/gap ID,C3,TODO,U020;U025,CODEX
+U035,Self-loop review to PASS (fix-on-fail),QA,deliverable-selfloop,output/REVIEW.md;output/CLAIMS.jsonl;output/EVIDENCE_AUDIT.jsonl;output/NOVELTY_MATRIX.tsv,output/REVIEW.md;output/REVIEW_SCORECARD.md;output/REVIEW_SCORECARD.json;output/DELIVERABLE_SELFLOOP_TODO.md,scorecard 达到阈值且关键维度 PASS；主要意见可追溯、修复面明确,C3,TODO,U030,CODEX
 U040,Contract audit (artifact contract + target_artifacts),QA,artifact-contract-auditor,UNITS.csv;PIPELINE.lock.md,output/CONTRACT_REPORT.md,CONTRACT_REPORT.md 状态为 PASS（且无 DONE 输出缺失；target_artifacts 缺失=0）,C3,TODO,U035,CODEX

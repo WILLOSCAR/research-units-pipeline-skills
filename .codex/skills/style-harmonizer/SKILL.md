@@ -28,8 +28,12 @@ Optional (helps you stay in-scope while rewriting):
 
 ## Output
 
-Note: this is intentionally an *openers-last* pass. Run it only after the section bodies and argument chain are stable (e.g., after `section-logic-polisher` + `argument-selfloop` + `paragraph-curator`). If major edits happened since the last `writer-selfloop`, rerun `writer-selfloop` first so `## Style Smells` reflects the current text.
-Current compatibility policy: the script is marker-only; surface-form repair should be pushed upstream into `subsection-writer` / `chapter-lead-writer` unless a human explicitly wants a local rewrite pass.
+Run this targeted pass after `writer-selfloop` and before `opener-variator` and
+logic polish. If major edits happened since the report, rerun
+`writer-selfloop` so `## Style Smells` reflects current text. The script is
+marker-only; surface-form repair should be pushed upstream into
+`subsection-writer` / `chapter-lead-writer` unless a human explicitly requests
+a local rewrite pass.
 
 - Updated `sections/*.md` files (same filenames; still body-only; no headings)
 - Re-running `writer-selfloop` is the audit trail (Style Smells should shrink).
@@ -152,7 +156,7 @@ Mini example (paraphrase only):
 
 ### Quick Start
 
-- `python .codex/skills/style-harmonizer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/style-harmonizer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -165,4 +169,4 @@ Mini example (paraphrase only):
 ### Examples
 
 - Harmonize style in a survey workspace:
-  - `python .codex/skills/style-harmonizer/scripts/run.py --workspace workspaces/survey-llm-agents`
+  - `uv run python .codex/skills/style-harmonizer/scripts/run.py --workspace workspaces/survey-llm-agents`

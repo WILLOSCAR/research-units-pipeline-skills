@@ -93,7 +93,14 @@ def _clean(text: str, *, limit: int = 140) -> str:
 
 
 def _sanitize_cell_text(text: str, *, limit: int = 140) -> str:
-    s = _clean(text, limit=limit * 2)
+    from tooling.common import bounded_complete_text
+
+    s = str(text or "").strip()
+    s = s.replace("\n", " ")
+    s = re.sub(r"\s+", " ", s)
+    s = s.replace("|", ", ")
+    s = s.replace("/", " and ")
+    s = s.strip(" \"'`")
     if not s:
         return ""
     if any(p.search(s) for p in _GENERIC_SUMMARY_PATTERNS):
@@ -105,7 +112,9 @@ def _sanitize_cell_text(text: str, *, limit: int = 140) -> str:
     low = s.lower()
     if any(low.startswith(prefix) for prefix in _DROP_PREFIXES):
         return ""
-    return _clean(s, limit=limit)
+    if len(s) <= limit:
+        return s
+    return bounded_complete_text(s, max_chars=limit)
 
 
 def _uniq(items: list[str]) -> list[str]:
@@ -164,9 +173,10 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list
-    from tooling.quality_gate import QualityIssue, check_unit_outputs, write_quality_report
+    from tooling.quality_gate import QualityIssue, _draft_profile, check_unit_outputs, write_quality_report
 
     workspace = Path(args.workspace).resolve()
+    course_paper = _draft_profile(workspace) == "course_paper"
     unit_id = str(args.unit_id or "U0927").strip() or "U0927"
 
     outputs = parse_semicolon_list(args.outputs) or ["outline/tables_appendix.md", "output/TABLES_APPENDIX_REPORT.md"]
@@ -226,10 +236,15 @@ def main() -> int:
                 if not isinstance(rec, dict):
                     continue
                 ref_keys.extend([str(x).strip() for x in (rec.get("citations") or []) if str(x).strip()])
+            evidence_bits = _uniq(highlights)
+            if course_paper and evidence_bits:
+                # A compact course-paper table should expose the comparison,
+                # not reproduce raw evidence prose in a float.
+                evidence_bits = evidence_bits[:1]
             rows_a1.append([
                 area,
                 lens or _clean(title, limit=64),
-                "<br>".join(_uniq(highlights)[:2]) or _sanitize_cell_text((pack.get("definitions_setup") or [{}])[0].get("bullet") or "evidence-backed comparison", limit=120) or "evidence-backed comparison",
+                "<br>".join(evidence_bits[:2]) or _sanitize_cell_text((pack.get("definitions_setup") or [{}])[0].get("bullet") or "evidence-backed comparison", limit=120) or "evidence-backed comparison",
                 _cite_cell(ref_keys),
             ])
 
@@ -275,15 +290,16 @@ def main() -> int:
         parts.append("**Appendix Table A1. Cross-section comparison map for the survey areas.**")
         parts.append("")
         parts.append(_md_table(["Survey area", "Comparison focus", "Representative evidence", "Key refs"], rows_a1))
-        parts.append("")
-        parts.append("**Appendix Table A2. Concrete evaluation anchors and protocol cues by survey area.**")
-        parts.append("")
-        parts.append(_md_table(["Survey area", "Anchor facts and protocol cues", "Key refs"], rows_a2))
-        if rows_a3:
+        if not course_paper:
             parts.append("")
-            parts.append("**Appendix Table A3. Recurring limitations and risk surfaces highlighted across the evidence base.**")
+            parts.append("**Appendix Table A2. Concrete evaluation anchors and protocol cues by survey area.**")
             parts.append("")
-            parts.append(_md_table(["Survey area", "Risk or limitation signal", "Key refs"], rows_a3))
+            parts.append(_md_table(["Survey area", "Anchor facts and protocol cues", "Key refs"], rows_a2))
+            if rows_a3:
+                parts.append("")
+                parts.append("**Appendix Table A3. Recurring limitations and risk surfaces highlighted across the evidence base.**")
+                parts.append("")
+                parts.append(_md_table(["Survey area", "Risk or limitation signal", "Key refs"], rows_a3))
         text = "\n".join(parts).rstrip() + "\n"
         atomic_write_text(out_path, text)
 

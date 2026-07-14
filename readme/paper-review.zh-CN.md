@@ -80,9 +80,9 @@
 | 阶段 | 目的 | 主要产物 |
 |---|---|---|
 | `C0` | 初始化 workspace 和 review 约束 | `STATUS.md`、`UNITS.csv`、`DECISIONS.md` |
-| `C1` | ingest 全文并抽取明确 claims | `output/PAPER.md`、`output/CLAIMS.md` |
-| `C2` | 做 evidence 审计和 novelty 定位 | `output/MISSING_EVIDENCE.md`、`output/NOVELTY_MATRIX.md` |
-| `C3` | 写 review 并做成品自检 | `output/REVIEW.md`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C1` | ingest 全文并抽取明确 claims | `output/PAPER.md`、`output/CLAIMS.md`、`output/CLAIMS.jsonl` |
+| `C2` | 做 evidence 审计和 novelty 定位 | `output/EVIDENCE_AUDIT.jsonl`、`output/NOVELTY_MATRIX.tsv` 及 Markdown 视图 |
+| `C3` | 写 review 并评分 | `output/REVIEW.md`、`output/REVIEW_SCORECARD.json`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. 质量目标
 
@@ -93,7 +93,14 @@
 - 尽量给出具体可执行建议，而不是泛泛批评
 - 同时适用于组会内部 review 和 referee-style review
 
-## 9. 推荐 Prompt
+## 9. 当前可靠性边界
+
+这条 Workflow 已完成一次 Failure、Repair 与 Rerun 的纵向证明，并具备带评分的
+Traceability Contract。使用时先看 `output/REVIEW_SCORECARD.md`，再沿失败项定位到对应
+Claim、Evidence、Novelty 或 Review 产物。该 Scorecard 检查可观察的语义契约，不等同于
+科学正确性，也不能替代专家审稿。
+
+## 10. 推荐 Prompt
 
 示例保留英文 workflow 名称；具体要求可以用中文写。
 

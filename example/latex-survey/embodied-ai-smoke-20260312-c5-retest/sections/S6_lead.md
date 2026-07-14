@@ -1,3 +1,0 @@
-Evaluation, Safety & Deployment is where differences in evaluation and deployment and robustness and failure analysis stop looking like implementation detail and start changing what the evidence can support [@Kim2026Molmospaces; Francis2021Core; Li2026Robointer; Xu2025Anatomy].
-
-Across Benchmarks, metrics, and generalization, Safety, reliability, and real-world deployment, and Failure analysis, robustness, and stress testing, the same problem keeps returning: evaluation and deployment and robustness and failure analysis alter the interpretation of otherwise similar results [@Luo2026Being; Makarova2025Conther; Liu2026Rdt2; Chen2024Gravmad].

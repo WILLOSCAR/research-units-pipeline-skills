@@ -60,8 +60,10 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import parse_semicolon_list, read_jsonl, read_tsv, write_jsonl
+    from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()
+    draft_profile = _draft_profile(workspace)
     inputs = parse_semicolon_list(args.inputs) or ["papers/core_set.csv"]
     outputs = parse_semicolon_list(args.outputs) or ["papers/paper_notes.jsonl", "papers/evidence_bank.jsonl"]
 
@@ -145,12 +147,12 @@ def main() -> int:
             key_results = _infer_key_results(abstract=abstract, max_items=2)
             limitations = _infer_limitations(evidence_level=evidence_level, mapped_sections=mapped_sections, abstract=abstract)
         else:
-            # A150++ scale: increase bullet coverage so the derived evidence bank has enough
-            # addressable snippets (>=7 items/paper on average) without inventing facts.
-            summary_bullets = _abstract_to_bullets(abstract, max_items=5)
+            bullet_limit = 2 if draft_profile == "course_paper" else 5
+            result_limit = 1 if draft_profile == "course_paper" else 2
+            summary_bullets = _abstract_to_bullets(abstract, max_items=bullet_limit)
             # Keep normal-priority notes lightweight, but still extract method/results so the evidence bank is usable.
             method = _infer_method(title=row["title"], abstract=abstract, bullets=summary_bullets)
-            key_results = _infer_key_results(abstract=abstract, max_items=2)
+            key_results = _infer_key_results(abstract=abstract, max_items=result_limit)
             limitations = _infer_limitations(evidence_level=evidence_level, mapped_sections=mapped_sections, abstract=abstract)
 
         notes.append(
@@ -489,28 +491,10 @@ def _infer_limitations(*, evidence_level: str, mapped_sections: list[str], abstr
         lims.append("Abstract missing in metadata; treat all details as provisional until verified.")
 
     return lims[:3]
-_ABBREV_RX = re.compile(
-    r"\b(?:e\.g\.|i\.e\.|etc\.|cf\.|vs\.|et al\.|fig\.|figs\.|eq\.|eqs\.|sec\.|secs\.|no\.|dr\.|mr\.|ms\.|prof\.)",
-    flags=re.IGNORECASE,
-)
-
-
 def _split_sentences(text: str) -> list[str]:
-    text = re.sub(r"\s+", " ", (text or "").strip())
-    if not text:
-        return []
+    from tooling.common import split_sentences
 
-    def protect(m: re.Match[str]) -> str:
-        return (m.group(0) or "").replace(".", "__DOT__")
-
-    protected = _ABBREV_RX.sub(protect, text)
-    parts = re.split(r"(?<=[.!?])\s+", protected)
-    out: list[str] = []
-    for p in parts:
-        p = (p or "").replace("__DOT__", ".").strip()
-        if p:
-            out.append(p)
-    return out
+    return split_sentences(text)
 
 
 def _pick_sentence(text: str, *, patterns: list[str]) -> str:

@@ -25,6 +25,10 @@ Primary input depends on the active pipeline contract:
 ## Output
 
 - `output/DELIVERABLE_SELFLOOP_TODO.md`
+- for `research-brief`: `output/BRIEF_SCORECARD.md` and `output/BRIEF_SCORECARD.json`
+- for `paper-review`: `output/REVIEW_SCORECARD.md` and `output/REVIEW_SCORECARD.json`
+- for `idea-brainstorm`: `output/IDEA_SCORECARD.md` and `output/IDEA_SCORECARD.json`
+- for `evidence-review`: `output/EVIDENCE_SCORECARD.md` and `output/EVIDENCE_SCORECARD.json`
 
 ## Dispatch rule
 
@@ -47,6 +51,10 @@ It should not mutate the deliverable itself.
 - report exists
 - report contains `- Status: PASS` or `- Status: FAIL`
 - PASS only when the active deliverable satisfies its minimum section / artifact contract
+- `research-brief` additionally requires valid core-set pointers and the configured score threshold
+- `paper-review` additionally requires the configured score threshold and all critical rubric dimensions
+- `idea-brainstorm` additionally requires traceable anchors, actionable lead directions, and the configured score threshold
+- `evidence-review` additionally requires clause-linked screening, complete extraction rows, synthesis pointers, and the configured score threshold
 
 ## Non-goals
 

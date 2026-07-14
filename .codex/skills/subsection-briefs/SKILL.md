@@ -11,6 +11,8 @@ description: |
 
 # Subsection Briefs
 
+`outline/subsection_briefs.refined.ok` freezes reviewed briefs only while the marker is newer than the briefs, declared inputs, domain packs, and generator. Stale markers are removed before backed-up regeneration.
+
 Build deterministic H3 brief cards from outline + mapping + paper notes.
 
 Compatibility mode is active: this skill keeps the current `outline/subsection_briefs.jsonl` field contract and paragraph-plan shape while moving phrase/domain logic into `references/` and `assets/`.
@@ -40,6 +42,7 @@ Machine-readable assets:
 - `assets/domain_packs/generic.json`
 - `assets/domain_packs/llm_agents.json`
 - `assets/domain_packs/embodied_ai.json`
+- `assets/domain_packs/rag_evaluation.json`
 - `assets/domain_packs/text_to_image.json`
 
 The script loads these packs first; patch them before changing Python when the issue is phrasing, domain routing, axis inventory, cluster purity, or lexical bridge coverage.
@@ -99,7 +102,7 @@ When running in compatibility mode, `scripts/run.py` currently reads:
 
 ### Quick Start
 
-- `python .codex/skills/subsection-briefs/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/subsection-briefs/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -111,7 +114,7 @@ When running in compatibility mode, `scripts/run.py` currently reads:
 
 ### Examples
 
-- `python .codex/skills/subsection-briefs/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/subsection-briefs/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

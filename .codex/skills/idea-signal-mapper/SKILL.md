@@ -23,7 +23,7 @@ Goal: create a reusable, table-first artifact that answers:
 
 ### Quick Start
 
-- `python .codex/skills/idea-signal-mapper/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/idea-signal-mapper/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -36,4 +36,4 @@ Goal: create a reusable, table-first artifact that answers:
 ### Examples
 
 - Map signals for a brainstorm workspace:
-  - `python .codex/skills/idea-signal-mapper/scripts/run.py --workspace workspaces/brainstorm-llm-agents`
+  - `uv run python .codex/skills/idea-signal-mapper/scripts/run.py --workspace workspaces/brainstorm-llm-agents`

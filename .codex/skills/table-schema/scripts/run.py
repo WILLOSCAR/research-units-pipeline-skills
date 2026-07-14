@@ -21,12 +21,12 @@ def _is_placeholder(text: str) -> bool:
     return False
 
 
-def _looks_refined(text: str) -> bool:
+def _looks_refined(text: str, *, min_tables: int = 4, min_chars: int = 900) -> bool:
     if _is_placeholder(text):
         return False
     # Require both index (I*) and appendix (A*) table definitions.
     n = len(re.findall(r'(?m)^##\s+Table\s+[IA]\d+:', text))
-    return n >= 4 and len(text.strip()) >= 900
+    return n >= min_tables and len(text.strip()) >= min_chars
 
 
 def _read_goal(workspace: Path) -> str:
@@ -70,8 +70,10 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, ensure_dir, load_yaml, parse_semicolon_list, read_jsonl
+    from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()
+    course_paper = _draft_profile(workspace) == 'course_paper'
 
     inputs = parse_semicolon_list(args.inputs) or [
         'outline/outline.yml',
@@ -172,8 +174,24 @@ def main() -> int:
         '',
     ]
 
+    if course_paper:
+        compact_lines: list[str] = []
+        keep = True
+        for line in lines:
+            if line.startswith('## Table '):
+                keep = line.startswith(('## Table I1:', '## Table A1:'))
+            elif line.startswith('## Constraints'):
+                keep = True
+            if keep:
+                compact_lines.append(line)
+        lines = compact_lines
+
     out_text = '\n'.join(lines).rstrip() + '\n'
-    if _is_placeholder(out_text) or not _looks_refined(out_text):
+    if _is_placeholder(out_text) or not _looks_refined(
+        out_text,
+        min_tables=2 if course_paper else 4,
+        min_chars=600 if course_paper else 900,
+    ):
         raise SystemExit('Generated table_schema.md looks unrefined or contains placeholders')
 
     atomic_write_text(out_path, out_text)

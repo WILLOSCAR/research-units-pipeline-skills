@@ -110,9 +110,28 @@ _NEGATIVE_LIMIT_RE = _compile_hygiene_pattern(
     "negative_limit_pattern",
     r"(?i)\b(?:limit\w*|challeng\w*|risk\w*|unsafe|fail\w*|fragil\w*|gap\w*|bottleneck\w*|latency|cost\w*|complexit\w*|domain\s+shift|out-of-distribution|ood|partial\s+observability|generalization\s+(?:gap|limit|challenge)|poor\s+instruction|hinder\w*|constrain\w*|restrict\w*)\b",
 )
+_EVENT_CHALLENGE_RE = re.compile(
+    r"(?i)\b(?:this|the)\s+(?:year(?:'s)?\s+)?challenge\s+"
+    r"(?:introduces?|includes?|features?|uses?|asks?|invites?|requires?)\b|"
+    r"\b(?:shared|benchmark|competition|track)\s+challenge\b"
+)
+_POSITIVE_COST_RE = re.compile(
+    r"(?i)\bcost[-\s]?effectiv(?:e|eness|ely)\b|"
+    r"\b(?:lower|reduced?|decreased?|minimal|optimal)\s+(?:computational\s+)?costs?\b"
+)
 _GENERIC_META_RE = _compile_hygiene_pattern(
     "generic_meta_pattern",
     r"(?i)\b(?:survey|review|overview|taxonomy|history|landscape|main contribution is a detailed breakdown)\b",
+)
+
+
+def _has_negative_limit_signal(text: str) -> bool:
+    candidate = _POSITIVE_COST_RE.sub("", str(text or ""))
+    candidate = _EVENT_CHALLENGE_RE.sub("", candidate)
+    return bool(_NEGATIVE_LIMIT_RE.search(candidate))
+_EVIDENCE_POLICY_DISCLAIMER_RE = re.compile(
+    r"(?i)\b(?:abstract(?:-|\s+)(?:only|level)\s+evidence|title(?:-|\s+)only\s+evidence|"
+    r"verify\s+evaluation\s+protocol.*full\s+paper|claims?\s+remain\s+provisional\s+under\s+abstract)\b"
 )
 _GENERIC_SUMMARY_PATTERNS = _compile_hygiene_pattern_list(
     "generic_summary_patterns",
@@ -147,19 +166,11 @@ def _backup_existing(path: Path) -> None:
 
 
 def _trim(text: str, *, max_len: int = 400) -> str:
-    """Normalize whitespace and trim without adding ellipsis (avoid leakage into prose)."""
+    """Normalize and bound text without creating a plausible-looking fragment."""
 
-    text = re.sub(r"\s+", " ", str(text or "").strip())
-    max_len = int(max_len)
-    if len(text) <= max_len:
-        return text
+    from tooling.common import bounded_complete_text
 
-    cut = text[:max_len].rstrip()
-    # Avoid cutting a token in half.
-    tail = cut[-60:]
-    if " " in tail:
-        cut = cut.rsplit(" ", 1)[0].rstrip()
-    return cut
+    return bounded_complete_text(text, max_chars=int(max_len), overflow_factor=2.5)
 
 
 def _is_availability_boilerplate(text: str) -> bool:
@@ -283,11 +294,14 @@ def _sanitize_source_text(text: str) -> str:
 
 
 def _profile_limits(draft_profile: str) -> dict[str, int]:
-    key = "deep" if str(draft_profile or "").strip().lower() == "deep" else "survey"
+    requested = str(draft_profile or "").strip().lower().replace("-", "_")
+    key = requested if requested in {"survey", "deep", "course_paper"} else "survey"
     cfg = ((_CONTEXT_PACK_POLICY.get("profile_limits") or {}).get(key) or {})
+    comparison_min = 3 if key == "course_paper" else 5
+    pair_min = 3 if key == "course_paper" else 5
     return {
-        "comparison_keep_limit": max(5, int(cfg.get("comparison_keep_limit") or (9 if key == "deep" else 7))),
-        "comparison_pair_limit": max(5, int(cfg.get("comparison_pair_limit") or (9 if key == "deep" else 7))),
+        "comparison_keep_limit": max(comparison_min, int(cfg.get("comparison_keep_limit") or (9 if key == "deep" else 7))),
+        "comparison_pair_limit": max(pair_min, int(cfg.get("comparison_pair_limit") or (9 if key == "deep" else 7))),
         "claim_keep_limit": max(4, int(cfg.get("claim_keep_limit") or 6)),
     }
 
@@ -428,7 +442,7 @@ def _iter_outline_subsections(outline: Any) -> list[dict[str, str]]:
 
 
 def _draft_profile(workspace: Path) -> str:
-    """Best-effort parse from `queries.md` (survey|deep)."""
+    """Best-effort parse from `queries.md`."""
 
     path = workspace / "queries.md"
     if not path.exists():
@@ -443,8 +457,8 @@ def _draft_profile(workspace: Path) -> str:
             key = key.strip().lower().replace(" ", "_")
             if key not in keys:
                 continue
-            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
-            if value in {"survey", "deep"}:
+            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower().replace("-", "_")
+            if value in {"survey", "deep", "course_paper"}:
                 return value
             return "survey"
     except Exception:
@@ -733,8 +747,8 @@ def main() -> int:
         anchors_dropped_no_cites = 0
         anchors_dropped_sanitized = 0
 
-        raw_limit = 16
-        keep_limit = 12 if draft_profile == "deep" else 10
+        raw_limit = 10 if draft_profile == "course_paper" else 16
+        keep_limit = 6 if draft_profile == "course_paper" else (12 if draft_profile == "deep" else 10)
 
         for a in anchors_raw[:raw_limit]:
             anchors_considered += 1
@@ -743,7 +757,7 @@ def main() -> int:
                 anchors_dropped_no_cites += 1
                 continue
             text = _sanitize_source_text(a.get("text") or "")
-            if not text:
+            if not text or _EVIDENCE_POLICY_DISCLAIMER_RE.search(text):
                 anchors_dropped_sanitized += 1
                 continue
 
@@ -967,10 +981,10 @@ def main() -> int:
             # `evidence-draft` uses `bullet` (not `excerpt`) for failures/limitations.
             text = it.get("excerpt") or it.get("bullet") or it.get("text") or ""
             excerpt = _sanitize_source_text(text)
-            if not excerpt:
+            if not excerpt or _EVIDENCE_POLICY_DISCLAIMER_RE.search(excerpt):
                 lim_dropped_sanitized += 1
                 continue
-            if not _NEGATIVE_LIMIT_RE.search(excerpt):
+            if not _has_negative_limit_signal(excerpt):
                 lim_dropped_sanitized += 1
                 continue
             lim_pool.append(
@@ -980,14 +994,19 @@ def main() -> int:
                     "pointer": str(it.get("pointer") or "").strip(),
                 }
             )
-        lim_hooks = _rank_text_records(lim_pool, title=title, axes=axes, extras=relevance_terms, global_text_usage=global_text_usage)[: (10 if draft_profile == "deep" else 8)]
+        lim_keep_limit = 5 if draft_profile == "course_paper" else (10 if draft_profile == "deep" else 8)
+        lim_hooks = _rank_text_records(lim_pool, title=title, axes=axes, extras=relevance_terms, global_text_usage=global_text_usage)[:lim_keep_limit]
         for rec in lim_hooks:
             key = _normalized_text_key(rec.get("excerpt") or "")
             if key:
                 global_text_usage[key] = global_text_usage.get(key, 0) + 1
 
         # Availability minima (used by gates and self-loops).
-        if draft_profile == "deep":
+        if draft_profile == "course_paper":
+            min_anchor = 6
+            min_comp = 3
+            min_lim = 2
+        elif draft_profile == "deep":
             min_anchor = 12
             min_comp = 6
             min_lim = 3
@@ -999,7 +1018,11 @@ def main() -> int:
         # Writer-executable minima: smaller than availability minima, but still forces real argument moves.
         # A150++ (survey deliverable) expects denser packs; keep the writer minima non-trivial so drafting
         # does not collapse into per-paper summaries.
-        if draft_profile == "deep":
+        if draft_profile == "course_paper":
+            must_anchor = 3
+            must_comp = 2
+            must_lim = 1
+        elif draft_profile == "deep":
             must_anchor = 6
             must_comp = 6
             must_lim = 3

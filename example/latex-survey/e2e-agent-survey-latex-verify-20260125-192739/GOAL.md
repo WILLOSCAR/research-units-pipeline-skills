@@ -1,3 +1,0 @@
-# Goal
-
-agent survey latex

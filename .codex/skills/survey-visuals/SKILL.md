@@ -83,12 +83,12 @@ Tables are handled by dedicated table skills:
 
 ### Quick Start
 
-- `python .codex/skills/survey-visuals/scripts/run.py --help`
-- `python .codex/skills/survey-visuals/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/survey-visuals/scripts/run.py --help`
+- `uv run python .codex/skills/survey-visuals/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
-- `--workspace <workspace_dir>` (required)
+- `--workspace <workspace>` (required)
 - `--unit-id <id>` (optional; used only for runner bookkeeping)
 - `--inputs <a;b;c>` (optional; defaults to the four Inputs listed above)
 - `--outputs <timeline_rel;figures_rel>` (optional; defaults to `outline/timeline.md;outline/figures.md`)
@@ -98,11 +98,11 @@ Tables are handled by dedicated table skills:
 
 - Generate timeline + figures with defaults:
 
-  `python .codex/skills/survey-visuals/scripts/run.py --workspace workspaces/<ws>`
+  `uv run python .codex/skills/survey-visuals/scripts/run.py --workspace <workspace>`
 
 - Generate to custom output paths:
 
-  `python .codex/skills/survey-visuals/scripts/run.py --workspace workspaces/<ws> --outputs outline/timeline.md;outline/figures.md`
+  `uv run python .codex/skills/survey-visuals/scripts/run.py --workspace <workspace> --outputs outline/timeline.md;outline/figures.md`
 
 ### Notes
 

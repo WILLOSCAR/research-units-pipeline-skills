@@ -14,9 +14,11 @@ It is the high-rigor path for questions like:
 - what survives screening and extraction?
 - where are the bias and heterogeneity limits?
 
-The main output is:
+The main outputs are:
 
 - `output/SYNTHESIS.md`
+- `output/EVIDENCE_SCORECARD.md`
+- `output/EVIDENCE_SCORECARD.json`
 
 Use this when the answer must be defensible from a protocol and extraction
 table. If the user only needs orientation or a class report, start with
@@ -49,7 +51,7 @@ That is why it remains a separate execution contract instead of being folded int
 
 ## 4. Data Flow
 
-`review question -> operational protocol -> auditable candidate pool -> screening log -> extraction table + bias fields -> bounded synthesis -> deliverable self-check`
+`review question -> operational protocol -> auditable candidate pool -> clause-linked screening -> extraction table + bias fields -> paper-linked synthesis -> evidence scorecard`
 
 Every downstream artifact should be explainable from the protocol plus screened pool.
 
@@ -58,6 +60,7 @@ Every downstream artifact should be explainable from the protocol plus screened 
 `output/SYNTHESIS.md` should include stable sections:
 
 - `## Included studies summary`
+- `## Extracted evidence table`
 - `## Findings by theme`
 - `## Risk of bias`
 - `## Supported conclusions`
@@ -89,7 +92,7 @@ Do not use it when:
 | `C2` | build the auditable candidate pool | `papers/papers_raw.jsonl`, `papers/papers_dedup.jsonl`, `papers/core_set.csv` |
 | `C3` | screen studies against protocol clauses | `papers/screening_log.csv` |
 | `C4` | extract study fields and bias data | `papers/extraction_table.csv` |
-| `C5` | write and self-check the synthesis | `output/SYNTHESIS.md`, `output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C5` | write, score, and self-check the synthesis | `output/SYNTHESIS.md`, `output/EVIDENCE_SCORECARD.*`, `output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. Quality Bar
 
@@ -100,8 +103,16 @@ The synthesis should:
 - report limitations and bias explicitly
 - avoid acting like a generic long-form summary
 
-## 9. Recommended Prompt
+## 9. Current Reliability Boundary
+
+This workflow has a tested failure -> repair -> rerun path for protocol
+operability, clause-linked screening, extraction completeness, and synthesis
+pointers. The scorecard checks observable traceability, not whether retrieval
+was exhaustive or the scientific conclusion is true. Larger candidate pools,
+heterogeneous study designs, and expert comparison remain open validation work.
+
+## 10. Recommended Prompt
 
 ```text
-Use the evidence-review workflow to run a PRISMA-style review on LLM agents for education, with protocol, screening, extraction, and a bounded synthesis.
+Use the evidence-review workflow to run a protocol-driven review on LLM agents for education, with clause-linked screening, structured extraction, bias assessment, and a bounded synthesis.
 ```

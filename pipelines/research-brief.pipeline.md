@@ -11,6 +11,7 @@ target_artifacts:
   - CHECKPOINTS.md
   - DECISIONS.md
   - GOAL.md
+  - PIPELINE.lock.md
   - queries.md
   - papers/papers_raw.jsonl
   - papers/papers_dedup.jsonl
@@ -18,6 +19,8 @@ target_artifacts:
   - outline/taxonomy.yml
   - outline/outline.yml
   - output/SNAPSHOT.md
+  - output/BRIEF_SCORECARD.md
+  - output/BRIEF_SCORECARD.json
   - output/DELIVERABLE_SELFLOOP_TODO.md
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
@@ -26,8 +29,8 @@ default_checkpoints: [C0,C1,C2,C3]
 units_template: templates/UNITS.research-brief.csv
 contract_model: pipeline.frontmatter/v1
 query_defaults:
-  max_results: 300
-  core_size: 30
+  max_results: 80
+  core_size: 12
   brief_style: newcomer_memo
 overridable_query_fields:
   - keywords
@@ -47,6 +50,10 @@ quality_contract:
     style: bullets_first
     target_length: one_page
     pointer_density: explicit
+  semantic_rubric:
+    schema: research-brief-scorecard.v1
+    pass_score: 80
+    critical_dimensions: [deliverable_structure, brief_specificity, source_traceability]
 stages:
   C0:
     title: Init
@@ -54,7 +61,7 @@ stages:
     mode: no_prose
     required_skills: [workspace-init, pipeline-router]
     optional_skills: []
-    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
+    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, PIPELINE.lock.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
   C1:
     title: Retrieval & core set
     checkpoint: C1
@@ -78,7 +85,7 @@ stages:
     mode: short_prose_ok
     required_skills: [snapshot-writer, deliverable-selfloop, artifact-contract-auditor]
     optional_skills: [prose-writer]
-    produces: [output/SNAPSHOT.md, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
+    produces: [output/SNAPSHOT.md, output/BRIEF_SCORECARD.md, output/BRIEF_SCORECARD.json, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
 ---
 
 # Pipeline: research-brief

@@ -20,6 +20,8 @@ Required:
 - `papers/core_set.csv`
 
 Optional:
+- `GOAL.md`
+- `DECISIONS.md`
 - `queries.md`
 - `papers/papers_dedup.jsonl`
 
@@ -31,6 +33,7 @@ Optional:
 
 `scripts/run.py` should stay a thin adapter over shared review tooling:
 - read outline/core-set inputs
+- use the concrete Goal and available abstracts instead of copying survey scaffold bullets
 - build a compact pointer-heavy briefing
 - write `output/SNAPSHOT.md`
 
@@ -48,8 +51,10 @@ The output should:
 ## Acceptance
 
 - `output/SNAPSHOT.md` exists
-- includes `## Scope` and `## What to read first`
-- includes explicit paper pointers from the workspace paper set
+- includes `## Scope`, `## Key themes`, `## What to read first`, and `## Open problems / risks`
+- includes at least three explicit paper pointers that resolve to `papers/core_set.csv`
+- keeps Scope and Key themes grounded in at least two core-set papers
+- contains no survey-only scaffolding such as citation quotas, chapter plans, or "why this survey" narration
 
 ## Non-goals
 

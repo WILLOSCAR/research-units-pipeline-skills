@@ -1,3 +1,0 @@
-In Model & Policy Architectures, the central question is how policy and action design and planning and world-model role change the meaning of reported progress [@Shao2025Large; Gu2025Usim; Li2025Survey; Xu2025Anatomy].
-
-Vision-language-action and policy backbones, World models, planning, and reasoning, and Transfer across embodiments and viewpoints each expose that pressure from a different angle, showing why policy and action design, planning and world-model role, and evaluation cannot be treated as interchangeable background choices [@Zheng2025Soft; Yu2025Survey; Zhang2025Pure; Yadav2025Robust].

@@ -1,6 +1,6 @@
 ---
 name: evidence-review
-version: 1.0
+version: 1.1
 profile: evidence-review
 routing_hints: [evidence review, evidence synthesis, systematic review, prisma, 系统综述, 证据综述]
 routing_priority: 34
@@ -11,6 +11,7 @@ target_artifacts:
   - CHECKPOINTS.md
   - DECISIONS.md
   - GOAL.md
+  - PIPELINE.lock.md
   - queries.md
   - output/PROTOCOL.md
   - papers/papers_raw.jsonl
@@ -20,6 +21,8 @@ target_artifacts:
   - papers/screening_log.csv
   - papers/extraction_table.csv
   - output/SYNTHESIS.md
+  - output/EVIDENCE_SCORECARD.md
+  - output/EVIDENCE_SCORECARD.json
   - output/DELIVERABLE_SELFLOOP_TODO.md
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
@@ -47,6 +50,10 @@ quality_contract:
     protocol_required: true
     screening_log_required: true
     extraction_table_required: true
+  semantic_rubric:
+    schema: evidence-review-scorecard.v1
+    pass_score: 80
+    critical_dimensions: [protocol_operability, screening_traceability, extraction_coverage, synthesis_traceability]
 stages:
   C0:
     title: Init
@@ -54,7 +61,7 @@ stages:
     mode: no_prose
     required_skills: [workspace-init, pipeline-router]
     optional_skills: []
-    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
+    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, PIPELINE.lock.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
   C1:
     title: Protocol
     checkpoint: C1
@@ -92,7 +99,7 @@ stages:
     mode: prose_allowed
     required_skills: [synthesis-writer, deliverable-selfloop, artifact-contract-auditor]
     optional_skills: []
-    produces: [output/SYNTHESIS.md, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
+    produces: [output/SYNTHESIS.md, output/EVIDENCE_SCORECARD.md, output/EVIDENCE_SCORECARD.json, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
 ---
 
 # Pipeline: evidence-review

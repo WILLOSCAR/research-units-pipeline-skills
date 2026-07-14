@@ -249,7 +249,10 @@ def main() -> int:
     max_per_paper = 3
 
     if profile == "arxiv-survey":
-        if draft_profile == "deep":
+        if draft_profile == "course_paper":
+            k = max(8, per_subsection)
+            min_selected_bibkeys = max(6, int(round(per_subsection * 0.70)))
+        elif draft_profile == "deep":
             k = max(28, per_subsection)
             min_selected_bibkeys = max(22, int(round(per_subsection * 0.80)))
         else:

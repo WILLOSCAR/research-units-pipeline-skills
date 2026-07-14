@@ -26,12 +26,12 @@ def _is_placeholder(text: str) -> bool:
     return False
 
 
-def _looks_refined(text: str) -> bool:
+def _looks_refined(text: str, *, min_tables: int = 2, min_chars: int = 600) -> bool:
     if _is_placeholder(text):
         return False
     # Require at least 2 Markdown tables.
     seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
-    return len(seps) >= 2 and "[@" in text and len(text.strip()) >= 600
+    return len(seps) >= min_tables and "[@" in text and len(text.strip()) >= min_chars
 
 
 def _sid_key(s: str) -> tuple[int, ...]:
@@ -146,8 +146,10 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list, read_jsonl
+    from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()
+    course_paper = _draft_profile(workspace) == "course_paper"
 
     inputs = parse_semicolon_list(args.inputs) or [
         "outline/table_schema.md",
@@ -238,62 +240,66 @@ def main() -> int:
     if wrote == 0:
         lines.append("| (no subsections) | — | — |")
 
-    lines.extend(
-        [
-            "",
-            "**Index Table 2. Concrete anchors (benchmarks / numbers / caveats).**",
-            "",
-            "| Subsection | Anchor facts | Representative works |",
-            "|---|---|---|",
-        ]
-    )
-
-    for sid in sub_ids:
-        brief = briefs_by.get(sid) or {}
-        pack = packs_by.get(sid) or {}
-        title = str(brief.get("title") or pack.get("title") or "").strip()
-
-        aitems = anchors_by.get(sid) or []
-        prefer = [a for a in aitems if str(a.get("hook_type") or "").strip().lower() in {"quant", "eval"}]
-        picked = prefer or aitems
-
-        facts: list[str] = []
-        cite_keys: list[str] = []
-        for a in picked:
-            txt = _clean_anchor_text(a.get("text") or "")
-            if txt and txt not in facts:
-                facts.append(txt)
-            for k in a.get("citations") or []:
-                k = str(k or "").strip()
-                if not k:
-                    continue
-                if bib_keys and k not in bib_keys:
-                    continue
-                if k not in cite_keys:
-                    cite_keys.append(k)
-            if len(facts) >= 3:
-                break
-
-        facts_cell = "<br>".join([_truncate(t, 130) for t in facts[:3]]) if facts else "—"
-
-        # If anchor sheet is empty for a subsection, fall back to pack citations so the row is still cite-backed.
-        if not cite_keys:
-            cite_keys = [k for k in _collect_pack_citations(pack) if (not bib_keys) or (k in bib_keys)]
-
-        cites = _format_cites(cite_keys[:5])
-
-        lines.append(
-            "| "
-            + _truncate(f"{sid} {title}", 90).replace("|", " ")
-            + " | "
-            + facts_cell.replace("|", " ")
-            + " | "
-            + (cites or "—")
-            + " |"
+    if not course_paper:
+        lines.extend(
+            [
+                "",
+                "**Index Table 2. Concrete anchors (benchmarks / numbers / caveats).**",
+                "",
+                "| Subsection | Anchor facts | Representative works |",
+                "|---|---|---|",
+            ]
         )
 
+        for sid in sub_ids:
+            brief = briefs_by.get(sid) or {}
+            pack = packs_by.get(sid) or {}
+            title = str(brief.get("title") or pack.get("title") or "").strip()
+
+            aitems = anchors_by.get(sid) or []
+            prefer = [a for a in aitems if str(a.get("hook_type") or "").strip().lower() in {"quant", "eval"}]
+            picked = prefer or aitems
+
+            facts: list[str] = []
+            cite_keys: list[str] = []
+            for a in picked:
+                txt = _clean_anchor_text(a.get("text") or "")
+                if txt and txt not in facts:
+                    facts.append(txt)
+                for k in a.get("citations") or []:
+                    k = str(k or "").strip()
+                    if not k:
+                        continue
+                    if bib_keys and k not in bib_keys:
+                        continue
+                    if k not in cite_keys:
+                        cite_keys.append(k)
+                if len(facts) >= 3:
+                    break
+
+            facts_cell = "<br>".join([_truncate(t, 130) for t in facts[:3]]) if facts else "—"
+
+            if not cite_keys:
+                cite_keys = [k for k in _collect_pack_citations(pack) if (not bib_keys) or (k in bib_keys)]
+
+            cites = _format_cites(cite_keys[:5])
+
+            lines.append(
+                "| "
+                + _truncate(f"{sid} {title}", 90).replace("|", " ")
+                + " | "
+                + facts_cell.replace("|", " ")
+                + " | "
+                + (cites or "—")
+                + " |"
+            )
+
     out_text = "\n".join(lines).rstrip() + "\n"
-    if _is_placeholder(out_text) or not _looks_refined(out_text):
+    if _is_placeholder(out_text) or not _looks_refined(
+        out_text,
+        min_tables=1 if course_paper else 2,
+        min_chars=300 if course_paper else 600,
+    ):
         raise SystemExit("Generated tables look unrefined or contain placeholders")
 
     atomic_write_text(out_path, out_text)

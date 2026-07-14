@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from tooling.common import atomic_write_text, copy_tree, pipeline_cli_command, resolve_pipeline_spec_path, today_iso
+from tooling.common import atomic_write_text, copy_tree, pipeline_cli_command, resolve_pipeline_spec_path, shell_quote, today_iso
 from tooling.executor import run_one_unit
 from tooling.harness import (
     build_artifact_pack_payload,
@@ -38,6 +38,7 @@ from tooling.harness import (
     write_run_audit_report,
 )
 from tooling.pipeline_spec import PipelineSpec
+from tooling.run_state import ensure_run_state, initialize_run_state, record_human_decision
 
 def _normalize_pipeline_name(pipeline: str) -> str:
     return str(pipeline or "").strip()
@@ -50,6 +51,7 @@ def main() -> int:
     init_p = sub.add_parser("init", help="Initialize a workspace from template + pipeline units template")
     init_p.add_argument("--workspace", required=True, help="Workspace directory")
     init_p.add_argument("--pipeline", required=True, help="Pipeline name or path (e.g., arxiv-survey)")
+    init_p.add_argument("--goal", default="", help="Concrete outcome request to persist in GOAL.md and the Run ledger")
     init_p.add_argument("--overwrite", action="store_true", help="Overwrite existing workspace files")
     init_p.add_argument("--overwrite-units", action="store_true", help="Overwrite workspace UNITS.csv")
 
@@ -176,11 +178,22 @@ def main() -> int:
                 raise SystemExit(f"UNITS.csv already exists at {units_dst} (use --overwrite-units)")
         atomic_write_text(units_dst, units_src.read_text(encoding="utf-8"))
 
+        goal_text = str(args.goal or "").strip()
+        if goal_text:
+            atomic_write_text(workspace / "GOAL.md", f"# Goal\n\n{goal_text}\n")
+
         first_checkpoint = spec.default_checkpoints[0] if spec.default_checkpoints else "C0"
         _update_status(
             workspace / "STATUS.md",
             spec_path=str(spec.path.relative_to(repo_root)),
             checkpoint=first_checkpoint,
+        )
+        initialize_run_state(
+            workspace=workspace,
+            repo_root=repo_root,
+            pipeline_path=spec.path,
+            units_template=spec.units_template,
+            goal_text=goal_text,
         )
         return 0
 
@@ -228,6 +241,13 @@ def main() -> int:
             spec_path=str(spec.path.relative_to(repo_root)),
             checkpoint=first_checkpoint,
         )
+        initialize_run_state(
+            workspace=workspace,
+            repo_root=repo_root,
+            pipeline_path=spec.path,
+            units_template=spec.units_template,
+            goal_text=topic,
+        )
 
         router_script = repo_root / ".codex" / "skills" / "pipeline-router" / "scripts" / "run.py"
         if router_script.exists():
@@ -260,7 +280,7 @@ def main() -> int:
             return 0 if last_result is None or last_result.status in {"DONE", "IDLE"} else 2
 
         print(
-            f"Next: run `{pipeline_cli_command('run', workspace=workspace)}` "
+            f"Next: run `uv run rh run start --workspace {shell_quote(workspace)}` "
             "(it will pause if a HUMAN approval is required)"
         )
         return 0
@@ -386,6 +406,13 @@ def main() -> int:
         from tooling.common import set_decisions_approval
 
         set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=True)
+        ensure_run_state(workspace=workspace, repo_root=repo_root)
+        record_human_decision(
+            workspace=workspace,
+            action="checkpoint.approved",
+            subject=checkpoint,
+            decision="approved",
+        )
         print(f"Approved {checkpoint} in {workspace / 'DECISIONS.md'}")
         return 0
 
@@ -399,8 +426,18 @@ def main() -> int:
         if status not in {"TODO", "DOING", "DONE", "BLOCKED", "SKIP"}:
             raise SystemExit("--status must be one of TODO|DOING|DONE|BLOCKED|SKIP")
 
-        from tooling.common import UnitsTable, now_iso_seconds, update_status_log
-        from tooling.executor import _refresh_status_checkpoint, invalidate_downstream_units  # type: ignore
+        from tooling.common import (
+            UnitsTable,
+            decisions_has_approval,
+            now_iso_seconds,
+            set_decisions_approval,
+            update_status_log,
+        )
+        from tooling.executor import (  # type: ignore
+            _refresh_status_checkpoint,
+            downstream_unit_ids,
+            invalidate_downstream_units,
+        )
 
         units_path = workspace / "UNITS.csv"
         if not units_path.exists():
@@ -418,9 +455,30 @@ def main() -> int:
             raise SystemExit(f"Unit not found: {unit_id}")
 
         invalidated: list[str] = []
+        checkpoint_candidates: list[str] = []
         if status not in {"DONE", "SKIP"}:
+            affected_scope = {unit_id, *downstream_unit_ids(table, root_unit_id=unit_id)}
+            for row in table.rows:
+                row_id = str(row.get("unit_id") or "").strip()
+                owner = str(row.get("owner") or "").strip().upper()
+                skill = str(row.get("skill") or "").strip()
+                checkpoint = str(row.get("checkpoint") or "").strip()
+                if (
+                    row_id in affected_scope
+                    and checkpoint
+                    and (owner == "HUMAN" or skill == "human-checkpoint")
+                    and checkpoint not in checkpoint_candidates
+                ):
+                    checkpoint_candidates.append(checkpoint)
             invalidated = invalidate_downstream_units(table, root_unit_id=unit_id)
         table.save(units_path)
+
+        decisions_path = workspace / "DECISIONS.md"
+        revoked_checkpoints: list[str] = []
+        for checkpoint in checkpoint_candidates:
+            if decisions_has_approval(decisions_path, checkpoint):
+                set_decisions_approval(decisions_path, checkpoint, approved=False)
+                revoked_checkpoints.append(checkpoint)
         if note:
             update_status_log(workspace / "STATUS.md", f"{now_iso_seconds()} {unit_id} NOTE {note}")
         if invalidated:
@@ -430,12 +488,36 @@ def main() -> int:
                 workspace / "STATUS.md",
                 f"{now_iso_seconds()} {unit_id} NOTE reset downstream to TODO: {preview}{suffix}",
             )
+        if revoked_checkpoints:
+            update_status_log(
+                workspace / "STATUS.md",
+                f"{now_iso_seconds()} {unit_id} NOTE revoked stale checkpoint approval(s): "
+                + ", ".join(revoked_checkpoints),
+            )
         _refresh_status_checkpoint(workspace / "STATUS.md", table)
+        ensure_run_state(workspace=workspace, repo_root=repo_root)
+        for checkpoint in revoked_checkpoints:
+            record_human_decision(
+                workspace=workspace,
+                action="checkpoint.approval.revoked",
+                subject=checkpoint,
+                decision="revoked",
+                note=f"Approval basis invalidated when {unit_id} changed to {status}.",
+            )
+        record_human_decision(
+            workspace=workspace,
+            action="unit.status.changed",
+            subject=unit_id,
+            decision=f"{previous_status or '<blank>'}->{status}",
+            note=note,
+        )
         msg = f"Marked {unit_id} as {status} in {units_path}"
         if invalidated:
             msg += f"; reset {len(invalidated)} downstream unit(s) to TODO"
         elif previous_status == status:
             msg += "; no downstream reset needed"
+        if revoked_checkpoints:
+            msg += "; revoked checkpoint approval(s): " + ", ".join(revoked_checkpoints)
         print(msg)
         return 0
 

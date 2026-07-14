@@ -38,15 +38,15 @@ Key property: keep the **legacy, gate-checked format** so downstream QA can rely
 
 ## Helper script
 
-- `python .codex/skills/claim-matrix-rewriter/scripts/run.py --help`
-- `python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/claim-matrix-rewriter/scripts/run.py --help`
+- `uv run python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace <workspace>`
 
 ## Script
 
 ### Quick Start
 
-- `python .codex/skills/claim-matrix-rewriter/scripts/run.py --help`
-- `python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/claim-matrix-rewriter/scripts/run.py --help`
+- `uv run python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -58,7 +58,7 @@ Key property: keep the **legacy, gate-checked format** so downstream QA can rely
 - Rewrite the matrix from evidence packs:
   - Ensure `outline/subsection_briefs.jsonl` and `outline/evidence_drafts.jsonl` exist and `blocking_missing` is empty.
   - Ensure `citations/ref.bib` exists and contains the cited keys.
-  - Run: `python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace workspaces/<ws>`
+  - Run: `uv run python .codex/skills/claim-matrix-rewriter/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

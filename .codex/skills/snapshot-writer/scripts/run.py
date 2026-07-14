@@ -25,6 +25,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
+    from tooling.common import read_jsonl
     from tooling.review_artifacts import summarize_outline, write_text
     from tooling.review_render import render_research_brief_markdown
 
@@ -34,21 +35,31 @@ def main() -> int:
     if not outline_path.exists() or not core_path.exists():
         raise SystemExit("snapshot-writer requires `outline/outline.yml` and `papers/core_set.csv`.")
 
-    sections, bullets = summarize_outline(outline_path)
+    sections, _ = summarize_outline(outline_path)
     with core_path.open("r", encoding="utf-8", newline="") as handle:
         papers = [dict(row) for row in csv.DictReader(handle)]
     if not papers:
         raise SystemExit("`papers/core_set.csv` is empty.")
 
-    pointers = []
+    deduped = read_jsonl(workspace / "papers" / "papers_dedup.jsonl")
+    by_title = {str(item.get("title") or "").strip().lower(): item for item in deduped}
+    by_url = {str(item.get("url") or "").strip(): item for item in deduped if str(item.get("url") or "").strip()}
+    enriched: list[dict[str, str]] = []
     for idx, paper in enumerate(papers, start=1):
-        paper_id = str(paper.get("paper_id") or f"P{idx:04d}").strip()
         title = str(paper.get("title") or f"Paper {idx}").strip()
-        url = str(paper.get("url") or "").strip()
-        pointer = f"{paper_id} - {title}" + (f" ({url})" if url else "")
-        pointers.append(pointer)
+        source = by_url.get(str(paper.get("url") or "").strip()) or by_title.get(title.lower()) or {}
+        enriched.append(
+            {
+                **paper,
+                "paper_id": str(paper.get("paper_id") or f"P{idx:04d}").strip(),
+                "title": title,
+                "abstract": str(source.get("abstract") or paper.get("abstract") or "").strip(),
+            }
+        )
 
-    text = render_research_brief_markdown(sections=sections, bullets=bullets, pointers=pointers, paper_count=len(papers))
+    goal_path = workspace / "GOAL.md"
+    goal = goal_path.read_text(encoding="utf-8", errors="ignore") if goal_path.exists() else ""
+    text = render_research_brief_markdown(goal=goal, papers=enriched, sections=sections)
     write_text(workspace / "output" / "SNAPSHOT.md", text)
     return 0
 

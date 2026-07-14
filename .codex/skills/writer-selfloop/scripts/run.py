@@ -82,6 +82,49 @@ def _expected_paths_from_outline(outline: Any) -> set[str]:
     return expected
 
 
+def _duplicate_long_sentences_for_h3(
+    *,
+    workspace: Path,
+    h3_paths: list[str],
+) -> list[tuple[str, str, int]]:
+    """Return repeated evidence-sized sentences within each H3 file."""
+
+    from tooling.common import split_sentences
+
+    duplicates: list[tuple[str, str, int]] = []
+    for rel in h3_paths:
+        path = workspace / rel
+        if not path.exists() or path.stat().st_size <= 0:
+            continue
+        body = path.read_text(encoding="utf-8", errors="ignore")
+        seen_text: dict[str, str] = {}
+        counts: Counter[str] = Counter()
+        for sentence in split_sentences(body):
+            without_cites = re.sub(r"\[@[^\]]+\]", "", sentence)
+            compact = re.sub(r"\s+", " ", without_cites).strip()
+            key = re.sub(r"[^a-z0-9]+", " ", compact.lower()).strip()
+            if len(compact) < 80 or len(key.split()) < 12:
+                continue
+            matched = next(
+                (
+                    prior
+                    for prior in seen_text
+                    if key == prior
+                    or (
+                        len(key) >= 80
+                        and len(prior) >= 80
+                        and (key in prior or prior in key)
+                    )
+                ),
+                "",
+            )
+            canonical = matched or key
+            counts[canonical] += 1
+            seen_text.setdefault(canonical, compact)
+        for key, count in counts.items():
+            if count >= 2:
+                duplicates.append((rel, seen_text[key], count))
+    return duplicates
 
 
 def _load_voice_palette(*, workspace: Path) -> dict[str, Any]:
@@ -385,6 +428,30 @@ def main() -> int:
     # Canonical writing gate: reuse the strict sections check.
     section_issues = _check_sections_manifest(workspace, [manifest_rel])
     issue_pairs: list[tuple[str, str]] = [(it.code, it.message) for it in section_issues]
+    manifest = _read_jsonl(workspace / manifest_rel)
+    h3_paths: list[str] = []
+    for rec in manifest:
+        if str(rec.get("kind") or "").strip() == "h3":
+            rel = str(rec.get("path") or "").strip()
+            if rel:
+                h3_paths.append(rel)
+    if not h3_paths:
+        for path in sorted((workspace / "sections").glob("S*_*.md")):
+            if path.name.endswith("_lead.md"):
+                continue
+            h3_paths.append(str(path.relative_to(workspace)))
+    h3_paths = sorted(set(h3_paths))
+
+    for rel, sentence, count in _duplicate_long_sentences_for_h3(
+        workspace=workspace,
+        h3_paths=h3_paths,
+    ):
+        issue_pairs.append(
+            (
+                "sections_duplicate_evidence_sentence",
+                f"`{rel}` repeats the same evidence-sized sentence {count} times: {_trim(sentence, max_len=180)}",
+            )
+        )
     issue_codes = {code for code, _ in issue_pairs}
 
     soft_codes = {
@@ -409,7 +476,7 @@ def main() -> int:
                 "## Summary",
                 "",
                 "- No blocking section-level quality issues detected.",
-                "- Next: `section-logic-polisher` -> `argument-selfloop` -> `paragraph-curator` -> (style/openers) -> `transition-weaver` -> `section-merger`.",
+                "- Next: `style-harmonizer` -> `opener-variator` -> `section-logic-polisher` -> `paragraph-curator` -> `evaluation-anchor-checker` -> final `argument-selfloop` snapshot -> optional `transition-weaver` -> `section-merger`.",
                 "",
             ]
         )
@@ -424,20 +491,6 @@ def main() -> int:
         lines.append("")
 
         # Style-smell diagnostics: surface high-signal generator-voice drift for mandatory C5 cleanup.
-        manifest = _read_jsonl(workspace / manifest_rel)
-        h3_paths: list[str] = []
-        for rec in manifest:
-            if str(rec.get("kind") or "").strip() == "h3":
-                rel = str(rec.get("path") or "").strip()
-                if rel:
-                    h3_paths.append(rel)
-        if not h3_paths:
-            for p in sorted((workspace / "sections").glob("S*_*.md")):
-                if p.name.endswith("_lead.md"):
-                    continue
-                h3_paths.append(str(p.relative_to(workspace)))
-        h3_paths = sorted(set(h3_paths))
-
         style_lines = _style_smells_for_h3(workspace=workspace, h3_paths=h3_paths)
         lines.extend(["## Style Smells", ""])
         if style_lines:
@@ -450,7 +503,6 @@ def main() -> int:
         return 0
 
     # Load optional context packs (best-effort; missing files are OK).
-    manifest = _read_jsonl(workspace / manifest_rel)
     manifest_by_path: dict[str, dict[str, Any]] = {}
     for rec in manifest:
         rel = str(rec.get("path") or "").strip()

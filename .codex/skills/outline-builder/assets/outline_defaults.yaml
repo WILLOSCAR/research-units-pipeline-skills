@@ -32,6 +32,24 @@ subsection_defaults:
   concrete_comparisons: 'Concrete comparisons: identify >=2 explicit A vs B contrasts (mechanism or protocol) that the subsection must cover.'
   evaluation_anchors: 'Evaluation anchors: name 1-3 benchmarks, datasets, metrics, or protocols that will appear in the subsection.'
 comparison_axis_packs:
+  - name: rag_retrieval_diagnostics
+    keywords: [retrieval quality, evidence coverage, recall, ranking quality, retrieval-specific]
+    bullet: 'Comparison axes: retrieval recall and rank quality; evidence sufficiency and context coverage; query/corpus sampling; chunking, top-k, and reranking sensitivity; retrieval-to-answer error propagation.'
+  - name: rag_faithfulness_attribution
+    keywords: [generation faithfulness, source attribution, claim support, citation correctness, attribution failure]
+    bullet: 'Comparison axes: claim-level support and answer faithfulness; source-attribution correctness; citation precision and completeness; groundedness versus answer utility; evaluator calibration and transfer.'
+  - name: rag_benchmark_design
+    keywords: [dataset, task, metric design, benchmark construction, corpus sampling, reference-answer]
+    bullet: 'Comparison axes: corpus and query provenance; task coverage and difficulty; reference-answer assumptions; retrieval, generation, and end-to-end metric decomposition; aggregation and uncertainty reporting.'
+  - name: rag_evaluator_comparison
+    keywords: [automated evaluators, human validation, automated, model-based, human evaluation, learned evaluators, llm judges, evaluator agreement]
+    bullet: 'Comparison axes: rule-based versus learned versus LLM-based judging; agreement with human assessment; construct validity and calibration; reproducibility and evaluator bias; evaluation cost and latency.'
+  - name: rag_robustness_shift
+    keywords: [sensitivity, adaptation, query, corpus shift, retriever replacement, context compression]
+    bullet: 'Comparison axes: query and corpus perturbation; retriever, chunker, and reranker sensitivity; adaptation lag and post-feedback behavior; variance and failure consistency; robustness under fixed budget.'
+  - name: rag_transfer_deployment
+    keywords: [domain transfer, trustworthiness, deployment, legal, clinical, enterprise, operational]
+    bullet: 'Comparison axes: cross-domain metric and evaluator transfer; fairness and contradiction handling; privacy and provenance constraints; latency, cost, and maintenance burden; benchmark validity versus deployed reliability.'
   - name: multi_agent_coordination
     keywords: [multi-agent, coordination, debate, collaboration, swarm, role specialization]
     bullet: 'Comparison axes: communication protocol/roles; aggregation (vote/debate/referee); stability/robustness; evaluation protocol (coordination success, cost); failure modes.'

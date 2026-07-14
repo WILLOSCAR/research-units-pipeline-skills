@@ -16,13 +16,21 @@ _LEADING_ENUM_RE = re.compile(r'^(?:\(?\d+\)?[.)]\s*)+')
 _LEADING_CUE_RE = re.compile(r'(?i)^(?:however|yet|further|furthermore|additionally|meanwhile|overall|notably|empirically|specifically|for example|in practice|then|further|besides|this raises a central question)\s*[:,-]\s*')
 _LEADING_AUTHOR_RESULT_RE = re.compile(r'(?i)^(?:we|the authors)\s+(?:also\s+|further\s+)?(?:show|find|demonstrate|report|observe|note)\s+that\s+')
 _LEADING_AUTHOR_ACTION_RE = re.compile(r'(?i)^(?:to (?:fill|address|bridge|tackle|study|understand) this gap,\s*)?(?:here,\s*)?(?:we|the authors)\s+(?:present|introduce|propose|develop|describe|provide|review|summarize|offer|open-?source|release)\b[^,]{0,120},\s*')
-_TRAILING_FRAGMENT_RE = re.compile(r'(?i)(?:\.\.\.|[,;:]\s*$|\b(?:and|or|to|of|in|on|with|for|from|across|between|into|than|that|which|while|because|under|over|at|by)\.?$)')
+_TRAILING_FRAGMENT_RE = re.compile(r'(?i)(?:\.\.\.|[,;:]\s*$|\bvs\.$|\b(?:and|or|to|of|in|on|with|for|from|across|between|into|than|that|which|while|because|under|over|at|by)\.?$)')
 _TRAILING_AUX_FRAGMENT_RE = re.compile(r'(?i)\b(?:is|are|was|were|has|have|had|be|been|being)\.?$')
 _LEADING_AUXILIARY_FRAGMENT_RE = re.compile(r'(?i)^(?:is|are|was|were|does|do|did|can|could|should|would|will|may|might|must)\s+(?:the|a|an|this|these|those|our|their|its)\b')
 _LEADING_ZERO_FRAGMENT_RE = re.compile(r'^0{2,}\d*\b')
 _LEADING_EXAMPLE_FRAGMENT_RE = re.compile(r'(?i)^(?:such as|for example|for instance|e\.g\.)\b')
 _META_SNIPPET_RE = re.compile(r'(?i)\b(?:github\.io|project\s+page|code\s+is\s+available|open-?source|repository|website)\b')
-_SUMMARY_STYLE_RE = re.compile(r'(?i)^(?:after a detailed summary|our main contribution is|this paper bridges that gap|we conclude by identifying|we provide a review|we present an in-depth review|the paper concludes by)\b')
+_SUMMARY_STYLE_RE = re.compile(
+    r'(?i)^(?:after a detailed summary|our main contribution is|this paper bridges that gap|'
+    r'we conclude by identifying|we provide a review|we present an in-depth review|the paper concludes by|'
+    r'this document is a practical framework|motivated by these limitations|evaluation mentions include|'
+    r'our contributions are|when comparing results, anchor the paragraph with|'
+    r'prefer head-to-head comparisons only when|avoid underspecified model|'
+    r'if a claim relies on a single reported number|if budgets or environments differ across papers|'
+    r'use conservative language)\b'
+)
 _SURVEY_META_RE = re.compile(
     r'(?i)^(?:this|our)\s+(?:survey|review|paper|study)\b|'
     r'^in\s+this\s+(?:survey|review)\b|'
@@ -82,6 +90,15 @@ _LIMIT_SIGNAL_RE = re.compile(
     r'partial\s+observability|out-of-distribution|ood|generalization\s+(?:gap|limit|challenge)|'
     r'under-specif\w*|unclear|sensitive|constraint\w*|caveat\w*|unsafe|deployment\s+constraint)\b'
 )
+_EVENT_CHALLENGE_RE = re.compile(
+    r"(?i)\b(?:this|the)\s+(?:year(?:'s)?\s+)?challenge\s+"
+    r"(?:introduces?|includes?|features?|uses?|asks?|invites?|requires?)\b|"
+    r"\b(?:shared|benchmark|competition|track)\s+challenge\b"
+)
+_POSITIVE_COST_RE = re.compile(
+    r'(?i)\bcost[-\s]?effectiv(?:e|eness|ely)\b|'
+    r'\b(?:lower|reduced?|decreased?|minimal|optimal)\s+(?:computational\s+)?costs?\b'
+)
 _BAD_FALLBACK_PREFIX_RE = re.compile(
     r'(?i)^(?:including|then|consequently|subsequently|providing|categorizing|third|finally|on the other side|as well as|'
     r'our main contribution|the main contribution|dataset scale|26 foundational datasets|2\)|3\)|\(\d+\))\b'
@@ -122,6 +139,16 @@ _LABEL_REWRITES = {
     'tool-use and function calling': 'tool-use systems',
     'transformer-based generators': 'transformer-based policies',
 }
+
+
+def _refinement_marker_is_current(marker_path: Path, prerequisites: list[Path]) -> bool:
+    if not marker_path.exists():
+        return False
+    marker_mtime = marker_path.stat().st_mtime_ns
+    existing = [path for path in prerequisites if path.exists()]
+    if not existing:
+        return True
+    return marker_mtime >= max(path.stat().st_mtime_ns for path in existing)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -328,8 +355,21 @@ def _is_fragmentary(text: str) -> bool:
     return False
 
 
+def _normalize_punctuation_spacing(text: Any) -> str:
+    return re.sub(r'([,;:])(?=[A-Za-z(])', r'\1 ', str(text or ''))
+
+
+def _has_limit_signal(text: Any) -> bool:
+    candidate = _POSITIVE_COST_RE.sub('', str(text or ''))
+    candidate = _EVENT_CHALLENGE_RE.sub('', candidate)
+    return bool(_LIMIT_SIGNAL_RE.search(candidate))
+
+
 def _normalize_evidence_text(text: Any, *, limit: int = 240) -> str:
-    s = _clean(_deslash(text or ''), limit=limit)
+    from tooling.common import bounded_complete_text
+
+    bounded = bounded_complete_text(_deslash(text or ''), max_chars=limit, overflow_factor=3.0)
+    s = _clean(bounded, limit=max(limit, len(bounded)))
     if not s:
         return ''
     if _SURVEY_META_RE.search(s) or _GENERIC_EVAL_SHOW_RE.search(s):
@@ -338,6 +378,7 @@ def _normalize_evidence_text(text: Any, *, limit: int = 240) -> str:
     s = _LEADING_CUE_RE.sub('', s)
     s = _LEADING_AUTHOR_RESULT_RE.sub('', s)
     s = _LEADING_AUTHOR_ACTION_RE.sub('', s)
+    s = _neutralize_author_voice(s)
     s = re.sub(r'(?i)^(?:in|throughout)\s+(?:this|our)\s+(?:thesis|paper|study|manuscript),?\s*', '', s)
     s = re.sub(r'(?i)\bour\s+', 'the ', s)
     s = re.sub(r'(?i)\bwe\s+(?:also\s+|further\s+)?(?:show|find|demonstrate|report|observe|note)\s+that\s+', '', s)
@@ -345,10 +386,12 @@ def _normalize_evidence_text(text: Any, *, limit: int = 240) -> str:
     s = re.sub(r'(?i)\bempirically:\s*', '', s)
     s = re.sub(r'(?i)\bhowever:\s*', '', s)
     s = re.sub(r'(?i)\bthen:\s*', '', s)
+    s = re.sub(r'(?i)\bEvaluation System,\s+for evaluating\b', 'Evaluation System for evaluating', s)
     s = re.sub(r'(?i)^(?:while|but|and|yet|however|nevertheless|in contrast)\s+', '', s)
     s = re.sub(r'(?i)\(\d+\)\s*', '', s)
     s = re.sub(r'(?i)\b(\d+)\)\s*', '', s)
-    s = re.sub(r'(?i),\s*(?:supports?|enables?|provides?|including|and)\b[^.]{0,40}$', '', s)
+    s = re.sub(r'(?i),\s*(?:supports?|enables?|provides?|including)\b[^.]{0,40}$', '', s)
+    s = _normalize_punctuation_spacing(s)
     s = re.sub(r'\s+', ' ', s).strip(' ,;:')
     if not s:
         return ''
@@ -358,7 +401,7 @@ def _normalize_evidence_text(text: Any, *, limit: int = 240) -> str:
         return ''
     if re.search(r'(?i)^is a significant gap exists\b', s):
         return ''
-    if re.match(r'(?i)^[a-z-]+ing\b', s):
+    if re.match(r'(?i)^[a-z-]+ing\b', s) and not _EVIDENCE_VERB_RE.search(s):
         return ''
     if not _EVIDENCE_VERB_RE.search(s):
         return ''
@@ -370,7 +413,10 @@ def _normalize_evidence_text(text: Any, *, limit: int = 240) -> str:
 
 
 def _soft_evidence_clause(text: Any, *, limit: int = 260) -> str:
-    s = _clean(_deslash(text or ''), limit=limit)
+    from tooling.common import bounded_complete_text
+
+    bounded = bounded_complete_text(_deslash(text or ''), max_chars=limit, overflow_factor=3.0)
+    s = _clean(bounded, limit=max(limit, len(bounded)))
     if not s:
         return ''
     if _SURVEY_META_RE.search(s) or _GENERIC_EVAL_SHOW_RE.search(s):
@@ -379,6 +425,7 @@ def _soft_evidence_clause(text: Any, *, limit: int = 260) -> str:
     s = _LEADING_CUE_RE.sub('', s)
     s = _LEADING_AUTHOR_RESULT_RE.sub('', s)
     s = _LEADING_AUTHOR_ACTION_RE.sub('', s)
+    s = _neutralize_author_voice(s)
     s = re.sub(r'(?i)^(?:through|across|from)\s+[^,]{0,80},\s*we\s+(?:show|demonstrate|find)\s+that\s+', '', s)
     s = re.sub(r'(?i)\bour\s+(?:experiments?|results?|analysis)\s+(?:show|demonstrate|find)\s+that\s+', '', s)
     s = re.sub(r'(?i)\bwe\s+(?:show|demonstrate|find|observe|report)\s+that\s+', '', s)
@@ -386,10 +433,14 @@ def _soft_evidence_clause(text: Any, *, limit: int = 260) -> str:
     s = re.sub(r'(?i)\byet:\s*', '', s)
     s = re.sub(r'(?i)\bcrucially:\s*', '', s)
     s = re.sub(r'(?i)\bthird:\s*', '', s)
+    s = re.sub(r'(?i)\bEvaluation System,\s+for evaluating\b', 'Evaluation System for evaluating', s)
+    s = _normalize_punctuation_spacing(s)
     s = re.sub(r'\s+', ' ', s).strip(' ,;:')
     if not s:
         return ''
     if _SURVEY_META_RE.search(s) or _GENERIC_EVAL_SHOW_RE.search(s):
+        return ''
+    if re.search(r'(?i)\b(?:we|our)\b', s):
         return ''
     if s and s[0].islower():
         s = s[0].upper() + s[1:]
@@ -404,6 +455,22 @@ def _best_highlight_text(highlights: list[dict[str, Any]]) -> str:
         if excerpt:
             return excerpt
     return ''
+
+
+def _best_fresh_highlight(
+    highlights: list[dict[str, Any]],
+    stem_counts: dict[str, int] | None,
+) -> tuple[str, list[str], str]:
+    for item in highlights[:4]:
+        excerpt = _normalize_evidence_text(item.get('excerpt') or '', limit=240)
+        if not excerpt:
+            continue
+        stem = _record_stem(excerpt)
+        if stem_counts is not None and stem_counts.get(stem, 0) > 0:
+            continue
+        citations = [str(x).strip() for x in (item.get('citations') or []) if str(x).strip()]
+        return excerpt, citations, stem
+    return '', [], ''
 
 
 def _valid_clause(text: str) -> str:
@@ -432,9 +499,9 @@ def _inline_proposition(text: Any, *, kind: str = 'fact', limit: int = 260) -> s
             'under', 'over', 'across', 'by', 'from', 'modern', 'current', 'emerging', 'existing',
             'recent', 'previous', 'task', 'scalable', 'indoor', 'compared', 'built', 'collecting',
             'evaluation', 'hydrodynamic', 'while', 'when', 'because', 'although', 'if', 'once',
-            'after', 'before', 'where', 'whereas', 'as', 'during', 'despite'
+            'after', 'before', 'where', 'whereas', 'as', 'during', 'despite', 'building'
         }
-        if head.lower() in lowerable_heads and not head.isupper():
+        if head.lower() in lowerable_heads and (len(head) == 1 or not head.isupper()):
             clause = head.lower() + clause[len(head):]
     return clause
 
@@ -447,6 +514,22 @@ def _has_concrete_marker(text: str) -> bool:
 def _deslash(text: str) -> str:
     s = re.sub(r'\s*/\s*', ' and ', str(text or ''))
     s = re.sub(r'\band\s+and\b', 'and', s)
+    return re.sub(r'\s+', ' ', s).strip()
+
+
+def _neutralize_author_voice(text: Any) -> str:
+    s = re.sub(r'\s+', ' ', str(text or '').strip())
+    s = re.sub(r'(?i)^our\s+main\s+findings\s+show\s+that\s+', 'The findings indicate that ', s)
+    s = re.sub(r'(?i)^our\s+findings\s+show\s+that\s+', 'The findings show that ', s)
+    s = re.sub(r'(?i)^our\s+benchmarking\b', 'Benchmarking', s)
+    s = re.sub(r'(?i)^our\s+approach\b', 'The evaluated approach', s)
+    s = re.sub(
+        r'(?i)^we\s+term\s+(?:this\s+)?([^:]{2,100}):\s*',
+        lambda match: f"{match.group(1).strip()} describes ",
+        s,
+    )
+    s = re.sub(r'(?i)\bwe\s+have\s+found\s+', 'the evidence indicates ', s)
+    s = re.sub(r'(?i)\bwe\s+argue\s+that\s+', '', s)
     return re.sub(r'\s+', ' ', s).strip()
 
 
@@ -478,6 +561,18 @@ def _normalize_thesis(text: str, title: str) -> str:
 
 def _normalize_tension(text: str, title: str) -> str:
     s = _strip_title_prefix(text, title)
+    title_pat = re.escape(str(title or '').strip())
+    if title_pat:
+        s = re.sub(
+            rf'(?i)^(?:a|the)\s+(?:central|main|recurring|key)\s+tension\s+in\s+{title_pat}\s+is\s+(?:the\s+trade-off\s+between\s+)?',
+            '',
+            s,
+        )
+    s = re.sub(
+        r'(?i)^(?:a|the)\s+(?:central|main|recurring|key)\s+tension\s+in\s+[^,:]{1,160}\s+is\s+(?:the\s+trade-off\s+between\s+)?',
+        '',
+        s,
+    )
     s = re.sub(r'(?i)^(?:a|the)\s+(?:central|main|recurring|key)\s+tension\s+is\s+', '', s)
     s = re.sub(r'(?i)^(?:a|the)\s+tension\s+around\s+[^,:]+[:,-]\s*', '', s)
     s = re.sub(r'(?i)^(?:a|the)\s+tension\s+between\s+[^,:]+[:,-]\s*', '', s)
@@ -954,7 +1049,7 @@ def _support_text(value: Any, *, kind: str) -> str:
         text = _soft_evidence_clause(value, limit=260) or _normalize_evidence_text(value, limit=260) or _clean(_deslash(value or ''), limit=260)
     else:
         text = _normalize_evidence_text(value, limit=240) or _soft_evidence_clause(value, limit=240)
-    text = re.sub(r'\s+', ' ', str(text or '').strip()).strip(' .;:')
+    text = re.sub(r'\s+', ' ', str(text or '').strip())
     if kind == 'limit' and re.search(r'(?i)\b(?:abstract-level evidence|title-only evidence)\b', text):
         return ''
     if text and _SUMMARY_STYLE_RE.search(text):
@@ -979,7 +1074,7 @@ def _support_text(value: Any, *, kind: str) -> str:
         return ''
     if _SURVEY_META_RE.search(text) or _GENERIC_EVAL_SHOW_RE.search(text):
         return ''
-    if kind == 'limit' and not _LIMIT_SIGNAL_RE.search(text):
+    if kind == 'limit' and not _has_limit_signal(text):
         return ''
     return text
 
@@ -1036,6 +1131,44 @@ def _dedupe_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         cleaned['text'] = text
         cleaned['citations'] = cites
         out.append(cleaned)
+    return out
+
+
+def _evidence_text_key(text: Any) -> str:
+    return re.sub(r'[^a-z0-9]+', ' ', str(text or '').lower()).strip()
+
+
+def _matches_seen_evidence_key(key: str, seen: set[str]) -> bool:
+    if not key:
+        return False
+    for prior in seen:
+        if key == prior:
+            return True
+        if len(key) >= 80 and len(prior) >= 80 and (key in prior or prior in key):
+            return True
+    return False
+
+
+def _dedupe_evidence_sentences_in_paragraphs(paragraphs: list[str]) -> list[str]:
+    from tooling.common import split_sentences
+
+    out: list[str] = []
+    seen: set[str] = set()
+    for paragraph in paragraphs:
+        kept: list[str] = []
+        for sentence in split_sentences(paragraph):
+            without_cites = re.sub(r'\[@[^\]]+\]', '', sentence)
+            compact = re.sub(r'\s+', ' ', without_cites).strip()
+            key = _evidence_text_key(compact)
+            evidence_sized = len(compact) >= 80 and len(key.split()) >= 12
+            if evidence_sized and _matches_seen_evidence_key(key, seen):
+                continue
+            if evidence_sized:
+                seen.add(key)
+            kept.append(sentence.strip())
+        rebuilt = ' '.join(part for part in kept if part).strip()
+        if rebuilt:
+            out.append(rebuilt)
     return out
 
 
@@ -1455,7 +1588,11 @@ def _compose_cluster_paragraph(
             reuse_count = evidence_stem_counts.get(stem, 0)
             chosen = dict(record)
             if reuse_count > 0:
-                chosen['text'] = _rephrase_reused_text(chosen.get('text') or '', reuse_count=reuse_count)
+                original = re.sub(r'\s+', ' ', str(chosen.get('text') or '').strip()).strip(' .;:')
+                rewritten = _rephrase_reused_text(original, reuse_count=reuse_count)
+                if re.sub(r'\s+', ' ', rewritten).strip(' .;:').lower() == original.lower():
+                    continue
+                chosen['text'] = rewritten
             selected_records.append(chosen)
             if stem:
                 evidence_stem_counts[stem] = reuse_count + 1
@@ -1464,25 +1601,28 @@ def _compose_cluster_paragraph(
         has_support = True
     if not has_support:
         return ''
+    evidence_sentence_count = 0
     for record in selected_records:
         record_text = _support_text(record.get('text') or '', kind='fact')
         if record_text:
             sentences.append(_sentence_with_cites(record_text, record.get('citations') or [], max_keys=4))
+            evidence_sentence_count += 1
     if kind == 'evaluation':
         benchmark = _first_nonempty(benchmarks)
         benchmark_text = _support_text(benchmark.get('text') or '', kind='fact') if benchmark else ''
         if benchmark_text:
             sentences.append(_sentence_with_cites(benchmark_text, benchmark.get('citations') or [], max_keys=4))
+            evidence_sentence_count += 1
         if limits:
             limit_text = _inline_proposition(limits[0].get('text') or '', kind='limit', limit=220)
             seen_limit_texts = {
-                re.sub(r'[^a-z0-9]+', ' ', _clause(record.get('text') or '', limit=220).lower()).strip()
+                _evidence_text_key(_support_text(record.get('text') or '', kind='fact'))
                 for record in selected_records
                 if str(record.get('text') or '').strip()
             }
             if benchmark_text:
-                seen_limit_texts.add(re.sub(r'[^a-z0-9]+', ' ', _clause(benchmark_text, limit=220).lower()).strip())
-            limit_key = re.sub(r'[^a-z0-9]+', ' ', limit_text.lower()).strip() if limit_text else ''
+                seen_limit_texts.add(_evidence_text_key(benchmark_text))
+            limit_key = _evidence_text_key(limit_text)
             if limit_text and limit_key and limit_key not in seen_limit_texts:
                 limit_options = _job_template_options(
                     'cluster',
@@ -1498,6 +1638,7 @@ def _compose_cluster_paragraph(
                     stem_counts=stem_counts,
                 )
                 sentences.append(_sentence_with_cites(limit_sentence, limits[0].get('citations') or [], max_keys=4))
+                evidence_sentence_count += 1
         elif protocol_citations:
             limit_options = _job_template_options(
                 'cluster',
@@ -1512,6 +1653,8 @@ def _compose_cluster_paragraph(
                 stem_counts=stem_counts,
             )
             sentences.append(_sentence_with_cites(limit_sentence, protocol_citations, max_keys=4))
+    if evidence_sentence_count == 0:
+        return ''
     include_closing = len(selected_records) == 0
     if kind == 'evaluation' and (limits or protocol_citations):
         include_closing = False
@@ -1549,6 +1692,7 @@ def _compose_synthesis_paragraph(
     cluster_b: dict[str, Any],
     cards: list[dict[str, Any]],
     stem_counts: dict[str, int] | None = None,
+    evidence_stem_counts: dict[str, int] | None = None,
 ) -> str:
     axes = _role_axes(plan_item, _uniq((cluster_a.get('axes') or []) + (cluster_b.get('axes') or [])))
     axis_text = _normalized_axis_series(axes, limit=3) or _tmpl('fallbacks', 'lens')
@@ -1576,15 +1720,22 @@ def _compose_synthesis_paragraph(
         max_keys=0,
     )
     sentences: list[str] = []
+    seen_evidence_pairs: set[str] = set()
     for card in cards[:2]:
         axis = _normalize_axis(card.get('axis') or '') or axis_text
-        a_text = _best_highlight_text([x for x in (card.get('A_highlights') or []) if isinstance(x, dict)])
-        b_text = _best_highlight_text([x for x in (card.get('B_highlights') or []) if isinstance(x, dict)])
+        a_text, a_cites, a_stem = _best_fresh_highlight(
+            [x for x in (card.get('A_highlights') or []) if isinstance(x, dict)],
+            evidence_stem_counts,
+        )
+        b_text, b_cites, b_stem = _best_fresh_highlight(
+            [x for x in (card.get('B_highlights') or []) if isinstance(x, dict)],
+            evidence_stem_counts,
+        )
         a_phrase = _support_text(a_text, kind='fact')
         b_phrase = _support_text(b_text, kind='fact')
         cites = _uniq(
-            [str(x).strip() for item in (card.get('A_highlights') or []) if isinstance(item, dict) for x in (item.get('citations') or [])]
-            + [str(x).strip() for item in (card.get('B_highlights') or []) if isinstance(item, dict) for x in (item.get('citations') or [])]
+            a_cites
+            + b_cites
             + [str(x).strip() for x in (card.get('citations') or []) if str(x).strip()]
         )
         if a_phrase and b_phrase:
@@ -1594,6 +1745,10 @@ def _compose_synthesis_paragraph(
             a_prop = ''
             b_prop = ''
         if a_prop and b_prop:
+            pair_key = f"{_record_stem(a_prop)}||{_record_stem(b_prop)}"
+            if pair_key in seen_evidence_pairs:
+                continue
+            seen_evidence_pairs.add(pair_key)
             sentences.append(
                 _sentence_with_cites(
                     f'{_axis_frame(axis)}, the case for {cluster_a.get("label")} is best supported by evidence that {a_prop}, whereas the case for {cluster_b.get("label")} is better supported by evidence that {b_prop}',
@@ -1601,6 +1756,17 @@ def _compose_synthesis_paragraph(
                     max_keys=5,
                 )
             )
+            if evidence_stem_counts is not None:
+                if a_stem:
+                    evidence_stem_counts[a_stem] = evidence_stem_counts.get(a_stem, 0) + 1
+                if b_stem:
+                    evidence_stem_counts[b_stem] = evidence_stem_counts.get(b_stem, 0) + 1
+    if not sentences and evidence_stem_counts is not None:
+        fallback_cites = _uniq(
+            [str(x).strip() for card in cards[:2] for x in (card.get('citations') or []) if str(x).strip()]
+        )
+        if fallback_cites:
+            return _sentence_with_cites(lead_sentence, fallback_cites, max_keys=5)
     if not sentences:
         a_fallback = _first_nonempty(cluster_a.get('facts') or [])
         b_fallback = _first_nonempty(cluster_b.get('facts') or [])
@@ -1942,14 +2108,18 @@ def _make_paragraphs(
         )
         if setup_paragraph:
             paragraphs.append(setup_paragraph)
+            if evidence_stem_counts is not None and setup_seed.get('text'):
+                setup_stem = _record_stem(setup_seed.get('text') or '')
+                if setup_stem:
+                    evidence_stem_counts[setup_stem] = evidence_stem_counts.get(setup_stem, 0) + 1
 
     for item in plan[1:] if plan else []:
         role = str(item.get('argument_role') or '').strip()
         paragraph = ''
         if role in {'mechanism_cluster_A', 'implementation_cluster_A', 'evaluation_cluster_A'}:
-            facts = _take(profiles['A']['facts'], states['A'], 'facts', 1 if role != 'evaluation_cluster_A' else 0)
-            anchors_local = _take_with_fallback(profiles['A']['anchors'], states['A'], 'anchors', global_support['anchors'], states['global'], 'anchors', 1 if role != 'mechanism_cluster_A' else 1)
-            claims_local = _take_with_fallback(profiles['A']['claims'], states['A'], 'claims', global_support['claims'], states['global'], 'claims', 1 if role in {'mechanism_cluster_A', 'implementation_cluster_A'} else 0)
+            facts = _take(profiles['A']['facts'], states['A'], 'facts', 2 if role != 'evaluation_cluster_A' else 0)
+            anchors_local = _take_with_fallback(profiles['A']['anchors'], states['A'], 'anchors', global_support['anchors'], states['global'], 'anchors', 2)
+            claims_local = _take_with_fallback(profiles['A']['claims'], states['A'], 'claims', global_support['claims'], states['global'], 'claims', 2 if role in {'mechanism_cluster_A', 'implementation_cluster_A'} else 0)
             limits_local = _take_with_fallback(profiles['A']['limits'], states['A'], 'limits', global_support['limits'], states['global'], 'limits', 1 if role == 'evaluation_cluster_A' else 0)
             benchmarks = _take(benchmark_records, states['global'], 'benchmarks', 1 if role == 'evaluation_cluster_A' else 0)
             paragraph = _compose_cluster_paragraph(
@@ -1968,9 +2138,9 @@ def _make_paragraphs(
                 evidence_stem_counts=evidence_stem_counts,
             )
         elif role in {'contrast_cluster_B', 'implementation_cluster_B', 'evaluation_cluster_B'}:
-            facts = _take(profiles['B']['facts'], states['B'], 'facts', 1 if role != 'evaluation_cluster_B' else 0)
-            anchors_local = _take_with_fallback(profiles['B']['anchors'], states['B'], 'anchors', global_support['anchors'], states['global'], 'anchors', 1 if role != 'contrast_cluster_B' else 1)
-            claims_local = _take_with_fallback(profiles['B']['claims'], states['B'], 'claims', global_support['claims'], states['global'], 'claims', 1 if role in {'contrast_cluster_B', 'implementation_cluster_B'} else 0)
+            facts = _take(profiles['B']['facts'], states['B'], 'facts', 2 if role != 'evaluation_cluster_B' else 0)
+            anchors_local = _take_with_fallback(profiles['B']['anchors'], states['B'], 'anchors', global_support['anchors'], states['global'], 'anchors', 2)
+            claims_local = _take_with_fallback(profiles['B']['claims'], states['B'], 'claims', global_support['claims'], states['global'], 'claims', 2 if role in {'contrast_cluster_B', 'implementation_cluster_B'} else 0)
             limits_local = _take_with_fallback(profiles['B']['limits'], states['B'], 'limits', global_support['limits'], states['global'], 'limits', 1 if role == 'evaluation_cluster_B' else 0)
             benchmarks = _take(benchmark_records, states['global'], 'benchmarks', 1 if role == 'evaluation_cluster_B' else 0)
             paragraph = _compose_cluster_paragraph(
@@ -1996,6 +2166,7 @@ def _make_paragraphs(
                 cluster_b=profiles['B'],
                 cards=cards,
                 stem_counts=opener_stem_counts,
+                evidence_stem_counts=evidence_stem_counts,
             )
         elif role == 'decision_guidance':
             a_decision = _first_nonempty(_take_with_fallback(profiles['A']['claims'], states['A'], 'claims', profiles['A']['anchors'], states['A'], 'anchors', 1)) or _first_nonempty(profiles['A']['facts'])
@@ -2092,6 +2263,7 @@ def _make_paragraphs(
         citation_keys.update(new_keys)
         extra_breadth_budget -= 1
 
+    paragraphs = _dedupe_evidence_sentences_in_paragraphs(paragraphs)
     cleaned: list[str] = []
     seen_keys: set[str] = set()
     for paragraph in paragraphs:
@@ -2125,7 +2297,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, backup_existing, decisions_has_approval, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, upsert_checkpoint_block
+    from tooling.common import atomic_write_text, backup_existing, decisions_has_approval, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, refresh_sections_manifest, upsert_checkpoint_block
     from tooling.pipeline_text import slug_unit_id
     from tooling.quality_gate import check_unit_outputs, write_quality_report
 
@@ -2143,6 +2315,19 @@ def main() -> int:
     # even during explicit unit reruns. Only honor the new hard-freeze marker.
     freeze_marker = sections_dir / 'h3_bodies.freeze.hard.ok'
     ensure_dir(sections_dir)
+    prerequisite_relpaths = inputs or [
+        'DECISIONS.md',
+        'outline/outline.yml',
+        'outline/writer_context_packs.jsonl',
+        'outline/evidence_drafts.jsonl',
+        'outline/evidence_bindings.jsonl',
+        'citations/ref.bib',
+    ]
+    prerequisites = [workspace / rel for rel in prerequisite_relpaths]
+    prerequisites.append(Path(__file__).resolve())
+    marker_is_current = _refinement_marker_is_current(marker_path, prerequisites)
+    if marker_path.exists() and not marker_is_current:
+        marker_path.unlink()
 
     decisions_path = workspace / 'DECISIONS.md'
     if not decisions_has_approval(decisions_path, 'C2'):
@@ -2208,7 +2393,7 @@ def main() -> int:
                     continue
                 path = sections_dir / f'{slug_unit_id(sub_id)}.md'
                 should_write = True
-                if freeze_marker.exists() and path.exists() and path.stat().st_size > 0:
+                if (freeze_marker.exists() or marker_is_current) and path.exists() and path.stat().st_size > 0:
                     should_write = False
                 if should_write:
                     pack = packs.get(sub_id) or {'title': title}
@@ -2226,12 +2411,17 @@ def main() -> int:
                 add_record({'kind': 'h3', 'id': sub_id, 'title': title, 'section_id': sec_id, 'section_title': sec_title, 'path': str(path.relative_to(workspace))})
 
     atomic_write_text(out_path, '\n'.join(json.dumps(r, ensure_ascii=False) for r in records).rstrip() + '\n')
-    atomic_write_text(marker_path, f'h3 bodies refined at {generated_at}\n')
+    refresh_sections_manifest(workspace, out_rel)
 
     issues = check_unit_outputs(skill='subsection-writer', workspace=workspace, outputs=[out_rel])
     if issues:
         write_quality_report(workspace=workspace, unit_id=unit_id, skill='subsection-writer', issues=issues)
         return 2
+    if not marker_is_current:
+        print(
+            f'Bootstrap H3 bodies generated. Review and refine them, then create `{marker_rel}` '
+            'after semantic QA before rerunning this unit.'
+        )
     return 0
 
 

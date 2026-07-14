@@ -68,7 +68,10 @@ def main() -> int:
             if pid:
                 mapped_ids.add(pid)
 
-    prioritized = _prioritize(core_rows, mapped_ids=mapped_ids, max_papers=int(args.max_papers))
+    # The full-text limit is a download/extraction budget. Abstract mode performs
+    # no downloads, so its index must retain one traceability record per core paper.
+    max_papers = int(args.max_papers) if mode == "fulltext" else len(core_rows)
+    prioritized = _prioritize(core_rows, mapped_ids=mapped_ids, max_papers=max_papers)
 
     if mode != "fulltext":
         # Evidence mode "abstract": do not download PDFs; just emit an index so downstream

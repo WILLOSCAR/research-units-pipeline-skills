@@ -1,0 +1,236 @@
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PIPELINE_CLI = REPO_ROOT / "scripts" / "pipeline.py"
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="rh",
+        description="Outcome-first interface for Goal -> Run -> Evidence -> Improve.",
+    )
+    stages = parser.add_subparsers(dest="stage", required=True)
+
+    goal = stages.add_parser("goal", help="Create a durable research goal and workspace")
+    goal_actions = goal.add_subparsers(dest="action", required=True)
+    goal_create = goal_actions.add_parser("create", help="Create a goal and select its workflow")
+    goal_create.add_argument("--topic", required=True)
+    goal_create.add_argument("--workflow", default="", help="Workflow slug; omit to use routing hints")
+    goal_create.add_argument("--workspace", default="")
+    goal_create.add_argument("--run", action="store_true", help="Start the run immediately")
+    goal_create.add_argument("--strict", action="store_true")
+
+    run = stages.add_parser("run", help="Start, inspect, or resume a run")
+    run_actions = run.add_subparsers(dest="action", required=True)
+    for action in ("start", "resume"):
+        action_parser = run_actions.add_parser(action, help=f"{action.title()} unit execution")
+        action_parser.add_argument("--workspace", required=True)
+        action_parser.add_argument("--max-steps", type=int, default=999)
+        action_parser.add_argument("--strict", action="store_true")
+    run_status = run_actions.add_parser("status", help="Inspect state without executing units")
+    run_status.add_argument("--workspace", required=True)
+
+    evidence = stages.add_parser("evidence", help="Inspect run evidence and deliverables")
+    evidence_actions = evidence.add_subparsers(dest="action", required=True)
+    evidence_inspect = evidence_actions.add_parser("inspect", help="Write audit and Artifact-index views")
+    evidence_inspect.add_argument("--workspace", required=True)
+    evidence_inspect.add_argument("--excerpt", action="store_true", help="Write portable Markdown and TSV excerpts")
+
+    improve = stages.add_parser("improve", help="Diagnose a weak or blocked run")
+    improve_actions = improve.add_subparsers(dest="action", required=True)
+    improve_diagnose = improve_actions.add_parser("diagnose", help="Map observed defects to repair surfaces")
+    improve_diagnose.add_argument("--workspace", required=True)
+
+    args = parser.parse_args(argv)
+    return _dispatch(args)
+
+
+def _dispatch(args: argparse.Namespace) -> int:
+    if (args.stage, args.action) == ("goal", "create"):
+        command = ["kickoff", "--topic", args.topic]
+        if args.workflow:
+            command.extend(["--pipeline", args.workflow])
+        if args.workspace:
+            command.extend(["--workspace", args.workspace])
+        if args.run:
+            command.append("--run")
+        if args.strict:
+            command.append("--strict")
+        return _run_pipeline(*command)
+
+    if args.stage == "run" and args.action in {"start", "resume"}:
+        if not _workspace_exists(args.workspace):
+            return 2
+        command = ["run", "--workspace", args.workspace, "--max-steps", str(args.max_steps)]
+        if args.strict:
+            command.append("--strict")
+        return _run_pipeline(*command)
+
+    if (args.stage, args.action) == ("run", "status"):
+        return _run_status(Path(args.workspace).resolve())
+
+    if (args.stage, args.action) == ("evidence", "inspect"):
+        return _inspect_evidence(Path(args.workspace).resolve(), write_excerpt=bool(args.excerpt))
+
+    if (args.stage, args.action) == ("improve", "diagnose"):
+        return _diagnose_improvement(Path(args.workspace).resolve())
+
+    raise SystemExit("Unsupported product command")
+
+
+def _run_pipeline(*args: str) -> int:
+    completed = subprocess.run([sys.executable, str(PIPELINE_CLI), *args], cwd=REPO_ROOT, check=False)
+    return int(completed.returncode)
+
+
+def _workspace_exists(value: str) -> bool:
+    workspace = Path(value).resolve()
+    if workspace.exists():
+        return True
+    print(f"Workspace not found: {workspace}", file=sys.stderr)
+    return False
+
+
+def _run_status(workspace: Path) -> int:
+    from tooling.harness import (
+        build_doctor_payload,
+        render_doctor_report,
+        write_doctor_json,
+        write_doctor_report,
+    )
+
+    if not workspace.exists():
+        print(f"Workspace not found: {workspace}", file=sys.stderr)
+        return 2
+
+    exit_code, payload = build_doctor_payload(workspace=workspace, repo_root=REPO_ROOT)
+    write_doctor_report(workspace=workspace, report=render_doctor_report(payload))
+    write_doctor_json(workspace=workspace, payload=payload)
+
+    identity = payload.get("run_identity") or {}
+    next_unit = payload.get("next_runnable") or {}
+    issues = payload.get("harness_issues") or []
+    print(f"Run: {identity.get('run_id') or workspace.name}")
+    print(f"State: {identity.get('state') or 'legacy workspace'}")
+    print(f"Checkpoint: {payload.get('current_checkpoint') or 'unknown'}")
+    if next_unit:
+        print(
+            "Next: "
+            f"{next_unit.get('unit_id')} {next_unit.get('title')} "
+            f"[{next_unit.get('status') or 'unknown'}]"
+        )
+    else:
+        print("Next: no runnable Unit")
+    print(f"Issues: {len(issues)}")
+    if next_unit and not issues:
+        print(f"Resume: uv run rh run resume --workspace {workspace}")
+    else:
+        print(f"Inspect: {workspace / 'output' / 'DOCTOR_REPORT.md'}")
+    return int(exit_code)
+
+
+def _inspect_evidence(workspace: Path, *, write_excerpt: bool) -> int:
+    from tooling.harness import (
+        build_artifact_pack_payload,
+        build_run_audit_payload,
+        render_artifact_pack_excerpt_markdown,
+        render_artifact_pack_excerpt_tsv,
+        render_artifact_pack_report,
+        render_run_audit_report,
+        write_artifact_pack_excerpt_markdown,
+        write_artifact_pack_excerpt_tsv,
+        write_artifact_pack_json,
+        write_artifact_pack_report,
+        write_run_audit_json,
+        write_run_audit_report,
+    )
+
+    if not workspace.exists():
+        print(f"Workspace not found: {workspace}", file=sys.stderr)
+        return 2
+
+    audit_code, audit = build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+    write_run_audit_report(workspace=workspace, report=render_run_audit_report(audit))
+    write_run_audit_json(workspace=workspace, payload=audit)
+    pack_code, pack = build_artifact_pack_payload(workspace=workspace, repo_root=REPO_ROOT)
+    write_artifact_pack_report(workspace=workspace, report=render_artifact_pack_report(pack))
+    write_artifact_pack_json(workspace=workspace, payload=pack)
+    if write_excerpt:
+        write_artifact_pack_excerpt_markdown(
+            workspace=workspace,
+            excerpt=render_artifact_pack_excerpt_markdown(pack),
+        )
+        write_artifact_pack_excerpt_tsv(
+            workspace=workspace,
+            excerpt=render_artifact_pack_excerpt_tsv(pack),
+        )
+
+    run_state = audit.get("run_state") or {}
+    summary = pack.get("summary") or {}
+    print(f"Evidence: {audit.get('verdict') or 'ATTENTION'}")
+    print(
+        "Targets: "
+        f"{run_state.get('target_artifacts_present', 0)}/{run_state.get('target_artifacts_total', 0)}"
+    )
+    print(f"Artifacts: {summary.get('present', 0)}/{summary.get('total', 0)}")
+    from tooling.run_state import latest_evaluation
+
+    evaluation = latest_evaluation(workspace)
+    if evaluation:
+        print(
+            f"Scorecard: {evaluation.get('verdict') or 'unknown'} "
+            f"{evaluation.get('score', '?')}/100 "
+            f"[{evaluation.get('workflow') or 'unknown'}]"
+        )
+    else:
+        scorecards = sorted((workspace / "output").glob("*_SCORECARD.json"))
+        if scorecards:
+            try:
+                scorecard = json.loads(scorecards[-1].read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                scorecard = {}
+            if isinstance(scorecard, dict):
+                print(
+                    f"Scorecard: {scorecard.get('verdict') or 'unknown'} "
+                    f"{scorecard.get('score', '?')}/100"
+                )
+    print(f"Inspect: {workspace / 'output' / 'ARTIFACT_PACK.md'}")
+    return max(int(audit_code), int(pack_code))
+
+
+def _diagnose_improvement(workspace: Path) -> int:
+    from tooling.harness import (
+        build_improvement_payload,
+        render_improvement_report,
+        write_improvement_json,
+        write_improvement_report,
+    )
+
+    if not workspace.exists():
+        print(f"Workspace not found: {workspace}", file=sys.stderr)
+        return 2
+
+    exit_code, payload = build_improvement_payload(workspace=workspace, repo_root=REPO_ROOT)
+    write_improvement_report(workspace=workspace, report=render_improvement_report(payload))
+    write_improvement_json(workspace=workspace, payload=payload)
+    suggestions = payload.get("suggestions") if isinstance(payload.get("suggestions"), list) else []
+    history = payload.get("repair_history") if isinstance(payload.get("repair_history"), dict) else {}
+    print(f"Improve: {payload.get('verdict') or 'ATTENTION'}")
+    print(f"Open repairs: {len(suggestions)}")
+    print(f"Resolved repairs: {history.get('resolved_count', 0)}")
+    if suggestions:
+        first = suggestions[0] if isinstance(suggestions[0], dict) else {}
+        print(f"First repair: {first.get('repair_surface') or 'inspect report'}")
+    print(f"Inspect: {workspace / 'output' / 'IMPROVEMENT_REPORT.md'}")
+    return int(exit_code)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

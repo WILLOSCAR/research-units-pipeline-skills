@@ -26,6 +26,8 @@ The pipeline also expects:
 
 - `output/APPENDIX.md`
 - `output/REPORT.json`
+- `output/IDEA_SCORECARD.md`
+- `output/IDEA_SCORECARD.json`
 
 Trace artifacts stay under `output/trace/`, so the final memo can stay relatively clean while the intermediate reasoning remains auditable.
 
@@ -48,14 +50,15 @@ The difference matters:
 
 The current pipeline defaults are:
 
-- `core_size=100`
-- `max_results=1800`
+- `core_size=36`
+- `max_results=240`
 - `evidence_mode=abstract`
 - direction pool size `12-24`
 - shortlist size `3-5`
 - final report lead directions `3`
 
-That means the pipeline is designed to create a compact but non-trivial literature base before generating candidate ideas.
+That means the pipeline keeps enough literature to expose competing signals
+without paying survey-scale context costs before focus is locked.
 
 ## 5. Stage Flow
 
@@ -66,7 +69,7 @@ That means the pipeline is designed to create a compact but non-trivial literatu
 | `C2` | build a literature landscape and choose focus lenses | `outline/taxonomy.yml`, updated `DECISIONS.md` |
 | `C3` | convert papers into signal tables | `papers/paper_notes.jsonl`, `output/trace/IDEA_SIGNAL_TABLE.md` |
 | `C4` | generate and screen candidate directions | `output/trace/IDEA_DIRECTION_POOL.md`, `output/trace/IDEA_SCREENING_TABLE.md` |
-| `C5` | converge to shortlist and write the memo | `output/trace/IDEA_SHORTLIST.md`, `output/REPORT.md`, `output/APPENDIX.md`, `output/REPORT.json` |
+| `C5` | converge, write, score, and self-loop the memo | `output/trace/IDEA_SHORTLIST.md`, `output/REPORT.md`, `output/APPENDIX.md`, `output/REPORT.json`, `output/IDEA_SCORECARD.json` |
 
 ## 6. The Key Artifacts
 
@@ -82,6 +85,11 @@ These are the files that actually matter when you inspect or debug a run:
 | `output/trace/IDEA_SCREENING_TABLE.md` | makes the shortlist decision auditable instead of purely stylistic |
 | `output/trace/IDEA_SHORTLIST.md` | the final direction shortlist before memo writing |
 | `output/REPORT.md` | the final discussion memo |
+| `output/IDEA_SCORECARD.json` | machine-readable verdict for trace consistency, actionability, diversity, and literature anchors |
+
+The scorecard validates the observable memo contract. It does not claim that a
+direction is scientifically novel; that still requires deeper reading and
+expert judgment.
 
 ## 7. How To Run It
 

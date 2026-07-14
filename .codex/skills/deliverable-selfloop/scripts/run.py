@@ -11,74 +11,81 @@ def _count_shortlist(md: str) -> int:
 
 
 def _brief_gate(workspace: Path) -> tuple[str, list[str], str, str]:
-    path = workspace / 'output' / 'SNAPSHOT.md'
-    issues: list[str] = []
-    text = path.read_text(encoding='utf-8', errors='ignore') if path.exists() else ''
-    if not path.exists() or not text.strip():
-        issues.append('Missing `output/SNAPSHOT.md`.')
-    required_sections = ['## Scope', '## What to read first']
-    for section in required_sections:
-        if text and section not in text:
-            issues.append(f'`output/SNAPSHOT.md` is missing `{section}`.')
-    pointer_count = len(re.findall(r'(?m)^- P[0-9]{4}\b', text))
-    if text and pointer_count < 3:
-        issues.append('`output/SNAPSHOT.md` should include at least 3 explicit paper pointers.')
+    from tooling.brief_evaluation import write_research_brief_scorecard
+
+    _, scorecard = write_research_brief_scorecard(workspace)
+    issues = (
+        [
+            str(item.get('message') or item.get('code') or 'scorecard failure')
+            for item in scorecard['failures']
+        ]
+        if scorecard['verdict'] == 'FAIL'
+        else []
+    )
     return (
         'research brief (`output/SNAPSHOT.md`)',
         issues,
-        'The briefing deliverable is evaluated as a compact orientation memo with explicit reading pointers.',
-        'Fix the missing sections or pointers in `output/SNAPSHOT.md` and rerun this unit.',
+        f"The research-brief deliverable received {scorecard['score']}/100 against its structure, compactness, and source-traceability rubric.",
+        'Repair the scorecard failures at their named upstream surfaces and rerun this unit.',
     )
 
 
 def _paper_review_gate(workspace: Path) -> tuple[str, list[str], str, str]:
+    from tooling.review_evaluation import write_paper_review_scorecard
+
     path = workspace / 'output' / 'REVIEW.md'
     issues: list[str] = []
     text = path.read_text(encoding='utf-8', errors='ignore') if path.exists() else ''
     if not path.exists() or not text.strip():
         issues.append('Missing `output/REVIEW.md`.')
-    required_sections = [
-        '### Summary',
-        '### Novelty',
-        '### Soundness',
-        '### Clarity',
-        '### Impact',
-        '### Major Concerns',
-        '### Minor Comments',
-        '### Recommendation',
-    ]
-    for section in required_sections:
-        if text and section not in text:
-            issues.append(f'`output/REVIEW.md` is missing `{section}`.')
+    _, scorecard = write_paper_review_scorecard(workspace)
+    if scorecard['verdict'] == 'FAIL':
+        issues.extend(str(item.get('message') or item.get('code') or 'scorecard failure') for item in scorecard['failures'])
     return (
         'paper review (`output/REVIEW.md`)',
         issues,
-        'The paper-review deliverable is evaluated as a traceable critique with stable rubric sections.',
-        'Fix the missing review sections in `output/REVIEW.md` and rerun this unit.',
+        f"The paper-review deliverable received {scorecard['score']}/100 against the traceability rubric.",
+        'Repair the scorecard failures at their named upstream surfaces and rerun this unit.',
     )
 
 
 def _evidence_review_gate(workspace: Path) -> tuple[str, list[str], str, str]:
-    path = workspace / 'output' / 'SYNTHESIS.md'
-    issues: list[str] = []
-    text = path.read_text(encoding='utf-8', errors='ignore') if path.exists() else ''
-    if not path.exists() or not text.strip():
-        issues.append('Missing `output/SYNTHESIS.md`.')
-    required_sections = [
-        '## Included studies summary',
-        '## Findings by theme',
-        '## Risk of bias',
-        '## Supported conclusions',
-        '## Needs more evidence',
-    ]
-    for section in required_sections:
-        if text and section not in text:
-            issues.append(f'`output/SYNTHESIS.md` is missing `{section}`.')
+    from tooling.evidence_review_evaluation import write_evidence_review_scorecard
+
+    _, scorecard = write_evidence_review_scorecard(workspace)
+    issues = (
+        [
+            str(item.get('message') or item.get('code') or 'scorecard failure')
+            for item in scorecard['failures']
+        ]
+        if scorecard['verdict'] == 'FAIL'
+        else []
+    )
     return (
         'evidence review synthesis (`output/SYNTHESIS.md`)',
         issues,
-        'The evidence-review deliverable is evaluated as a bounded synthesis grounded in extracted evidence.',
-        'Fix the missing synthesis sections in `output/SYNTHESIS.md` and rerun this unit.',
+        f"The evidence-review deliverable received {scorecard['score']}/100 for protocol-to-synthesis traceability and bounded conclusions.",
+        'Repair the scorecard failures at their named upstream surfaces and rerun this unit.',
+    )
+
+
+def _idea_brainstorm_gate(workspace: Path) -> tuple[str, list[str], str, str]:
+    from tooling.idea_evaluation import write_idea_brainstorm_scorecard
+
+    _, scorecard = write_idea_brainstorm_scorecard(workspace)
+    issues = (
+        [
+            str(item.get('message') or item.get('code') or 'scorecard failure')
+            for item in scorecard['failures']
+        ]
+        if scorecard['verdict'] == 'FAIL'
+        else []
+    )
+    return (
+        'research idea memo (`output/REPORT.md` + trace chain)',
+        issues,
+        f"The idea-brainstorm deliverable received {scorecard['score']}/100 for discussion readiness, actionability, diversity, and evidence traceability.",
+        'Repair the scorecard failures at their named upstream surfaces and rerun this unit.',
     )
 
 
@@ -124,13 +131,16 @@ def main() -> int:
     next_step = ''
     if deliverable_kind == 'brief' or profile == 'research-brief':
         deliverable, issues, summary, next_step = _brief_gate(workspace)
-        changes_made = '- Checked required brief sections and whether the deliverable includes explicit paper pointers.'
+        changes_made = '- Wrote `output/BRIEF_SCORECARD.md` and `.json`, then checked briefing structure, compactness, and core-set pointers.'
     elif deliverable_kind == 'paper_review' or profile == 'paper-review':
         deliverable, issues, summary, next_step = _paper_review_gate(workspace)
-        changes_made = '- Checked the rubric sections and overall review structure for `output/REVIEW.md`.'
+        changes_made = '- Wrote `output/REVIEW_SCORECARD.md` and `.json`, then checked the machine-readable claim/evidence/review chain.'
     elif deliverable_kind == 'evidence_review' or profile == 'evidence-review':
         deliverable, issues, summary, next_step = _evidence_review_gate(workspace)
-        changes_made = '- Checked the synthesis structure and bounded-evidence sections for `output/SYNTHESIS.md`.'
+        changes_made = '- Wrote `output/EVIDENCE_SCORECARD.md` and `.json`, then checked protocol clauses, screening reasons, extraction coverage, bias fields, synthesis pointers, and bounded conclusions.'
+    elif profile == 'idea-brainstorm':
+        deliverable, issues, summary, next_step = _idea_brainstorm_gate(workspace)
+        changes_made = '- Wrote `output/IDEA_SCORECARD.md` and `.json`, then checked the memo bundle, trace chain, direction actionability, diversity, and core-set pointers.'
     else:
         for path in [signal_table, pool, screening, shortlist, report_md, appendix, report_json]:
             if not path.exists() or path.stat().st_size <= 0:

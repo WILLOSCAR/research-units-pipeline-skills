@@ -95,7 +95,7 @@ Keep these stable:
 
 ## Quick Start
 
-- `python .codex/skills/front-matter-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/front-matter-writer/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 
@@ -117,7 +117,7 @@ When running this skill in compatibility mode, `scripts/run.py` currently reads 
 
 ### Quick Start
 
-- `python .codex/skills/front-matter-writer/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/front-matter-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -129,7 +129,7 @@ When running this skill in compatibility mode, `scripts/run.py` currently reads 
 
 ### Examples
 
-- `python .codex/skills/front-matter-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/front-matter-writer/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

@@ -51,8 +51,8 @@ description: |
 
 ### Quick Start
 
-- `python .codex/skills/unit-executor/scripts/run.py --help`
-- `python .codex/skills/unit-executor/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/unit-executor/scripts/run.py --help`
+- `uv run python .codex/skills/unit-executor/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -61,9 +61,9 @@ description: |
 ### Examples
 
 - Run exactly one unit (strict):
-  - `python .codex/skills/unit-executor/scripts/run.py --workspace <ws> --strict`
+  - `uv run python .codex/skills/unit-executor/scripts/run.py --workspace <workspace> --strict`
 - Equivalent repo wrapper:
-  - `python scripts/pipeline.py run-one --workspace <ws> --strict`
+  - `uv run python scripts/pipeline.py run-one --workspace <workspace> --strict`
 
 ### Notes
 

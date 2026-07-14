@@ -81,7 +81,7 @@
     }
   ],
   "targets_template": {
-    "candidate_retrieval_pool": ">=800",
+    "candidate_retrieval_pool": "80-240 focused candidates; expand only when the evidence boundary requires it",
     "signal_table_rows": "10-20",
     "memo_lead_directions": "3",
     "reading_guide_rows_per_lead_direction": ">=3 anchor papers"

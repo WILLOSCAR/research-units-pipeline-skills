@@ -68,8 +68,9 @@ User goal → choose:
   - `writer-context-pack` (C4→C5 bridge) makes packs debuggable
   - `subsection-writer` writes per-file units
   - `writer-selfloop` fixes only failing `sections/*.md`
-  - `paragraph-curator` / `style-harmonizer` / `opener-variator` converge structure and de-template the prose
-  - `evaluation-anchor-checker` is the late section-level numeric hygiene sweep before merge
+  - `style-harmonizer` / `opener-variator` apply the targeted style queue
+  - `section-logic-polisher` checks thesis and flow; `paragraph-curator` then compacts adjacent paragraph boundaries without deleting prose
+  - `evaluation-anchor-checker` is the last section rewrite; `argument-selfloop` then snapshots moves and section hashes before merge
   - `draft-polisher` removes generator voice without changing citation keys
 
 ## Strict-mode behavior (by design)
@@ -92,10 +93,10 @@ The runner may BLOCK even if the JSONL exists; add the marker after refinement, 
 
 ## Optional CLI helpers (debug only)
 
-- Kickoff + run (optional; convenient, not required): `python scripts/pipeline.py kickoff --topic "<topic>" --pipeline <pipeline-name> --run --strict`
-- Resume: `python scripts/pipeline.py run --workspace <ws> --strict`
-- Approve checkpoint: `python scripts/pipeline.py approve --workspace <ws> --checkpoint C2`
-- Mark refined unit: `python scripts/pipeline.py mark --workspace <ws> --unit-id <U###> --status DONE --note "LLM refined"`
+- Kickoff + run (optional; convenient, not required): `uv run python scripts/pipeline.py kickoff --topic "<topic>" --pipeline <pipeline-name> --run --strict`
+- Resume: `uv run python scripts/pipeline.py run --workspace <workspace> --strict`
+- Approve checkpoint: `uv run python scripts/pipeline.py approve --workspace <workspace> --checkpoint C2`
+- Mark refined unit: `uv run python scripts/pipeline.py mark --workspace <workspace> --unit-id <U###> --status DONE --note "LLM refined"`
 
 ## Handling common blocks
 

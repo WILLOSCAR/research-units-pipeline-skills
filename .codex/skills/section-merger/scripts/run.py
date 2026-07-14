@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -27,6 +29,39 @@ def _normalize_heading_title(text: str) -> str:
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="ignore") if path.exists() else ""
+
+
+def _stale_manifest_paths(workspace: Path, manifest_rel: str, expected_paths: list[str]) -> list[str]:
+    manifest_path = workspace / manifest_rel
+    if not manifest_path.exists() or manifest_path.stat().st_size <= 0:
+        return list(expected_paths)
+
+    records: dict[str, dict[str, Any]] = {}
+    try:
+        for raw in manifest_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if not raw.strip():
+                continue
+            record = json.loads(raw)
+            if isinstance(record, dict) and str(record.get("path") or "").strip():
+                records[str(record["path"]).strip()] = record
+    except json.JSONDecodeError:
+        return list(expected_paths)
+
+    stale: list[str] = []
+    for relpath in expected_paths:
+        path = workspace / relpath
+        record = records.get(relpath)
+        if not path.exists() or not isinstance(record, dict):
+            stale.append(relpath)
+            continue
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        try:
+            recorded_bytes = int(record.get("bytes") or 0)
+        except (TypeError, ValueError):
+            recorded_bytes = -1
+        if str(record.get("sha256") or "") != digest or recorded_bytes != path.stat().st_size:
+            stale.append(relpath)
+    return stale
 
 
 def _iter_outline(outline: Any) -> list[dict[str, Any]]:
@@ -119,11 +154,12 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, ensure_dir, load_yaml, parse_semicolon_list
-    from tooling.quality_gate import _pipeline_profile
+    from tooling.common import atomic_write_text, ensure_dir, load_yaml, parse_semicolon_list, research_title_from_request
+    from tooling.quality_gate import _draft_profile, _pipeline_profile
 
     workspace = Path(args.workspace).resolve()
     profile = _pipeline_profile(workspace)
+    draft_profile = _draft_profile(workspace)
 
     inputs = parse_semicolon_list(args.inputs)
     outputs = parse_semicolon_list(args.outputs) or ["output/DRAFT.md", "output/MERGE_REPORT.md"]
@@ -185,6 +221,17 @@ def main() -> int:
             if sid:
                 unit_files.append(f"sections/{_slug_unit_id(sid)}.md")
 
+    manifest_rel = next((rel for rel in inputs if rel.endswith("sections_manifest.jsonl")), "")
+    stale_manifest: list[str] = []
+    if manifest_rel:
+        stale_manifest = _stale_manifest_paths(
+            workspace,
+            manifest_rel,
+            required_global + unit_files,
+        )
+        if stale_manifest:
+            missing.append(f"{manifest_rel} (stale section fingerprints)")
+
     # Tables are part of the default deliverable for arxiv-survey pipelines.
     tables_rel = "outline/tables_appendix.md"
     tables_off = (workspace / "outline" / "tables.insert.off").exists()
@@ -204,8 +251,9 @@ def main() -> int:
         else:
             tables_text = _clean_tables_for_insertion(_read_text(p))
             tables_n = _count_md_tables(tables_text)
-            if tables_n < 2:
-                missing.append(f"{tables_rel} (expected >=2 Markdown tables)")
+            min_tables = 1 if draft_profile == "course_paper" else 2
+            if tables_n < min_tables:
+                missing.append(f"{tables_rel} (expected >={min_tables} Markdown tables)")
 
     status = "PASS" if not missing else "FAIL"
 
@@ -221,9 +269,14 @@ def main() -> int:
             rep_lines.append(f"- Tables required: {'yes' if require_tables else 'no'}")
             if require_tables:
                 rep_lines.append(f"- Tables detected (outline): {tables_n}")
+        rep_lines.append(f"- Stale manifest entries: {len(stale_manifest)}")
         rep_lines.extend(["", "## Missing files"])
         for rel in sorted(set(missing)):
             rep_lines.append(f"- `{rel}`")
+        if stale_manifest:
+            rep_lines.extend(["", "## Stale section fingerprints"])
+            for rel in stale_manifest:
+                rep_lines.append(f"- `{rel}`")
         rep_lines.append("")
         atomic_write_text(report_path, "\n".join(rep_lines).rstrip() + "\n")
         return 2
@@ -235,7 +288,7 @@ def main() -> int:
         ln = ln.strip()
         if not ln or ln.startswith("#"):
             continue
-        title = ln
+        title = research_title_from_request(ln)
         break
 
     transitions_text = _read_text(workspace / "outline" / "transitions.md")
@@ -317,6 +370,7 @@ def main() -> int:
         "- Status: PASS",
         f"- Draft: `{draft_rel}`",
         "- Missing inputs: 0",
+        "- Stale manifest entries: 0",
     ]
     if profile == "arxiv-survey":
         rep_lines.append(f"- Tables required: {'yes' if require_tables else 'no'}")

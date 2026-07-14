@@ -50,7 +50,7 @@ Read `references/overview.md` before changing the package shape or the brief con
 
 ### Quick Start
 
-- `python .codex/skills/idea-brief/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/idea-brief/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -62,4 +62,4 @@ Read `references/overview.md` before changing the package shape or the brief con
 
 ### Examples
 
-- `python .codex/skills/idea-brief/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/idea-brief/scripts/run.py --workspace <workspace>`

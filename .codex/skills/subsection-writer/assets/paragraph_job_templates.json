@@ -4,7 +4,7 @@
       "decision-first": [
         "The central decision in {title_lower} is not which route sounds stronger in the abstract, but which assumptions remain stable once the setting changes",
         "In {title_lower}, the real decision is how much variation the evidence can tolerate before the comparison stops being fair",
-        "The useful decision point in {title_lower} is which commitments survive a change in benchmark, embodiment, or reporting frame"
+        "The useful decision point in {title_lower} is which commitments survive a change in benchmark, deployment setting, or reporting frame"
       ],
       "contrast-first": [
         "What most separates {title_lower} is the split between {cluster_a} and {cluster_b}, because their results move under different assumptions",
@@ -33,9 +33,9 @@
       ]
     },
     "tension_followup": [
-      "The comparison becomes unstable because {tension}",
-      "The resulting pressure is that {tension}",
-      "The evidence starts to drift as soon as {tension}"
+      "The comparison becomes unstable at this point: {tension}",
+      "This is the central pressure point: {tension}",
+      "The evidence is hardest to interpret here: {tension}"
     ]
   },
   "cluster": {
@@ -48,7 +48,7 @@
       "lead_B": [
         "A second strand, grouped here as {label}, shifts which assumptions the comparison has to keep fixed",
         "Seen through {label}, the disagreement moves away from {other_label} and toward a different set of assumptions",
-        "{label} recasts the comparison in {title_lower} by changing which assumptions stay fixed relative to {other_label}"
+        "{label} recast the comparison in {title_lower} by changing which assumptions stay fixed relative to {other_label}"
       ],
       "closing": [
         "That is why papers in this cluster treat those assumptions as the main source of methodological variation",
@@ -156,7 +156,7 @@
       "Read together, these neighboring studies broaden the record but keep the same reporting gaps in view",
       "What the adjacent papers add is less a clean verdict than more examples of how setup choices reshape the claim",
       "Across the surrounding evidence, the main disagreement still comes from which assumptions stay fixed and which are allowed to move",
-      "Those nearby studies matter because they show how quickly protocol and embodiment details re-enter the comparison"
+      "Those nearby studies matter because they show how quickly protocol and operating-context details re-enter the comparison"
     ]
   },
   "limitation": {
@@ -172,7 +172,7 @@
       "Cross-paper judgment remains fragile until work on {cluster_a} and {cluster_b} exposes task, metric, and deployment constraints in comparable form",
       "What is still missing is reporting that keeps task, metric, and deployment details visible when {cluster_a} and {cluster_b} are compared",
       "Progress will remain local until papers report task, metric, horizon, and deployment conditions as one explicit package",
-      "A sharper answer depends on knowing when gains survive changes in embodiment, environment, and budget rather than only one benchmark"
+      "A sharper answer depends on knowing when gains survive changes in task, operating environment, and budget rather than only one benchmark"
     ],
     "rq_fallback": [
       "A useful open question is therefore how future work can answer the subsection question, `{rq}`, under protocols that remain aligned across neighboring settings.",

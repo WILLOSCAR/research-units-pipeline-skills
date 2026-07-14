@@ -54,9 +54,9 @@ Uses: `templates/UNITS.*.csv`.
 ### Issue: `PIPELINE.lock.md` is missing
 
 **Fix**:
-- Run `pipeline-router` (Mode A) or `python scripts/pipeline.py kickoff|init` to create `PIPELINE.lock.md` before generating units.
+- Run `pipeline-router` (Mode A) or `uv run python scripts/pipeline.py kickoff|init` to create `PIPELINE.lock.md` before generating units.
 
 ### Issue: `UNITS.csv` becomes invalid CSV after edits
 
 **Fix**:
-- Keep semicolon-delimited `inputs/outputs` and avoid unescaped commas inside fields; validate with `python scripts/validate_repo.py`.
+- Keep semicolon-delimited `inputs/outputs` and avoid unescaped commas inside fields; validate with `uv run python scripts/validate_repo.py`.

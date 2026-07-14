@@ -227,8 +227,8 @@ The helper script is a **gate wrapper**: it blocks until approvals + prerequisit
 
 ### Quick Start
 
-- `python .codex/skills/prose-writer/scripts/run.py --help`
-- `python .codex/skills/prose-writer/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/prose-writer/scripts/run.py --help`
+- `uv run python .codex/skills/prose-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -238,7 +238,7 @@ The helper script is a **gate wrapper**: it blocks until approvals + prerequisit
 
 - Run the gate wrapper after approval (it will block until `output/DRAFT.md` is written):
   - Tick `Approve C2` in `DECISIONS.md` then run:
-  - `python .codex/skills/prose-writer/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/prose-writer/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

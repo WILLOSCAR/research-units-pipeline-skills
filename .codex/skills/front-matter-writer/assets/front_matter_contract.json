@@ -136,5 +136,28 @@
     "conclusion": {
       "mode": "paragraph_bank"
     }
+  },
+  "profile_overrides": {
+    "course_paper": {
+      "sections": {
+        "introduction": {
+          "jobs": [
+            {"job": "motivation", "cite_start": 0, "cite_width": 4},
+            {"job": "lens_commitment", "cite_start": 4, "cite_width": 4},
+            {"job": "methodology_note", "cite_start": 8, "cite_width": 4},
+            {"job": "reader_contract", "cite_start": 12, "cite_width": 4}
+          ]
+        },
+        "related_work": {
+          "jobs": [
+            {"job": "opening", "cite_start": 0, "cite_width": 4},
+            {"job": "chapter_positioning", "repeat_from": "chapters", "limit": 2, "cite_start": 4, "cite_width": 4, "cite_stride": 4},
+            {"job": "evaluation_calibration", "cite_start": 12, "cite_width": 4},
+            {"job": "gap_statement", "cite_start": 16, "cite_width": 4},
+            {"job": "wedge", "cite_start": 20, "cite_width": 4}
+          ]
+        }
+      }
+    }
   }
 }

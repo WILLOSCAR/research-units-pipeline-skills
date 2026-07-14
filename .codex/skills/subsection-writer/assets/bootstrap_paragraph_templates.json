@@ -1,7 +1,7 @@
 {
   "fallbacks": {
     "thesis": "{title} should be read through the trade-offs that separate neighboring design choices, not as a flat list of methods.",
-    "tension_statement": "reported gains are often inseparable from the evaluation conditions, embodiment assumptions, and interface choices under which they are measured",
+    "tension_statement": "reported gains are often inseparable from the evaluation conditions, operating assumptions, and interface choices under which they are measured",
     "rq": "which design choices create the most consequential trade-offs under comparable protocols",
     "comparison_axis": "how competing designs are evaluated",
     "a_label": "one line of work",
@@ -40,7 +40,7 @@
       "In {title_lower}, the decisive comparisons come from where protocols and assumptions diverge rather than from raw headline scores: {thesis} {seed_cites}. That matters because {tension}.",
       "{title} becomes clearer once the competing assumptions are stated up front: {thesis} {seed_cites}. The resulting friction is that {tension}.",
       "{title} is not one comparison but several overlapping ones: {thesis} {seed_cites}. The difficult part is that {tension}.",
-      "The useful question in {title_lower} is which results survive a change in setup, embodiment, or reporting frame: {thesis} {seed_cites}. That is exactly where {tension}.",
+      "The useful question in {title_lower} is which results survive a change in setup, operating context, or reporting frame: {thesis} {seed_cites}. That is exactly where {tension}.",
       "{title} only starts to cohere once the comparison conditions are explicit: {thesis} {seed_cites}. The hard part is that {tension}."
     ],
     "cautious_fallback": [

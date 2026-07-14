@@ -81,7 +81,7 @@ Current mode is reference-first with deterministic compatibility:
 
 ## Quick Start
 
-- `python .codex/skills/evidence-draft/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/evidence-draft/scripts/run.py --workspace <workspace>`
 
 ## Execution Notes
 
@@ -96,7 +96,7 @@ When running in compatibility mode, `scripts/run.py` currently reads:
 
 ### Quick Start
 
-- `python .codex/skills/evidence-draft/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/evidence-draft/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -108,7 +108,7 @@ When running in compatibility mode, `scripts/run.py` currently reads:
 
 ### Examples
 
-- `python .codex/skills/evidence-draft/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/evidence-draft/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

@@ -11,12 +11,18 @@ target_artifacts:
   - CHECKPOINTS.md
   - DECISIONS.md
   - GOAL.md
+  - PIPELINE.lock.md
   - queries.md
   - output/PAPER.md
   - output/CLAIMS.md
+  - output/CLAIMS.jsonl
   - output/MISSING_EVIDENCE.md
+  - output/EVIDENCE_AUDIT.jsonl
   - output/NOVELTY_MATRIX.md
+  - output/NOVELTY_MATRIX.tsv
   - output/REVIEW.md
+  - output/REVIEW_SCORECARD.md
+  - output/REVIEW_SCORECARD.json
   - output/DELIVERABLE_SELFLOOP_TODO.md
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
@@ -38,6 +44,10 @@ quality_contract:
     primary_deliverable: output/REVIEW.md
     traceability_required: true
     required_axes: [novelty, soundness, clarity, impact]
+  semantic_rubric:
+    schema: paper-review-scorecard.v1
+    pass_score: 80
+    critical_dimensions: [claim_traceability, evidence_coverage, review_traceability]
 stages:
   C0:
     title: Init
@@ -45,30 +55,30 @@ stages:
     mode: no_prose
     required_skills: [workspace-init, pipeline-router]
     optional_skills: []
-    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
+    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, PIPELINE.lock.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
   C1:
     title: Manuscript ingest + claims
     checkpoint: C1
     mode: no_prose
     required_skills: [manuscript-ingest, claims-extractor]
     optional_skills: []
-    produces: [output/PAPER.md, output/CLAIMS.md]
+    produces: [output/PAPER.md, output/CLAIMS.md, output/CLAIMS.jsonl]
   C2:
     title: Evidence audit
     checkpoint: C2
     mode: no_prose
     required_skills: [evidence-auditor, novelty-matrix]
     optional_skills: []
-    produces: [output/MISSING_EVIDENCE.md, output/NOVELTY_MATRIX.md]
+    produces: [output/MISSING_EVIDENCE.md, output/EVIDENCE_AUDIT.jsonl, output/NOVELTY_MATRIX.md, output/NOVELTY_MATRIX.tsv]
   C3:
     title: Review write-up
     checkpoint: C3
     mode: prose_allowed
     required_skills: [rubric-writer, deliverable-selfloop, artifact-contract-auditor]
     optional_skills: []
-    produces: [output/REVIEW.md, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
+    produces: [output/REVIEW.md, output/REVIEW_SCORECARD.md, output/REVIEW_SCORECARD.json, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
 ---
 
 # Pipeline: paper-review
 
-Goal: produce a traceable assessment of a single paper or manuscript, grounded in its explicit claims, evidence gaps, and novelty positioning.
+Goal: produce a traceable assessment of a single paper or manuscript, grounded in explicit claims, evidence gaps, novelty positioning, and a machine-readable review scorecard.

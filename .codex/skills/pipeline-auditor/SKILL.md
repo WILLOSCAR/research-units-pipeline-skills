@@ -19,7 +19,7 @@ It answers:
 - did the draft fall back to generator voice (navigation/narration templates)?
 - is citation density/health sufficient for a survey-like draft?
 
-This skill is analysis-only. It does not edit content. For `survey`/`deep`, style/citation-shape violations are blocking by default.
+This skill is analysis-only. It does not edit content. For all survey-family profiles, style/citation-shape violations are blocking by default.
 
 ## Inputs
 
@@ -39,9 +39,13 @@ A150++ citation targets (used by the auditor):
 - Per-H3: >=12 unique citations (deep: >=14).
 - Global: >=150 unique citations across the full draft (recommended target: 165; deep floor: 165).
 
+Course-paper targets:
+- Per-H3: >=4 unique citations and >=1600 non-citation characters.
+- Global: >=24 unique citations (recommended target: 32).
+
 - Placeholder leakage: ellipsis (`...`, `…`), TODO markers, scaffold tags.
 - Outline alignment: section/subsection order vs `outline/outline.yml`.
-- Survey tables (survey deliverable): require >=2 Markdown tables in the merged draft (index tables live in `outline/tables_index.md`) (inserted by `section-merger` from `outline/tables_appendix.md`).
+- Survey tables: require >=1 Markdown table for `course_paper`, >=2 for `survey`/`deep` (inserted by `section-merger` from `outline/tables_appendix.md`; index tables remain internal).
 - Paper voice anti-patterns:
   - narration templates (`This subsection ...`, `In this subsection ...`)
   - slide navigation (`Next, we move ...`, `We now turn to ...`)
@@ -51,7 +55,7 @@ A150++ citation targets (used by the auditor):
 - Synthesis stem repetition: repeated `Taken together, ...` and similar high-signal generator stems.
 - Numeric claim context: numbers without minimal evaluation context tokens (benchmark/dataset/metric/budget/cost).
 - Citation health (if `citations/ref.bib` exists): undefined keys, duplicates, basic formatting red flags.
-- Citation-shape hard gate (`survey`/`deep`): no adjacent citation blocks (`[@a] [@b]`), no duplicate keys inside one block (`[@a; @a]`), and per-H3 mid-sentence citation ratio >=30%.
+- Citation-shape hard gate: no adjacent citation blocks (`[@a] [@b]`) and no duplicate keys inside one block (`[@a; @a]`). Mid-sentence citation ratio is >=20% for `course_paper` and >=30% for `survey`/`deep`.
 - Citation scope (if `outline/evidence_bindings.jsonl` exists): citations used per H3 should stay within the bound evidence set.
 
 ## How to use the report (routing table)
@@ -63,8 +67,8 @@ Common FAIL families -> responsible stage/skill:
 - Placeholders / leaked scaffolds
   - Fix: C2–C4 artifacts are not clean. Route to `subsection-briefs` / `evidence-draft` / `writer-context-pack`, then rewrite affected sections.
 
-- Missing overview tables (draft has <2 tables)
-  - Fix: ensure `table-schema` + `appendix-table-writer` produced `outline/tables_appendix.md` (>=2 tables, citation-backed, no placeholders), then rerun `section-merger` (tables insert as an Appendix block by default).
+- Missing overview tables (below the selected profile's table minimum)
+  - Fix: ensure `table-schema` + `appendix-table-writer` produced `outline/tables_appendix.md` (>=1 course-paper table; >=2 survey/deep tables; citation-backed, no placeholders), then rerun `section-merger`.
 
 - Planner talk in transitions / narrator bridges
   - Fix: rerun `transition-weaver` (and ensure briefs include `bridge_terms` / `contrast_hook`), then re-merge.
@@ -96,8 +100,8 @@ If you want the auditor to PASS *without* a heavy polish loop:
 
 ### Quick Start
 
-- `python .codex/skills/pipeline-auditor/scripts/run.py --help`
-- `python .codex/skills/pipeline-auditor/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/pipeline-auditor/scripts/run.py --help`
+- `uv run python .codex/skills/pipeline-auditor/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -110,7 +114,7 @@ If you want the auditor to PASS *without* a heavy polish loop:
 ### Examples
 
 - Run audit after `global-reviewer` and before LaTeX/PDF:
-  - `python .codex/skills/pipeline-auditor/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/pipeline-auditor/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

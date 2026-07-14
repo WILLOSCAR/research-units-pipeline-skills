@@ -28,7 +28,7 @@ The compiler should treat `latex/slides/main.tex` as the entrypoint and emit bot
 
 ### Quick Start
 
-- `python .codex/skills/beamer-compile-qa/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/beamer-compile-qa/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -41,4 +41,4 @@ The compiler should treat `latex/slides/main.tex` as the entrypoint and emit bot
 ### Examples
 
 - Compile the Beamer deck:
-  - `python .codex/skills/beamer-compile-qa/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/beamer-compile-qa/scripts/run.py --workspace <workspace>`

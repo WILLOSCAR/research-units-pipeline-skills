@@ -79,9 +79,9 @@ Do not use it when:
 | Stage | Purpose | Main outputs |
 |---|---|---|
 | `C0` | initialize workspace and review constraints | `STATUS.md`, `UNITS.csv`, `DECISIONS.md` |
-| `C1` | ingest manuscript text and extract explicit claims | `output/PAPER.md`, `output/CLAIMS.md` |
-| `C2` | audit evidence and novelty positioning | `output/MISSING_EVIDENCE.md`, `output/NOVELTY_MATRIX.md` |
-| `C3` | write and self-check the review | `output/REVIEW.md`, `output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C1` | ingest manuscript text and extract explicit claims | `output/PAPER.md`, `output/CLAIMS.md`, `output/CLAIMS.jsonl` |
+| `C2` | audit evidence and novelty positioning | `output/EVIDENCE_AUDIT.jsonl`, `output/NOVELTY_MATRIX.tsv`, Markdown views |
+| `C3` | write and score the review | `output/REVIEW.md`, `output/REVIEW_SCORECARD.json`, `output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. Quality Bar
 
@@ -92,7 +92,15 @@ The review should:
 - prefer concrete next actions over vague complaints
 - stay useful for both lab-internal review and referee-style review
 
-## 9. Recommended Prompt
+## 9. Current Reliability Boundary
+
+This workflow now has a completed repair/rerun proof and a scored traceability
+contract. Inspect `output/REVIEW_SCORECARD.md` first, then follow failed checks
+to the named Claim, Evidence, novelty, or review artifact. The scorecard checks
+observable semantic contracts; it does not establish scientific correctness
+or replace an expert referee.
+
+## 10. Recommended Prompt
 
 ```text
 Use the paper-review workflow to assess this manuscript and give me a lab-style review with explicit claims, evidence gaps, and novelty concerns.

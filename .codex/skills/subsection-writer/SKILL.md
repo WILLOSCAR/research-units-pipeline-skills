@@ -63,6 +63,7 @@ Keep the current contract:
 - `sections/S<sec_id>_lead.md` for H2 lead blocks
 - `sections/S<sub_id>.md` for H3 bodies
 - `sections/sections_manifest.jsonl`
+- `sections/h3_bodies.refined.ok` only after a model or human has reviewed the generated H3 bodies and the writer self-loop passes
 
 ## Writer policy
 
@@ -79,10 +80,12 @@ Opener / ending policy:
 Use `scripts/run.py` as a helper only:
 - it may bootstrap missing H3 files and refresh the manifest
 - it must not be treated as the canonical source of prose shape or voice policy
+- it must not self-certify its bootstrap prose: the script never creates `sections/h3_bodies.refined.ok`
+- if the marker predates a writer input or the writer script, it is stale and the next run removes it before regenerating bootstrap prose
 
 ## Quick Start
 
-- `python .codex/skills/subsection-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/subsection-writer/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 
@@ -104,7 +107,7 @@ When running in compatibility mode, `scripts/run.py` currently consumes:
 
 ### Quick Start
 
-- `python .codex/skills/subsection-writer/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/subsection-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -116,7 +119,7 @@ When running in compatibility mode, `scripts/run.py` currently consumes:
 
 ### Examples
 
-- `python .codex/skills/subsection-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/subsection-writer/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

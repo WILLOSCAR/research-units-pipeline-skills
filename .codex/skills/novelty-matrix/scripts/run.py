@@ -40,6 +40,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
+    from tooling.common import read_jsonl, write_tsv
     from tooling.review_artifacts import write_text
     from tooling.review_render import render_novelty_matrix_markdown
     from tooling.review_text import extract_related_works, parse_item_blocks
@@ -50,7 +51,11 @@ def main() -> int:
     if not claims_path.exists():
         raise SystemExit("novelty-matrix requires `output/CLAIMS.md`.")
 
-    claims = parse_item_blocks(claims_path.read_text(encoding="utf-8", errors="ignore"))
+    claims_jsonl = workspace / "output" / "CLAIMS.jsonl"
+    if claims_jsonl.exists():
+        claims = read_jsonl(claims_jsonl)
+    else:
+        claims = parse_item_blocks(claims_path.read_text(encoding="utf-8", errors="ignore"))
     paper_text = paper_path.read_text(encoding="utf-8", errors="ignore") if paper_path.exists() else ""
     works = extract_related_works(paper_text)
     rows: list[dict[str, str]] = []
@@ -58,8 +63,9 @@ def main() -> int:
         for claim in claims:
             rows.append(
                 {
-                    "claim_id": claim.get("id", ""),
-                    "claim": claim.get("claim", ""),
+                    "schema": "review-novelty-row.v1",
+                    "claim_id": claim.get("claim_id", claim.get("id", "")),
+                    "claim": claim.get("text", claim.get("claim", "")),
                     "related_work": "related works unavailable",
                     "overlap": "unavailable",
                     "delta": "unavailable",
@@ -71,14 +77,20 @@ def main() -> int:
             for work in works[:5]:
                 rows.append(
                     {
-                        "claim_id": claim.get("id", ""),
-                        "claim": claim.get("claim", ""),
+                        "schema": "review-novelty-row.v1",
+                        "claim_id": claim.get("claim_id", claim.get("id", "")),
+                        "claim": claim.get("text", claim.get("claim", "")),
                         "related_work": work,
                         "overlap": "adjacent problem setting",
                         "delta": "claimed method delta requires verification",
                         "evidence": "manuscript claim + cited related work",
                     }
                 )
+    write_tsv(
+        workspace / "output" / "NOVELTY_MATRIX.tsv",
+        rows,
+        fieldnames=["schema", "claim_id", "claim", "related_work", "overlap", "delta", "evidence"],
+    )
     write_text(workspace / "output" / "NOVELTY_MATRIX.md", render_novelty_matrix_markdown(rows))
     return 0
 

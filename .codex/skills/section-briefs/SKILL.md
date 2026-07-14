@@ -40,7 +40,7 @@ Use `scripts/run.py` only for deterministic brief assembly:
 
 ### Quick Start
 
-- `python .codex/skills/section-briefs/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/section-briefs/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -53,4 +53,4 @@ Use `scripts/run.py` only for deterministic brief assembly:
 ### Examples
 
 - Build chapter-level briefs from the section-first layer:
-  - `python .codex/skills/section-briefs/scripts/run.py --workspace workspaces/<ws> --inputs 'outline/chapter_skeleton.yml;outline/section_bindings.jsonl;GOAL.md' --outputs 'outline/section_briefs.jsonl'`
+  - `uv run python .codex/skills/section-briefs/scripts/run.py --workspace <workspace> --inputs 'outline/chapter_skeleton.yml;outline/section_bindings.jsonl;GOAL.md' --outputs 'outline/section_briefs.jsonl'`

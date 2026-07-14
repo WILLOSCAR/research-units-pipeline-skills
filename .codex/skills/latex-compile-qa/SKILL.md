@@ -6,7 +6,7 @@ description: |
   **Use when**: 已有 `latex/main.tex`（通常来自 `latex-scaffold`），需要确认可编译并输出失败原因报告。
   **Skip if**: 还没有 LaTeX scaffold（先跑 `latex-scaffold`）。
   **Network**: none.
-  **Guardrail**: 编译失败也要落盘 `output/LATEX_BUILD_REPORT.md`；不做“内容改写”，只做编译/QA。
+**Guardrail**: 编译失败也要落盘 `output/LATEX_BUILD_REPORT.md` 并返回失败状态；不做“内容改写”，只做编译/QA。
 ---
 
 # LaTeX Compile + QA
@@ -33,15 +33,15 @@ This step is deterministic; if compilation fails, record actionable diagnostics 
 
 ## Quality checklist
 
-- [ ] Either `latex/main.pdf` exists, or `output/LATEX_BUILD_REPORT.md` explains why compilation failed.
+- [ ] `latex/main.pdf` exists only when compilation succeeds; failed builds must remove stale PDFs and explain the failure in `output/LATEX_BUILD_REPORT.md`.
 - [ ] For `arxiv-survey-latex` deliverables: `latex/main.pdf` is >= 8 pages and has no undefined citations/references (strict gate).
 
 ## Script
 
 ### Quick Start
 
-- `python .codex/skills/latex-compile-qa/scripts/run.py --help`
-- `python .codex/skills/latex-compile-qa/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/latex-compile-qa/scripts/run.py --help`
+- `uv run python .codex/skills/latex-compile-qa/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -50,7 +50,7 @@ This step is deterministic; if compilation fails, record actionable diagnostics 
 ### Examples
 
 - Compile + produce report:
-  - `python .codex/skills/latex-compile-qa/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/latex-compile-qa/scripts/run.py --workspace <workspace>`
 
 ### Notes
 

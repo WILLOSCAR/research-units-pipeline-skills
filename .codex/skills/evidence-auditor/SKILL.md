@@ -20,6 +20,7 @@ Transforms a claim ledger into a gap report for `paper-review`.
 ## Output
 
 - `output/MISSING_EVIDENCE.md`
+- `output/EVIDENCE_AUDIT.jsonl` (`review-evidence-gap.v1`)
 
 ## Contract
 
@@ -29,6 +30,9 @@ Each gap block should include:
 - what is missing or weak
 - minimal fix
 - severity
+
+Each JSONL record must retain `claim_id` and a stable `gap_id` so the final
+review can cite the exact failure rather than paraphrasing an unlocated concern.
 
 ## Script boundary
 
@@ -43,6 +47,7 @@ It should not invent new claims or rewrite the manuscript.
 
 - every claim has a corresponding evidence note or gap item
 - minimal fixes are actionable and concrete
+- structured records join back to every `claim_id`
 
 ## Non-goals
 

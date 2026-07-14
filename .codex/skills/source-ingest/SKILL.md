@@ -46,7 +46,7 @@ Goal: normalize mixed source inputs into local tutorial-ready text while preserv
 
 ### Quick Start
 
-- `python .codex/skills/source-ingest/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/source-ingest/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -59,7 +59,7 @@ Goal: normalize mixed source inputs into local tutorial-ready text while preserv
 ### Examples
 
 - Ingest all listed sources:
-  - `python .codex/skills/source-ingest/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/source-ingest/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

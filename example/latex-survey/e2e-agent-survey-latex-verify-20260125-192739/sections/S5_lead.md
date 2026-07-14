@@ -1,3 +1,0 @@
-Adaptation mechanisms change an agent's behavior based on feedback, shifting the focus from fixed policies to self-updating loops. Such updates can occur through prompt and context optimization and revision cycles, but they raise stability questions when evaluation protocols are underspecified [@Zhang2025Agentic; @Wu2025Agentic].
-
-Coordination extends these ideas to multi-agent settings, where role protocols and aggregation rules become part of the method. The subsections in this chapter contrast self-improvement loops with multi-agent coordination patterns, emphasizing how interaction budgets and protocol design determine whether coordination improves robustness or amplifies failure modes [@Masters2025Arcane; @Jiang2023Large].

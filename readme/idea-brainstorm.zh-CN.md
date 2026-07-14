@@ -26,6 +26,8 @@
 
 - `output/APPENDIX.md`
 - `output/REPORT.json`
+- `output/IDEA_SCORECARD.md`
+- `output/IDEA_SCORECARD.json`
 
 中间 trace 工件会保存在 `output/trace/` 下，这样最终 memo 可以保持相对干净，而中间推理过程仍然可追溯。
 
@@ -48,14 +50,15 @@ idea pipeline 和 survey path 一样都是 artifact-first，但它优化的是�
 
 当前 pipeline 默认值是：
 
-- `core_size=100`
-- `max_results=1800`
+- `core_size=36`
+- `max_results=240`
 - `evidence_mode=abstract`
 - direction pool 大小 `12-24`
 - shortlist 大小 `3-5`
 - 最终 report 主推方向 `3`
 
-也就是说，这条 pipeline 的设计不是随手发散几个想法，而是先建立一个不算小、但仍然可控的文献底座，再在这个底座上生成候选方向。
+这条 pipeline 会保留足够的文献来暴露相互竞争的 signals，但不会在 focus 尚未锁定前
+就承担 survey 级上下文成本。
 
 ## 5. 阶段流
 
@@ -66,7 +69,7 @@ idea pipeline 和 survey path 一样都是 artifact-first，但它优化的是�
 | `C2` | 建立文献 landscape 并选 focus lenses | `outline/taxonomy.yml`、更新后的 `DECISIONS.md` |
 | `C3` | 把论文转成 signal tables | `papers/paper_notes.jsonl`、`output/trace/IDEA_SIGNAL_TABLE.md` |
 | `C4` | 生成并筛选候选方向 | `output/trace/IDEA_DIRECTION_POOL.md`、`output/trace/IDEA_SCREENING_TABLE.md` |
-| `C5` | 收敛成 shortlist 并写 memo | `output/trace/IDEA_SHORTLIST.md`、`output/REPORT.md`、`output/APPENDIX.md`、`output/REPORT.json` |
+| `C5` | 收敛、写作、评分并 self-loop | `output/trace/IDEA_SHORTLIST.md`、`output/REPORT.md`、`output/APPENDIX.md`、`output/REPORT.json`、`output/IDEA_SCORECARD.json` |
 
 ## 6. 哪些工件最关键
 
@@ -82,6 +85,10 @@ idea pipeline 和 survey path 一样都是 artifact-first，但它优化的是�
 | `output/trace/IDEA_SCREENING_TABLE.md` | 让 shortlist 的收敛过程可审计，而不是只凭风格判断 |
 | `output/trace/IDEA_SHORTLIST.md` | memo 写作前的最终 shortlist |
 | `output/REPORT.md` | 最终讨论备忘录 |
+| `output/IDEA_SCORECARD.json` | 对 trace consistency、actionability、diversity 和文献锚点进行机器判定 |
+
+Scorecard 验证的是可观察的 Memo Contract，不会声称某个方向已经具备科学新颖性；
+新颖性仍需要深读文献与专家判断。
 
 ## 7. 怎么运行
 

@@ -65,11 +65,11 @@ User goal → choose:
 Use the helper to keep `DECISIONS.md` in sync with checkpoints:
 
 - Kickoff questions + seed queries (C0):
-  - `python .codex/skills/pipeline-router/scripts/run.py --workspace <ws> --checkpoint C0`
+  - `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C0`
 - Scope/outline approval summary (C2):
-  - `python .codex/skills/pipeline-router/scripts/run.py --workspace <ws> --checkpoint C2`
+  - `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C2`
 - Other checkpoints:
-  - `python .codex/skills/pipeline-router/scripts/run.py --workspace <ws> --checkpoint C1`
+  - `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C1`
 
 ## Quality checklist
 
@@ -87,8 +87,8 @@ Use the helper to keep `DECISIONS.md` in sync with checkpoints:
 
 ### Quick Start
 
-- `python .codex/skills/pipeline-router/scripts/run.py --help`
-- `python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace_dir> --checkpoint C0`
+- `uv run python .codex/skills/pipeline-router/scripts/run.py --help`
+- `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C0`
 
 ### All Options
 
@@ -97,15 +97,15 @@ Use the helper to keep `DECISIONS.md` in sync with checkpoints:
 ### Examples
 
 - Kickoff questions + seed queries:
-  - `python .codex/skills/pipeline-router/scripts/run.py --workspace <ws> --checkpoint C0`
+  - `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C0`
 - Generic protocol approval block (systematic review C1):
-  - `python .codex/skills/pipeline-router/scripts/run.py --workspace <ws> --checkpoint C1`
+  - `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C1`
 - Scope/outline approval summary:
-  - `python .codex/skills/pipeline-router/scripts/run.py --workspace <ws> --checkpoint C2`
+  - `uv run python .codex/skills/pipeline-router/scripts/run.py --workspace <workspace> --checkpoint C2`
 
 ### Notes
 
-- `python scripts/pipeline.py kickoff|init` writes `PIPELINE.lock.md` and then (best-effort) runs this script for `C0`.
+- `uv run python scripts/pipeline.py kickoff|init` writes `PIPELINE.lock.md` and then (best-effort) runs this script for `C0`.
 - The script reads `PIPELINE.lock.md` (if present) to display the pipeline in the kickoff block; it does not choose the pipeline.
 
 ## Troubleshooting
@@ -116,4 +116,4 @@ Use the helper to keep `DECISIONS.md` in sync with checkpoints:
 - Workspace was initialized from one pipeline and later re-pointed without updating `UNITS.csv`.
 
 **Fix**:
-- Re-run `python scripts/pipeline.py init --workspace <ws> --pipeline <name> --overwrite-units`, or copy the correct `templates/UNITS.*.csv` into `UNITS.csv`.
+- Re-run `uv run python scripts/pipeline.py init --workspace <workspace> --pipeline <name> --overwrite-units`, or copy the correct `templates/UNITS.*.csv` into `UNITS.csv`.

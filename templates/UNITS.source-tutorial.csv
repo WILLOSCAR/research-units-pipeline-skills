@@ -1,5 +1,5 @@
 unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
-U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace 模板文件齐全且 error sinks 已创建,C0,TODO,,CODEX
+U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;PIPELINE.lock.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace 模板文件齐全且 error sinks 已创建,C0,TODO,,CODEX
 U002,Route goal into source-tutorial kickoff questions,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,DECISIONS.md 包含 source intake 说明和 C0 问题块,C0,TODO,U001,CODEX
 U010,Create or validate source manifest,STRUCTURE,source-manifest,GOAL.md;DECISIONS.md,sources/manifest.yml,manifest 至少包含 1 个有效 source 且字段完整,C1,TODO,U002,CODEX
 U020,Ingest and normalize supported sources,EVIDENCE,source-ingest,sources/manifest.yml,sources/index.jsonl;sources/provenance.jsonl,至少 1 个 required source ingest 成功并写出 provenance,C1,TODO,U010,CODEX

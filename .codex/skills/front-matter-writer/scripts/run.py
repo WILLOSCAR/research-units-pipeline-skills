@@ -67,7 +67,7 @@ def _sanitize_goal_text(text: str) -> str:
     return s or 'the approved survey topic'
 
 
-def _goal_text(path: Path) -> str:
+def _goal_text(path: Path, *, subject_normalizer=None) -> str:
     if not path.exists():
         return 'the approved survey topic'
     lines = [
@@ -75,7 +75,12 @@ def _goal_text(path: Path) -> str:
         for ln in path.read_text(encoding='utf-8', errors='ignore').splitlines()
         if ln.strip() and not ln.startswith('#')
     ]
-    return _sanitize_goal_text(lines[0] if lines else '')
+    raw = lines[0] if lines else ''
+    if subject_normalizer is not None:
+        normalized = str(subject_normalizer(raw) or '').strip()
+        if normalized:
+            return normalized
+    return _sanitize_goal_text(raw)
 
 
 def _parse_stats(retrieval_path: Path, core_path: Path, queries_path: Path) -> tuple[str, str, str, str]:
@@ -177,7 +182,15 @@ def _chapter_path_text(chapter_titles: list[str]) -> str:
 
 
 def _series_text(items: list[str]) -> str:
-    values = [re.sub(r'\s+', ' ', str(item or '').strip()) for item in items if str(item or '').strip()]
+    values: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        value = re.sub(r'\s+', ' ', str(item or '').strip())
+        key = value.casefold()
+        if not value or key in seen:
+            continue
+        seen.add(key)
+        values.append(value)
     if not values:
         return ''
     if len(values) == 1:
@@ -514,7 +527,8 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, decisions_has_approval, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, upsert_checkpoint_block
+    from tooling.common import atomic_write_text, decisions_has_approval, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, research_subject_from_request, upsert_checkpoint_block
+    from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()
     inputs = parse_semicolon_list(args.inputs)
@@ -535,7 +549,7 @@ def main() -> int:
         return 2
 
     outline = load_yaml(workspace / 'outline' / 'outline.yml') if (workspace / 'outline' / 'outline.yml').exists() else []
-    goal = _goal_text(workspace / 'GOAL.md')
+    goal = _goal_text(workspace / 'GOAL.md', subject_normalizer=research_subject_from_request)
     time_window, candidate_pool, core_set_size, evidence_mode = _parse_stats(
         workspace / 'papers' / 'retrieval_report.md',
         workspace / 'papers' / 'core_set.csv',
@@ -610,7 +624,12 @@ def main() -> int:
 
     headings = template_bank.get('headings') or {}
     hook_banks = template_bank.get('hook_banks') or {}
-    section_contracts = contract.get('sections') or {}
+    section_contracts = dict(contract.get('sections') or {})
+    draft_profile = _draft_profile(workspace)
+    profile_sections = (((contract.get('profile_overrides') or {}).get(draft_profile) or {}).get('sections') or {})
+    for section_name, override in profile_sections.items():
+        if isinstance(override, dict):
+            section_contracts[str(section_name)] = {**dict(section_contracts.get(str(section_name)) or {}), **override}
 
     values['candidate_pool'] = candidate_pool
     values['core_set_size'] = core_set_size
@@ -680,6 +699,7 @@ def main() -> int:
             'methodology_note_max_occurrences': int(((contract.get('methodology_note_policy') or {}).get('max_occurrences') or 1)),
         },
         'citation_pool_size': len(all_keys),
+        'draft_profile': draft_profile,
         'render_mode': 'job_graph',
         'domain_overlay': domain_id or '',
     }

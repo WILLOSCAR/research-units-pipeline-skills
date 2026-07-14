@@ -1,0 +1,56 @@
+{
+  "name": "rag_evaluation",
+  "detect": {
+    "all_any_groups": [
+      [
+        "retrieval-augmented generation",
+        "retrieval augmented generation",
+        "rag system",
+        "rag evaluation"
+      ],
+      [
+        "evaluate",
+        "evaluated",
+        "evaluation",
+        "benchmark",
+        "metric"
+      ]
+    ]
+  },
+  "section_rules": [
+    {
+      "match_any": [
+        "dataset, task, and metric design",
+        "dataset task and metric design"
+      ],
+      "title_require_any": [
+        "benchmark",
+        "evaluat",
+        "metric",
+        "dataset",
+        "protocol",
+        "content design",
+        "trec",
+        "track"
+      ],
+      "title_boost_any": [
+        "benchmark",
+        "metric",
+        "dataset",
+        "content design",
+        "evaluation framework",
+        "trec",
+        "track"
+      ],
+      "abstract_boost_any": [
+        "construct validity",
+        "ground truth",
+        "metric decomposition",
+        "human evaluation",
+        "evaluation protocol"
+      ],
+      "title_boost": 8,
+      "abstract_boost": 3
+    }
+  ]
+}

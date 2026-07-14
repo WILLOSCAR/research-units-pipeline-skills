@@ -8,6 +8,7 @@ from pathlib import Path
 
 from tooling.executor import run_one_unit
 from tooling.harness import (
+    build_doctor_payload,
     validate_artifact_pack_payload,
     validate_doctor_payload,
     validate_improvement_payload,
@@ -145,6 +146,131 @@ def test_doctor_reports_next_runnable_unit(tmp_path: Path) -> None:
     assert "Current checkpoint: `C1`" in result.stdout
     assert "DONE: 1" in result.stdout
     assert "TODO: 1" in result.stdout
+
+
+def test_doctor_points_blocked_units_to_repair_reports(tmp_path: Path) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U010",
+                "title": "Retrieve",
+                "skill": "arxiv-search",
+                "owner": "CODEX",
+                "outputs": "papers/papers_raw.jsonl",
+                "status": "BLOCKED",
+            },
+        ],
+    )
+
+    result = run_command("scripts/pipeline.py", "doctor", "--workspace", str(workspace))
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "Next runnable: `U010` Retrieve (`arxiv-search`) [BLOCKED]" in result.stdout
+    assert "Kind: `repair_blocked_unit`" in result.stdout
+    assert f"Command: `uv run python scripts/pipeline.py improve --workspace {workspace.resolve()} --write`" in result.stdout
+    assert "Unit U010 is BLOCKED; inspect `output/QUALITY_GATE.md`, `output/RUN_ERRORS.md`, and unit logs" in result.stdout
+
+
+def test_doctor_routes_human_checkpoint_to_explicit_approval(tmp_path: Path) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U055",
+                "title": "Approve outline",
+                "skill": "human-checkpoint",
+                "owner": "HUMAN",
+                "checkpoint": "C2",
+                "status": "BLOCKED",
+            },
+        ],
+    )
+
+    result = run_command("scripts/pipeline.py", "doctor", "--workspace", str(workspace))
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "Kind: `await_human_approval`" in result.stdout
+    assert (
+        f"Command: `uv run python scripts/pipeline.py approve --workspace {workspace.resolve()} --checkpoint C2`"
+        in result.stdout
+    )
+    assert "review `DECISIONS.md` and approve it explicitly" in result.stdout
+
+
+def test_reopening_upstream_revokes_stale_downstream_checkpoint_approval(tmp_path: Path) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U050",
+                "title": "Build mapping",
+                "skill": "section-mapper",
+                "owner": "CODEX",
+                "checkpoint": "C2",
+                "status": "DONE",
+            },
+            {
+                "unit_id": "U055",
+                "title": "Approve structure",
+                "skill": "human-checkpoint",
+                "owner": "HUMAN",
+                "depends_on": "U050",
+                "checkpoint": "C2",
+                "status": "DONE",
+            },
+            {
+                "unit_id": "U060",
+                "title": "Bind evidence",
+                "skill": "evidence-binder",
+                "owner": "CODEX",
+                "depends_on": "U055",
+                "checkpoint": "C3",
+                "status": "DONE",
+            },
+        ],
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [x] Approve C2\n",
+        encoding="utf-8",
+    )
+
+    result = run_command(
+        "scripts/pipeline.py",
+        "mark",
+        "--workspace",
+        str(workspace),
+        "--unit-id",
+        "U050",
+        "--status",
+        "TODO",
+        "--note",
+        "rebuild mapping",
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+        statuses = {row["unit_id"]: row["status"] for row in csv.DictReader(handle)}
+    assert statuses == {"U050": "TODO", "U055": "TODO", "U060": "TODO"}
+    assert "- [ ] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    assert "revoked stale checkpoint approval(s): C2" in (workspace / "STATUS.md").read_text(
+        encoding="utf-8"
+    )
+    decisions = [
+        json.loads(line)
+        for line in (workspace / ".harness" / "decisions.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert [record["action"] for record in decisions] == [
+        "checkpoint.approval.revoked",
+        "unit.status.changed",
+    ]
+    assert "reset 2 downstream unit(s) to TODO" in result.stdout
+    assert "revoked checkpoint approval(s): C2" in result.stdout
 
 
 def test_doctor_resume_command_quotes_workspace_paths_with_spaces(tmp_path: Path) -> None:
@@ -390,7 +516,7 @@ def test_audit_writes_compact_run_ledger_when_artifacts_are_present(tmp_path: Pa
     assert "JSON sidecar: `output/RUN_AUDIT.json`" in result.stdout
     assert "Current checkpoint: `C3`" in result.stdout
     assert "Phase: `complete_candidate`" in result.stdout
-    assert "Target artifacts: 16 present / 0 missing" in result.stdout
+    assert f"Target artifacts: {len(spec.target_artifacts)} present / 0 missing" in result.stdout
     assert "DONE: 1" in result.stdout
     assert "Manifests: 1" in result.stdout
     assert "No harness issues" in result.stdout
@@ -595,7 +721,10 @@ def test_pack_writes_reviewable_artifact_manifest(tmp_path: Path) -> None:
     assert "target_artifact" in result.stdout
     assert "run_ledger" in result.stdout
     assert "unit_manifest" in result.stdout
-    assert "Run state: `complete_candidate`; 16 target artifacts present, 0 missing; 0 errors" in result.stdout
+    assert (
+        f"Run state: `complete_candidate`; {len(spec.target_artifacts)} target artifacts present, "
+        "0 missing; 0 errors"
+    ) in result.stdout
     assert "ARTIFACT_PACK_EXCERPT.md" in result.stdout
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["schema"] == "artifact-pack.v1"
@@ -837,13 +966,30 @@ def test_executor_writes_manifest_for_scripted_unit_outputs(tmp_path: Path) -> N
 
     result = run_one_unit(workspace=workspace, repo_root=repo_root)
 
-    manifest_path = workspace / "output" / "unit_logs" / "U001.demo-skill.manifest.json"
+    manifest_paths = list((workspace / "output" / "unit_logs").glob("U001.demo-skill.*.manifest.json"))
     assert result.status == "DONE"
-    assert manifest_path.exists()
+    assert len(manifest_paths) == 1
+    manifest_path = manifest_paths[0]
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["unit_id"] == "U001"
+    assert manifest["run_id"].startswith("run_")
+    assert manifest["attempt_id"].startswith("attempt_")
     assert manifest["skill"] == "demo-skill"
     assert manifest["exit_code"] == 0
     assert manifest["outputs"][0]["path"] == "output/demo.md"
     assert manifest["outputs"][0]["exists"] is True
     assert manifest["outputs"][0]["sha256"]
+    assert manifest["implementation"]["skill"]["sha256"]
+    artifact_records = [
+        json.loads(line)
+        for line in (workspace / ".harness" / "artifacts.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    demo_artifact = next(record for record in artifact_records if record["path"] == "output/demo.md")
+    assert demo_artifact["attempt_id"] == manifest["attempt_id"]
+    assert demo_artifact["sha256"] == manifest["outputs"][0]["sha256"]
+
+    script_path.write_text(script_path.read_text(encoding="utf-8") + "# changed after completion\n", encoding="utf-8")
+    exit_code, doctor = build_doctor_payload(workspace=workspace, repo_root=repo_root)
+    assert exit_code == 2
+    assert "stale_done_implementation" in {issue["code"] for issue in doctor["harness_issues"]}

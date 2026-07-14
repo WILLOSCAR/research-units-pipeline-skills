@@ -27,9 +27,16 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import ensure_dir, parse_semicolon_list
+    from tooling.common import ensure_dir, load_workspace_goal_constraints, parse_semicolon_list
 
     workspace = Path(args.workspace).resolve()
+    constraints = load_workspace_goal_constraints(workspace)
+    page_range = constraints.get("page_range") if isinstance(constraints.get("page_range"), dict) else {}
+    page_target = (
+        f"{int(page_range.get('min'))}-{int(page_range.get('max'))} total PDF pages"
+        if page_range.get("min") and page_range.get("max")
+        else ""
+    )
     outputs = parse_semicolon_list(args.outputs) or ["latex/main.pdf", "output/LATEX_BUILD_REPORT.md"]
 
     pdf_rel = outputs[0]
@@ -40,10 +47,11 @@ def main() -> int:
     tex_path = workspace / "latex" / "main.tex"
     if not tex_path.exists():
         _write_report(report_path, ok=False, message=f"Missing input: {tex_path}")
-        return 0
+        return 2
 
     ensure_dir(pdf_path.parent)
     ensure_dir(report_path.parent)
+    _remove_stale_pdf(pdf_path)
 
     proc, engine = _compile_latex(tex_path)
 
@@ -65,10 +73,14 @@ def main() -> int:
             stderr=proc.stderr,
             engine=engine,
             page_count=page_count,
+            page_target=page_target,
             warnings=warnings,
         )
         return 0
 
+    _remove_stale_pdf(pdf_path)
+    if built_pdf != pdf_path:
+        _remove_stale_pdf(built_pdf)
     _write_report(
         report_path,
         ok=False,
@@ -77,9 +89,18 @@ def main() -> int:
         stderr=proc.stderr,
         engine=engine,
         page_count=page_count,
+        page_target=page_target,
         warnings=warnings,
     )
-    return 0
+    return 2
+
+
+def _remove_stale_pdf(path: Path) -> None:
+    try:
+        if path.exists():
+            path.unlink()
+    except OSError:
+        pass
 
 
 def _compile_latex(tex_path: Path) -> tuple[subprocess.CompletedProcess[str], str]:
@@ -210,6 +231,7 @@ def _write_report(
     stderr: str = "",
     engine: str = "",
     page_count: int | None = None,
+    page_target: str = "",
     warnings: dict[str, int] | None = None,
 ) -> None:
     from datetime import datetime
@@ -235,6 +257,8 @@ def _write_report(
     ]
     if page_count is not None:
         header_lines.append(f"- Page count: `{page_count}`")
+    if page_target:
+        header_lines.append(f"- Goal page target: `{page_target}`")
 
     content_lines: list[str] = []
     content_lines.extend(header_lines)

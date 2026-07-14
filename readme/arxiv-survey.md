@@ -54,9 +54,18 @@ different product brief. Tell the agent the course requirements up front:
 - whether the report should read like a class paper, technical report, or short survey
 
 Use `arxiv-survey` for a Markdown-first class report. Use `arxiv-survey-latex`
-when the final deliverable should be a PDF. For short course reports, explicitly
-ask for a compact outline before C2 approval so the default survey-grade setup
-does not expand into a full review paper.
+when the final deliverable should be a PDF. Explicit `course paper`, `term
+paper`, `end-of-term report`, `课程论文`, or `期末报告` intent activates the
+bounded `course_paper` profile inside the same Workflow. It materializes
+`max_results=320`, `core_size=48`, `per_subsection=6`, at most 6 H3s, and a
+24-citation hard floor. Page, word, language, and format requirements still
+belong in the Goal and should be reviewed at C2.
+
+Current evidence: the
+[course-paper pilot snapshot](../examples/course-paper-pilot/README.md) records
+49 completed Units, a passing Artifact audit, and a 10-page PDF for an 8-10
+page Goal. This proves one full delivery path. Repeated topics and measured
+token use remain open.
 
 Example:
 
@@ -90,11 +99,12 @@ C5 is not a single draft call. It includes:
 
 - front matter generation
 - per-section drafting
+- targeted style and opener repair
 - section logic review
-- argument self-loop
-- paragraph curation
-- style harmonization
-- opener variation
+- paragraph-boundary compaction
+- numeric-context hygiene
+- final argument and section-hash snapshot
+- deterministic merge
 - final audit
 
 That is where most quality improvements happen.
@@ -111,6 +121,15 @@ The default survey contract is intentionally heavy:
 - recommended unique citations `>=165`
 
 This is a survey-grade configuration, not a fast snapshot mode.
+
+The course-paper overlay is intentionally smaller:
+
+- `core_size=48`
+- `per_subsection=6`
+- `max_results=320`
+- at most `6` H3 subsections
+- unique citation hard floor `>=24` (recommended `>=32`)
+- 5-7 paragraphs and at least 4 unique citations per H3
 
 The current pipeline also uses a section-first structure policy:
 
@@ -196,7 +215,7 @@ The survey path is not a single monolithic skill. Its main behavior comes from a
 - structure: `taxonomy-builder`, `chapter-skeleton`, `section-bindings`, `section-briefs`, `outline-builder`, `section-mapper`
 - evidence: `paper-notes`, `subsection-briefs`, `citation-verifier`, `evidence-binder`, `evidence-draft`, `anchor-sheet`, `writer-context-pack`
 - writing: `front-matter-writer`, `chapter-lead-writer`, `subsection-writer`
-- convergence: `writer-selfloop`, `section-logic-polisher`, `argument-selfloop`, `paragraph-curator`, `style-harmonizer`, `opener-variator`, `global-reviewer`, `pipeline-auditor`
+- convergence: `writer-selfloop`, `style-harmonizer`, `opener-variator`, `section-logic-polisher`, `paragraph-curator`, `evaluation-anchor-checker`, `argument-selfloop`, `global-reviewer`, `pipeline-auditor`
 - PDF delivery: `latex-scaffold`, `latex-compile-qa`
 
 If the output quality is not good enough, the right fix is usually in one of those upstream skills rather than a one-off patch to `output/DRAFT.md`.
@@ -220,7 +239,8 @@ This usually means:
 - subsection briefs are too abstract
 - evidence packs are thin
 - front matter or section openers are still template-driven
-- paragraph curation did not remove enough overlap
+- upstream writing still contains overlap; `paragraph-curator` only compacts
+  adjacent paragraph boundaries and does not delete or semantically rewrite prose
 
 The fix is typically upstream in briefs, evidence packs, or writing skills.
 

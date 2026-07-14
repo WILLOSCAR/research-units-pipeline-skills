@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey
-version: 3.8
+version: 4.0
 profile: arxiv-survey
 routing_hints: [survey, review, 综述, 调研, literature review, course paper, term paper, end-of-term report, 课程论文, 期末报告]
 routing_default: true
@@ -11,6 +11,7 @@ target_artifacts:
   - CHECKPOINTS.md
   - DECISIONS.md
   - GOAL.md
+  - PIPELINE.lock.md
   - queries.md
   - papers/papers_raw.jsonl
   - papers/papers_dedup.jsonl
@@ -113,13 +114,37 @@ quality_contract:
   citation_policy:
     unique_hard_floor: 150
     unique_recommended: 165
+    by_profile:
+      survey:
+        unique_hard_floor: 150
+        unique_recommended: 165
+        per_h3: 14
+        base: 35
+        bibliography_fraction: 0.50
+        recommended_fraction: 0.55
+      deep:
+        unique_hard_floor: 165
+        unique_recommended: 165
+        per_h3: 16
+        base: 40
+        bibliography_fraction: 0.60
+        recommended_fraction: 0.60
+      course_paper:
+        unique_hard_floor: 24
+        unique_recommended: 32
+        per_h3: 3
+        base: 6
+        bibliography_fraction: 0.35
+        recommended_fraction: 0.45
   structure_policy:
     max_final_h2_by_profile:
       survey: 8
       deep: 9
+      course_paper: 7
     max_h3_by_profile:
       survey: 10
       deep: 12
+      course_paper: 6
   front_matter_policy:
     survey:
       introduction:
@@ -139,6 +164,15 @@ quality_contract:
         min_cites: 55
         min_paras: 7
         min_chars: 3600
+    course_paper:
+      introduction:
+        min_cites: 6
+        min_paras: 3
+        min_chars: 1200
+      related_work:
+        min_cites: 8
+        min_paras: 3
+        min_chars: 1400
   subsection_policy:
     survey:
       min_unique_citations: 12
@@ -146,6 +180,9 @@ quality_contract:
     deep:
       min_unique_citations: 14
       min_chars: 5200
+    course_paper:
+      min_unique_citations: 4
+      min_chars: 1600
 loop_policy:
   stage_retry_budget:
     C1: 2
@@ -160,7 +197,7 @@ stages:
     mode: no_prose
     required_skills: [workspace-init, pipeline-router]
     optional_skills: []
-    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
+    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, PIPELINE.lock.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
   C1:
     title: Retrieval & core set
     mode: no_prose
@@ -191,7 +228,7 @@ stages:
   C5:
     title: Draft
     mode: prose_allowed
-    required_skills: [front-matter-writer, chapter-lead-writer, subsection-writer, writer-selfloop, section-logic-polisher, argument-selfloop, paragraph-curator, style-harmonizer, opener-variator, evaluation-anchor-checker, transition-weaver, section-merger, post-merge-voice-gate, citation-diversifier, citation-injector, draft-polisher, global-reviewer, pipeline-auditor, artifact-contract-auditor]
+    required_skills: [front-matter-writer, chapter-lead-writer, subsection-writer, writer-selfloop, style-harmonizer, opener-variator, section-logic-polisher, paragraph-curator, evaluation-anchor-checker, argument-selfloop, transition-weaver, section-merger, post-merge-voice-gate, citation-diversifier, citation-injector, draft-polisher, global-reviewer, pipeline-auditor, artifact-contract-auditor]
     optional_skills: [prose-writer, subsection-polisher, redundancy-pruner, terminology-normalizer, limitation-weaver, latex-scaffold, latex-compile-qa]
     produces: [outline/transitions.md, sections/sections_manifest.jsonl, sections/h3_bodies.refined.ok, sections/paragraphs_curated.refined.ok, sections/style_harmonized.refined.ok, sections/opener_varied.refined.ok, sections/abstract.md, sections/S1.md, sections/S2.md, sections/discussion.md, sections/conclusion.md, output/WRITER_SELFLOOP_TODO.md, output/EVAL_ANCHOR_REPORT.md, output/ARGUMENT_SELFLOOP_TODO.md, output/SECTION_ARGUMENT_SUMMARIES.jsonl, output/ARGUMENT_SKELETON.md, output/PARAGRAPH_CURATION_REPORT.md, output/FRONT_MATTER_REPORT.md, output/CHAPTER_LEADS_REPORT.md, output/SECTION_LOGIC_REPORT.md, output/MERGE_REPORT.md, output/DRAFT.md, output/POST_MERGE_VOICE_REPORT.md, output/CITATION_BUDGET_REPORT.md, output/CITATION_INJECTION_REPORT.md, output/GLOBAL_REVIEW.md, output/AUDIT_REPORT.md, output/CONTRACT_REPORT.md]
 ---
@@ -200,7 +237,8 @@ stages:
 
 Default contract (survey-grade, A150++):
 - `queries.md` defaults are set for a *survey deliverable* (no silent downgrade): `core_size=300`, `per_subsection=28`, global unique citations hard floor `>=150` (recommended `>=165` when `core_size=300`; default `citation_target=recommended`).
-- `draft_profile` controls **writing strictness** (`survey` vs `deep`), not “speed mode”.
+- Explicit course-paper intent selects a bounded overlay in the same Workflow: `max_results=320`, `core_size=48`, `per_subsection=6`, `draft_profile=course_paper`, `citation_target=hard`, and a 24-citation hard floor. Six candidates per H3 preserve evidence choice while avoiding low-relevance filler in the compact profile.
+- `draft_profile` controls the full execution density (`course_paper`, `survey`, or `deep`), including structure, evidence packs, context packs, prose, and audit thresholds.
 - `evidence_mode` controls **evidence strength** (`abstract` default; `fulltext` optional and heavier).
 
 ## Stage 0 - Init (C0)
@@ -213,6 +251,7 @@ produces:
 - CHECKPOINTS.md
 - DECISIONS.md
 - GOAL.md
+- PIPELINE.lock.md
 - queries.md
 
 ## Stage 1 - Retrieval & core set (C1)
@@ -267,7 +306,7 @@ Notes:
 - Evidence-first expectation: each subsection should be written as a *question to answer* (RQ) plus *evidence needs* (what kind of citations/results are required), not just generic scaffold bullets.
 - Coverage default: `section-mapper` uses `queries.md:per_subsection` as the per-H3 mapping contract (A150++ default: 28) so later evidence binding and writing have enough in-scope citations to choose from.
 - Diversity expectation: mapping should not over-reuse a few papers across unrelated H3s; reserve “global” works for genuinely cross-cutting citations (controlled by `global_citation_min_subsections`).
-- Budget policy (paper-like): avoid H3 explosion; the outline gate uses `queries.md:draft_profile` to set max H3 (survey<=10, deep<=12).
+- Budget policy (paper-like): avoid H3 explosion; the outline gate uses `queries.md:draft_profile` to set max H3 (course_paper<=6, survey<=10, deep<=12).
 - If the outline is over-fragmented, use `outline-budgeter` (NO PROSE) to merge adjacent H3s into fewer, thicker units, then rerun `section-mapper` → `outline-refiner` before `Approve C2`.
 
 ## Stage 3 - Evidence (C3) [NO PROSE]
@@ -285,7 +324,7 @@ produces:
 
 Notes:
 - `queries.md` can set `evidence_mode: "abstract"|"fulltext"` (A150++ default: `abstract`).
-- `queries.md` can set `draft_profile: "survey"|"deep"` to control writing gate strictness (A150++ default: `survey`).
+- `queries.md` can set `draft_profile: "course_paper"|"survey"|"deep"` to control execution density (A150++ default: `survey`).
 - If `evidence_mode: "fulltext"`, `pdf-text-extractor` can be tuned via `fulltext_max_papers`, `fulltext_max_pages`, `fulltext_min_chars`.
 - `subsection-briefs` converts each H3 into a verifiable writing card (scope_rule/rq/axes/clusters/paragraph_plan) so writing does not copy outline scaffolds.
 - Optional refinement markers (recommended): treat briefs as *contracts*, not scaffolds. If you manually refine them and want to prevent regeneration, create:
@@ -345,12 +384,12 @@ required_skills:
 - chapter-lead-writer
 - subsection-writer
 - writer-selfloop
-- section-logic-polisher
-- argument-selfloop
-- paragraph-curator
 - style-harmonizer
 - opener-variator
+- section-logic-polisher
+- paragraph-curator
 - evaluation-anchor-checker
+- argument-selfloop
 - transition-weaver
 - section-merger
 - post-merge-voice-gate
@@ -366,7 +405,6 @@ optional_skills:
 - redundancy-pruner
 - terminology-normalizer
 - limitation-weaver
-- evaluation-anchor-checker
 - latex-scaffold
 - latex-compile-qa
 produces:
@@ -392,18 +430,18 @@ produces:
 Notes:
 - C5 writing system (semantic + minimal artifacts; no extra machinery):
   - **Unit of work**: `sections/*.md` (front matter, H2 leads, H3 bodies). Avoid editing `output/DRAFT.md` directly until after merge.
-  - **Single source of truth (口径锁定)**: `output/ARGUMENT_SKELETON.md` → `## Consistency Contract` (terminology, scope boundary, evaluation protocol fields, baseline naming).
-  - **Write → check → fix (five gates)**:
+  - **Final argument snapshot**: `output/ARGUMENT_SKELETON.md` and `output/SECTION_ARGUMENT_SUMMARIES.jsonl` describe the section content that is actually about to be merged.
+  - **Write → check → converge (five gates)**:
     1) `writer-selfloop` → `output/WRITER_SELFLOOP_TODO.md`: file existence, depth, citation scope, paper voice.
-    2) `section-logic-polisher` → `output/SECTION_LOGIC_REPORT.md`: paragraph linkage (no jump cuts / “paragraph islands”).
-    3) `argument-selfloop` → `output/ARGUMENT_SELFLOOP_TODO.md` + `output/ARGUMENT_SKELETON.md` + `output/SECTION_ARGUMENT_SUMMARIES.jsonl`: section-level closure + premise/definition stability.
-    4) `paragraph-curator` → `output/PARAGRAPH_CURATION_REPORT.md`: **select → evaluate → subset → fuse** so sections converge (reduce redundancy, strengthen synthesis) without changing citation keys.
-    5) `evaluation-anchor-checker` → `output/EVAL_ANCHOR_REPORT.md`: final section-level numeric hygiene sweep so surviving numeric claims keep same-sentence task/metric/constraint context before merge.
+    2) `style-harmonizer` + `opener-variator`: targeted de-templating without changing evidence.
+    3) `section-logic-polisher` → `output/SECTION_LOGIC_REPORT.md`: paragraph linkage and opening thesis checks.
+    4) `paragraph-curator` → `output/PARAGRAPH_CURATION_REPORT.md`: merge adjacent H3 paragraphs to the profile budget without deleting prose or changing citation-block order.
+    5) `evaluation-anchor-checker` followed by `argument-selfloop`: run the last numeric rewrite, then snapshot paragraph moves, the consistency contract, and current section hashes.
   - **Openers-last**: draft the middle first; rewrite paragraph 1 last so it reflects real content (front matter + H3).
 - Writing self-loop gate: `subsection-writer` ensures the full `sections/` file set exists (and emits `sections/sections_manifest.jsonl`); `writer-selfloop` blocks until depth/citation-scope/paper-voice checks pass, writing `output/WRITER_SELFLOOP_TODO.md` (PASS/FAIL).
-- Argument self-loop gate: `argument-selfloop` blocks “smooth but hollow” sections by making the argument chain explicit (per-section paragraph moves + a global dependency skeleton). Its ledgers are intermediate artifacts and must never be merged into the paper.
-- Style hygiene (C5 hard gate for `survey`/`deep`): treat `output/WRITER_SELFLOOP_TODO.md` Style Smells as mandatory fixes. Run `style-harmonizer` + `opener-variator` on flagged files, then rerun `writer-selfloop` before merge.
-- Numeric hygiene gate: run `evaluation-anchor-checker` after the last section-level rewrites (`paragraph-curator` + `style-harmonizer` + `opener-variator`) and before merge. If later section rewrites touch the same H3 files, rerun it; do not wait for `pipeline-auditor` to discover underspecified numbers in the merged draft.
+- Argument snapshot gate: `argument-selfloop` is diagnostic, not an autonomous rewrite loop. It records bounded paragraph-move labels, a consistency contract, and current section fingerprints. These intermediate artifacts must never be merged into the paper.
+- Style hygiene (C5 hard gate for all survey-family profiles): treat `output/WRITER_SELFLOOP_TODO.md` Style Smells as mandatory fixes. Run `style-harmonizer` + `opener-variator` on flagged files, then rerun `writer-selfloop` before merge.
+- Numeric hygiene gate: run `evaluation-anchor-checker` after style, logic, and paragraph compaction, immediately before the final argument snapshot. If later section rewrites touch the same H3 files, reopen this Unit and regenerate the snapshot.
 - Micro-fix routing (preferred over broad rewrites): if Style Smells are specific, use targeted micro-skills before a general harmonize pass:
   - opener cadence / “overview” narration → `opener-variator`
   - count-based limitation slots (“Two limitations…”) → `limitation-weaver`
@@ -412,13 +450,14 @@ Notes:
 - WebWeaver-style “planner vs writer” split (single agent, two passes):
   - Planner pass: for each section/subsection, pick the exact citation IDs to use from the evidence bank (`outline/evidence_drafts.jsonl`) and keep scope consistent with the outline.
   - Writer pass: write that section using only those citation IDs; avoid dumping the whole notes set into context.
-- Treat this stage as an iteration loop: draft per H3 → logic-polish (thesis + connectors) → weave transitions → merge → de-template/cohere → global review → (if gaps) back to C3/C4 → regenerate.
-- Post-merge voice gate: `post-merge-voice-gate` treats `outline/transitions.md` as a high-frequency injection source. If it FAILs, fix the *source* (usually transitions via `transition-weaver`, or the owning `sections/*.md`) and re-merge; do not “patch around it” in `draft-polisher`.
+- Treat this stage as an iteration loop: draft per H3 → targeted style/logic repair → compact → numeric hygiene → snapshot → merge → draft polish → global review → (if gaps) back to C3/C4 → regenerate.
+- Post-merge voice gate: `post-merge-voice-gate` inspects the actual merged draft. It attributes a finding to `outline/transitions.md` only when an insertion marker enabled those transitions; otherwise it routes to the owning section or later draft pass.
 - Depth target (profile-aware): each H3 should be “少而厚” (avoid stubs). Use `queries.md:draft_profile` as the contract:
+  - `course_paper`: 5-7 paragraphs + >=4 unique cites + >=1600 non-citation characters
   - `survey`: >=10 paragraphs + >=12 unique cites
   - `deep`: >=11 paragraphs + >=14 unique cites
-  In all profiles, require >=2 concrete contrasts + evaluation anchoring + a cross-paper synthesis paragraph + an explicit limitation.
-- Profile semantics: `survey` is the default deliverable contract; `deep` is stricter (and typically pairs well with `evidence_mode: fulltext`).
+  Every profile retains comparison, evaluation anchoring, cross-paper synthesis, and an explicit limitation; density scales with the intended deliverable.
+- Profile semantics: `course_paper` is the bounded report overlay; `survey` is the default deliverable contract; `deep` is stricter and typically pairs with `evidence_mode: fulltext`.
 - Coherence target (paper-like): for every H2 chapter with H3 subsections, write a short **chapter lead** block (`sections/S<sec_id>_lead.md`) that previews the comparison axes and how the H3s connect (no new headings; avoid generic glue).
 - Anti-template style contract (paper-like, not “outline narration”):
   - Avoid meta openers like “This subsection surveys/argues …” and slide-like navigation (“Next, we move from … / We now turn to …”).
@@ -427,8 +466,8 @@ Notes:
   - Keep evidence-policy disclaimers **once** in front matter (not repeated across H3s).
   - If you cite numbers, include minimal evaluation context (task + metric + constraint/budget/cost) in the same paragraph.
   - Citation shape must be reader-facing: no adjacent citation blocks (e.g., `[@a] [@b]`), no duplicate keys in one block (e.g., `[@a; @a]`), and avoid tail-only citation style by keeping mid-sentence citations in each H3.
-- `section-merger` merges `sections/*.md` plus `outline/transitions.md` (within-chapter H3→H3 by default). Between-H2 transition insertion is optional: create `outline/transitions.insert_h2.ok` in the workspace if you want narrator-style handoffs included.
-- Tables are part of the default deliverable: `outline/tables_appendix.md` is inserted into the draft by `section-merger` as a single Appendix block (index tables in `outline/tables_index.md` remain intermediate) unless `outline/tables.insert.off` exists. Other visuals (`outline/timeline.md`, `outline/figures.md`) remain intermediate by default.
+- `section-merger` merges only fingerprinted `sections/*.md` by default. Generated transitions remain review artifacts unless `outline/transitions.insert_h3.ok` or `outline/transitions.insert_h2.ok` explicitly enables insertion.
+- Tables are part of the default deliverable: `outline/tables_appendix.md` is inserted into the draft by `section-merger` as a single Appendix block (index tables in `outline/tables_index.md` remain intermediate) unless `outline/tables.insert.off` exists. Course papers require at least one reader-facing table; survey/deep profiles require at least two. Other visuals (`outline/timeline.md`, `outline/figures.md`) remain intermediate by default.
 - Citation scope policy: citations are subsection-first (from `outline/evidence_bindings.jsonl`), with limited reuse allowed within the same H2 chapter to reduce brittleness; avoid cross-chapter “free cite” drift.
   - Controlled flexibility: bibkeys mapped to >= `queries.md:global_citation_min_subsections` subsections (A150++ default: 4) are treated as cross-cutting/global; see `allowed_bibkeys_global` in writer packs / `sections_manifest.jsonl`.
 - If global unique citations are low, run `citation-diversifier` → `citation-injector` *before* `draft-polisher` (the polisher treats citation keys as immutable).
@@ -436,7 +475,7 @@ Notes:
 - If you intentionally add/remove citations after an earlier polish run, reset the citation-anchoring baseline before rerunning `draft-polisher`:
   - delete `output/citation_anchors.prepolish.jsonl` (workspace-local), then rerun `draft-polisher`.
 - Recommended skills (toolkit, not a rigid one-shot chain):
-  - Modular drafting: `subsection-writer` → `writer-selfloop` → `section-logic-polisher` → `argument-selfloop` → `paragraph-curator` → `style-harmonizer` → `opener-variator` → `evaluation-anchor-checker` → `transition-weaver` → `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor`.
+  - Modular drafting: `subsection-writer` → `writer-selfloop` → `style-harmonizer` → `opener-variator` → `section-logic-polisher` → `paragraph-curator` → `evaluation-anchor-checker` → `argument-selfloop` → optional `transition-weaver` → `section-merger` → `draft-polisher` → `global-reviewer` → `pipeline-auditor`.
   - Legacy one-shot drafting: `prose-writer` (kept for quick experiments; less debuggable).
   - If the draft reads like “paragraph islands”, run `section-logic-polisher` and patch only failing `sections/S*.md` until PASS, then merge.
 - Add `pipeline-auditor` after `global-reviewer` as a regression test (blocks on ellipsis, repeated boilerplate, and citation hygiene).

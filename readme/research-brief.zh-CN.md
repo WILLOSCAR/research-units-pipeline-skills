@@ -18,6 +18,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 输出刻意保持轻量：
 
 - `output/SNAPSHOT.md`
+- `output/BRIEF_SCORECARD.md` 与 `output/BRIEF_SCORECARD.json`
 
 ## 2. 常见起始输入
 
@@ -31,7 +32,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 
 ## 3. 数据流
 
-`topic / small paper pool -> retrieval + dedupe -> small core set -> taxonomy + bullets-only outline -> 紧凑速览 -> deliverable self-check`
+`topic / small paper pool -> focused retrieval + dedupe -> compact core set -> taxonomy + bullets-only outline -> 紧凑速览 -> scored self-check`
 
 核心不在于覆盖所有论文，而在于能快速回答三件事：
 
@@ -83,7 +84,7 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 | `C0` | 初始化 workspace 并种下 queries | `STATUS.md`、`UNITS.csv`、`DECISIONS.md`、`queries.md` |
 | `C1` | 检索并收敛出一个小而可用的 core set | `papers/papers_raw.jsonl`、`papers/core_set.csv` |
 | `C2` | 锁定主题边界和 bullets-only outline | `outline/taxonomy.yml`、`outline/outline.yml` |
-| `C3` | 写研究简报并做成品自检 | `output/SNAPSHOT.md`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C3` | 写研究简报并评分 | `output/SNAPSHOT.md`、`output/BRIEF_SCORECARD.json`、`output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. 质量目标
 
@@ -93,8 +94,18 @@ review 或 evidence review 之前，先判断注意力应该放在哪里。
 - 用“判断/主题/对比”来组织，而不是空泛目录旁白
 - 明确告诉读者先读什么
 - 保持紧凑，并给出明确的论文阅读线索
+- 每个 Paper Pointer 都能解析到 `papers/core_set.csv`
 
-## 9. 推荐 Prompt
+默认配置最多检索 80 条候选，并保留 12 篇 Core Set。只有当主题确实需要更大证据面时，
+才在 `queries.md` 中提高这些值。
+
+## 9. 当前可靠性边界
+
+这条 Workflow 已具备带评分的 Failure/Repair/Rerun 证明。Scorecard 会检查结构、篇幅、
+阅读路径和 Core Set 可追溯性，但不会判断检索结果是否最优或完整。因此面对歧义主题时，
+仍需人工检查 `queries.md` 与 Core Set。
+
+## 10. 推荐 Prompt
 
 示例保留英文 workflow 名称；具体要求可以用中文写。
 

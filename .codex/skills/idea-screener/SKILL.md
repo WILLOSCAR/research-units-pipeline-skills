@@ -23,7 +23,7 @@ and penalize same-template directions that only swap nouns.
 
 ### Quick Start
 
-- `python .codex/skills/idea-screener/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/idea-screener/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -36,4 +36,4 @@ and penalize same-template directions that only swap nouns.
 ### Examples
 
 - Screen a direction pool for a brainstorm workspace:
-  - `python .codex/skills/idea-screener/scripts/run.py --workspace workspaces/brainstorm-llm-agents`
+  - `uv run python .codex/skills/idea-screener/scripts/run.py --workspace workspaces/brainstorm-llm-agents`

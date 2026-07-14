@@ -33,7 +33,15 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import candidate_keywords, dump_yaml, parse_semicolon_list, read_jsonl, tokenize
+    from tooling.common import (
+        backup_existing,
+        candidate_keywords,
+        dump_yaml,
+        parse_semicolon_list,
+        read_jsonl,
+        refinement_marker_is_current,
+        tokenize,
+    )
 
     workspace = Path(args.workspace).resolve()
     inputs = parse_semicolon_list(args.inputs) or ["papers/core_set.csv"]
@@ -41,14 +49,21 @@ def main() -> int:
 
     core_path = workspace / inputs[0]
     out_path = workspace / outputs[0]
+    dedup_path = workspace / "papers" / "papers_dedup.jsonl"
 
     if not core_path.exists():
         raise SystemExit(f"Missing core set: {core_path}")
 
+    freeze_marker = out_path.parent / "taxonomy.refined.ok"
+    prerequisites = [out_path, core_path, dedup_path, workspace / "queries.md", workspace / "GOAL.md", Path(__file__)]
+    if refinement_marker_is_current(freeze_marker, prerequisites):
+        return 0
+    if freeze_marker.exists():
+        freeze_marker.unlink()
     if out_path.exists() and out_path.stat().st_size > 0:
         existing = out_path.read_text(encoding="utf-8", errors="ignore")
         if not _is_placeholder(existing):
-            return 0
+            backup_existing(out_path)
 
     titles: list[str] = []
     core_rows: list[dict[str, str]] = []
@@ -61,7 +76,6 @@ def main() -> int:
                 titles.append(title)
             core_rows.append({key: str(value or "").strip() for key, value in row.items()})
 
-    dedup_path = workspace / "papers" / "papers_dedup.jsonl"
     dedup = read_jsonl(dedup_path) if dedup_path.exists() else []
 
     text_blob = "\n".join([_safe_lower(title) for title in titles])
@@ -141,11 +155,17 @@ def _safe_lower(text: str) -> str:
 def _detect_profile(*, workspace: Path, text_blob: str) -> str:
     queries_path = workspace / "queries.md"
     goal_path = workspace / "GOAL.md"
-    low = (text_blob or "").lower()
+    intent_parts: list[str] = []
     if queries_path.exists():
-        low += "\n" + _safe_lower(queries_path.read_text(encoding="utf-8", errors="ignore"))
+        intent_parts.append(_safe_lower(queries_path.read_text(encoding="utf-8", errors="ignore")))
     if goal_path.exists():
-        low += "\n" + _safe_lower(goal_path.read_text(encoding="utf-8", errors="ignore"))
+        intent_parts.append(_safe_lower(goal_path.read_text(encoding="utf-8", errors="ignore")))
+
+    # A compatibility pack changes the whole taxonomy, so explicit user intent
+    # must select it. Corpus-wide term co-occurrence is too weak: unrelated
+    # papers can satisfy different detection groups and silently hijack scope.
+    intent = "\n".join(part for part in intent_parts if part.strip()).strip()
+    low = intent or (text_blob or "").lower()
 
     for pack_path in _iter_domain_pack_paths():
         pack = _safe_load_domain_pack(pack_path)
@@ -154,6 +174,9 @@ def _detect_profile(*, workspace: Path, text_blob: str) -> str:
         detect = pack.get("detect") or {}
         if _matches_detection(low=low, detect=detect):
             return str(pack.get("profile") or pack_path.stem).strip() or pack_path.stem
+
+    if intent:
+        return "generic"
 
     return "generic"
 

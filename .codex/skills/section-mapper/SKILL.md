@@ -13,7 +13,7 @@ description: |
 
 Create a paper→subsection map that supports evidence building and later synthesis.
 
-Good mapping is **diverse** (avoids reusing the same paper everywhere) and **explainable** (short semantic “why”, not just keyword overlap).
+Good mapping is **relevant**, **diverse**, and **explainable**. Corpus-wide topic words and repeated outline boilerplate are not evidence of subsection relevance.
 
 ## When to use
 
@@ -29,12 +29,15 @@ Good mapping is **diverse** (avoids reusing the same paper everywhere) and **exp
 
 - `outline/mapping.tsv`
 - `outline/mapping_report.md` (diagnostics: reuse hotspots, weak-signal subsections)
+- `outline/mapping_gap_candidates.tsv` (read-only repair candidates from the deduplicated pool when the core set cannot meet a subsection target)
 
 ## Freeze marker (explicit)
 
 To prevent accidental overwrites after you refine mapping rationales:
 
 - Create `outline/mapping.refined.ok`.
+
+The marker is valid only while it is newer than the mapping, core set, outline, query contract, and mapper implementation. Any upstream change invalidates it.
 
 If you rerun the script without this marker, it will back up the previous mapping to a timestamped file:
 
@@ -47,6 +50,7 @@ If you rerun the script without this marker, it will back up the previous mappin
    - representative (canonical / frequently-cited)
    - complementary (different design choices, different eval setups)
    - not overly reused elsewhere unless truly foundational
+   - supported by section-specific concepts, not only corpus-wide words such as the overall topic name
 3. Fill `why` with a short semantic rationale (one line is enough), e.g.:
    - mechanism: “decouples planner/executor; tool calling API”
    - evaluation: “interactive web tasks; strong tool error analysis”
@@ -54,6 +58,7 @@ If you rerun the script without this marker, it will back up the previous mappin
 4. After initial mapping, scan for:
    - subsections with <3 papers → either broaden, merge, or expand retrieval
    - a few papers mapped everywhere → diversify; reserve “foundational” papers for only the truly relevant parts
+   - unfilled targets → treat them as evidence gaps; do not fill them with unrelated papers merely to satisfy a row count
 
 ## Quality checklist
 
@@ -61,30 +66,35 @@ If you rerun the script without this marker, it will back up the previous mappin
 - [ ] Most subsections have ≥3 mapped papers (or a clear exception noted in `why`).
 - [ ] `why` is semantic (not just `matched_terms=...`).
 - [ ] No single paper dominates unrelated subsections.
+- [ ] No low-confidence filler row is used to hide an evidence gap.
 
 ## Helper script (optional)
 
 ### Quick Start
 
-- `python .codex/skills/section-mapper/scripts/run.py --help`
-- `python .codex/skills/section-mapper/scripts/run.py --workspace <workspace_dir> --per-subsection 28`
+- `uv run python .codex/skills/section-mapper/scripts/run.py --help`
+- `uv run python .codex/skills/section-mapper/scripts/run.py --workspace <workspace> --per-subsection 28`
 
 ### All Options
 
 - `--per-subsection <n>`: target mapped papers per subsection
-- `--diversity-penalty <float>`: penalize repeated reuse of the same paper across many subsections
+- `--diversity-penalty <int>`: penalize repeated reuse of the same paper across many subsections
 - `--soft-limit <n>` / `--hard-limit <n>`: caps for per-paper reuse (0 = auto)
+- `--minimum-score <n>`: automatic relevance floor (default: 3); lower only when the resulting mappings will be reviewed manually
 
 ### Examples
 
 - Higher diversity (reduce over-reuse):
-  - `python .codex/skills/section-mapper/scripts/run.py --workspace <ws> --per-subsection 4 --diversity-penalty 0.25`
+  - `uv run python .codex/skills/section-mapper/scripts/run.py --workspace <workspace> --per-subsection 4 --diversity-penalty 5`
 - Tighter reuse caps:
-  - `python .codex/skills/section-mapper/scripts/run.py --workspace <ws> --per-subsection 3 --soft-limit 6 --hard-limit 10`
+  - `uv run python .codex/skills/section-mapper/scripts/run.py --workspace <workspace> --per-subsection 3 --soft-limit 6 --hard-limit 10`
 
 ### Notes
 
 - Writes `outline/mapping_report.md` diagnostics.
+- Writes `outline/mapping_gap_candidates.tsv` instead of silently mutating `papers/core_set.csv`; a human or curation step remains responsible for changing the frozen core set.
+- Removes corpus-common and outline-common terms before scoring, weights subsection-title alignment, and refuses candidates without enough section-specific evidence.
+- Optional `assets/domain_packs/*.json` rules can tighten ambiguous subsection labels for an explicitly detected domain; these rules constrain mapping rather than changing the core set.
 - In `pipeline.py --strict`, mapping may be blocked until generic `why` rationales are replaced with semantic ones.
 
 ## Troubleshooting

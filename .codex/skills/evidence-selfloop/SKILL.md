@@ -113,7 +113,7 @@ Use this as a *semantic routing table* (not a script checklist). The goal is to 
 
 ### Quick Start
 
-- `python .codex/skills/evidence-selfloop/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/evidence-selfloop/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -126,4 +126,4 @@ Use this as a *semantic routing table* (not a script checklist). The goal is to 
 ### Examples
 
 - Generate an evidence TODO list after C4 packs are generated:
-  - `python .codex/skills/evidence-selfloop/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/evidence-selfloop/scripts/run.py --workspace <workspace>`

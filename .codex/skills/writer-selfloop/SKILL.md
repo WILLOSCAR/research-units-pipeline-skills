@@ -96,6 +96,7 @@ Optional routing context:
 
 2) Read the TODO report
 - Open `output/WRITER_SELFLOOP_TODO.md` and identify the failing file paths.
+- Treat repeated evidence-sized sentences within one H3 as blocking; repair support selection or remove the duplicate without changing citation scope.
 - For each failing H3, load its pack from `outline/writer_context_packs.jsonl`.
 - If a pack is missing or you need scope reminders, consult `outline/subsection_briefs.jsonl`; for chapter-level context (leads/throughlines), consult `outline/chapter_briefs.jsonl`.
 
@@ -123,15 +124,21 @@ Rewrite locally when:
 6) Rerun the gate until PASS
 
 After PASS (merge-aware voice safety):
-- Proceed to `section-logic-polisher` -> `argument-selfloop` -> `paragraph-curator` -> `style-harmonizer` -> `opener-variator` -> `evaluation-anchor-checker` -> `transition-weaver` -> `section-merger` -> `post-merge-voice-gate`.
-- If `post-merge-voice-gate` FAILs with `source: transitions`, fix `outline/transitions.md` via `transition-weaver` and re-merge (do not patch the merged draft).
+- Proceed to `style-harmonizer` -> `opener-variator` ->
+  `section-logic-polisher` -> `paragraph-curator` ->
+  `evaluation-anchor-checker` -> final `argument-selfloop` snapshot -> optional
+  `transition-weaver` -> `section-merger` -> `post-merge-voice-gate`.
+- If `post-merge-voice-gate` FAILs with `source: transitions`, transition
+  insertion was explicitly enabled; fix `outline/transitions.md` and re-merge.
 
-After PASS (mandatory style hygiene for `survey`/`deep`):
+After PASS (mandatory style hygiene for all survey-family profiles):
 - Open `output/WRITER_SELFLOOP_TODO.md` and read `## Style Smells`.
-- If it flags opener cadence / `overview` narration, run `opener-variator` on the listed files.
+- Run `style-harmonizer` on the listed `sections/*.md` files.
+- If it flags opener cadence / `overview` narration, then run
+  `opener-variator` on the listed files.
 - If it flags count-based limitation slots (e.g., `Two limitations ...`), run `limitation-weaver` on the listed files.
-- Otherwise (or after micro-fixes), run `style-harmonizer` on the listed `sections/*.md` files.
-- Before merge, run `evaluation-anchor-checker` on the settled H3 files so any remaining numeric claims keep same-sentence task/metric/constraint context. Treat this as the last section-level sweep, not as a post-audit patch.
+- After logic and paragraph compaction, run `evaluation-anchor-checker` on the
+  settled H3 files, then regenerate the argument/manifest snapshot.
 - Keep meaning + citations fixed; treat this as surface-level rewrite, not new content.
 
 ## How to fix a failing H3 (semantic recipe)
@@ -193,7 +200,7 @@ Quick map (common codes):
 
 ### Quick Start
 
-- `python .codex/skills/writer-selfloop/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/writer-selfloop/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -206,4 +213,4 @@ Quick map (common codes):
 ### Examples
 
 - Generate an actionable TODO list for failing `sections/*.md`:
-  - `python .codex/skills/writer-selfloop/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/writer-selfloop/scripts/run.py --workspace <workspace>`

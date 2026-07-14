@@ -1,0 +1,271 @@
+{
+  "name": "rag_evaluation",
+  "priority": 10,
+  "detect": {
+    "goal_any": [
+      "retrieval-augmented generation",
+      "retrieval augmented generation",
+      "rag evaluation",
+      "evaluate rag",
+      "rag system"
+    ]
+  },
+  "planner_policy": {
+    "axis_target": 5,
+    "bridge_target": 6,
+    "cluster_min_size": 2,
+    "allow_overlap_below_papers": 4,
+    "max_clusters": 2
+  },
+  "axis_rules": [
+    {
+      "match_any": ["retrieval quality", "evidence coverage"],
+      "items": [
+        "retrieval recall and rank quality",
+        "evidence sufficiency and context coverage",
+        "query and corpus sampling assumptions",
+        "chunking, top-k, and reranking sensitivity",
+        "retrieval-to-answer error propagation"
+      ]
+    },
+    {
+      "match_any": ["generation faithfulness", "source attribution"],
+      "items": [
+        "claim-level support and answer faithfulness",
+        "source-attribution correctness",
+        "citation precision and completeness",
+        "groundedness versus answer utility",
+        "attribution-evaluator calibration and transfer"
+      ]
+    },
+    {
+      "match_any": ["dataset, task, and metric design", "benchmark design"],
+      "items": [
+        "corpus and query provenance",
+        "task coverage and difficulty",
+        "reference-answer assumptions",
+        "retrieval, generation, and end-to-end metric decomposition",
+        "aggregation and uncertainty reporting"
+      ]
+    },
+    {
+      "match_any": ["automated evaluators and human validation", "automated, model-based, and human evaluation", "human evaluation"],
+      "items": [
+        "rule-based versus learned versus LLM-based judging",
+        "agreement with human assessment",
+        "construct validity and calibration",
+        "reproducibility and evaluator bias",
+        "evaluation cost and latency"
+      ]
+    },
+    {
+      "match_any": ["sensitivity, adaptation", "query or corpus shift"],
+      "items": [
+        "query and corpus perturbation",
+        "retriever, chunker, and reranker sensitivity",
+        "adaptation lag and post-feedback behavior",
+        "variance and failure consistency",
+        "robustness under fixed retrieval budget"
+      ]
+    },
+    {
+      "match_any": ["domain transfer", "trustworthiness", "deployment"],
+      "items": [
+        "cross-domain metric and evaluator transfer",
+        "fairness and contradiction handling",
+        "privacy and provenance constraints",
+        "latency, cost, and maintenance burden",
+        "benchmark validity versus deployed reliability"
+      ]
+    }
+  ],
+  "bridge_rules": [
+    {
+      "match_any": ["retrieval quality", "evidence coverage"],
+      "items": ["retrieval diagnostics", "evidence coverage", "rank quality", "context sufficiency"]
+    },
+    {
+      "match_any": ["faithfulness", "attribution"],
+      "items": ["claim support", "source attribution", "citation correctness", "groundedness"]
+    },
+    {
+      "match_any": ["dataset", "metric", "evaluation"],
+      "items": ["protocol validity", "metric decomposition", "human agreement", "calibration"]
+    },
+    {
+      "match_any": ["sensitivity", "shift", "transfer", "deployment"],
+      "items": ["distribution shift", "robustness", "evaluator transfer", "operational validity"]
+    }
+  ],
+  "thesis_rules": [
+    {
+      "match_any": ["retrieval quality", "evidence coverage"],
+      "template": "Retrieval evaluation should separate rank quality, evidence coverage, and downstream answer utility because each answers a different question."
+    },
+    {
+      "match_any": ["generation faithfulness", "source attribution"],
+      "template": "Generation evaluation should distinguish claim support, source-attribution correctness, citation quality, and answer utility rather than treating faithfulness as one score."
+    },
+    {
+      "match_any": ["dataset, task, and metric design"],
+      "template": "Dataset and metric design determine which RAG failures are observable, so task coverage, reference assumptions, and aggregation rules must be reported together."
+    },
+    {
+      "match_any": ["automated evaluators and human validation"],
+      "template": "Automated evaluators are useful only to the extent that their scores remain calibrated against human judgments and the constructs they are intended to measure."
+    },
+    {
+      "match_any": ["sensitivity, adaptation", "query or corpus shift"],
+      "template": "Robustness evaluation should measure variance under query, corpus, and retrieval-policy shifts rather than only average answer accuracy."
+    },
+    {
+      "match_any": ["domain transfer", "trustworthiness", "deployment"],
+      "template": "Deployment claims require evidence that metrics and evaluators retain their meaning across domains, datasets, costs, and governance constraints."
+    }
+  ],
+  "contrast_rules": [
+    {
+      "match_any": ["retrieval quality", "evidence coverage"],
+      "label": "retrieval diagnostics"
+    },
+    {
+      "match_any": ["faithfulness", "attribution"],
+      "label": "faithfulness and attribution"
+    },
+    {
+      "match_any": ["dataset", "task", "metric"],
+      "label": "protocol design"
+    },
+    {
+      "match_any": ["automated evaluators", "human validation", "automated", "model-based", "human evaluation"],
+      "label": "evaluator choice"
+    },
+    {
+      "match_any": ["sensitivity", "adaptation", "shift"],
+      "label": "robustness under shift"
+    },
+    {
+      "match_any": ["transfer", "trustworthiness", "deployment"],
+      "label": "operational validity"
+    }
+  ],
+  "tension_rules": [
+    {
+      "match_any": ["retrieval quality", "evidence coverage"],
+      "template": "In {title}, the central tension is whether quality is measured as rank relevance, evidence coverage, or downstream answer utility, because each supports a different interpretation."
+    },
+    {
+      "match_any": ["generation faithfulness", "source attribution"],
+      "template": "In {title}, claim-level support, attribution correctness, and answer utility can point in different directions, so evaluator choice remains part of the conclusion."
+    },
+    {
+      "match_any": ["dataset, task, and metric design"],
+      "template": "In {title}, protocol breadth and construct validity do not automatically align: broader task coverage can make metric interpretation and reference assumptions less consistent."
+    },
+    {
+      "match_any": ["automated evaluators and human validation"],
+      "template": "In {title}, automated judging improves scale and repeatability, while human validation remains the reference point for unfamiliar failures and construct validity."
+    },
+    {
+      "match_any": ["sensitivity, adaptation", "query or corpus shift"],
+      "template": "In {title}, average benchmark performance can conceal instability when queries, corpora, retrieval policies, or feedback conditions change."
+    },
+    {
+      "match_any": ["domain transfer", "trustworthiness", "deployment"],
+      "template": "In {title}, evaluator agreement observed in one dataset or domain may not retain the same meaning after transfer to a different operating context."
+    }
+  ],
+  "cluster_rules": [
+    {
+      "match_any": ["retrieval quality", "evidence coverage"],
+      "clusters": [
+        {
+          "label": "Retrieval diagnostic studies",
+          "rationale": "Retrieval-focused diagnostics, chunking, reranking, and benchmark studies.",
+          "match_any": ["retrieval quality", "chunking", "re-ranker", "benchmark"]
+        },
+        {
+          "label": "Retrieval utility and coverage optimization",
+          "rationale": "Methods that optimize or predict retrieval utility, evidence coverage, and downstream answer quality.",
+          "match_any": ["retrieval utility", "coverage-conditioned", "cross-query", "domain-oriented", "information gain"]
+        }
+      ]
+    },
+    {
+      "match_any": ["generation faithfulness", "source attribution"],
+      "clusters": [
+        {
+          "label": "Attribution and grounding diagnostics",
+          "rationale": "Studies that directly diagnose source attribution and grounding failures.",
+          "match_any": ["source attribution", "attribution", "deceptive grounding"]
+        },
+        {
+          "label": "Automated faithfulness evaluators",
+          "rationale": "Automated frameworks and consistency methods used as faithfulness proxies.",
+          "match_any": ["ares", "cross-query", "fresco", "evaluation"]
+        }
+      ]
+    },
+    {
+      "match_any": ["dataset, task, and metric design"],
+      "clusters": [
+        {
+          "label": "Evaluation frameworks and shared tracks",
+          "rationale": "Frameworks and shared evaluation tracks that define reusable RAG tasks, metrics, and reporting protocols.",
+          "match_any": ["evaluation framework", "ares", "rage", "trec", "track"]
+        },
+        {
+          "label": "Domain and stress-test benchmarks",
+          "rationale": "Benchmarks that expose domain, authority, conflict, and other stress conditions hidden by aggregate scores.",
+          "match_any": ["benchmark", "authoritybench", "fresco", "mrag"]
+        }
+      ]
+    },
+    {
+      "match_any": ["automated evaluators and human validation", "automated, model-based, and human evaluation"],
+      "clusters": [
+        {
+          "label": "Automated and model-based evaluators",
+          "rationale": "Diagnostic tools and automated evaluator frameworks.",
+          "match_any": ["automated", "diagnostic", "mode-rag", "lrage", "ares"]
+        },
+        {
+          "label": "Human and deployment-grounded assessment",
+          "rationale": "Survey, interview, clinical, and open-domain evidence grounding evaluator validity.",
+          "match_any": ["interview", "survey", "clinical", "open-domain"]
+        }
+      ]
+    },
+    {
+      "match_any": ["sensitivity, adaptation", "query or corpus shift"],
+      "clusters": [
+        {
+          "label": "Perturbation and stability studies",
+          "rationale": "Controlled sensitivity, consistency, and semantic-conflict experiments.",
+          "match_any": ["sensitivity", "cross-query", "semantic conflict"]
+        },
+        {
+          "label": "Adaptation and shift studies",
+          "rationale": "Feedback, dynamic retrieval, multimodal, and benchmark transfer studies.",
+          "match_any": ["feedback adaptation", "dynamic", "multimodal", "benchmark"]
+        }
+      ]
+    },
+    {
+      "match_any": ["domain transfer", "trustworthiness", "deployment"],
+      "clusters": [
+        {
+          "label": "Trust and evaluator-transfer studies",
+          "rationale": "Work on trustworthiness, metric transfer, and evaluation validity.",
+          "match_any": ["trustworthiness", "transfer", "attribution", "evaluation framework"],
+          "include_meta": true
+        },
+        {
+          "label": "Domain and deployment studies",
+          "rationale": "Domain-oriented, open-domain, multi-agent, and adaptive deployment settings.",
+          "match_any": ["domain-oriented", "open-domain", "multi-agent", "adaptive retrieval"]
+        }
+      ]
+    }
+  ]
+}

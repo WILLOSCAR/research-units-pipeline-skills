@@ -54,6 +54,10 @@ JSONL (one object per H3 subsection). Best-effort fields (keep deterministic):
   - `evidence_ids`: >= per_subsection - 4 (A150++: >=24)
   - `bibkeys` (selected): >= 20 (so each H3 has a usable citation pool, not just a long mapped list)
 
+For `draft_profile=course_paper`, retain the same traceability shape at compact
+density: 8 mapped bibkeys, at least 6 selected bibkeys, and at least 6 evidence
+IDs from at least 4 papers per H3.
+
 ## Binding policy (how strict to be)
 
 - Subsection-first by default: the writer should primarily cite `bibkeys` and use `evidence_ids` bound to this `sub_id`.
@@ -86,8 +90,8 @@ Before you mark bindings as refined:
 
 ### Quick Start
 
-- `python .codex/skills/evidence-binder/scripts/run.py --help`
-- `python .codex/skills/evidence-binder/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/evidence-binder/scripts/run.py --help`
+- `uv run python .codex/skills/evidence-binder/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -101,7 +105,7 @@ Before you mark bindings as refined:
 
 - Bind evidence IDs after building the evidence bank:
   - Ensure `papers/evidence_bank.jsonl` exists.
-  - Run: `python .codex/skills/evidence-binder/scripts/run.py --workspace workspaces/<ws>`
+  - Run: `uv run python .codex/skills/evidence-binder/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

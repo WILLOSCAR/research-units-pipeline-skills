@@ -71,8 +71,8 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list
-    from tooling.quality_gate import check_unit_outputs, write_quality_report
+    from tooling.common import atomic_write_text, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, refresh_sections_manifest
+    from tooling.quality_gate import _draft_profile, check_unit_outputs, write_quality_report
 
     workspace = Path(args.workspace).resolve()
     unit_id = str(args.unit_id or 'U1025').strip() or 'U1025'
@@ -81,11 +81,13 @@ def main() -> int:
         'output/ARGUMENT_SELFLOOP_TODO.md',
         'output/SECTION_ARGUMENT_SUMMARIES.jsonl',
         'output/ARGUMENT_SKELETON.md',
+        'sections/sections_manifest.jsonl',
     ]
 
     todo_rel = next((x for x in outputs if x.endswith('ARGUMENT_SELFLOOP_TODO.md')), 'output/ARGUMENT_SELFLOOP_TODO.md')
     summaries_rel = next((x for x in outputs if x.endswith('SECTION_ARGUMENT_SUMMARIES.jsonl')), 'output/SECTION_ARGUMENT_SUMMARIES.jsonl')
     skeleton_rel = next((x for x in outputs if x.endswith('ARGUMENT_SKELETON.md')), 'output/ARGUMENT_SKELETON.md')
+    manifest_rel = next((x for x in outputs if x.endswith('sections_manifest.jsonl')), 'sections/sections_manifest.jsonl')
     todo_path = workspace / todo_rel
     summaries_path = workspace / summaries_rel
     skeleton_path = workspace / skeleton_rel
@@ -96,6 +98,7 @@ def main() -> int:
 
     records: list[dict[str, Any]] = []
     watchlist: list[str] = []
+    paragraph_floor = {'course_paper': 5, 'survey': 10, 'deep': 11}.get(_draft_profile(workspace), 1)
     if isinstance(outline, list):
         for sec in outline:
             if not isinstance(sec, dict):
@@ -127,8 +130,8 @@ def main() -> int:
                 )
                 if not paras:
                     watchlist.append(f'{sub_id} missing prose body')
-                elif len(paras) < 8:
-                    watchlist.append(f'{sub_id} has thin paragraph budget ({len(paras)})')
+                elif len(paras) < paragraph_floor:
+                    watchlist.append(f'{sub_id} has thin paragraph budget ({len(paras)} < {paragraph_floor})')
 
     atomic_write_text(summaries_path, '\n'.join(json.dumps(r, ensure_ascii=False) for r in records).rstrip() + ('\n' if records else ''))
 
@@ -159,17 +162,20 @@ def main() -> int:
     else:
         skeleton_lines.append('- (none)')
     atomic_write_text(skeleton_path, '\n'.join(skeleton_lines).rstrip() + '\n')
+    refresh_sections_manifest(workspace, manifest_rel)
+
+    status = 'FAIL' if watchlist else 'PASS'
 
     todo_lines = [
         '# Argument self-loop report',
         '',
-        '- Status: PASS',
+        f'- Status: {status}',
         f'- Generated at: `{now_iso_seconds()}`',
         '',
         '## Summary',
         '',
-        '- Section argument summaries were regenerated from the current `sections/` files.',
-        '- The global consistency contract was refreshed for downstream curation and review.',
+        '- Section argument summaries and the section manifest were regenerated from the current `sections/` files.',
+        '- The consistency contract is a diagnostic snapshot for downstream merge and review.',
         '',
     ]
     if watchlist:
@@ -178,7 +184,7 @@ def main() -> int:
         todo_lines.append('')
     atomic_write_text(todo_path, '\n'.join(todo_lines).rstrip() + '\n')
 
-    issues = check_unit_outputs(skill='argument-selfloop', workspace=workspace, outputs=[todo_rel, summaries_rel, skeleton_rel])
+    issues = check_unit_outputs(skill='argument-selfloop', workspace=workspace, outputs=[todo_rel, summaries_rel, skeleton_rel, manifest_rel])
     if issues:
         write_quality_report(workspace=workspace, unit_id=unit_id, skill='argument-selfloop', issues=issues)
         return 2

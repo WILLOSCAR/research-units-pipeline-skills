@@ -47,6 +47,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
+    from tooling.common import read_jsonl, write_jsonl
     from tooling.review_artifacts import write_text
     from tooling.review_render import render_gap_report_markdown
     from tooling.review_text import parse_item_blocks
@@ -56,25 +57,36 @@ def main() -> int:
     if not claims_path.exists():
         raise SystemExit("evidence-auditor requires `output/CLAIMS.md`.")
 
-    claims = parse_item_blocks(claims_path.read_text(encoding="utf-8", errors="ignore"))
+    claims_jsonl = workspace / "output" / "CLAIMS.jsonl"
+    if claims_jsonl.exists():
+        claims = read_jsonl(claims_jsonl)
+    else:
+        claims = parse_item_blocks(claims_path.read_text(encoding="utf-8", errors="ignore"))
     if not claims:
         raise SystemExit("No claim blocks found in `output/CLAIMS.md`.")
 
     gaps: list[dict[str, str]] = []
     for idx, claim in enumerate(claims, start=1):
-        evidence_present, gap, fix = _gap_for_claim(claim)
+        normalized_claim = {
+            "id": str(claim.get("claim_id") or claim.get("id") or ""),
+            "claim": str(claim.get("text") or claim.get("claim") or ""),
+            "type": str(claim.get("claim_type") or claim.get("type") or ""),
+        }
+        evidence_present, gap, fix = _gap_for_claim(normalized_claim)
         severity = "major" if "underspecified" in gap.lower() else "minor"
         gaps.append(
             {
-                "id": f"G{idx:02d}",
-                "claim_id": claim.get("id", ""),
-                "claim": claim.get("claim", ""),
+                "schema": "review-evidence-gap.v1",
+                "gap_id": f"G{idx:02d}",
+                "claim_id": normalized_claim["id"],
+                "claim": normalized_claim["claim"],
                 "evidence_present": evidence_present,
                 "gap": gap,
                 "minimal_fix": fix,
                 "severity": severity,
             }
         )
+    write_jsonl(workspace / "output" / "EVIDENCE_AUDIT.jsonl", gaps)
     write_text(workspace / "output" / "MISSING_EVIDENCE.md", render_gap_report_markdown(gaps))
     return 0
 

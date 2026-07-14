@@ -1,200 +1,152 @@
-# research-units-pipeline-skills
+# Research Harness
 
-> 语言：[English](README.md) | **简体中文**
+把一个研究目标转成可复核的交付物，同时保留来源、决策与中间证据。
 
-一套面向研究写作与资料整理的人机协作系统。
-
-这个仓库把两件事组合在一起：一组会读、会综述、会评审、会写作的研究技能
-（skills），以及一层把过程落到文件里的执行约束（harness）。它适合在 Codex 这类
-coding agent 中运行研究工作流。它的重点不是替人完成所有研究，而是把一次研究请求
-推进成一个可落盘、可检查、可恢复、可审计、可继续改进的工作区（workspace）。
-
-最短链路是：
+Research Harness 把可复用的研究 Skills 与 file-first 执行 Harness 组合起来。它可以交付
+研究简报、论文评审、证据综述、文献 Survey、课程论文或基于给定资料的教程；长任务即使
+中断，也能恢复、检查和审计。
 
 ```text
-intent -> workflow -> workspace -> unit -> skill -> artifact -> audit -> improvement
+Goal -> Run -> Evidence -> Improve
 ```
 
-它不是通用 workflow engine，不是 prompt 集合，也不是“完全自主科学家”的宣称。
-它的边界更务实：让模型处理语义阅读和写作，同时让研究过程留下足够清晰的中间产物，
-方便人类检查、恢复、修复和复用。
+从内部看，这是一套端到端 **Auto Research Design System**，不是完全自主的科学家。
+Skills 完成研究转换，Workflow Contract 组织交付路径，Harness 保存状态、检查产物并定位
+失败，让用户或 Agent 能做下一次有边界的修复。
 
-## 它能产出什么
+## 跑一个小 Demo
 
-当你想要的不是一段聊天回答，而是一套有文件、有 checkpoint、有可复核证据的研究
-交付物时，用这个仓库。
-
-| 目标 | 使用路径 | 主要交付物 |
-|---|---|---|
-| 证据优先的文献综述 | `arxiv-survey` | `output/DRAFT.md` |
-| 带 LaTeX/PDF 交付的综述 | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
-| 从一个主题生成课程论文或期末报告 | 复用 `arxiv-survey` 生成 Markdown，或复用 `arxiv-survey-latex` 生成 PDF；这不是单独的新 workflow | 报告草稿，可选 PDF |
-| 快速主题研究简报和阅读路径 | `research-brief` | `output/SNAPSHOT.md` |
-| 单篇论文 critique / referee-style review | `paper-review` | `output/REVIEW.md` |
-| 按 protocol 做证据筛选、提取和结论整合 | `evidence-review` | `output/SYNTHESIS.md` |
-| 基于文献的研究 idea | `idea-brainstorm` | `output/REPORT.md`, `output/REPORT.json` |
-| 从网页、PDF、笔记、repo docs 生成教程 | `source-tutorial` | `output/TUTORIAL.md`, PDF, slides |
-| 中文毕业论文材料组织引导 | `graduate-paper` | 论文工程材料 |
-
-多数使用者只需要选择一条使用路径，然后检查 workspace 里的输出。维护者才需要深入
-这些路径背后的可执行合同、项目内 skills、harness 脚本和校验规则。
-
-## 一次运行如何工作
-
-```mermaid
-flowchart TD
-    A["User intent"] --> B["可执行 workflow contract 或研究阶段设计"]
-    B --> C["Workspace 账本"]
-    C --> D["Units"]
-    D --> E["Project skills"]
-    E --> F["Artifacts"]
-    F --> G["Harness audit"]
-    G --> H["Deliverable"]
-    G --> I["改进记录"]
-    I --> B
-```
-
-- `workflow` 是面向用户的产品路径，比如 `paper-review`。
-- `workspace` 是 `workspaces/<name>/` 下的一次运行目录。
-- `unit` 是 `UNITS.csv` 里一个小而可检查的步骤。
-- `skill` 是 `.codex/skills/` 下的可复用研究或写作能力。
-- `artifact` 是中间或最终文件，通常是 Markdown、CSV、YAML、JSON、TeX 或 PDF。
-- `audit` 是对 workspace 状态、run 状态或输出质量的有限范围检查。
-- `improvement` 把薄弱输出映射回具体修复面：skill、pipeline、artifact、
-  validator 或 decision。
-
-这个项目最核心的设计选择是 artifact-first。模型不应该靠聊天上下文记住整条复杂
-研究流程，而应该把状态、证据和决策写入文件，让人类和后续 unit 都能继续使用。
-
-## 快速开始
-
-在这个仓库里启动 agent session，然后直接描述你要的结果：
-
-下面示例保留英文 workflow 名称；具体要求可以用中文写。
-
-```text
-Use paper-review to critique this manuscript and give me a lab-style review.
-```
-
-```text
-使用 paper-review 评估这篇论文：请先抽取主要 claims，再指出 evidence gap、novelty 风险和最终建议。
-```
-
-```text
-Use research-brief to explain test-time adaptation for robotics and produce a reading path.
-```
-
-```text
-Use source-tutorial to turn these webpages and repo docs into a tutorial with PDF and slides.
-```
-
-```text
-Write an arxiv-survey-latex survey about embodied agents and show me the outline first.
-```
-
-```text
-Use arxiv-survey-latex to write a compact course paper on robot learning. Keep the outline reviewable before drafting and target a final PDF.
-```
-
-如果你想更精确地控制执行路径，可以直接点名可执行 pipeline contract：
-
-- [pipelines/arxiv-survey.pipeline.md](pipelines/arxiv-survey.pipeline.md)
-- [pipelines/arxiv-survey-latex.pipeline.md](pipelines/arxiv-survey-latex.pipeline.md)
-- [pipelines/research-brief.pipeline.md](pipelines/research-brief.pipeline.md)
-- [pipelines/paper-review.pipeline.md](pipelines/paper-review.pipeline.md)
-- [pipelines/evidence-review.pipeline.md](pipelines/evidence-review.pipeline.md)
-- [pipelines/idea-brainstorm.pipeline.md](pipelines/idea-brainstorm.pipeline.md)
-- [pipelines/source-tutorial.pipeline.md](pipelines/source-tutorial.pipeline.md)
-
-研究阶段设计文档：
-
-- [pipelines/graduate-paper-pipeline.md](pipelines/graduate-paper-pipeline.md)
-
-功能说明：
-
-| 使用路径 | English | 中文 |
-|---|---|---|
-| `arxiv-survey` / `arxiv-survey-latex` | [Guide](readme/arxiv-survey.md) | [说明](readme/arxiv-survey.zh-CN.md) |
-| `research-brief` | [Guide](readme/research-brief.md) | [说明](readme/research-brief.zh-CN.md) |
-| `paper-review` | [Guide](readme/paper-review.md) | [说明](readme/paper-review.zh-CN.md) |
-| `evidence-review` | [Guide](readme/evidence-review.md) | [说明](readme/evidence-review.zh-CN.md) |
-| `idea-brainstorm` | [Guide](readme/idea-brainstorm.md) | [说明](readme/idea-brainstorm.zh-CN.md) |
-| `source-tutorial` | [Guide](readme/source-tutorial.md) | [说明](readme/source-tutorial.zh-CN.md) |
-| `graduate-paper` | [Guide](readme/graduate-paper.md) | [说明](readme/graduate-paper.zh-CN.md) |
-
-## 架构分层
-
-这个仓库有两个相互配合的层。
-
-**Skills** 负责语义研究行为：
-
-- 读什么输入或材料；
-- 写什么 artifact；
-- 使用什么验收标准；
-- 遵守哪些 guardrails。
-
-**Harness** 负责确定性的执行支撑：
-
-- workspace 初始化和恢复；
-- pipeline contract 校验；
-- unit 执行；
-- doctor、audit、improve、pack 命令；
-- output manifest 和 report schema；
-- repo 级测试与 readiness checks。
-
-扩展项目时请保持这个分工：研究判断放在 skills，可重复的检查、恢复和编排放在
-harness。
-
-完整架构图和当前功能图见
-[docs/AUTO_RESEARCH_DESIGN_SYSTEM.md](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)。
-
-## 当前状态
-
-当前 workflow family 是：
-
-- **Survey**：`arxiv-survey`、`arxiv-survey-latex`
-- **Orientation**：`research-brief`
-- **Review**：`paper-review`、`evidence-review`
-- **Ideation**：`idea-brainstorm`
-- **Tutorial**：`source-tutorial`
-- **Thesis**：`graduate-paper`
-
-其中 7 条 workflow 已经有 pipeline contract、unit template 和 harness validation。
-`graduate-paper` 仍然是中文毕业论文组织引导：有 thesis-oriented skills 和设计
-材料，但还不是严格的可执行 pipeline。
-
-课程论文和期末报告现在被视为 survey 的使用场景 overlay，而不是单独新增
-workflow family。
-如果只需要 Markdown 草稿，用 `arxiv-survey`；如果课程最终需要 PDF，用
-`arxiv-survey-latex`。
-
-维护者路线图目前集中在 `paper-review`：完成一个 Auto Review workspace，包括
-semantic rubric、scorecard、final review、audit、improvement report 和 artifact
-pack。这里面有些 proof artifact 目前还不是 `paper-review` pipeline contract 的硬性
-产物；下一阶段应该先围绕当前 contract 跑出完整 proof，再决定是否把这些产物提升为
-contract 要求。这里的 artifact pack 指的是一份交付物 manifest，用来说明这次 run
-哪些文件构成了可检查、可迁移的结果。在这个 proof 出来之前，不建议新增 workflow
-family。
-
-当前 workflow catalog 和成熟度见
-[docs/PIPELINE_TAXONOMY.md](docs/PIPELINE_TAXONOMY.md)。
-
-## 开发者入口
-
-这一节给维护者使用。当你修改 pipeline contract、skill IO、workspace artifact、
-schema 或 validation rule 时，使用这些检查：
+最简单的 topic-seeded 入口是 `research-brief`：
 
 ```bash
-uv run python scripts/validate_repo.py --no-check-quality --strict
-uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
-uv run python scripts/audit_skills.py --fail-on WARN
-uv run --extra test python -m pytest -q
-uv run python scripts/audit_skills.py --review-category template_placeholder --limit 20
-uv run python scripts/audit_skills.py --summary-only
-uv run python scripts/generate_skill_graph.py
+uv run rh goal create \
+  --topic "机器人中的测试时自适应" \
+  --workflow research-brief \
+  --workspace workspaces/robot-adaptation
+
+uv run rh run start --workspace workspaces/robot-adaptation
+uv run rh run status --workspace workspaces/robot-adaptation
+uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-Workspace 诊断命令：
+结果包括人类可读的简报 `output/SNAPSHOT.md`、机器可读的评分卡
+`output/BRIEF_SCORECARD.json`，以及带 Hash 和 provenance 的 Artifact 索引。
+如果质量门失败，可以运行：
+
+```bash
+uv run rh improve diagnose --workspace workspaces/robot-adaptation
+```
+
+`improve diagnose` 只定位失败 Contract 与修复位置，不会暗中改写 Workspace，也不会自动
+把改动晋升为新的 Harness 基线。
+
+`rh goal create` 最适合由主题直接启动的 Workflow。需要已有 Manuscript、Source Set、
+Protocol 或人工 Checkpoint 的路径，会在缺少输入时停止并说明原因。也可以在 Codex 中用
+自然语言直接调用：
+
+```text
+使用 paper-review 评审这篇论文，确保每条主要意见都能追溯到原文。
+```
+
+```text
+使用 arxiv-survey-latex 写一篇 8-10 页的 RAG 评测课程论文，并生成 PDF。
+```
+
+## 选择 Workflow
+
+| 想得到的结果 | Workflow | 主要交付物 |
+|---|---|---|
+| 快速理解主题并决定先读什么 | `research-brief` | `output/SNAPSHOT.md` |
+| 评审一篇论文或 Manuscript | `paper-review` | `output/REVIEW.md` |
+| 按明确 Protocol 综合多项研究 | `evidence-review` | `output/SYNTHESIS.md` |
+| 构建证据优先的文献 Survey | `arxiv-survey` | `output/DRAFT.md` |
+| 交付 Survey、课程论文或 PDF 报告 | `arxiv-survey-latex` | `latex/main.pdf` |
+| 形成有文献依据的研究方向 | `idea-brainstorm` | `output/REPORT.md` |
+| 把已有资料转成教程 | `source-tutorial` | 教程、Article PDF、Slides |
+
+`graduate-paper` 仍是中文毕业论文的 research-stage 路径。它有可用 Skills 和设计材料，
+但还没有上述 7 条 Workflow 使用的严格可执行 Contract。
+
+课程论文是 Survey 家族的有界 Profile，不是新增 Workflow。明确提出课程论文时，系统会
+缩小检索、证据、提纲、段落和引用预算，同时保留同一套可追溯性与质量门。当前公开的
+[课程论文证据快照](examples/course-paper-pilot/README.md)记录了一次完成的 49-Unit Run、
+通过的 Artifact Audit，以及针对 8-10 页 Goal 生成的 10 页 PDF。这是一份端到端交付
+证明，不代表所有主题都已达到相同质量。
+
+## 一个产品循环
+
+| 阶段 | 用户的问题 | 持久记录 |
+|---|---|---|
+| **Goal** | 最终结果和约束是什么？ | 请求、Workflow、必需 Artifacts、成功标准 |
+| **Run** | 做到哪里、下一步是什么、能否恢复？ | Units、Attempts、Events、Decisions、Checkpoints |
+| **Evidence** | 结果为什么可信？ | Sources、中间 Artifacts、Hashes、Scorecards、Audits |
+| **Improve** | 本次 Run 在哪里失败，谁负责修？ | Failure Ledger、诊断、明确 Repair Surface |
+
+```mermaid
+flowchart LR
+    G["Goal"] --> W["Workflow contract"]
+    W --> R["Recoverable Run"]
+    R --> U["Units"]
+    U --> S["Research and control Skills"]
+    S --> A["Artifacts and deliverable"]
+    A --> Q["Scorecard and audit"]
+    Q --> E["Evidence"]
+    E --> I["Improve diagnosis"]
+    I -. "bounded repair" .-> R
+
+    H["Harness kernel: state, scheduling, provenance, recovery"] --- R
+    H --- Q
+```
+
+这里的分层是职责分离，不是僵硬的二分：
+
+- **Research Skills** 负责检索、提取、比较、综合、评审和写作。
+- **Control Skills** 生成报告、Checkpoint、Manifest 与局部质量门。
+- **Workflow Contracts** 定义有序 Units、输入、输出和验收条件。
+- **Harness Kernel** 管理 Run 身份、调度、Attempts、恢复、provenance、实现指纹、
+  诊断与 Audit。
+
+每个 Workspace 同时保留可读项目文件和机器可读 Run Ledger：
+
+```text
+workspaces/<run>/
+├── GOAL.md
+├── UNITS.csv
+├── STATUS.md
+├── DECISIONS.md
+├── output/
+└── .harness/
+    ├── goal.json
+    ├── run.json
+    ├── harness.lock.json
+    ├── events.jsonl
+    ├── attempts.jsonl
+    ├── artifacts.jsonl
+    ├── failures/ledger.jsonl
+    └── evaluations/ledger.jsonl
+```
+
+新 Run 会锁定初始 Pipeline、Unit、Skill 与 Kernel 修订。每个成功 Unit 还会记录实际使用
+的 Skill 实现指纹；Skill 后续变化时，`doctor` 会把对应 DONE Unit 报告为 stale，要求从
+最早受影响位置重新执行。
+
+## 当前证据
+
+7 条 Workflow 已有可执行 Contract 与 Unit Template，但结构可运行不等于语义已成熟：
+
+- `paper-review`、`research-brief`、`idea-brainstorm`、`evidence-review` 已有各自的
+  Scorecard 和 Failure -> Repair -> Rerun 测试。
+- `source-tutorial` 已有从本地 Source 到 Article PDF 与 Beamer PDF 的严格交付测试。
+- Survey 家族已有一条完成的紧凑课程论文/PDF Run 和较完整的 Contract 测试；多主题
+  质量稳定性与真实 Token 对比仍未完成。
+- 外部 Held-out Evaluation、Candidate Worktree、自动 Promotion 和 Hosted Run Store
+  尚未实现。
+
+Scorecard 检查可观察 Contract 与可追溯性，不会复现实验、判定科学真理或替代专家判断。
+
+## 维护者接口
+
+开发与审计时可直接使用底层 Pipeline Adapter：
 
 ```bash
 uv run python scripts/pipeline.py doctor --workspace workspaces/<name> --write
@@ -203,26 +155,27 @@ uv run python scripts/pipeline.py improve --workspace workspaces/<name> --write
 uv run python scripts/pipeline.py pack --workspace workspaces/<name> --write
 ```
 
-`doctor` 诊断 workspace 状态。`audit` 汇总 run。`improve` 把缺陷映射到修复面。
-`pack` 生成交付物 manifest。
+全仓验证：
 
-## 阅读地图
+```bash
+uv run python scripts/validate_repo.py --no-check-quality --strict
+uv run python scripts/readiness_audit.py --strict
+uv run python scripts/audit_skills.py --fail-on WARN
+uv run --extra test python -m pytest -q
+```
 
-- [docs/AUTO_RESEARCH_DESIGN_SYSTEM.md](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)：
-  系统模型和架构图。
-- [docs/PIPELINE_TAXONOMY.md](docs/PIPELINE_TAXONOMY.md)：workflow catalog、
-  成熟度和下一阶段 proof。
-- [docs/PROJECT_LANGUAGE.md](docs/PROJECT_LANGUAGE.md)：workflow、workspace、
-  unit、artifact、audit、improvement 的项目内统一语言。
-- [docs/HARNESS_ROADMAP.md](docs/HARNESS_ROADMAP.md)：当前产品和工程方向。
-- [docs/HARNESS_READINESS.md](docs/HARNESS_READINESS.md)：本地检查和 readiness 标准。
-- [docs/SCHEMAS.md](docs/SCHEMAS.md)：生成报告的 schema 名称。
-- [docs/adr/](docs/adr/)：架构决策记录。
-- [SKILL_INDEX.md](SKILL_INDEX.md)：skill 索引。
-- [SKILLS_STANDARD.md](SKILLS_STANDARD.md)：skill 编写标准。
+扩展 Workflow 时，先修改 `pipelines/` 中的 Contract，再对齐
+`templates/UNITS.*.csv`，在 `.codex/skills/` 实现对应能力，最后补 Completed Run 或
+Failure/Repair 回归证据，再提高成熟度描述。
 
-多语言功能文档入口页放在 `readme/README.*.md`。
+## 文档
 
-## Star History
+- 从 [Workflow Catalog](docs/PIPELINE_TAXONOMY.md) 和
+  [中文使用导航](readme/README.zh-CN.md) 开始。
+- 理解 [Auto Research Architecture](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)、
+  [Project Language](docs/PROJECT_LANGUAGE.md) 与
+  [Pipeline Operability Audit](docs/PIPELINE_OPERABILITY_AUDIT.md)。
+- 评审 [Schemas](docs/SCHEMAS.md)、[Roadmap](docs/HARNESS_ROADMAP.md)、
+  [Readiness Gates](docs/HARNESS_READINESS.md) 与 [ADRs](docs/adr/)。
 
-[![Star History Chart](https://api.star-history.com/svg?repos=WILLOSCAR/research-units-pipeline-skills&type=Date)](https://star-history.com/#WILLOSCAR/research-units-pipeline-skills&Date)
+[English README](README.md)

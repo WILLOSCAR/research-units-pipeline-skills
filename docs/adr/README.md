@@ -19,6 +19,10 @@ the decision should guide future contributors and agents across runs.
 | [0006](0006-keep-showcase-audit-as-repo-local-json-contract.md) | Deprecate showcase audit as active harness contract | deprecated |
 | [0007](0007-keep-improvement-report-as-a-local-repair-map.md) | Keep improvement report as a local repair map | accepted |
 | [0008](0008-keep-artifact-pack-as-manifest-before-archive.md) | Keep artifact pack as manifest before archive | accepted |
+| [0009](0009-add-a-pinned-append-only-run-ledger.md) | Add a pinned append-only Run ledger | accepted |
+| [0010](0010-pair-review-markdown-with-structured-evidence.md) | Pair review Markdown with structured Evidence | accepted |
+| [0011](0011-keep-semantic-scorecards-workflow-local.md) | Keep semantic scorecards Workflow-local | accepted |
+| [0012](0012-publish-curated-run-evidence-not-full-workspaces.md) | Publish curated Run evidence, not full Workspaces | accepted |
 
 ## ADR Format Contract
 

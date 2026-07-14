@@ -42,7 +42,12 @@ LEGACY_WEAKEN_RE = re.compile(
     r"that trade-off should be read as local to the reported evaluation setup|"
     r"the reported comparison favors one system under the stated benchmark and task setting|"
     r"that numeric comparison is tied to the cited benchmark and task setup|"
-    r"the comparison should be treated as local to the reported evaluation setup"
+    r"the comparison should be treated as local to the reported evaluation setup|"
+    r"that number belongs to the cited setup|"
+    r"the cited number only holds under the stated setup|"
+    r"this numeric margin is still setup-bound|"
+    r"the comparison only holds as stated for the cited setup|"
+    r"the reported edge stays benchmark-local"
     r")"
 )
 

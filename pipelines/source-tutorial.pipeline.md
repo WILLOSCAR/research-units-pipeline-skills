@@ -10,6 +10,7 @@ target_artifacts:
   - CHECKPOINTS.md
   - DECISIONS.md
   - GOAL.md
+  - PIPELINE.lock.md
   - queries.md
   - sources/manifest.yml
   - sources/index.jsonl
@@ -64,7 +65,7 @@ stages:
     mode: no_prose
     required_skills: [workspace-init, pipeline-router]
     optional_skills: []
-    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
+    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, PIPELINE.lock.md, queries.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
   C1:
     title: Source intake
     mode: no_prose

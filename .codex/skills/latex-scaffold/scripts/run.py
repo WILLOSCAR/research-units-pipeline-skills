@@ -25,7 +25,8 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list
+    from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list, research_title_from_request
+    from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()
     outputs = parse_semicolon_list(args.outputs) or ["latex/main.tex"]
@@ -56,15 +57,20 @@ def main() -> int:
         raise SystemExit(f"Missing input: {workspace / 'output' / 'DRAFT.md'} or {workspace / 'output' / 'TUTORIAL.md'}")
 
     md = draft_path.read_text(encoding="utf-8", errors="ignore")
-    title = _read_first_h1(md) or _read_goal(workspace) or "Survey"
-    body = _markdown_to_latex(md)
+    compact_course_paper = _draft_profile(workspace) == "course_paper"
+    title = _read_first_h1(md) or research_title_from_request(_read_goal(workspace)) or "Survey"
+    body = _markdown_to_latex(md, split_large_tables=not compact_course_paper)
     use_ctex = _has_cjk(md)
     bib_path = workspace / "citations" / "ref.bib"
     include_bibliography = bib_path.exists() and _has_real_bib_entries(bib_path)
 
     tex = "\n".join(
         [
-            (r"\documentclass[UTF8,a4paper,11pt]{ctexart}" if use_ctex else r"\documentclass[a4paper,11pt]{article}"),
+            (
+                r"\documentclass[UTF8,a4paper,11pt]{ctexart}"
+                if use_ctex
+                else r"\documentclass[a4paper,11pt]{article}"
+            ),
             "",
             # xelatex-friendly defaults; keep English-looking front matter unless CJK is present.
             ("" if use_ctex else r"\usepackage{fontspec}"),
@@ -77,6 +83,7 @@ def main() -> int:
             r"\usepackage{booktabs}",
             r"\usepackage{tabularx}",
             r"\usepackage{array}",
+            r"\usepackage{float}",
             r"\newcolumntype{Y}{>{\raggedright\arraybackslash}X}",
             r"\usepackage[numbers]{natbib}",
             r"\usepackage{url}",
@@ -93,15 +100,15 @@ def main() -> int:
             r"\begin{document}",
             r"\maketitle",
             "",
-            r"\tableofcontents",
-            r"\newpage",
-            "",
+            *([] if compact_course_paper else [r"\tableofcontents", r"\newpage", ""]),
             body.strip(),
             "",
             *(
                 [
+                    *([r"{\small"] if compact_course_paper else []),
                     r"\bibliographystyle{plainnat}",
                     r"\bibliography{../citations/ref}",
+                    *([r"}"] if compact_course_paper else []),
                 ]
                 if include_bibliography
                 else []
@@ -257,7 +264,7 @@ def _convert_inline(text: str) -> str:
     return _restore_placeholders(escaped, placeholders)
 
 
-def _markdown_to_latex(md: str) -> str:
+def _markdown_to_latex(md: str, *, split_large_tables: bool = True) -> str:
     lines = md.splitlines()
     out: list[str] = []
 
@@ -380,7 +387,15 @@ def _markdown_to_latex(md: str) -> str:
             if pending_table_caption:
                 cap_id, cap_text = pending_table_caption
                 pending_table_caption = None
-            out.extend(_render_table(table_lines, convert_inline=_convert_inline, caption=cap_text, label=cap_id))
+            out.extend(
+                _render_table(
+                    table_lines,
+                    convert_inline=_convert_inline,
+                    caption=cap_text,
+                    label=cap_id,
+                    split_large_tables=split_large_tables,
+                )
+            )
             out.append("")
             i = j
             continue
@@ -430,7 +445,14 @@ def _split_md_row(line: str) -> list[str]:
     return [c.strip() for c in line.split("|")]
 
 
-def _render_table(lines: list[str], *, convert_inline, caption: str | None = None, label: str | None = None) -> list[str]:
+def _render_table(
+    lines: list[str],
+    *,
+    convert_inline,
+    caption: str | None = None,
+    label: str | None = None,
+    split_large_tables: bool = True,
+) -> list[str]:
     # lines: header, separator, row...
     header = _split_md_row(lines[0]) if lines else []
     rows = [_split_md_row(ln) for ln in lines[2:]] if len(lines) > 2 else []
@@ -450,7 +472,7 @@ def _render_table(lines: list[str], *, convert_inline, caption: str | None = Non
 
     row_text_budget = max(len(" ".join(row)) for row in rows) if rows else 0
     chunk_size = 0
-    if in_table_env:
+    if in_table_env and split_large_tables:
         if row_text_budget >= 260:
             chunk_size = 2
         elif row_text_budget >= 180 and len(rows) >= 5:
@@ -467,6 +489,7 @@ def _render_table(lines: list[str], *, convert_inline, caption: str | None = Non
             caption=caption,
             label=lab,
             in_table_env=in_table_env,
+            table_position="H" if not split_large_tables else "t",
         )
 
     out: list[str] = []
@@ -483,6 +506,7 @@ def _render_table(lines: list[str], *, convert_inline, caption: str | None = Non
                 caption=chunk_caption,
                 label=chunk_label,
                 in_table_env=in_table_env,
+                table_position="t",
             )
         )
         if idx != len(chunks):
@@ -490,10 +514,20 @@ def _render_table(lines: list[str], *, convert_inline, caption: str | None = Non
     return out
 
 
-def _render_table_chunk(*, header: list[str], rows: list[list[str]], colspec: str, convert_inline, caption: str | None, label: str, in_table_env: bool) -> list[str]:
+def _render_table_chunk(
+    *,
+    header: list[str],
+    rows: list[list[str]],
+    colspec: str,
+    convert_inline,
+    caption: str | None,
+    label: str,
+    in_table_env: bool,
+    table_position: str,
+) -> list[str]:
     out: list[str] = []
     if in_table_env:
-        out.append(r"\begin{table}[t]")
+        out.append(rf"\begin{{table}}[{table_position}]")
         out.append(r"\centering")
         out.append(r"\scriptsize")
         out.append(r"\setlength{\tabcolsep}{2.5pt}")

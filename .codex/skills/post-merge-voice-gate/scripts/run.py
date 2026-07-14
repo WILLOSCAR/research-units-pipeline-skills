@@ -82,7 +82,11 @@ def main() -> int:
     draft_narrative = _narrative_body(draft)
 
     transitions = _read(trans_path) if trans_path.exists() else ""
-    if not trans_path.exists() or trans_path.stat().st_size <= 0:
+    transition_injection = any(
+        (workspace / "outline" / marker).exists()
+        for marker in ("transitions.insert_h3.ok", "transitions.insert_h2.ok")
+    )
+    if transition_injection and (not trans_path.exists() or trans_path.stat().st_size <= 0):
         issues.append(QualityIssue(code="post_merge_missing_transitions", message=f"Missing `{trans_rel}`"))
 
     # High-signal planner talk and narration stems.
@@ -105,7 +109,7 @@ def main() -> int:
     for code, pat, label in patterns:
         if not draft_narrative or not re.search(pat, draft_narrative):
             continue
-        source = "transitions" if transitions and re.search(pat, transitions) else "draft"
+        source = "transitions" if transition_injection and transitions and re.search(pat, transitions) else "draft"
         findings.append(
             {
                 "code": code,
@@ -117,7 +121,7 @@ def main() -> int:
         issues.append(QualityIssue(code=code, message=f"{label} (source: {source})"))
 
     if draft_narrative and re.search(slash_list, draft_narrative):
-        source = "transitions" if transitions and re.search(slash_list, transitions) else "draft"
+        source = "transitions" if transition_injection and transitions and re.search(slash_list, transitions) else "draft"
         findings.append(
             {
                 "code": "post_merge_slash_list_axes",
@@ -138,6 +142,7 @@ def main() -> int:
         f"- Status: {status}",
         f"- Draft: `{draft_rel}`",
         f"- Transitions: `{trans_rel}`",
+        f"- Transition injection: {'enabled' if transition_injection else 'disabled'}",
         "",
     ]
 
@@ -147,6 +152,7 @@ def main() -> int:
                 "## Summary",
                 "",
                 "- No high-signal planner-talk / axis-label artifacts detected after merge.",
+                "- Unused transition suggestions were not treated as reader-facing draft content.",
                 "- Proceed to citation budget/injection and polishing.",
                 "",
             ]
@@ -176,7 +182,7 @@ def main() -> int:
             "",
             "## Routing (fix the earliest responsible artifact)",
             "",
-            "- If `source: transitions`: fix `outline/transitions.md` via `transition-weaver`, then rerun `section-merger` and this gate.",
+            "- If `source: transitions`: transition insertion is enabled; fix `outline/transitions.md` via `transition-weaver`, then rerun `section-merger` and this gate.",
             "- If `source: draft`: fix the owning unit via `writer-selfloop` (or `subsection-polisher` / `draft-polisher`), then rerun merge + this gate.",
             "",
             "## Notes",

@@ -39,8 +39,8 @@ This is a deterministic conversion step; prose quality should already be address
 
 ### Quick Start
 
-- `python .codex/skills/latex-scaffold/scripts/run.py --help`
-- `python .codex/skills/latex-scaffold/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/latex-scaffold/scripts/run.py --help`
+- `uv run python .codex/skills/latex-scaffold/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -49,7 +49,7 @@ This is a deterministic conversion step; prose quality should already be address
 ### Examples
 
 - Build `latex/main.tex` from `output/DRAFT.md` or `output/TUTORIAL.md`:
-  - `python .codex/skills/latex-scaffold/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/latex-scaffold/scripts/run.py --workspace <workspace>`
 
 ### Notes
 

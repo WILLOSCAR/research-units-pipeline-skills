@@ -35,7 +35,7 @@ The gate should compare `output/TUTORIAL.md` against the intended module shape f
 
 ### Quick Start
 
-- `python .codex/skills/tutorial-selfloop/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/tutorial-selfloop/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -48,4 +48,4 @@ The gate should compare `output/TUTORIAL.md` against the intended module shape f
 ### Examples
 
 - Run the tutorial gate:
-  - `python .codex/skills/tutorial-selfloop/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/tutorial-selfloop/scripts/run.py --workspace <workspace>`

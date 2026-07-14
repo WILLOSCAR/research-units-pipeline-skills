@@ -47,8 +47,8 @@ This skill is intentionally simple and deterministic.
 
 ### Quick Start
 
-- `python .codex/skills/workspace-init/scripts/run.py --help`
-- `python .codex/skills/workspace-init/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/workspace-init/scripts/run.py --help`
+- `uv run python .codex/skills/workspace-init/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -57,9 +57,9 @@ This skill is intentionally simple and deterministic.
 ### Examples
 
 - Create a new workspace:
-  - `python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run`
+  - `uv run python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run`
 - Re-init and overwrite template files (be careful):
-  - `python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run --overwrite`
+  - `uv run python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run --overwrite`
 
 ## Troubleshooting
 

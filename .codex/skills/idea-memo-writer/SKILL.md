@@ -44,7 +44,7 @@ and still feel like:
 
 ### Quick Start
 
-- `python .codex/skills/idea-memo-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/idea-memo-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -57,4 +57,4 @@ and still feel like:
 ### Examples
 
 - Assemble the brainstorm memo for a workspace:
-  - `python .codex/skills/idea-memo-writer/scripts/run.py --workspace workspaces/brainstorm-llm-agents`
+  - `uv run python .codex/skills/idea-memo-writer/scripts/run.py --workspace workspaces/brainstorm-llm-agents`

@@ -60,7 +60,7 @@ It always writes a report so workspaces can serve as regression baselines.
 
 ### Quick Start
 
-- `python .codex/skills/artifact-contract-auditor/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/artifact-contract-auditor/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -73,4 +73,4 @@ It always writes a report so workspaces can serve as regression baselines.
 ### Examples
 
 - End-of-run audit (recommended before sharing a workspace):
-  - `python .codex/skills/artifact-contract-auditor/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/artifact-contract-auditor/scripts/run.py --workspace <workspace>`

@@ -30,6 +30,11 @@ Current compatibility packs:
 - `llm_agents`
 - `gen_image`
 - `embodied_ai`
+- `rag_evaluation`
+
+## Explicit refinement marker
+
+Create `outline/taxonomy.refined.ok` only after reviewing a manually refined taxonomy. The marker is honored only while it is newer than the taxonomy, its upstream evidence, and the generator; stale markers are removed and the prior taxonomy is backed up before regeneration.
 
 ## Inputs
 
@@ -51,7 +56,7 @@ Current compatibility packs:
 Use `scripts/run.py` only for deterministic help:
 - never overwrite non-placeholder user taxonomy
 - preserve current CLI flags / output path
-- load supported domain taxonomies from assets instead of hard-coded Python prose
+- load a supported domain taxonomy only when `GOAL.md` / `queries.md` explicitly match its detection contract
 - keep the generic fallback builder for non-packed domains
 
 ## When to refine manually
@@ -64,22 +69,22 @@ Refine the generated taxonomy before marking the unit `DONE` if:
 
 ## Quick start
 
-- `python .codex/skills/taxonomy-builder/scripts/run.py --help`
-- `python .codex/skills/taxonomy-builder/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/taxonomy-builder/scripts/run.py --help`
+- `uv run python .codex/skills/taxonomy-builder/scripts/run.py --workspace <workspace>`
 
 
 ## Execution notes
 
 When running in compatibility mode, `scripts/run.py` currently reads:
 - `papers/core_set.csv` as the required corpus input
-- `papers/papers_dedup.jsonl` when present for extra title/abstract signals
-- `GOAL.md`, `queries.md`, and `DECISIONS.md` as optional domain/profile hints during pack selection
+  - `papers/papers_dedup.jsonl` when present for generic corpus signals
+  - `GOAL.md` and `queries.md` as the authoritative domain-pack selection intent; corpus term co-occurrence cannot override them
 
 ## Script
 
 ### Quick Start
 
-- `python .codex/skills/taxonomy-builder/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/taxonomy-builder/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -93,7 +98,7 @@ When running in compatibility mode, `scripts/run.py` currently reads:
 
 ### Examples
 
-- `python .codex/skills/taxonomy-builder/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/taxonomy-builder/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

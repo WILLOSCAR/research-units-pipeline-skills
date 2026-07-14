@@ -55,24 +55,24 @@
   ],
   "weaken_templates": {
     "default": [
-      "That number belongs to the cited setup in {task}; without fuller {metric} and {constraint} detail it should not be read as a portable comparison in {title_lower}",
-      "This result remains setup-bound in {task}, especially under its reported {metric} and {constraint} conditions, rather than travelling as a broader comparison in {title_lower}",
-      "The cited number only holds under the stated setup in {task}; fuller {metric} and {constraint} detail is still needed before it can travel beyond {title_lower}"
+      "The cited result remains specific to {task}; broader comparison in {title_lower} requires explicit {metric} and {constraint} reporting",
+      "Evidence from {task} should not be generalized across {title_lower} without matching {metric} and {constraint} conditions",
+      "Cross-study interpretation in {title_lower} remains conditional on comparable {task}, {metric}, and {constraint} assumptions"
     ],
     "performance": [
-      "This benchmark edge stays local to the reported setup in {task}; it still needs fuller {metric} and {constraint} detail before it can travel across {title_lower}",
-      "The reported improvement should be read inside the cited setup for {task}, including its {metric} and {constraint} conditions, rather than as a portable gain in {title_lower}",
-      "The performance edge is still setup-bound in {task}; without fuller {metric} and {constraint} detail it should not be promoted into a broader comparison in {title_lower}"
+      "The reported performance remains local to {task}; broader comparison in {title_lower} requires fuller {metric} and {constraint} detail",
+      "Performance evidence from {task} should be read within its {metric} and {constraint} conditions rather than as a portable gain in {title_lower}",
+      "The cited performance claim remains setup-bound in {task} and should not be generalized across {title_lower} without matching {metric} and {constraint} assumptions"
     ],
     "tradeoff": [
-      "That trade-off is only demonstrated under the stated setup in {task}, especially under its {constraint} conditions, rather than across {title_lower} at large",
-      "The cited trade-off should be read as local to the reported setup in {task}, with its {constraint} conditions doing much of the work",
-      "This trade-off remains setup-bound in {task}; it does not travel cleanly beyond its stated {constraint} conditions in {title_lower}"
+      "The reported trade-off is demonstrated only within {task} and its {constraint} conditions, rather than across {title_lower} at large",
+      "The cited trade-off remains local to {task}, with its {constraint} conditions shaping the comparison",
+      "Trade-off evidence from {task} does not travel cleanly across {title_lower} without matching {constraint} conditions"
     ],
     "comparison": [
-      "This numeric margin is still setup-bound in {task}; without fuller {metric} and {constraint} detail it should not be treated as a portable ranking in {title_lower}",
-      "The comparison only holds as stated for the cited setup in {task}; fuller {metric} and {constraint} detail is still needed before the margin can travel across {title_lower}",
-      "The reported edge stays benchmark-local in {task}; the numeric margin remains too dependent on its {metric} and {constraint} conditions to function as a broader ranking in {title_lower}"
+      "The cited comparison remains local to {task} and should not be treated as a portable ranking without matching {metric} and {constraint} conditions",
+      "Comparison across {title_lower} requires the same {task}, {metric}, and {constraint} assumptions as the cited setup",
+      "The reported ranking remains benchmark-local in {task} because its interpretation depends on the stated {metric} and {constraint} conditions"
     ]
   }
 }

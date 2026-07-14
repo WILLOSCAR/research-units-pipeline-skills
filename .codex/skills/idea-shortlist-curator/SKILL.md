@@ -45,7 +45,7 @@ and remains:
 
 ### Quick Start
 
-- `python .codex/skills/idea-shortlist-curator/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/idea-shortlist-curator/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -58,4 +58,4 @@ and remains:
 ### Examples
 
 - Curate a shortlist for a brainstorm workspace:
-  - `python .codex/skills/idea-shortlist-curator/scripts/run.py --workspace workspaces/brainstorm-llm-agents`
+  - `uv run python .codex/skills/idea-shortlist-curator/scripts/run.py --workspace workspaces/brainstorm-llm-agents`

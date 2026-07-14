@@ -87,7 +87,21 @@ slides 应该：
 - 适合讲授
 - 单独阅读时也能看懂核心内容
 
-## 6. 推荐 Prompt
+## 6. 当前可靠性边界
+
+这条 workflow 需要明确的 source set。只有 topic 的请求应先走 `research-brief` 或
+survey workflow。
+
+如果 source set 稀疏或噪声很高，在接受 `output/TUTORIAL.md` 之前，建议先检查
+`sources/manifest.yml`、`sources/index.jsonl`、`outline/module_plan.yml`、
+`outline/source_coverage.jsonl` 和 `outline/tutorial_context_packs.jsonl`。当前自检
+对结构存在性更敏感，对 module-plan fidelity 和 source grounding 还不够强。
+
+Delivery Path 已有严格的本地 Source 回归：在工具链可用时，完整执行 Workflow，并用
+`latexmk` 编译 Article 与 Beamer PDF。它证明的是交付机制，不代表任意 Source Set 的
+教学质量都已经成熟。
+
+## 7. 推荐 Prompt
 
 示例保留英文 workflow 名称；具体要求可以用中文写。
 

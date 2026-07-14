@@ -20,6 +20,7 @@ Transforms manuscript text into a traceable claim ledger for `paper-review`.
 ## Output
 
 - `output/CLAIMS.md`
+- `output/CLAIMS.jsonl` (`review-claim.v1`, one addressable claim per line)
 
 ## Contract
 
@@ -28,6 +29,9 @@ Each claim block must include:
 - type: `empirical` or `conceptual`
 - scope
 - source pointer back into `output/PAPER.md`
+
+The Markdown and JSONL files are two views of the same claim records. Downstream
+skills should prefer JSONL and retain Markdown fallback for older Workspaces.
 
 ## Script boundary
 
@@ -42,6 +46,7 @@ Keep parsing and ranking heuristics in shared review tooling, not in the skill s
 ## Acceptance
 
 - `output/CLAIMS.md` exists
+- `output/CLAIMS.jsonl` exists and every record has a stable `claim_id`
 - every claim has a source pointer
 - empirical and conceptual claims are separated
 

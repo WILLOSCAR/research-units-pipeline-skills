@@ -1,6 +1,6 @@
 ---
 name: arxiv-survey-latex
-version: 3.8
+version: 4.0
 variant_of: arxiv-survey
 variant_overrides:
   routing_hints: [latex, pdf, tex, course paper pdf, term paper pdf, 可编译, 编译, 课程论文 PDF, 期末报告 PDF]

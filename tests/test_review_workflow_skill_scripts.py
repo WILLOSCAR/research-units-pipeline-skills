@@ -93,6 +93,9 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertIn("# Research Brief", text)
             self.assertIn("What to read first", text)
             self.assertIn("P0001 - Test-Time Adaptation Paper 1", text)
+            self.assertIn("Studies test-time adaptation for robot policies", text)
+            self.assertNotIn("Expected cites", text)
+            self.assertNotIn("why the survey", text.lower())
 
     def test_manuscript_ingest_uses_local_markdown_source(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "manuscript-ingest" / "scripts" / "run.py"
@@ -151,6 +154,9 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertIn("### C01", claims)
             self.assertIn("- Type: empirical", claims)
             self.assertIn("- Source:", claims)
+            claim_records = [json.loads(line) for line in (workspace / "output" / "CLAIMS.jsonl").read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(claim_records[0]["schema"], "review-claim.v1")
+            self.assertTrue(claim_records[0]["source_pointer"])
 
     def test_evidence_auditor_generates_gap_report(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "evidence-auditor" / "scripts" / "run.py"
@@ -185,6 +191,8 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             report = (workspace / "output" / "MISSING_EVIDENCE.md").read_text(encoding="utf-8")
             self.assertIn("### G01", report)
             self.assertIn("Minimal fix", report)
+            gap = json.loads((workspace / "output" / "EVIDENCE_AUDIT.jsonl").read_text(encoding="utf-8").splitlines()[0])
+            self.assertEqual(gap["claim_id"], "C01")
 
     def test_novelty_matrix_builds_rows_from_claims_and_references(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "novelty-matrix" / "scripts" / "run.py"
@@ -232,6 +240,10 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             matrix = (workspace / "output" / "NOVELTY_MATRIX.md").read_text(encoding="utf-8")
             self.assertIn("| Claim ID | Claim | Closest related work |", matrix)
             self.assertIn("Prior Work A", matrix)
+            with (workspace / "output" / "NOVELTY_MATRIX.tsv").open(encoding="utf-8", newline="") as handle:
+                rows = list(csv.DictReader(handle, delimiter="\t"))
+            self.assertEqual(rows[0]["schema"], "review-novelty-row.v1")
+            self.assertEqual(rows[0]["claim_id"], "C01")
 
     def test_rubric_writer_generates_review_sections(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "rubric-writer" / "scripts" / "run.py"
@@ -370,6 +382,8 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertIn("task", rows[0])
             self.assertIn("metric", rows[0])
+            self.assertEqual(rows[0]["task"], "not reported in available metadata")
+            self.assertEqual(rows[0]["metric"], "not reported in available metadata")
 
     def test_bias_assessor_adds_rob_columns(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "bias-assessor" / "scripts" / "run.py"
@@ -493,6 +507,54 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            (workspace / "output" / "CLAIMS.jsonl").write_text(
+                json.dumps(
+                    {
+                        "schema": "review-claim.v1",
+                        "claim_id": "C01",
+                        "text": "RoboAdapt introduces an adaptation controller.",
+                        "claim_type": "conceptual",
+                        "scope": "method",
+                        "source_pointer": "Method | controller paragraph",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "output" / "EVIDENCE_AUDIT.jsonl").write_text(
+                json.dumps(
+                    {
+                        "schema": "review-evidence-gap.v1",
+                        "gap_id": "G01",
+                        "claim_id": "C01",
+                        "claim": "RoboAdapt introduces an adaptation controller.",
+                        "evidence_present": "Method description is present.",
+                        "gap": "Boundary to prior work needs clarification.",
+                        "minimal_fix": "State the method delta explicitly.",
+                        "severity": "minor",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with (workspace / "output" / "NOVELTY_MATRIX.tsv").open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    delimiter="\t",
+                    fieldnames=["schema", "claim_id", "claim", "related_work", "overlap", "delta", "evidence"],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "schema": "review-novelty-row.v1",
+                        "claim_id": "C01",
+                        "claim": "RoboAdapt introduces an adaptation controller.",
+                        "related_work": "Prior Work A",
+                        "overlap": "robot adaptation",
+                        "delta": "controller design",
+                        "evidence": "method and related-work sections",
+                    }
+                )
             proc = subprocess.run(
                 [sys.executable, str(script), "--workspace", str(workspace)],
                 capture_output=True,
@@ -502,6 +564,9 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
             report = (workspace / "output" / "DELIVERABLE_SELFLOOP_TODO.md").read_text(encoding="utf-8")
             self.assertIn("- Status: PASS", report)
+            scorecard = json.loads((workspace / "output" / "REVIEW_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertEqual(scorecard["schema"], "paper-review-scorecard.v1")
+            self.assertEqual(scorecard["verdict"], "PASS")
 
     def test_deliverable_selfloop_accepts_research_brief_profile(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "deliverable-selfloop" / "scripts" / "run.py"
@@ -510,6 +575,7 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
         with self._workspace() as tmp:
             workspace = Path(tmp)
             (workspace / "output").mkdir(parents=True, exist_ok=True)
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
             (workspace / "PIPELINE.lock.md").write_text(
                 "pipeline: pipelines/research-brief.pipeline.md\nunits_template: templates/UNITS.research-brief.csv\nlocked_at: 2026-04-13\n",
                 encoding="utf-8",
@@ -522,14 +588,25 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                     ## Scope
                     - Scope with anchors in P0001 - Paper One.
 
+                    ## Key themes
+                    - Theme grounded in P0001 - Paper One and P0002 - Paper Two.
+
                     ## What to read first
                     - P0001 - Paper One
                     - P0002 - Paper Two
                     - P0003 - Paper Three
+
+                    ## Open problems / risks
+                    - Evaluation coverage remains limited.
                     """
                 ),
                 encoding="utf-8",
             )
+            with (workspace / "papers" / "core_set.csv").open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["paper_id", "title"])
+                writer.writeheader()
+                for idx in range(1, 4):
+                    writer.writerow({"paper_id": f"P{idx:04d}", "title": f"Paper {idx}"})
             proc = subprocess.run(
                 [sys.executable, str(script), "--workspace", str(workspace)],
                 capture_output=True,
@@ -537,8 +614,11 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            scorecard = json.loads((workspace / "output" / "BRIEF_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertEqual(scorecard["schema"], "research-brief-scorecard.v1")
+            self.assertEqual(scorecard["verdict"], "PASS")
 
-    def test_deliverable_selfloop_accepts_evidence_review_profile(self) -> None:
+    def test_deliverable_selfloop_rejects_untraceable_evidence_review(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "deliverable-selfloop" / "scripts" / "run.py"
         self.assertTrue(script.exists(), f"missing script: {script}")
 
@@ -578,7 +658,12 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                 text=True,
                 check=False,
             )
-            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            self.assertEqual(proc.returncode, 2, msg=proc.stderr or proc.stdout)
+            scorecard = json.loads((workspace / "output" / "EVIDENCE_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertEqual(scorecard["schema"], "evidence-review-scorecard.v1")
+            self.assertEqual(scorecard["verdict"], "FAIL")
+            self.assertIn("protocol_operability", scorecard["failed_critical_dimensions"])
+            self.assertIn("synthesis_traceability", scorecard["failed_critical_dimensions"])
 
 
 if __name__ == "__main__":

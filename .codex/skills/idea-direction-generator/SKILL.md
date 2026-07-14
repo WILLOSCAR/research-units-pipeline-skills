@@ -26,7 +26,7 @@ This skill should favor:
 
 ### Quick Start
 
-- `python .codex/skills/idea-direction-generator/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/idea-direction-generator/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -39,4 +39,4 @@ This skill should favor:
 ### Examples
 
 - Generate a direction pool for a brainstorm workspace:
-  - `python .codex/skills/idea-direction-generator/scripts/run.py --workspace workspaces/brainstorm-llm-agents`
+  - `uv run python .codex/skills/idea-direction-generator/scripts/run.py --workspace workspaces/brainstorm-llm-agents`

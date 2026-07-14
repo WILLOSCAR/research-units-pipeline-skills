@@ -134,6 +134,16 @@ ARTIFACT_PACK_LEDGER_PATHS = (
     "STATUS.md",
     "CHECKPOINTS.md",
     "DECISIONS.md",
+    ".harness/goal.json",
+    ".harness/run.json",
+    ".harness/harness.lock.json",
+    ".harness/events.jsonl",
+    ".harness/attempts.jsonl",
+    ".harness/artifacts.jsonl",
+    ".harness/failures/ledger.jsonl",
+    ".harness/evaluations/ledger.jsonl",
+    ".harness/plan/planned.json",
+    ".harness/plan/effective.json",
 )
 ARTIFACT_PACK_HARNESS_REPORT_PATHS = (
     "output/DOCTOR_REPORT.md",
@@ -265,6 +275,8 @@ def validate_units_table(table: UnitsTable) -> list[HarnessIssue]:
 
 
 def build_doctor_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
+    from tooling.run_state import run_identity
+
     units_path = workspace / "UNITS.csv"
     lock_summary = _pipeline_lock_summary(workspace / "PIPELINE.lock.md")
     checkpoint = _current_checkpoint(workspace / "STATUS.md")
@@ -277,6 +289,7 @@ def build_doctor_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict
         table = UnitsTable.load(units_path)
         issues.extend(validate_units_table(table))
         issues.extend(_workspace_artifact_issues(workspace=workspace, table=table))
+        issues.extend(_workspace_implementation_issues(workspace=workspace, table=table, repo_root=repo_root))
         counts = Counter(_status(row) or "<blank>" for row in table.rows)
         unit_status = {status: counts[status] for status in sorted(counts)}
         next_row = find_next_runnable(table)
@@ -292,6 +305,7 @@ def build_doctor_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline_lock": lock_summary,
+        "run_identity": run_identity(workspace),
         "current_checkpoint": checkpoint,
         "units_present": units_path.exists(),
         "unit_status": unit_status,
@@ -325,6 +339,11 @@ def render_doctor_report(payload: dict[str, Any]) -> str:
     else:
         lines.append("- Pipeline lock: missing")
 
+    identity = payload.get("run_identity") or {}
+    if identity.get("run_id"):
+        lines.append(f"- Run: `{identity.get('run_id')}` ({identity.get('state') or 'unknown'})")
+        lines.append(f"- Harness revision: `{identity.get('harness_revision') or 'unavailable'}`")
+
     lines.append(f"- Current checkpoint: `{payload.get('current_checkpoint')}`")
 
     if payload.get("units_present"):
@@ -342,7 +361,9 @@ def render_doctor_report(payload: dict[str, Any]) -> str:
             unit_id = str(next_runnable.get("unit_id") or "")
             title = str(next_runnable.get("title") or "(untitled)")
             skill = str(next_runnable.get("skill") or "(no skill)")
-            lines.append(f"- Next runnable: `{unit_id}` {title} (`{skill}`)")
+            status = str(next_runnable.get("status") or "").strip()
+            status_suffix = f" [{status}]" if status else ""
+            lines.append(f"- Next runnable: `{unit_id}` {title} (`{skill}`){status_suffix}")
         else:
             lines.append("- No runnable unit found")
 
@@ -792,6 +813,8 @@ def _validate_run_state_record(record: dict[str, Any], *, field_path: str, issue
 
 
 def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
+    from tooling.run_state import run_identity
+
     units_path = workspace / "UNITS.csv"
     spec = _load_locked_pipeline_spec(workspace=workspace, repo_root=repo_root)
     lock_summary = _pipeline_lock_summary(workspace / "PIPELINE.lock.md")
@@ -805,6 +828,14 @@ def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, d
         "STATUS.md",
         "CHECKPOINTS.md",
         "DECISIONS.md",
+        ".harness/goal.json",
+        ".harness/run.json",
+        ".harness/harness.lock.json",
+        ".harness/events.jsonl",
+        ".harness/attempts.jsonl",
+        ".harness/artifacts.jsonl",
+        ".harness/failures/ledger.jsonl",
+        ".harness/evaluations/ledger.jsonl",
     ):
         ledger_files[relpath] = (workspace / relpath).exists()
 
@@ -839,6 +870,7 @@ def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, d
         "repo": str(repo_root),
         "pipeline_lock": lock_summary,
         "pipeline": spec.name if spec is not None else "",
+        "run_identity": run_identity(workspace),
         "current_checkpoint": checkpoint,
         "run_ledger_files": ledger_files,
         "run_state": _run_state_record(
@@ -881,6 +913,17 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
         f"- Current checkpoint: `{payload.get('current_checkpoint')}`",
         f"- JSON sidecar: `output/RUN_AUDIT.json`",
     ]
+
+    identity = payload.get("run_identity") or {}
+    if identity.get("run_id"):
+        lines.extend(
+            [
+                f"- Run ID: `{identity.get('run_id')}`",
+                f"- Goal ID: `{identity.get('goal_id')}`",
+                f"- Durable state: `{identity.get('state') or 'unknown'}`",
+                f"- Harness revision: `{identity.get('harness_revision') or 'unavailable'}`",
+            ]
+        )
 
     lines.extend(["", "## Run ledger files"])
     for relpath, exists in (payload.get("run_ledger_files") or {}).items():
@@ -1130,11 +1173,14 @@ def write_run_audit_diff_json(*, output_dir: Path, payload: dict[str, Any]) -> P
 def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
     doctor_exit, doctor_payload = build_doctor_payload(workspace=workspace, repo_root=repo_root)
     audit_exit, audit_payload = build_run_audit_payload(workspace=workspace, repo_root=repo_root)
+    failures = _failure_ledger_records(workspace)
+    repair_history = _failure_repair_history(workspace)
     suggestions = _improvement_suggestion_records(
         workspace=workspace,
         doctor_payload=doctor_payload,
         run_audit_payload=audit_payload,
     )
+    suggestions.extend(_failure_suggestion_records(workspace=workspace, failures=failures, offset=len(suggestions)))
     exit_code = 2 if suggestions or doctor_exit or audit_exit else 0
     payload = {
         "schema": IMPROVEMENT_REPORT_SCHEMA,
@@ -1154,7 +1200,16 @@ def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int,
                 "verdict": str(audit_payload.get("verdict") or ""),
                 "exit_code": int(audit_payload.get("exit_code") or 0),
             },
+            "failure_ledger": {
+                "schema": "failure-record.v1",
+                "verdict": "ATTENTION" if failures else "PASS",
+                "exit_code": 2 if failures else 0,
+                "record_count": len(failures),
+                "opened_count": int(repair_history["opened_count"]),
+                "resolved_count": int(repair_history["resolved_count"]),
+            },
         },
+        "repair_history": repair_history,
         "suggestions": suggestions,
         "verdict": "ATTENTION" if suggestions else "PASS",
         "exit_code": exit_code,
@@ -1205,7 +1260,24 @@ def render_improvement_report(payload: dict[str, Any]) -> str:
                 ]
             )
 
-    lines.extend(["## Improvement verdict", f"- {payload.get('verdict') or 'ATTENTION'}"])
+    history = payload.get("repair_history") or {}
+    lines.extend(["", "## Repair history"])
+    lines.append(
+        f"- Opened failures: {history.get('opened_count', 0)}; "
+        f"resolved failures: {history.get('resolved_count', 0)}"
+    )
+    entries = history.get("entries") if isinstance(history.get("entries"), list) else []
+    if entries:
+        for entry in entries:
+            lines.append(
+                f"- `{entry.get('failure_type') or 'failure'}` on `{entry.get('unit_id') or 'unknown'}`: "
+                f"attempt `{entry.get('opened_attempt_id') or 'unknown'}` -> "
+                f"`{entry.get('resolved_by_attempt_id') or 'unresolved'}` ({entry.get('status')})"
+            )
+    else:
+        lines.append("- No durable failure history recorded.")
+
+    lines.extend(["", "## Improvement verdict", f"- {payload.get('verdict') or 'ATTENTION'}"])
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -1419,6 +1491,102 @@ def _improvement_suggestion_records(
     return records
 
 
+def _failure_suggestion_records(
+    *, workspace: Path, failures: list[dict[str, Any]], offset: int
+) -> list[dict[str, str]]:
+    records: list[dict[str, str]] = []
+    latest_by_fingerprint: dict[str, dict[str, Any]] = {}
+    for failure in failures:
+        fingerprint = str(failure.get("fingerprint") or failure.get("failure_id") or "")
+        if fingerprint:
+            latest_by_fingerprint[fingerprint] = failure
+
+    for failure in latest_by_fingerprint.values():
+        repair_surface = failure.get("repair_surface") or []
+        if isinstance(repair_surface, list):
+            repair_text = "; ".join(str(item) for item in repair_surface if str(item).strip())
+        else:
+            repair_text = str(repair_surface)
+        failure_type = str(failure.get("failure_type") or "unclassified_failure")
+        records.append(
+            {
+                "id": f"S{offset + len(records) + 1:03d}",
+                "source_report": "failure_ledger",
+                "observed_problem": str(failure.get("observable_failure") or failure_type),
+                "evidence": (
+                    f"{str(failure.get('severity') or 'medium').upper()} `{failure_type}`; "
+                    f"attempt `{failure.get('attempt_id') or 'unknown'}`"
+                ),
+                "upstream_interface": str(failure.get("harness_mechanism") or "Run attempt / skill adapter"),
+                "repair_surface": repair_text or "inspect recorded attempt",
+                "recommended_action": str(failure.get("causal_behavior") or "Inspect the recorded attempt and repair surface."),
+                "validation": pipeline_cli_command("doctor", workspace=workspace, extra_args=("--write",)),
+            }
+        )
+    return records
+
+
+def _failure_ledger_records(workspace: Path) -> list[dict[str, Any]]:
+    path = workspace / ".harness" / "failures" / "ledger.jsonl"
+    if not path.exists():
+        return []
+    records: dict[str, dict[str, Any]] = {}
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            failure_id = str(payload.get("failure_id") or "")
+            if not failure_id:
+                continue
+            if payload.get("status") == "open":
+                records[failure_id] = payload
+            else:
+                records.pop(failure_id, None)
+    return list(records.values())
+
+
+def _failure_repair_history(workspace: Path) -> dict[str, Any]:
+    path = workspace / ".harness" / "failures" / "ledger.jsonl"
+    failures: dict[str, dict[str, Any]] = {}
+    if path.exists():
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                failure_id = str(payload.get("failure_id") or "")
+                if not failure_id:
+                    continue
+                if payload.get("status") == "open":
+                    failures[failure_id] = {
+                        "failure_id": failure_id,
+                        "failure_type": str(payload.get("failure_type") or ""),
+                        "unit_id": str(payload.get("unit_id") or ""),
+                        "opened_attempt_id": str(payload.get("attempt_id") or ""),
+                        "resolved_by_attempt_id": "",
+                        "status": "open",
+                    }
+                elif failure_id in failures:
+                    failures[failure_id]["resolved_by_attempt_id"] = str(payload.get("resolved_by_attempt_id") or "")
+                    failures[failure_id]["status"] = "resolved"
+    entries = list(failures.values())
+    return {
+        "opened_count": len(entries),
+        "resolved_count": len([entry for entry in entries if entry["status"] == "resolved"]),
+        "entries": entries,
+    }
+
+
 def _issue_upstream_interface(code: str) -> str:
     if code in {"missing_units", "missing_units_field", "missing_unit_id", "duplicate_unit_id", "invalid_owner"}:
         return "Execution ledger / UNITS.csv"
@@ -1460,6 +1628,32 @@ def _doctor_resume_hint(
 
     if next_runnable:
         unit_id = str(next_runnable.get("unit_id") or "the next unit")
+        status = str(next_runnable.get("status") or "").strip().upper()
+        owner = str(next_runnable.get("owner") or "").strip().upper()
+        skill = str(next_runnable.get("skill") or "").strip().lower()
+        checkpoint = str(next_runnable.get("checkpoint") or "").strip()
+        if (owner == "HUMAN" or skill == "human-checkpoint") and checkpoint:
+            return {
+                "kind": "await_human_approval",
+                "command": pipeline_cli_command(
+                    "approve",
+                    workspace=workspace,
+                    extra_args=("--checkpoint", checkpoint),
+                ),
+                "reason": (
+                    f"Unit {unit_id} is the {checkpoint} human checkpoint; review `DECISIONS.md` "
+                    "and approve it explicitly before execution continues."
+                ),
+            }
+        if status == "BLOCKED":
+            return {
+                "kind": "repair_blocked_unit",
+                "command": pipeline_cli_command("improve", workspace=workspace, extra_args=("--write",)),
+                "reason": (
+                    f"Unit {unit_id} is BLOCKED; inspect `output/QUALITY_GATE.md`, "
+                    "`output/RUN_ERRORS.md`, and unit logs before rerunning it."
+                ),
+            }
         return {
             "kind": "run_next_unit",
             "command": pipeline_cli_command("run", workspace=workspace),
@@ -1527,20 +1721,76 @@ def write_unit_manifest(
     outputs: list[str],
     exit_code: int,
     status: str,
+    attempt_id: str = "",
+    repo_root: Path | None = None,
 ) -> Path:
-    manifest_path = workspace / "output" / "unit_logs" / f"{unit_id}.{skill}.manifest.json"
+    from tooling.run_state import run_identity
+
+    manifest_name = (
+        f"{unit_id}.{skill}.{attempt_id}.manifest.json"
+        if attempt_id
+        else f"{unit_id}.{skill}.manifest.json"
+    )
+    manifest_path = workspace / "output" / "unit_logs" / manifest_name
+    identity = run_identity(workspace)
     payload = {
         "schema": "unit-output-manifest.v1",
         "generated_at": now_iso_seconds(),
+        "run_id": identity.get("run_id") or "",
+        "attempt_id": attempt_id,
         "unit_id": unit_id,
         "skill": skill,
         "status": status,
         "exit_code": exit_code,
         "outputs": [_artifact_record(workspace=workspace, relpath=rel) for rel in outputs if str(rel or "").strip()],
     }
+    if repo_root is not None:
+        skill_dir = repo_root / ".codex" / "skills" / skill
+        if skill_dir.exists():
+            payload["implementation"] = {
+                "skill": _implementation_record(repo_root=repo_root, path=skill_dir),
+            }
     ensure_dir(manifest_path.parent)
     atomic_write_text(manifest_path, json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     return manifest_path
+
+
+def _workspace_implementation_issues(*, workspace: Path, table: UnitsTable, repo_root: Path) -> list[HarnessIssue]:
+    latest_by_unit: dict[str, dict[str, Any]] = {}
+    for manifest in _unit_manifest_records(workspace):
+        if str(manifest.get("status") or "").upper() != "DONE":
+            continue
+        unit_id = str(manifest.get("unit_id") or "").strip()
+        if unit_id:
+            latest_by_unit[unit_id] = manifest
+
+    stale: list[str] = []
+    for row in table.rows:
+        if _status(row) != "DONE":
+            continue
+        unit_id = _unit_id(row)
+        skill = str(row.get("skill") or "").strip()
+        manifest = latest_by_unit.get(unit_id)
+        implementation = manifest.get("implementation") if isinstance(manifest, dict) else None
+        pinned = implementation.get("skill") if isinstance(implementation, dict) else None
+        pinned_sha = str(pinned.get("sha256") or "") if isinstance(pinned, dict) else ""
+        if not pinned_sha:
+            continue
+        skill_dir = repo_root / ".codex" / "skills" / skill
+        current = _implementation_record(repo_root=repo_root, path=skill_dir)
+        if not current.get("exists") or str(current.get("sha256") or "") != pinned_sha:
+            stale.append(f"{unit_id} ({skill})")
+
+    if not stale:
+        return []
+    preview = ", ".join(stale[:8]) + (" ..." if len(stale) > 8 else "")
+    return [
+        HarnessIssue(
+            "ERROR",
+            "stale_done_implementation",
+            f"DONE unit implementation changed after its latest successful attempt: {preview}. Reopen the earliest affected unit so downstream artifacts are regenerated.",
+        )
+    ]
 
 
 def _workspace_artifact_issues(*, workspace: Path, table: UnitsTable) -> list[HarnessIssue]:
@@ -1614,6 +1864,31 @@ def _artifact_record(*, workspace: Path, relpath: str) -> dict[str, Any]:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     record.update({"type": "file", "size": path.stat().st_size, "sha256": digest.hexdigest()})
+    return record
+
+
+def _implementation_record(*, repo_root: Path, path: Path) -> dict[str, Any]:
+    relpath = str(path.relative_to(repo_root)) if path.is_relative_to(repo_root) else str(path)
+    record: dict[str, Any] = {"path": relpath, "exists": path.exists()}
+    if not path.exists():
+        return record
+    if path.is_file():
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        record.update({"type": "file", "size": path.stat().st_size, "sha256": digest})
+        return record
+
+    files = sorted(
+        item
+        for item in path.rglob("*")
+        if item.is_file()
+        and "__pycache__" not in item.parts
+        and item.suffix not in {".pyc", ".pyo"}
+    )
+    digest = hashlib.sha256()
+    for item in files:
+        digest.update(str(item.relative_to(path)).encode("utf-8"))
+        digest.update(hashlib.sha256(item.read_bytes()).digest())
+    record.update({"type": "directory", "file_count": len(files), "sha256": digest.hexdigest()})
     return record
 
 
@@ -1935,6 +2210,9 @@ def _next_runnable_record(row: dict[str, str]) -> dict[str, str]:
         "unit_id": _unit_id(row),
         "title": str(row.get("title") or "").strip() or "(untitled)",
         "skill": str(row.get("skill") or "").strip() or "(no skill)",
+        "owner": str(row.get("owner") or "").strip(),
+        "checkpoint": str(row.get("checkpoint") or "").strip(),
+        "status": _status(row),
     }
 
 
@@ -1950,6 +2228,8 @@ def _manifest_summary(record: dict[str, Any]) -> dict[str, Any]:
     outputs = record.get("outputs") if isinstance(record.get("outputs"), list) else []
     return {
         "path": str(record.get("_relpath") or ""),
+        "run_id": str(record.get("run_id") or ""),
+        "attempt_id": str(record.get("attempt_id") or ""),
         "unit_id": str(record.get("unit_id") or ""),
         "skill": str(record.get("skill") or ""),
         "status": str(record.get("status") or ""),
@@ -1969,8 +2249,16 @@ def _unit_manifest_records(workspace: Path) -> list[dict[str, Any]]:
         if not isinstance(record, dict):
             continue
         record["_relpath"] = str(path.relative_to(workspace))
+        record["_mtime_ns"] = path.stat().st_mtime_ns
         records.append(record)
-    return records
+    return sorted(
+        records,
+        key=lambda item: (
+            str(item.get("generated_at") or ""),
+            int(item.get("_mtime_ns") or 0),
+            str(item.get("_relpath") or ""),
+        ),
+    )
 
 
 def _recent_report_records(workspace: Path) -> list[dict[str, str]]:

@@ -11,6 +11,10 @@ description: |
 
 # Chapter Skeleton
 
+## Explicit refinement marker
+
+Create `outline/chapter_skeleton.refined.ok` only after reviewing a manually refined skeleton. A changed taxonomy, goal, or generator invalidates the marker; reruns then back up and rebuild the skeleton.
+
 ## Load Order
 
 Always read:
@@ -20,7 +24,7 @@ Use `scripts/run.py` only for deterministic materialization:
 - read `outline/taxonomy.yml` for retrieval-informed topic structure
 - read `GOAL.md` when present for scope hints
 - emit `outline/chapter_skeleton.yml`
-- preserve existing non-placeholder user work
+- preserve reviewed user work only through the current explicit refinement marker
 
 ## Inputs
 
@@ -39,7 +43,7 @@ Use `scripts/run.py` only for deterministic materialization:
 
 ### Quick Start
 
-- `python .codex/skills/chapter-skeleton/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/chapter-skeleton/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -52,4 +56,4 @@ Use `scripts/run.py` only for deterministic materialization:
 ### Examples
 
 - Generate the chapter skeleton after taxonomy:
-  - `python .codex/skills/chapter-skeleton/scripts/run.py --workspace workspaces/<ws> --inputs 'outline/taxonomy.yml;GOAL.md' --outputs 'outline/chapter_skeleton.yml'`
+  - `uv run python .codex/skills/chapter-skeleton/scripts/run.py --workspace <workspace> --inputs 'outline/taxonomy.yml;GOAL.md' --outputs 'outline/chapter_skeleton.yml'`

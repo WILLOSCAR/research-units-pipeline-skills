@@ -359,7 +359,8 @@ For deterministic units (retrieval/dedupe/compile/format checks):
   ## Details
   <per-check breakdown>
   ```
-- Rationale: Self-healing loop requires failure information to be persisted (see RC2 in PIPELINE_DIAGNOSIS_AND_IMPROVEMENT.md).
+- Rationale: Run-local repair requires durable failure information; see
+  `docs/AUTO_RESEARCH_DESIGN_SYSTEM.md` under Failure Attribution.
 
 ## 6) JSONL Interface Schema (cross-skill contracts)
 

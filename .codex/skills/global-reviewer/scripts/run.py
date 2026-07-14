@@ -134,6 +134,9 @@ def _detect_evidence_mode(workspace: Path) -> str:
 
 
 def _global_review_report(*, workspace: Path) -> str:
+    from tooling.common import reader_request_leakage
+    from tooling.quality_gate import _draft_profile
+
     draft_path = workspace / "output" / "DRAFT.md"
     draft = draft_path.read_text(encoding="utf-8", errors="ignore") if draft_path.exists() else ""
 
@@ -150,17 +153,21 @@ def _global_review_report(*, workspace: Path) -> str:
     h3_blocks = _split_h3_blocks(draft)
     h3_count = len(h3_blocks)
 
+    draft_profile = _draft_profile(workspace)
     lengths: list[tuple[int, str]] = []
     low_cites: list[str] = []
+    min_subsection_cites = 4 if draft_profile == "course_paper" else 3
+    min_subsection_chars = 1600 if draft_profile == "course_paper" else 5000
     for title, block in h3_blocks:
         sans_cites = re.sub(r"\[@[^\]]+\]", "", block)
         sans_cites = re.sub(r"\s+", " ", sans_cites).strip()
         lengths.append((len(sans_cites), title))
-        if len(_extract_citation_keys_md(block)) < 3:
+        if len(_extract_citation_keys_md(block)) < min_subsection_cites:
             low_cites.append(title)
 
     lengths.sort()
     weakest = [t for _, t in lengths[:3]] if lengths else []
+    thin = [title for length, title in lengths if length < min_subsection_chars]
     median_len = lengths[len(lengths) // 2][0] if lengths else 0
 
     tables_path = workspace / "outline" / "tables_appendix.md"
@@ -173,13 +180,14 @@ def _global_review_report(*, workspace: Path) -> str:
 
     outline_h3 = _outline_subsection_count(outline)
 
-    # Default status: PASS if the draft exists and citations look wired.
-    status = "PASS" if (draft and not missing_in_bib) else "OK"
+    request_leaks = reader_request_leakage(draft)
+    status = "PASS" if (draft and not missing_in_bib and not request_leaks) else "FAIL"
 
     lines: list[str] = []
     lines.append("# Global Review")
     lines.append("")
     lines.append(f"- Status: {status}")
+    lines.append(f"- Draft profile: `{draft_profile}`")
     lines.append(f"- Draft subsections (H3): {h3_count}; median length (chars, sans cites): {median_len}")
     if outline_h3:
         lines.append(f"- Outline subsections (H3): {outline_h3}")
@@ -191,24 +199,32 @@ def _global_review_report(*, workspace: Path) -> str:
     lines.append("## A. Input integrity / placeholder leakage")
     lines.append("- Draft exists: " + ("yes" if bool(draft.strip()) else "no"))
     lines.append("- Evidence mode: " + _detect_evidence_mode(workspace))
+    if request_leaks:
+        lines.append("- Delivery-request leakage: " + ", ".join(request_leaks) + ". Regenerate front matter and the paper title from the normalized research subject.")
+    else:
+        lines.append("- Delivery-request leakage: none detected.")
     lines.append("- Visual artifacts present: tables/timeline/figures = " + f"{tables_n}/{timeline_n}/{('yes' if figures_has else 'no')}")
 
     lines.append("")
     lines.append("## B. Narrative and argument chain")
     if low_cites:
         suffix = f"; and {len(low_cites) - 6} more" if len(low_cites) > 6 else ""
-        lines.append("- Subsections with <3 unique citations: " + ", ".join([f"`{t}`" for t in low_cites[:6]]) + suffix)
+        lines.append(f"- Subsections with <{min_subsection_cites} unique citations: " + ", ".join([f"`{t}`" for t in low_cites[:6]]) + suffix)
     else:
-        lines.append("- Citation density per subsection: looks OK (no <3-cite subsections detected).")
-    if weakest:
-        lines.append("- Expand the weakest subsections first (more A-vs-B contrasts + one cross-paper synthesis paragraph + explicit limitation).")
+        lines.append(f"- Citation density per subsection: looks OK (no <{min_subsection_cites}-cite subsections detected).")
+    if thin:
+        lines.append(
+            f"- Subsections below the `{draft_profile}` depth floor ({min_subsection_chars} chars sans cites): "
+            + ", ".join([f"`{title}`" for title in thin[:6]])
+        )
     else:
-        lines.append("- Subsection depth: no obvious outliers detected by length.")
+        lines.append(f"- Subsection depth: every H3 meets the `{draft_profile}` floor ({min_subsection_chars} chars sans cites).")
 
     lines.append("")
     lines.append("## C. Scope and taxonomy consistency")
     if outline_h3:
-        lines.append(f"- H3 count: {outline_h3} (survey target: <=12; fewer, thicker sections usually write better).")
+        h3_target = 6 if draft_profile == "course_paper" else 12
+        lines.append(f"- H3 count: {outline_h3} (`{draft_profile}` target: <={h3_target}).")
     lines.append("- Scope check: ensure section titles match mapped papers; avoid mixing orthogonal axes without an explicit rule.")
 
     lines.append("")
@@ -223,9 +239,14 @@ def _global_review_report(*, workspace: Path) -> str:
 
     lines.append("")
     lines.append("## E. Tables and structural outputs")
-    lines.append(f"- Tables: separator rows found = {tables_n} (target: >=2 tables).")
-    lines.append(f"- Timeline: year-like milestone bullets = {timeline_n} (target: >=8).")
-    lines.append("- Figures: provide concrete figure specs (what the figure must show + which cited works anchor it).")
+    if draft_profile == "course_paper":
+        lines.append(f"- Tables: separator rows found = {tables_n} (course-paper target: >=1 comparison table).")
+        lines.append(f"- Timeline: year-like milestone bullets = {timeline_n} (optional for this profile).")
+        lines.append("- Figures: optional; add one only when it clarifies the argument better than the comparison table.")
+    else:
+        lines.append(f"- Tables: separator rows found = {tables_n} (survey target: >=2 tables).")
+        lines.append(f"- Timeline: year-like milestone bullets = {timeline_n} (survey target: >=8).")
+        lines.append("- Figures: provide concrete figure specs (what the figure must show + which cited works anchor it).")
 
     lines.append("")
     lines.append("## Terminology glossary")
@@ -234,8 +255,9 @@ def _global_review_report(*, workspace: Path) -> str:
     lines.append("")
     lines.append("## Ready-for-LaTeX checklist")
     lines.append(f"- Undefined citations: {len(missing_in_bib)}")
-    lines.append("- Placeholder leakage: none expected (avoid placeholder tokens in outputs)")
-    lines.append("- Subsection depth: aim for 6–10 paragraphs per H3 with a cross-paper synthesis paragraph")
+    lines.append(f"- Delivery-request leakage findings: {len(request_leaks)}")
+    paragraph_target = "5-7" if draft_profile == "course_paper" else "6-10"
+    lines.append(f"- Subsection depth: aim for {paragraph_target} paragraphs per H3 with a cross-paper synthesis paragraph")
     lines.append("")
 
     return _sanitize("\n".join(lines))

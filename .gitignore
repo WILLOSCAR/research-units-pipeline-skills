@@ -1,12 +1,14 @@
 __pycache__/
 *.py[cod]
+*.egg-info/
 
 workspaces/
 /skills/
+
+# Local compatibility mirror. Project Skills are canonical under .codex/skills/.
+/.agents/
 
 # Local reference corpus (PDFs/text extracts); keep curated id lists/docs tracked.
 ref/**/pdfs/
 ref/**/text/
 ref/**/index.jsonl
-
-z_refactor/

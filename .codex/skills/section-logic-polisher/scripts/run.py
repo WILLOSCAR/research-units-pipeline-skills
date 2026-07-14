@@ -29,8 +29,8 @@ def _draft_profile(workspace: Path) -> str:
             key = key.strip().lower().replace(" ", "_")
             if key not in keys:
                 continue
-            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
-            if value in {"survey", "deep"}:
+            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower().replace("-", "_")
+            if value in {"survey", "deep", "course_paper"}:
                 return value
             return "survey"
     except Exception:
@@ -88,6 +88,13 @@ def _has_thesis(paragraph: str) -> bool:
         r"(?i)\bour\s+(?:synthesis|review|survey)\s+(?:suggests|shows|finds|indicates)\s+that\b",
         r"(?i)\bwe\s+(?:argue|show|find|suggest|observe|contend)\s+that\b",
         r"(?i)\bthis\s+(?:section|subsection)\s+(?:shows|argues|concludes|highlights)\s+that\b",
+        # Normative and conditional propositions are often the clearest thesis
+        # form in evaluation writing, even when they avoid stock takeaway labels.
+        r"(?i)\b(?:should|must|ought\s+to|needs?\s+to)\b",
+        r"(?i)\b(?:is|are|remains?|becomes?)\s+[^.!?]{0,100}\bonly\s+(?:if|when|to\s+the\s+extent\s+that)\b",
+        r"(?i)\b(?:depends?|hinges?|turns)\s+(?:primarily\s+)?(?:on|upon)\b",
+        r"(?i)\b(?:requires?|demands?)\s+(?:that\b|an?\s+|the\s+)",
+        r"(?i)\b(?:is|are|does|do)\s+not\b[^.!?]{1,160}\bbut\b",
         # Content-claim verbs (more natural than explicit "takeaway:" labels).
         r"(?i)\bdetermin(?:e|es|ed|ing)\b|\bdriv(?:e|es|en|ing)\b|\bshap(?:e|es|ed|ing)\b|\bconstrain(?:s|ed|ing)?\b|\bgovern(?:s|ed|ing)?\b|\bset(?:s)?\s+the\s+ceiling\b",
         # Chinese thesis/takeaway cues.
@@ -135,6 +142,8 @@ def _connector_counts(text: str) -> Counts:
 
 def _thresholds(profile: str) -> Counts:
     profile = (profile or "").strip().lower()
+    if profile == "course_paper":
+        return Counts(causal=1, contrast=1, extension=1, implication=1)
     if profile == "deep":
         return Counts(causal=3, contrast=2, extension=2, implication=1)
     return Counts(causal=2, contrast=2, extension=2, implication=1)

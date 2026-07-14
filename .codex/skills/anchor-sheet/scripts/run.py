@@ -8,6 +8,19 @@ from pathlib import Path
 from typing import Any
 
 
+_META_ANCHOR_RE = re.compile(
+    r"(?i)^(?:evaluation mentions include:|our contributions are\b|this document is a practical framework\b|"
+    r"when comparing results, anchor the paragraph with|prefer head-to-head comparisons only when|"
+    r"avoid underspecified model|if a claim relies on a single reported number|"
+    r"if budgets or environments differ across papers|use conservative language)"
+)
+
+
+def _is_usable_anchor_text(text: str) -> bool:
+    normalized = re.sub(r"\s+", " ", str(text or "").strip())
+    return bool(normalized and not _META_ANCHOR_RE.search(normalized))
+
+
 def _assert_h3_cutover_ready(*, workspace: Path, consumer: str) -> None:
     from tooling.common import read_jsonl
 
@@ -102,6 +115,8 @@ def main() -> int:
 
         def add_anchor(*, hook_type: str, text: str, citations: list[str], paper_id: str = "", evidence_id: str = "", pointer: str = "") -> None:
             text = _trim(text)
+            if not _is_usable_anchor_text(text):
+                return
             norm: list[str] = []
             seen: set[str] = set()
             for c in citations:
@@ -214,6 +229,8 @@ def main() -> int:
             if len(deduped) >= 12:
                 return
             norm_text = _trim(text)
+            if not _is_usable_anchor_text(norm_text):
+                return
             norm = re.sub(r"\s+", " ", norm_text.strip().lower())
             norm = re.sub(r"\[@[^\]]+\]", "", norm)
             if not norm or norm in seen:
@@ -271,6 +288,8 @@ def main() -> int:
             for it in rec.get("evaluation_protocol") or []:
                 if not isinstance(it, dict):
                     continue
+                if str(it.get("kind") or "").strip().lower() == "protocol_guardrail":
+                    continue
                 try_append(
                     hook_type="eval",
                     text=str(it.get("bullet") or "").strip(),
@@ -303,11 +322,9 @@ def _normalize_cite_key(cite: str, *, bib_keys: set[str]) -> str:
 
 
 def _trim(text: str, *, max_len: int = 280) -> str:
-    text = re.sub(r"\s+", " ", (text or "").strip())
-    if len(text) > int(max_len):
-        # Avoid adding ellipsis markers that may accidentally leak into prose.
-        text = text[: int(max_len)].rstrip()
-    return text
+    from tooling.common import bounded_complete_text
+
+    return bounded_complete_text(text, max_chars=int(max_len), overflow_factor=3.0)
 
 
 def _check_no_placeholders(records: list[dict[str, Any]]) -> None:

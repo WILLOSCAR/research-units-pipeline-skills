@@ -41,6 +41,7 @@ The report should feel like a *constraint sheet*, not a random list:
 - It states the **blocking policy target** and the **gap-to-target** (how many unique keys are missing; policy default is `recommended`).
 - For each H3, it proposes a scope-safe budget sized to actually close the gap:
   - small gaps: 3-6 keys / H3 is often enough
+  - `course_paper`: cap suggestions at 3-6 keys / H3 and target the profile's 24/32 global budget
   - A150++ gaps: plan for ~6-12 keys / H3 (and avoid duplicates across H3 budgets)
 - It gives placement guidance (where in the subsection those keys can be embedded without adding new facts).
 
@@ -92,8 +93,8 @@ If you want a deterministic first-pass budget report, run the helper script. Tre
 
 ### Quick Start
 
-- `python .codex/skills/citation-diversifier/scripts/run.py --help`
-- `python .codex/skills/citation-diversifier/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/citation-diversifier/scripts/run.py --help`
+- `uv run python .codex/skills/citation-diversifier/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -106,7 +107,7 @@ If you want a deterministic first-pass budget report, run the helper script. Tre
 ### Examples
 
 - Default IO:
-  - `python .codex/skills/citation-diversifier/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/citation-diversifier/scripts/run.py --workspace <workspace>`
 
 ## Done criteria
 

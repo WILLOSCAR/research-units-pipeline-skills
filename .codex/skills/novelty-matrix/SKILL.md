@@ -25,6 +25,7 @@ Optional:
 ## Output
 
 - `output/NOVELTY_MATRIX.md`
+- `output/NOVELTY_MATRIX.tsv` (`review-novelty-row.v1`)
 
 ## Contract
 
@@ -49,6 +50,7 @@ Keep matching heuristics and markdown rendering in shared tooling.
 - output exists
 - includes at least one row per claim
 - if related works are unavailable, the artifact says so explicitly
+- TSV rows preserve `claim_id`, overlap, delta, and evidence as separate fields
 
 ## Non-goals
 

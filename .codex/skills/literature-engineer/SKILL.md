@@ -76,12 +76,12 @@ Do not treat `run.py` as the place for:
 
 ### Quick Start
 
-- `python .codex/skills/literature-engineer/scripts/run.py --help`
+- `uv run python .codex/skills/literature-engineer/scripts/run.py --help`
 
 
 ### All Options
 
-- See `python .codex/skills/literature-engineer/scripts/run.py --help`.
+- See `uv run python .codex/skills/literature-engineer/scripts/run.py --help`.
 - Reads retrieval config from `queries.md`.
 - Offline inputs (merged if present): `papers/import.(csv|json|jsonl|bib)`, `papers/arxiv_export.(csv|json|jsonl|bib)`, `papers/imports/*.(csv|json|jsonl|bib)`.
 - Optional offline snowball inputs: `papers/snowball/*.(csv|json|jsonl|bib)`.
@@ -96,16 +96,16 @@ Do not treat `run.py` as the place for:
 
 - Offline imports only:
   - Put exports under `papers/imports/` then run:
-    - `python .codex/skills/literature-engineer/scripts/run.py --workspace <ws>`
+    - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace>`
 
 - Explicit offline inputs (multi-route):
-  - `python .codex/skills/literature-engineer/scripts/run.py --workspace <ws> --input path/to/a.bib --input path/to/b.jsonl`
+  - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace> --input path/to/a.bib --input path/to/b.jsonl`
 
 - Online arXiv retrieval (needs network):
-  - `python .codex/skills/literature-engineer/scripts/run.py --workspace <ws> --online`
+  - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace> --online`
 
 - Snowballing (needs network unless you provide offline snowball exports):
-  - `python .codex/skills/literature-engineer/scripts/run.py --workspace <ws> --snowball`
+  - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace> --snowball`
 
 ## Troubleshooting
 

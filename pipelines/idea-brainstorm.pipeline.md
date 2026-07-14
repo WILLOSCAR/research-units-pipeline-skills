@@ -10,6 +10,7 @@ target_artifacts:
   - CHECKPOINTS.md
   - DECISIONS.md
   - GOAL.md
+  - PIPELINE.lock.md
   - queries.md
   - output/trace/IDEA_BRIEF.md
   - papers/papers_raw.jsonl
@@ -30,6 +31,8 @@ target_artifacts:
   - output/REPORT.md
   - output/APPENDIX.md
   - output/REPORT.json
+  - output/IDEA_SCORECARD.md
+  - output/IDEA_SCORECARD.json
   - output/DELIVERABLE_SELFLOOP_TODO.md
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
@@ -39,8 +42,8 @@ units_template: templates/UNITS.idea-brainstorm.csv
 contract_model: pipeline.frontmatter/v1
 query_defaults:
   draft_profile: idea_brainstorm
-  max_results: 1800
-  core_size: 100
+  max_results: 240
+  core_size: 36
   evidence_mode: abstract
   direction_pool_min: 12
   direction_pool_max: 24
@@ -82,6 +85,10 @@ quality_contract:
       direction_distinctness: 0.16
       first_probe_clarity: 0.10
       thesis_potential: 0.10
+  semantic_rubric:
+    schema: idea-brainstorm-scorecard.v1
+    pass_score: 80
+    critical_dimensions: [deliverable_structure, evidence_traceability, direction_actionability]
 loop_policy:
   stage_retry_budget:
     C1: 2
@@ -95,7 +102,7 @@ stages:
     mode: no_prose
     required_skills: [workspace-init, pipeline-router, idea-brief, human-checkpoint]
     optional_skills: []
-    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, queries.md, output/trace/IDEA_BRIEF.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
+    produces: [STATUS.md, UNITS.csv, CHECKPOINTS.md, DECISIONS.md, GOAL.md, PIPELINE.lock.md, queries.md, output/trace/IDEA_BRIEF.md, output/QUALITY_GATE.md, output/RUN_ERRORS.md]
     human_checkpoint:
       approve: brainstorm brief
       write_to: DECISIONS.md
@@ -131,7 +138,7 @@ stages:
     mode: prose_allowed
     required_skills: [idea-shortlist-curator, idea-memo-writer, deliverable-selfloop, artifact-contract-auditor]
     optional_skills: []
-    produces: [output/trace/IDEA_SHORTLIST.md, output/trace/IDEA_SHORTLIST.jsonl, output/REPORT.md, output/APPENDIX.md, output/REPORT.json, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
+    produces: [output/trace/IDEA_SHORTLIST.md, output/trace/IDEA_SHORTLIST.jsonl, output/REPORT.md, output/APPENDIX.md, output/REPORT.json, output/IDEA_SCORECARD.md, output/IDEA_SCORECARD.json, output/DELIVERABLE_SELFLOOP_TODO.md, output/CONTRACT_REPORT.md]
 ---
 
 # Pipeline: research idea brainstorm (signals -> directions -> memo)
@@ -161,7 +168,7 @@ Artifact policy:
 
 Default profile:
 - Retrieval route: `literature-engineer`
-- `core_size=100`
+- `core_size=36`
 - Evidence mode: `abstract`
 - Signal table: 10-20 rows
 - Direction pool: 12-24
@@ -264,4 +271,4 @@ produces:
 Notes:
 - `output/trace/IDEA_SHORTLIST.md` is an internal convergence layer, not the user-facing final answer.
 - `output/REPORT.md` is the terminal deliverable and should read like a discussion-ready research idea brainstorm memo.
-- `deliverable-selfloop` should evaluate the full memo bundle plus its trace chain.
+- `deliverable-selfloop` should evaluate the full memo bundle plus its trace chain and emit `output/IDEA_SCORECARD.md` + `.json`.

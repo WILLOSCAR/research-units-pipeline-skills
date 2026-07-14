@@ -74,7 +74,7 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, load_yaml, parse_semicolon_list, read_jsonl
-    from tooling.quality_gate import _citation_target, _draft_profile, _pipeline_profile
+    from tooling.quality_gate import _citation_target, _draft_profile, _pipeline_profile, survey_citation_policy
 
     workspace = Path(args.workspace).resolve()
 
@@ -171,37 +171,20 @@ def main() -> int:
     draft_profile = _draft_profile(workspace)
     citation_target = _citation_target(workspace)
 
-    # Global unique-citation targets: hard minimum vs recommended target.
-    # - Hard floor (A150++ survey): >=150 unique citations.
-    # - Recommended target: encourage using a larger fraction of the bib (e.g., ~55% when bib is large).
+    # Resolve one profile-aware budget shared with the final pipeline audit.
     min_unique_hard = 0
     min_unique_rec = 0
     min_unique_struct = 0
     min_unique_frac = 0
+    recommended_fraction = 0.0
     if profile == "arxiv-survey" and outline_order and bib_keys:
         h3_n = len(set(outline_order))
-        floor = 0
-        if draft_profile == "deep":
-            per_h3 = 16
-            base = 40
-            frac = 0.60
-            floor = 165
-        else:
-            per_h3 = 14
-            base = 35
-            # Hard floor: >=150 unique citations. Recommended: ~55% of bib when bib is large.
-            frac = 0.50
-            floor = 150
-
-        min_unique_struct = base + per_h3 * h3_n
-        min_unique_frac = int(len(bib_keys) * frac)
-        min_unique_hard = max(min_unique_struct, min_unique_frac, floor)
-        min_unique_hard = min(min_unique_hard, len(bib_keys))
-
-        min_unique_rec = min_unique_hard
-        if draft_profile != "deep" and bib_keys:
-            min_unique_rec = max(min_unique_rec, int(len(bib_keys) * 0.55))
-            min_unique_rec = min(min_unique_rec, len(bib_keys))
+        policy = survey_citation_policy(workspace, bibliography_size=len(bib_keys), h3_count=h3_n)
+        min_unique_hard = int(policy["hard"])
+        min_unique_rec = int(policy["recommended"])
+        min_unique_struct = int(policy["structural"])
+        min_unique_frac = int(policy["bibliography_target"])
+        recommended_fraction = float(policy["recommended_fraction"])
 
     gap_hard = max(0, int(min_unique_hard) - len(used_global)) if min_unique_hard else 0
     gap_rec = max(0, int(min_unique_rec) - len(used_global)) if min_unique_rec else 0
@@ -221,7 +204,10 @@ def main() -> int:
     budget_per_h3 = 0
     if desired_gap > 0:
         budget_per_h3 = int(math.ceil(desired_gap / h3_n))
-        budget_per_h3 = max(6, min(12, budget_per_h3))
+        if draft_profile == "course_paper":
+            budget_per_h3 = max(3, min(6, budget_per_h3))
+        else:
+            budget_per_h3 = max(6, min(12, budget_per_h3))
 
     # Suggest per-H3 unused keys (prefer selected -> mapped -> chapter).
     rows: list[dict[str, Any]] = []
@@ -319,7 +305,7 @@ def main() -> int:
         # Preserve both numbers for transparency/debugging.
         lines.append(f"- Global hard minimum: >= {min_unique_hard} {hard_details}")
         if min_unique_rec and min_unique_rec >= min_unique_hard:
-            rec_frac = int(len(bib_keys) * 0.55)
+            rec_frac = int(len(bib_keys) * recommended_fraction)
             lines.append(f"- Global recommended target: >= {min_unique_rec} (rec_frac={rec_frac}, bib={len(bib_keys)})")
             lines.append(f"- Gap to recommended: {gap_rec}")
         if budget_per_h3:

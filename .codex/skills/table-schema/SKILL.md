@@ -4,7 +4,7 @@ description: |
   Define evidence-first table schemas for a survey: what each table must answer, row unit, columns, and which evidence-pack fields are required to fill it.
   **Trigger**: table schema, schema-first tables, table design, 表格 schema, 先 schema 后填充.
   **Use when**: you want survey tables that are verifiable and fillable before LaTeX (typically Stage C4, after evidence packs exist).
-  **Skip if**: `outline/table_schema.md` already exists and is refined (covers both index tables and Appendix tables; no placeholders; evidence mapping is explicit).
+  **Skip if**: `outline/table_schema.md` already exists and is refined (covers the profile-required index and Appendix tables; no placeholders; evidence mapping is explicit).
   **Network**: none.
   **Guardrail**: no invented facts; schema must be checkable and map each column to an evidence source.
 ---
@@ -62,6 +62,7 @@ Avoid:
 ## Workflow (explicit inputs)
 
 - Use `GOAL.md` to keep the reader question and scope stable.
+- Read `queries.md:draft_profile` when present; it controls the table budget, not the evidence standard.
 - Use `outline/outline.yml` to align table row units with the paper structure.
 - Use `outline/subsection_briefs.jsonl` to ground table dimensions/axes in the approved structure.
 - Use `outline/evidence_drafts.jsonl` to ensure every planned column is fillable without guessing.
@@ -79,9 +80,9 @@ Avoid:
 
 ## Non-negotiables (schema contract)
 
-- Minimum definitions:
-  - Index tables: >=2
-  - Appendix tables: >=2
+- Minimum definitions by `draft_profile`:
+  - `course_paper`: >=1 Index table and >=1 Appendix table
+  - `survey` / `deep`: >=2 Index tables and >=2 Appendix tables
 - Every table definition must include:
   - the question it answers
   - the row unit (H3 / benchmark / work / failure mode)
@@ -91,6 +92,10 @@ Avoid:
 - Paper voice: Appendix table captions/columns must be publishable (no pipeline jargon).
 
 ## Recommended defaults (arxiv-survey family)
+
+For `course_paper`, use I1 and A1 as the compact default. Add I2 or A2 only when
+the evidence supports a distinct reader question. For `survey` and `deep`, use the
+full I1/I2/A1/A2 set below.
 
 ### Index tables (for `table-filler` -> `outline/tables_index.md`)
 
@@ -133,12 +138,12 @@ If you want internal diagnostics, put them in an audit report, not in reader-fac
 
 ### Quick Start
 
-- `python .codex/skills/table-schema/scripts/run.py --help`
-- `python .codex/skills/table-schema/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/table-schema/scripts/run.py --help`
+- `uv run python .codex/skills/table-schema/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
-- `--workspace <workspace_dir>` (required)
+- `--workspace <workspace>` (required)
 - `--unit-id <id>` (optional; used only for runner bookkeeping)
 - `--inputs <outline;briefs;packs;goal>` (optional; override inputs)
 - `--outputs <relpath>` (optional; defaults to `outline/table_schema.md`)
@@ -148,11 +153,11 @@ If you want internal diagnostics, put them in an audit report, not in reader-fac
 
 - Bootstrap a two-layer schema (index + Appendix):
 
-  `python .codex/skills/table-schema/scripts/run.py --workspace workspaces/<ws>`
+  `uv run python .codex/skills/table-schema/scripts/run.py --workspace <workspace>`
 
 - Write to a custom schema path (rare):
 
-  `python .codex/skills/table-schema/scripts/run.py --workspace workspaces/<ws> --outputs outline/table_schema.md`
+  `uv run python .codex/skills/table-schema/scripts/run.py --workspace <workspace> --outputs outline/table_schema.md`
 
 Notes:
 - Use the script as a starting point, then refine the schema as a paper artifact.

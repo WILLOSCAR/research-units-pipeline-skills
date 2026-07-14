@@ -53,7 +53,7 @@ For `video`:
 
 ### Quick Start
 
-- `python .codex/skills/source-manifest/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/source-manifest/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -66,7 +66,7 @@ For `video`:
 ### Examples
 
 - Scaffold or validate the manifest:
-  - `python .codex/skills/source-manifest/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/source-manifest/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

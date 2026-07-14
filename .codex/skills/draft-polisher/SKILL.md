@@ -193,8 +193,8 @@ Targets:
 
 ### Quick Start
 
-- `python .codex/skills/draft-polisher/scripts/run.py --help`
-- `python .codex/skills/draft-polisher/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/draft-polisher/scripts/run.py --help`
+- `uv run python .codex/skills/draft-polisher/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -207,7 +207,7 @@ Targets:
 ### Examples
 
 - First polish pass (creates anchoring baseline `output/citation_anchors.prepolish.jsonl`):
-  - `python .codex/skills/draft-polisher/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/draft-polisher/scripts/run.py --workspace <workspace>`
 
 - Reset the anchoring baseline (only if you intentionally accept citation drift):
   - Delete `output/citation_anchors.prepolish.jsonl`, then rerun the polisher.

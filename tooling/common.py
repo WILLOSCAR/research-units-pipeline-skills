@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
 import re
@@ -13,6 +14,16 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
+
+
+_NONTERMINAL_ABBREVIATION_RE = re.compile(
+    r"(?i)(?:\bvs|\bet\s+al|e\.g|i\.e)\.$"
+)
+_SENTENCE_ABBREVIATION_RE = re.compile(
+    r"\b(?:e\.g\.|i\.e\.|etc\.|cf\.|vs\.|et al\.|fig\.|figs\.|eq\.|eqs\.|"
+    r"sec\.|secs\.|no\.|dr\.|mr\.|ms\.|prof\.)",
+    flags=re.IGNORECASE,
+)
 
 
 def today_iso() -> str:
@@ -40,6 +51,59 @@ def atomic_write_text(path: Path, content: str) -> None:
         except OSError:
             pass
         raise
+
+
+def bounded_complete_text(text: str, *, max_chars: int, overflow_factor: float = 2.5) -> str:
+    """Bound text without emitting a partial sentence or silently clipped clause.
+
+    The preferred bound may be exceeded to preserve the first complete sentence.
+    If no complete boundary exists within the hard overflow bound, return an
+    empty string so callers can choose another evidence item.
+    """
+
+    normalized = re.sub(r"\s+", " ", str(text or "").strip())
+    if not normalized:
+        return ""
+    preferred = max(1, int(max_chars))
+    if len(normalized) <= preferred:
+        return normalized
+
+    hard_limit = max(preferred, int(preferred * max(1.0, float(overflow_factor))))
+    bounded = normalized[:hard_limit]
+    boundaries: list[int] = []
+    for match in re.finditer(r"[.!?](?=\s|$)", bounded):
+        if match.group() == "." and _NONTERMINAL_ABBREVIATION_RE.search(
+            bounded[: match.end()]
+        ):
+            continue
+        boundaries.append(match.end())
+    before = [offset for offset in boundaries if offset <= preferred]
+    if before:
+        return normalized[: before[-1]].strip()
+    after = [offset for offset in boundaries if offset > preferred]
+    if after:
+        return normalized[: after[0]].strip()
+    if len(normalized) <= hard_limit and normalized.endswith((".", "!", "?")):
+        return normalized
+    return ""
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split prose on sentence boundaries without breaking common abbreviations."""
+
+    normalized = re.sub(r"\s+", " ", str(text or "").strip())
+    if not normalized:
+        return []
+
+    protected = _SENTENCE_ABBREVIATION_RE.sub(
+        lambda match: (match.group(0) or "").replace(".", "__DOT__"),
+        normalized,
+    )
+    return [
+        part.replace("__DOT__", ".").strip()
+        for part in re.split(r"(?<=[.!?])\s+", protected)
+        if part.strip()
+    ]
 
 
 def shell_quote(value: str | Path) -> str:
@@ -72,6 +136,17 @@ def backup_existing(path: Path) -> Path:
         counter += 1
     path.replace(backup)
     return backup
+
+
+def refinement_marker_is_current(marker_path: Path, prerequisites: Iterable[Path]) -> bool:
+    """Return true only when an explicit review marker is newer than every live prerequisite."""
+    if not marker_path.exists():
+        return False
+    marker_mtime = marker_path.stat().st_mtime_ns
+    existing = [Path(path) for path in prerequisites if Path(path).exists()]
+    if not existing:
+        return True
+    return marker_mtime >= max(path.stat().st_mtime_ns for path in existing)
 
 
 def parse_semicolon_list(value: str | None) -> list[str]:
@@ -137,6 +212,38 @@ def write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
     ensure_dir(path.parent)
     lines = [json.dumps(record, ensure_ascii=False) for record in records]
     atomic_write_text(path, "\n".join(lines) + ("\n" if lines else ""))
+
+
+def refresh_sections_manifest(
+    workspace: Path,
+    manifest_rel: str = "sections/sections_manifest.jsonl",
+) -> list[dict[str, Any]]:
+    """Refresh section fingerprints without changing manifest ownership metadata."""
+
+    manifest_path = workspace / manifest_rel
+    records = read_jsonl(manifest_path)
+    generated_at = now_iso_seconds()
+    refreshed: list[dict[str, Any]] = []
+    for source in records:
+        record = dict(source)
+        relpath = str(record.get("path") or "").strip()
+        path = workspace / relpath if relpath else Path()
+        exists = bool(relpath and path.exists() and path.is_file() and path.stat().st_size > 0)
+        record["exists"] = exists
+        record["generated_at"] = generated_at
+        if exists:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            record["citations"] = list(dict.fromkeys(re.findall(r"\[@([^\]]+)\]", text)))
+            record["bytes"] = path.stat().st_size
+            record["sha256"] = digest
+        else:
+            record.pop("citations", None)
+            record.pop("bytes", None)
+            record.pop("sha256", None)
+        refreshed.append(record)
+    write_jsonl(manifest_path, refreshed)
+    return refreshed
 
 
 def read_tsv(path: Path) -> list[dict[str, str]]:
@@ -570,16 +677,35 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
     has_excludes = _has_nonempty_values("exclude")
     has_time_from = _has_nonempty_time_field("from")
     has_time_to = _has_nonempty_time_field("to")
-    has_max_results = _has_nonempty_scalar("max_results")
-    has_core_size = _has_nonempty_scalar("core_size")
-
     workspace = queries_path.parent
     profile = pipeline_profile(workspace)
     query_defaults = pipeline_query_defaults(workspace)
 
     raw_tlow = topic.lower()
+    is_course_paper = profile == "arxiv-survey" and any(
+        token in raw_tlow
+        for token in (
+            "course paper",
+            "term paper",
+            "end-of-term report",
+            "end of term report",
+            "课程论文",
+            "期末报告",
+        )
+    )
+    if is_course_paper:
+        query_defaults = {
+            **query_defaults,
+            "max_results": 320,
+            "core_size": 48,
+            "per_subsection": 6,
+            "global_citation_min_subsections": 3,
+            "draft_profile": "course_paper",
+            "citation_target": "hard",
+        }
+
     topic_for_queries = _sanitize_topic_for_query_seed(topic)
-    keyword_suggestions = [topic_for_queries]
+    keyword_suggestions = _query_seed_variants(topic_for_queries)
     tlow = topic_for_queries.lower()
     is_agent = any(t in tlow for t in ("agent", "agents", "agentic"))
     is_embodied = any(
@@ -703,12 +829,28 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
                 out.append(f"  - \"{ex}\"")
             continue
 
-        if stripped.startswith("- max_results:") and not has_max_results and max_results_suggestion:
+        materialized = False
+        for key, value in query_defaults.items():
+            normalized_key = str(key or "").strip().lower().replace(" ", "_").replace("-", "_")
+            if not normalized_key or not stripped.startswith(f"- {normalized_key}:"):
+                continue
+            if _has_nonempty_scalar(normalized_key):
+                break
+            rendered = _render_query_scalar(value)
+            if rendered is not None:
+                out.append(f'- {normalized_key}: "{rendered}"')
+                i += 1
+                materialized = True
+            break
+        if materialized:
+            continue
+
+        if stripped.startswith("- max_results:") and not _has_nonempty_scalar("max_results") and max_results_suggestion:
             out.append(f"- max_results: \"{max_results_suggestion}\"")
             i += 1
             continue
 
-        if stripped.startswith("- core_size:") and not has_core_size and core_size_suggestion:
+        if stripped.startswith("- core_size:") and not _has_nonempty_scalar("core_size") and core_size_suggestion:
             out.append(f"- core_size: \"{core_size_suggestion}\"")
             i += 1
             continue
@@ -747,6 +889,12 @@ def _sanitize_topic_for_query_seed(topic: str) -> str:
     if not text:
         return ""
     patterns = [
+        r"(?i)^\s*(?:please\s+)?(?:write|draft|prepare|create)\s+(?:an?\s+)?(?:(?:\d+\s*(?:-|–|to)\s*\d+|\d+)\s*(?:-\s*)?pages?\s+)?(?:compact\s+)?(?:course\s+paper|term\s+paper|end-of-term\s+report)\s+(?:on|about)\s+",
+        r"(?i)\s+(?:as\s+)?(?:a\s+)?(?:course\s+paper|term\s+paper|end-of-term\s+report)\s*$",
+        r"^\s*请?(?:帮我)?(?:写|生成|准备)(?:一篇)?(?:\s*\d+\s*(?:-|—|–|到|至)\s*\d+\s*页)?(?:关于)?",
+        r"(?:的)?(?:课程论文|期末报告)(?:，?并?(?:最终|最后)?(?:输出|生成|交付)(?:一份)?(?:PDF|LaTeX|Markdown)(?:文件|版本)?)?\s*$",
+        r"(?i)[,;]?\s*with\s+(?:a\s+)?(?:final\s+)?(?:latex(?:\s*/\s*pdf)?|pdf|markdown)(?:\s+(?:output|deliverable|version))?\s*\.?$",
+        r"(?i)[,;]?\s*(?:and\s+)?(?:produce|return|deliver|include|generate)\s+(?:a\s+)?(?:final\s+)?(?:latex(?:\s*/\s*pdf)?|pdf|markdown)(?:\s+(?:output|deliverable|version))?\s*\.?$",
         r"(?i)\bwith\s+latex\s*/\s*pdf\s+output\b",
         r"(?i)\bwith\s+latex\s+output\b",
         r"(?i)\bwith\s+pdf\s+output\b",
@@ -761,6 +909,189 @@ def _sanitize_topic_for_query_seed(topic: str) -> str:
         text = re.sub(pattern, "", text)
     text = re.sub(r"\s+", " ", text).strip(" ,;:-")
     return text or topic
+
+
+def research_subject_from_request(topic: str) -> str:
+    """Return a reader-facing research subject, not a delivery instruction."""
+
+    cleaned = _sanitize_topic_for_query_seed(topic).strip().rstrip(".")
+    question = re.match(
+        r"(?i)^how\s+(.+?)\s+(?:should|can|could|may|might)\s+be\s+"
+        r"(evaluated|assessed|measured|compared|designed)\??$",
+        cleaned,
+    )
+    if not question:
+        return cleaned
+
+    subject = re.sub(r"\s+", " ", question.group(1)).strip(" ,;:-")
+    noun = {
+        "evaluated": "evaluation",
+        "assessed": "assessment",
+        "measured": "measurement",
+        "compared": "comparison",
+        "designed": "design",
+    }[question.group(2).lower()]
+    return f"the {noun} of {subject}"
+
+
+def _title_case_generated_subject(text: str) -> str:
+    small_words = {"a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to", "via"}
+    tokens = re.split(r"(\s+)", str(text or "").strip())
+    word_index = 0
+    out: list[str] = []
+    for token in tokens:
+        if not token or token.isspace():
+            out.append(token)
+            continue
+        parts = token.split("-")
+        rendered: list[str] = []
+        for part_index, part in enumerate(parts):
+            bare = re.sub(r"[^A-Za-z0-9]", "", part)
+            low = part.lower()
+            if bare.isupper() and len(bare) > 1:
+                rendered.append(part)
+            elif word_index > 0 and part_index == 0 and low in small_words:
+                rendered.append(low)
+            else:
+                rendered.append(part[:1].upper() + part[1:])
+        out.append("-".join(rendered))
+        word_index += 1
+    return "".join(out)
+
+
+def research_title_from_request(topic: str) -> str:
+    """Return a concise paper title derived from a natural-language request."""
+
+    cleaned = _sanitize_topic_for_query_seed(topic).strip().rstrip(".")
+    question = re.match(
+        r"(?i)^how\s+(.+?)\s+(?:should|can|could|may|might)\s+be\s+"
+        r"(evaluated|assessed|measured|compared|designed)\??$",
+        cleaned,
+    )
+    if not question:
+        return cleaned
+
+    verb = {
+        "evaluated": "Evaluating",
+        "assessed": "Assessing",
+        "measured": "Measuring",
+        "compared": "Comparing",
+        "designed": "Designing",
+    }[question.group(2).lower()]
+    subject = _title_case_generated_subject(question.group(1))
+    return f"{verb} {subject}".strip()
+
+
+def reader_request_leakage(text: str) -> list[str]:
+    """Describe delivery-request fragments that must not appear in a final paper."""
+
+    checks = [
+        (
+            "imperative paper request",
+            r"(?i)\b(?:please\s+)?(?:write|draft|prepare|create)\s+(?:an?\s+)?"
+            r"(?:(?:\d+\s*(?:-|–|to)\s*\d+|\d+)\s*(?:-\s*)?pages?\s+)?"
+            r"(?:compact\s+)?(?:course\s+paper|term\s+paper|end-of-term\s+report)\s+(?:on|about)\b",
+        ),
+        (
+            "delivery-format request",
+            r"(?i)\bwith\s+(?:a\s+)?(?:final\s+)?(?:latex(?:\s*/\s*pdf)?|pdf|markdown)"
+            r"(?:\s+(?:output|deliverable|version))?\b",
+        ),
+        (
+            "Chinese paper request",
+            r"(?:请?(?:帮我)?(?:写|生成|准备)(?:一篇)?(?:\s*\d+\s*(?:-|—|–|到|至)\s*\d+\s*页)?(?:关于)?)"
+            r"[^\n。]{0,180}(?:课程论文|期末报告)",
+        ),
+    ]
+    return [label for label, pattern in checks if re.search(pattern, text or "")]
+
+
+def goal_constraints_from_request(request: str) -> dict[str, Any]:
+    """Extract the small set of delivery constraints the harness can enforce."""
+
+    text = re.sub(r"\s+", " ", str(request or "").strip())
+    constraints: dict[str, Any] = {}
+    page_match = re.search(
+        r"(?i)\b(\d{1,3})\s*(?:-|–|—|to)\s*(\d{1,3})\s*(?:-\s*)?pages?\b",
+        text,
+    ) or re.search(r"(\d{1,3})\s*(?:-|–|—|到|至)\s*(\d{1,3})\s*页", text)
+    if page_match:
+        low, high = int(page_match.group(1)), int(page_match.group(2))
+        if low > high:
+            low, high = high, low
+        if 1 <= low <= high <= 500:
+            constraints["page_range"] = {
+                "min": low,
+                "max": high,
+                "scope": "compiled_pdf_total",
+            }
+
+    formats: list[str] = []
+    for name, pattern in (
+        ("pdf", r"(?i)\bPDF\b"),
+        ("latex", r"(?i)\b(?:LaTeX|TeX)\b"),
+        ("markdown", r"(?i)\b(?:Markdown|\.md)\b"),
+    ):
+        if re.search(pattern, text):
+            formats.append(name)
+    if formats:
+        constraints["deliverable_formats"] = formats
+    return constraints
+
+
+def load_workspace_goal_constraints(workspace: Path) -> dict[str, Any]:
+    """Load structured Goal constraints, with GOAL.md as a legacy fallback."""
+
+    goal_path = Path(workspace) / ".harness" / "goal.json"
+    if goal_path.exists():
+        try:
+            payload = json.loads(goal_path.read_text(encoding="utf-8", errors="ignore"))
+        except (json.JSONDecodeError, OSError):
+            payload = {}
+        if isinstance(payload, dict) and isinstance(payload.get("constraints"), dict):
+            return dict(payload["constraints"])
+
+    markdown_path = Path(workspace) / "GOAL.md"
+    if not markdown_path.exists():
+        return {}
+    request = ""
+    for raw in markdown_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw.strip()
+        if line and not line.startswith("#"):
+            request = line
+            break
+    return goal_constraints_from_request(request)
+
+
+def _query_seed_variants(topic: str) -> list[str]:
+    """Convert a research-question-shaped topic into reusable retrieval phrases."""
+    text = str(topic or "").strip()
+    if not text:
+        return []
+
+    variants = [text]
+    question = re.match(
+        r"(?i)^how\s+(.+?)\s+(?:should|can|could|may|might)\s+be\s+"
+        r"(evaluated|assessed|measured|compared|designed)\??$",
+        text,
+    )
+    if question:
+        subject = re.sub(r"\s+", " ", question.group(1)).strip(" ,;:-")
+        subject_base = re.sub(
+            r"(?i)\s+(?:systems?|methods?|approaches?|models?|frameworks?)$",
+            "",
+            subject,
+        ).strip()
+        action = {
+            "evaluated": "evaluation",
+            "assessed": "assessment",
+            "measured": "measurement",
+            "compared": "comparison",
+            "designed": "design",
+        }[question.group(2).lower()]
+        variants.extend([subject_base or subject, f"{subject_base or subject} {action}"])
+
+    return _dedupe_preserve_order(variants)
 
 
 def find_repo_root(start: Path | None = None) -> Path:
@@ -871,6 +1202,32 @@ def pipeline_query_default(workspace: Path, key: str, default: Any = None) -> An
     if spec is None:
         return default
     return spec.query_default(key, default)
+
+
+def _normalize_query_key(key: str) -> str:
+    return str(key or "").strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def workspace_query_scalar(workspace: Path, key: str, default: Any = None) -> Any:
+    """Read a materialized scalar from `queries.md`, falling back to the pipeline contract."""
+    normalized = _normalize_query_key(key)
+    fallback = pipeline_query_default(workspace, normalized, default)
+    path = workspace / "queries.md"
+    if not path.exists():
+        return fallback
+    try:
+        for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            stripped = raw.strip()
+            if not stripped.startswith("- ") or ":" not in stripped:
+                continue
+            raw_key, raw_value = stripped[2:].split(":", 1)
+            if _normalize_query_key(raw_key) != normalized:
+                continue
+            value = raw_value.split("#", 1)[0].strip().strip('"').strip("'")
+            return value if value else fallback
+    except Exception:
+        return fallback
+    return fallback
 
 
 def pipeline_overridable_query_fields(workspace: Path) -> set[str]:

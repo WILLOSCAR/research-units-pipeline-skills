@@ -141,7 +141,8 @@ _RELATIVE_CLAUSE_ARTIFACT_RE = _compile_hygiene_pattern(
 _FINITE_VERB_RE = re.compile(
     r"(?i)\b(?:is|are|was|were|has|have|had|can|may|might|does|do|did|remains?|becomes?|"
     r"shows?|finds?|demonstrates?|reports?|reveals?|suggests?|indicates?|outperforms?|improves?|"
-    r"reduces?|increases?|enables?|supports?|validates?|requires?|limits?|bridges?|prevents?)\b"
+    r"reduces?|increases?|enables?|supports?|validates?|requires?|limits?|fails?|lacks?|degrades?|bridges?|prevents?|yields?|"
+    r"evaluates?|assesses?|compares?|measures?|introduces?|proposes?|conducts?|captures?|distinguishes?|examines?)\b"
 )
 _SURVEY_META_SENTENCE_RE = re.compile(
     r"(?i)\b(?:survey|review)\b.*\b(?:categoriz|summariz|overview|taxonomy|landscape|scope|history|promising directions?)\b|"
@@ -203,7 +204,10 @@ _WRITER_UNSAFE_SNIPPET_RE = re.compile(
 )
 _CLAIM_PORTABILITY_RE = re.compile(
     r"(?i)\b(?:\d+(?:\.\d+)?%?|outperform\w*|improv\w*|success\s+rate|correlation|transfer|generaliz\w*|"
-    r"robust\w*|failure\w*|limit\w*|bottleneck|cost|latency|benchmark|metric|dataset|sim-to-real|ood|"
+    r"robust\w*|failure\w*|limit\w*|bottleneck|costs?|latenc\w*|benchmarks?|metrics?|datasets?|sim-to-real|ood|"
+    r"accuracy|precision|recall|relevance|faithful\w*|attribution|grounded\w*|agreement|calibrat\w*|"
+    r"valid\w*|stability|variance|degrad\w*|reliab\w*|sensitiv\w*|coverage|"
+    r"effectiv\w*|utility|ranking|rerank\w*|chunk\w*|top-k|"
     r"real-world|novel\s+(?:task|object|scene|environment)|cross-embodiment)\b"
 )
 _GENERIC_SUMMARY_PATTERNS = _compile_hygiene_pattern_list(
@@ -238,8 +242,8 @@ def _runtime_policy() -> dict[str, Any]:
 def _profile_thresholds(*, policy: dict[str, Any], profile: str, draft_profile: str) -> dict[str, int]:
     thresholds = policy.get("profile_thresholds") or {}
     default_cfg = thresholds.get("default") or {}
-    deep_cfg = thresholds.get("deep") or default_cfg
-    cfg = deep_cfg if str(draft_profile or "").strip().lower() == "deep" else default_cfg
+    profile_key = str(draft_profile or "").strip().lower().replace("-", "_")
+    cfg = thresholds.get(profile_key) or default_cfg
     return {
         "min_snippets": int(cfg.get("min_snippets") or 12),
         "min_comparisons": int(cfg.get("min_comparisons") or 8),
@@ -292,7 +296,7 @@ def _snippet_specificity_score(text: str) -> int:
         score += 2
     if _EMBODIED_CONTEXT_RE.search(s):
         score += 2
-    if re.search(r"(?i)\b(?:benchmark|dataset|metric|success|accuracy|latency|cost|failure|robust|generaliz|transfer)\b", s):
+    if re.search(r"(?i)\b(?:benchmarks?|datasets?|metrics?|success|accuracy|latenc\w*|costs?|failure|robust|generaliz|transfer|effectiv\w*|utility|ranking|rerank\w*|chunk\w*)\b", s):
         score += 2
     if len(s) >= 120:
         score += 1
@@ -830,16 +834,9 @@ def _cite_keys_for_pids(pids: list[str], *, notes_by_pid: dict[str, dict[str, An
 
 
 def _split_sentences(text: str) -> list[str]:
-    text = re.sub(r"\s+", " ", (text or "").strip())
-    if not text:
-        return []
-    parts = re.split(r"(?<=[.!?])\s+", text)
-    out: list[str] = []
-    for p in parts:
-        p = p.strip()
-        if p:
-            out.append(p)
-    return out
+    from tooling.common import split_sentences
+
+    return split_sentences(text)
 
 
 def _is_availability_boilerplate(text: str) -> bool:
@@ -881,6 +878,7 @@ def _sanitize_source_sentence(text: str) -> str:
         return ""
 
     s = _URL_RE.sub("", s)
+    s = re.sub(r"([,;:])(?=[A-Za-z(])", r"\1 ", s)
     s = re.sub(r"\s+([,.;:])", r"\1", s)
     s = re.sub(r"\(\s*\)", "", s)
     s = re.sub(r"\s{2,}", " ", s).strip(" ,;:")
@@ -1075,9 +1073,17 @@ def _evidence_snippets(
 
     for pid in ordered_pids:
         note = notes_by_pid.get(pid) or {}
-        if _is_meta_paper_title(str(note.get("title") or "")):
-            continue
         note_candidates = _note_snippet_candidates(workspace=workspace, pid=pid, note=note, bibkeys=bibkeys)
+        if _is_meta_paper_title(str(note.get("title") or "")):
+            # Survey/review papers are secondary evidence, but they may still
+            # contain concrete benchmark or framework facts. Keep only those
+            # portable claims; generic landscape prose remains filtered out.
+            note_candidates = [
+                candidate
+                for candidate in note_candidates
+                if _claim_eligible(str(candidate.get("text") or ""))
+                or _snippet_specificity_score(str(candidate.get("text") or "")) >= 4
+            ]
 
         if not note_candidates:
             evidence_level = str(note.get("evidence_level") or "").strip().lower() or "unknown"
@@ -1179,6 +1185,8 @@ def _claim_candidates(
     cite_keys: list[str],
     has_fulltext: bool,
 ) -> list[dict[str, Any]]:
+    from tooling.common import bounded_complete_text
+
     out: list[dict[str, Any]] = []
 
     # Non-negotiable: claim candidates must be snippet-derived (traceable), even in abstract-only mode.
@@ -1205,10 +1213,9 @@ def _claim_candidates(
             continue
         if not _text_relevant_to_topic(claim, title=title, axes=axes) and _snippet_specificity_score(claim) < 4:
             continue
-        if len(claim) > 400:
-            claim = claim[:400].rstrip()
-            if " " in claim[-60:]:
-                claim = claim.rsplit(" ", 1)[0].rstrip()
+        claim = bounded_complete_text(claim, max_chars=400, overflow_factor=2.0)
+        if not claim:
+            continue
 
         out.append(
             {
@@ -1284,7 +1291,7 @@ def _comparisons(
     def axis_keywords(axis: str) -> list[str]:
         low = (axis or "").lower()
         kws: list[str] = []
-        if any(k in low for k in ["embod", "manipulation", "navigation", "robot", "task"]):
+        if any(k in low for k in ["embod", "manipulation", "navigation", "robot"]):
             kws += ["robot", "manipulation", "navigation", "embodiment", "task", "policy"]
         if any(k in low for k in ["policy", "action", "control", "interface", "sensor", "observation"]):
             kws += ["policy", "action", "control", "interface", "sensor", "observation", "latency"]
@@ -1312,6 +1319,14 @@ def _comparisons(
         ):
             kws += ["security", "safety", "threat", "attack", "sandbox", "permission", "injection", "jailbreak"]
 
+        # Preserve domain terms from the actual axis instead of relying only on
+        # built-in domain synonym lists. This keeps new research topics usable
+        # without weakening evidence traceability.
+        for token in re.findall(r"[a-z][a-z0-9-]{3,}", low):
+            if token in _TOPIC_STOPWORDS or token in {"versus", "under", "across", "between"}:
+                continue
+            kws.append(token)
+
         seen: set[str] = set()
         out: list[str] = []
         for k in kws:
@@ -1322,6 +1337,8 @@ def _comparisons(
         return out[:10]
 
     def pick_highlights(pids: list[str], axis: str, *, limit: int = 2) -> list[dict[str, Any]]:
+        from tooling.common import bounded_complete_text
+
         if not isinstance(evidence_snippets, list) or not pids:
             return []
 
@@ -1379,10 +1396,9 @@ def _comparisons(
             sents = _split_sentences(raw)
             excerpt = (sents[0] if sents else raw).strip()
             excerpt = re.sub(r"\s+", " ", excerpt)
-            if len(excerpt) > 280:
-                excerpt = excerpt[:280].rstrip()
-                if " " in excerpt[-60:]:
-                    excerpt = excerpt.rsplit(" ", 1)[0].rstrip()
+            excerpt = bounded_complete_text(excerpt, max_chars=280, overflow_factor=3.0)
+            if not excerpt:
+                continue
 
             out.append(
                 {
@@ -1562,7 +1578,8 @@ def _limitations_from_notes(
     solution_re = re.compile(
         r"(?i)^(?:to address|addressing|to overcome|we address|we mitigate|we solve|to tackle|"
         r"we introduce|we present|we propose|towards this end|in this work,\s+we(?:\s+close)?|"
-        r"to unify these observations|to facilitate this|we close this gap)\b"
+        r"to unify these observations|to facilitate this|we close this gap|motivated by these limitations|"
+        r"(?:these|the)\s+findings\s+(?:suggest|indicate)\s+that\b.*\bshould\b)"
     )
     remedy_phrase_re = re.compile(
         r"(?i)\b(?:we introduce|we present|we propose|we close this gap|bridges?\s+(?:a|the)\s+key\s+gap)\b"
@@ -1573,6 +1590,15 @@ def _limitations_from_notes(
     positive_gap_re = re.compile(r"(?i)\b(?:narrowing|closing|bridging)\s+the\s+gap\b")
     positive_challenge_re = re.compile(
         r"(?i)\bchalleng\w*\s+(?:task|tasks|benchmark|benchmarks|environment|environments|setting|settings)\b"
+    )
+    event_challenge_re = re.compile(
+        r"(?i)\b(?:this|the)\s+(?:year(?:'s)?\s+)?challenge\s+"
+        r"(?:introduces?|includes?|features?|uses?|asks?|invites?|requires?)\b|"
+        r"\b(?:shared|benchmark|competition|track)\s+challenge\b"
+    )
+    positive_cost_re = re.compile(
+        r"(?i)\bcost[-\s]?effectiv(?:e|eness|ely)\b|"
+        r"\b(?:lower|reduced?|decreased?|minimal|optimal)\s+(?:computational\s+)?costs?\b"
     )
     solution_tail_re = re.compile(
         r"(?i)[,;:]\s*(?:we|the authors)\s+(?:introduce|present|propose|develop|devise|design)\b"
@@ -1611,21 +1637,23 @@ def _limitations_from_notes(
 
     def is_caveat_sentence(text: str) -> bool:
         s = re.sub(r"\s+", " ", str(text or "").strip())
-        if not s or not limit_re.search(s):
+        signal_text = positive_cost_re.sub("", s)
+        signal_text = event_challenge_re.sub("", signal_text)
+        if not s or not limit_re.search(signal_text):
             return False
         if _GENERIC_EVIDENCE_RE.search(s) and _snippet_specificity_score(s) < 2:
             return False
         if solution_re.search(s):
             return False
-        if remedy_phrase_re.search(s) and not strong_negative_re.search(s):
+        if remedy_phrase_re.search(s) and not strong_negative_re.search(signal_text):
             return False
-        if positive_challenge_re.search(s) and not strong_negative_re.search(s):
+        if positive_challenge_re.search(s) and not strong_negative_re.search(signal_text):
             return False
         if positive_gap_re.search(s):
             return False
-        if positive_result_re.search(s) and not strong_negative_re.search(s):
+        if positive_result_re.search(s) and not strong_negative_re.search(signal_text):
             return False
-        if not strong_negative_re.search(s) and _snippet_specificity_score(s) < 2:
+        if not strong_negative_re.search(signal_text) and _snippet_specificity_score(s) < 2:
             return False
         return True
 

@@ -39,6 +39,9 @@ The review must expose stable sections:
 - `### Minor Comments`
 - `### Recommendation`
 
+Every major concern must cite its `claim_id` or `gap_id`. This is the
+traceability interface consumed by the paper-review scorecard.
+
 ## Script boundary
 
 `scripts/run.py` should:

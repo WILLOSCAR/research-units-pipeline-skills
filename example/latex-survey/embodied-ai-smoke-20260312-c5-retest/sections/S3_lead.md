@@ -1,3 +1,0 @@
-Problem Settings & Embodiment is where differences in task and embodiment and policy and action design stop looking like implementation detail and start changing what the evidence can support [@Fan2025Interleave; Shao2025Large; Gundawar2025Bench; Kim2026Molmospaces].
-
-Across Manipulation, navigation, and task scope, Observation, action, and embodiment interfaces, and Task diversity, environment realism, and transfer constraints, the same problem keeps returning: task and embodiment, policy and action design, and task diversity and transfer realism alter the interpretation of otherwise similar results [@Din2025Vision; Zheng2024Survey; Zhu2025Objectvla; Doshi2024Scaling].

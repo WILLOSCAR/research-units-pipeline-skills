@@ -40,8 +40,8 @@ This is intentionally *not* part of the pipeline; it is an optional, repo-level 
 
 ### Quick Start
 
-- `python .codex/skills/agent-survey-corpus/scripts/run.py --help`
-- `python .codex/skills/agent-survey-corpus/scripts/run.py --workspace . --max-pages 20`
+- `uv run python .codex/skills/agent-survey-corpus/scripts/run.py --help`
+- `uv run python .codex/skills/agent-survey-corpus/scripts/run.py --workspace . --max-pages 20`
 
 ### All Options
 
@@ -54,9 +54,9 @@ This is intentionally *not* part of the pipeline; it is an optional, repo-level 
 ### Examples
 
 - Download/extract into repo root `ref/`:
-  - `python .codex/skills/agent-survey-corpus/scripts/run.py --workspace . --max-pages 20`
+  - `uv run python .codex/skills/agent-survey-corpus/scripts/run.py --workspace . --max-pages 20`
 - Download/extract into a specific folder (treated as workspace root):
-  - `python .codex/skills/agent-survey-corpus/scripts/run.py --workspace /tmp/surveys --max-pages 30`
+  - `uv run python .codex/skills/agent-survey-corpus/scripts/run.py --workspace /tmp/surveys --max-pages 30`
 
 ## Troubleshooting
 

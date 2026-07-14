@@ -77,7 +77,7 @@ Do not treat `run.py` as the place for:
 ## Outputs
 
 - `papers/paper_notes.jsonl` (JSONL; one record per paper)
-- `papers/evidence_bank.jsonl` (JSONL; addressable evidence snippets derived from notes; A150++ target: >=7 items/paper on average)
+- `papers/evidence_bank.jsonl` (JSONL; addressable evidence snippets derived from notes; profile target: course paper >=4, A150++ >=7 items/paper on average)
 
 ## Decision: evidence depth
 
@@ -109,13 +109,13 @@ Uses: `outline/mapping.tsv`, `papers/fulltext_index.jsonl`.
 - [ ] Limitations are not copy-pasted across many papers.
 - [ ] `evidence_level` is set correctly (`abstract` vs `fulltext`).
 
-- [ ] Evidence bank: `papers/evidence_bank.jsonl` exists and is dense enough for A150++ (>=7 items/paper on average).
+- [ ] Evidence bank: `papers/evidence_bank.jsonl` exists and meets the selected profile (course paper >=4; A150++ >=7 items/paper on average).
 ## Helper script (optional)
 
 ### Quick Start
 
-- `python .codex/skills/paper-notes/scripts/run.py --help`
-- `python .codex/skills/paper-notes/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/paper-notes/scripts/run.py --help`
+- `uv run python .codex/skills/paper-notes/scripts/run.py --workspace <workspace>`
 
 ### All Options
 

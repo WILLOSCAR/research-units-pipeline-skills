@@ -1,0 +1,35 @@
+profile: rag_evaluation
+display_name: Retrieval-augmented generation evaluation
+compatibility_mode: p0
+detect:
+  all_of_groups:
+    - [retrieval-augmented generation, retrieval augmented generation, rag evaluation]
+    - [evaluation, evaluate, evaluated, benchmark, metric]
+representative_papers:
+  top_level_max: 4
+  suffix_template: " Representative paper_id(s): {paper_ids}."
+taxonomy:
+  - name: "Evaluation Targets & Failure Decomposition"
+    description_base: "Separate what is being measured before interpreting an end-to-end RAG score: retrieval quality, evidence coverage, answer faithfulness, and source attribution expose different failure mechanisms."
+    representative_terms: [retrieval quality, coverage, faithfulness, grounding, attribution]
+    children:
+      - name: "Retrieval quality and evidence coverage"
+        description: "Measure whether retrieval finds, ranks, and preserves sufficient evidence for the query, including recall, context coverage, chunking, top-k, and reranking sensitivity."
+      - name: "Generation faithfulness and source attribution"
+        description: "Measure whether answer claims are supported by retrieved evidence and whether citations or attributions identify the sources that actually justify those claims."
+  - name: "Evaluation Protocols & Measurement Validity"
+    description_base: "Define how datasets, tasks, metrics, evaluators, and comparison conditions combine into an interpretable protocol rather than an isolated score."
+    representative_terms: [benchmark, dataset, task, metric, automated evaluation, human evaluation]
+    children:
+      - name: "Dataset, task, and metric design"
+        description: "Specify corpus and query provenance, task coverage and difficulty, reference-answer assumptions, metric decomposition, aggregation, and uncertainty reporting."
+      - name: "Automated evaluators and human validation"
+        description: "Compare rule-based, learned, and LLM-based evaluators against human judgments, with attention to agreement, construct validity, calibration, bias, reproducibility, and cost."
+  - name: "Robustness, Transfer & Operational Validity"
+    description_base: "Test whether evaluation conclusions survive changes to queries, corpora, retrieval components, budgets, domains, and deployment constraints."
+    representative_terms: [sensitivity, adaptation, shift, transfer, trustworthiness, deployment]
+    children:
+      - name: "Sensitivity, adaptation, and query or corpus shift"
+        description: "Probe perturbations to queries and corpora, retriever or reranker replacement, adaptation after feedback, variance, and failure consistency under controlled budgets."
+      - name: "Domain transfer, trustworthiness, and deployment"
+        description: "Assess evaluator transfer across domains and operational settings, including fairness, contradictions, provenance, privacy, latency, cost, maintenance, and deployed reliability."

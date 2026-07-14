@@ -12,12 +12,12 @@
         "opener": [
           "The literature on {goal} is no longer hard to read because it is small; it is hard because neighboring papers often compare materially different settings under shared labels.",
           "The problem in reading {goal} is no longer a shortage of results but a surplus of superficially similar claims drawn from mismatched settings.",
-          "{goal} now spans a wider range of tasks, embodiments, and evaluation settings than early summaries suggested.",
-          "Recent work on {goal} asks systems to operate across heterogeneous tasks, embodiments, and deployment conditions that do not line up as neatly as the shared labels imply."
+          "{goal} now spans a wider range of tasks, system configurations, and evaluation settings than early summaries suggested.",
+          "Recent work on {goal} asks systems to operate across heterogeneous tasks, operating contexts, and deployment conditions that do not line up as neatly as the shared labels imply."
         ],
         "pressure": [
-          "Closely related results frequently shift the task definition, sensor access, or deployment constraint that gives a reported gain its meaning.",
-          "Apparent agreement in vocabulary often hides changes in embodiment, control interface, or benchmark scope that materially alter interpretation."
+          "Closely related results frequently shift the task definition, information access, or deployment constraint that gives a reported gain its meaning.",
+          "Apparent agreement in vocabulary often hides changes in system configuration, interface, or benchmark scope that materially alter interpretation."
         ],
         "stakes": [
           "Any synthesis that ignores those differences risks turning protocol mismatch into a false methodological ranking {cite}.",
@@ -31,7 +31,7 @@
           "Reported gains in {goal} often move together with the setup that produced them rather than with one isolated design label."
         ],
         "pressure": [
-          "They usually follow changes in task horizon, evaluation budget, embodiment realism, or baseline selection that make direct comparison less stable than the headlines suggest.",
+          "They usually follow changes in task horizon, evaluation budget, operating realism, or baseline selection that make direct comparison less stable than the headlines suggest.",
           "They instead track changes in metric choice, training regime, and environment assumptions that quietly alter what a result can legitimately be taken to show."
         ],
         "stakes": [
@@ -63,7 +63,7 @@
         ],
         "pressure": [
           "The focus stays on work around {theme_summary}, because those are the places where design choices most clearly change how evidence should be read across papers.",
-          "It concentrates on {theme_summary}, where neighboring results most often stop being interchangeable once embodiment, data, or deployment assumptions are made explicit."
+          "It concentrates on {theme_summary}, where neighboring results most often stop being interchangeable once system, data, or deployment assumptions are made explicit."
         ],
         "stakes": [
           "That boundary keeps the paper close to interpretation and away from a surface-level roll call of everything adjacent to the field {cite}.",
@@ -205,7 +205,7 @@
           "What remains under-specified across these strands is how to compare evidence rather than how to enumerate topics."
         ],
         "pressure": [
-          "The unresolved issue is how to keep mechanism, protocol, and limitation evidence visible at the same time when papers move across embodiments, datasets, and deployment assumptions.",
+          "The unresolved issue is how to keep mechanism, protocol, and limitation evidence visible at the same time when papers move across system configurations, datasets, and deployment assumptions.",
           "Existing reviews often settle one of those dimensions well while letting the others recede into background assumptions."
         ],
         "stakes": [

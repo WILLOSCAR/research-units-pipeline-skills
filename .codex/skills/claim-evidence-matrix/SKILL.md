@@ -48,8 +48,8 @@ Uses: `outline/outline.yml`, `outline/mapping.tsv`.
 
 ### Quick Start
 
-- `python .codex/skills/claim-evidence-matrix/scripts/run.py --help`
-- `python .codex/skills/claim-evidence-matrix/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/claim-evidence-matrix/scripts/run.py --help`
+- `uv run python .codex/skills/claim-evidence-matrix/scripts/run.py --workspace <workspace>`
 
 ### All Options
 

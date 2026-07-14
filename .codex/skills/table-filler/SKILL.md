@@ -4,7 +4,7 @@ description: |
   Fill `outline/tables_index.md` from `outline/table_schema.md` + evidence packs (NO PROSE in cells; citation-backed rows).
   **Trigger**: table filler, fill tables, evidence-first tables, index tables, 表格填充, 索引表.
   **Use when**: table schema exists and evidence packs are ready; you want a compact, citation-backed index table to support later writing and Appendix table curation.
-  **Skip if**: `outline/tables_index.md` already exists and is refined (>=2 tables; citations in rows; no placeholders).
+  **Skip if**: `outline/tables_index.md` already exists and is refined (meets the active profile table count; citations in rows; no placeholders).
   **Network**: none.
   **Guardrail**: do not invent facts; every row must include citations; do not write paragraph cells.
 ---
@@ -28,6 +28,7 @@ Treat this as filling a table artifact from evidence packs:
 ## Workflow (explicit inputs)
 
 - Read `outline/table_schema.md` first (it defines what each table must answer).
+- Read `queries.md:draft_profile` when present (`course_paper` requires one index table; `survey` / `deep` require two).
 - Use `outline/subsection_briefs.jsonl` + `outline/evidence_drafts.jsonl` to fill the subsection map and pick in-scope citations.
 - Use `outline/anchor_sheet.jsonl` to fill the anchor-fact table (prefer quant/eval hooks).
 - Validate cite keys against `citations/ref.bib`.
@@ -47,7 +48,7 @@ Treat this as filling a table artifact from evidence packs:
 ## Output format contract
 
 `outline/tables_index.md` must:
-- contain >=2 Markdown tables
+- contain >=1 Markdown table for `course_paper`, or >=2 for `survey` / `deep`
 - use a caption line before each table, e.g. `**Index Table 1. ...**`
 - contain no Markdown headings (`#`, `##`, `###`) unless you explicitly want them for internal readability
 - include citations in rows using `[@BibKey]`
@@ -76,12 +77,12 @@ Treat this as filling a table artifact from evidence packs:
 
 ### Quick Start
 
-- `python .codex/skills/table-filler/scripts/run.py --help`
-- `python .codex/skills/table-filler/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/table-filler/scripts/run.py --help`
+- `uv run python .codex/skills/table-filler/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
-- `--workspace <workspace_dir>` (required)
+- `--workspace <workspace>` (required)
 - `--unit-id <id>` (optional; used only for runner bookkeeping)
 - `--inputs <schema;briefs;packs;anchors;bib>` (optional; override inputs)
 - `--outputs <relpath>` (optional; defaults to `outline/tables_index.md`)
@@ -91,11 +92,11 @@ Treat this as filling a table artifact from evidence packs:
 
 - Bootstrap index tables (default output path):
 
-  `python .codex/skills/table-filler/scripts/run.py --workspace workspaces/<ws>`
+  `uv run python .codex/skills/table-filler/scripts/run.py --workspace <workspace>`
 
 - Write to a custom index file (rare):
 
-  `python .codex/skills/table-filler/scripts/run.py --workspace workspaces/<ws> --outputs outline/tables_index.md`
+  `uv run python .codex/skills/table-filler/scripts/run.py --workspace <workspace> --outputs outline/tables_index.md`
 
 Notes:
 - The script is deterministic bootstrap; treat the result as an internal index artifact.

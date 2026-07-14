@@ -42,6 +42,18 @@ def _readme_with_harness_links() -> str:
     return "\n".join(validate_repo.HARNESS_README_LINKS) + "\n"
 
 
+def test_units_row_shape_rejects_unquoted_delimiter_columns() -> None:
+    row = {
+        "unit_id": "U001",
+        "acceptance": "dedup >= max(200",
+        None: ["core_size*4)"],
+    }
+
+    assert validate_repo._units_row_shape_error(row) == (
+        "unexpected extra columns; quote commas inside a field or use non-delimiter punctuation"
+    )
+
+
 def _valid_taxonomy_text() -> str:
     rows = [
         "| Family | Workflow | Contract | Unit template | Deliverable | Maturity | Completion |",
@@ -74,6 +86,12 @@ def _valid_taxonomy_text() -> str:
         "## Current Priority\n\n"
         "`paper-review`\n\n"
         + "\n".join(validate_repo.PAPER_REVIEW_TAXONOMY_ARTIFACTS)
+        + "\n"
+        + "\n".join(validate_repo.RESEARCH_BRIEF_TAXONOMY_ARTIFACTS)
+        + "\n"
+        + "\n".join(validate_repo.IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS)
+        + "\n"
+        + "\n".join(validate_repo.EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS)
         + "\n"
     )
 
@@ -213,7 +231,7 @@ def test_harness_docs_validation_reports_missing_local_harness_check(tmp_path: P
             "WARN",
             "`docs/HARNESS_READINESS.md` should list local harness checks: "
             "`uv run python scripts/validate_repo.py --no-check-quality --strict`, "
-            "`uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict`, "
+            "`uv run python scripts/readiness_audit.py --strict`, "
             "`uv run python scripts/audit_skills.py --fail-on WARN`, "
             "`uv run --extra test python -m pytest -q`.",
         )
@@ -247,8 +265,8 @@ def test_auto_research_design_system_validation_reports_missing_terms(tmp_path: 
     assert len(findings) == 1
     assert findings[0].level == "WARN"
     assert "`docs/AUTO_RESEARCH_DESIGN_SYSTEM.md` is missing Auto Research Design System terms" in findings[0].message
-    assert "backend-oriented Auto Research design system" in findings[0].message
-    assert "Architecture Diagram" in findings[0].message
+    assert "Goal -> Run -> Evidence -> Improve" in findings[0].message
+    assert "External Control Plane" in findings[0].message
 
 
 def test_project_language_validation_reports_missing_terms(tmp_path: Path) -> None:
@@ -267,6 +285,15 @@ def test_project_language_validation_reports_missing_terms(tmp_path: Path) -> No
 def test_readiness_audit_parses_iteration_progress() -> None:
     assert readiness_audit.parse_iteration_progress("- Iterations completed: 20 of at least 10\n") == (20, 10)
     assert readiness_audit.parse_iteration_progress("no count here") is None
+
+
+def test_readiness_audit_does_not_require_progress_ledger_by_default() -> None:
+    payload = readiness_audit.build_readiness_audit(repo_root=readiness_audit.REPO_ROOT, progress_path=None)
+    check_ids = {str(item["id"]) for item in payload["checks"]}
+
+    assert payload["progress"] == "not configured"
+    assert "progress_iterations" not in check_ids
+    assert "progress_state" not in check_ids
 
 
 def test_pipeline_taxonomy_validation_reports_missing_executable_metadata(tmp_path: Path) -> None:
@@ -334,7 +361,9 @@ def test_pipeline_taxonomy_validation_reports_graduate_paper_maturity_drift(tmp_
     pipelines_dir = tmp_path / "pipelines"
     pipelines_dir.mkdir()
     (pipelines_dir / "graduate-paper-pipeline.md").write_text("# Pipeline: graduate-paper\n", encoding="utf-8")
-    taxonomy_text = _valid_taxonomy_text().replace("| Thesis | `graduate-paper` | `pipelines/graduate-paper-pipeline.md` | Unit template: none yet | thesis project artifacts | `Research-stage` | Low |\n", "")
+    taxonomy_text = "\n".join(
+        line for line in _valid_taxonomy_text().splitlines() if "`graduate-paper`" not in line
+    ) + "\n"
     (docs_dir / "PIPELINE_TAXONOMY.md").write_text(taxonomy_text, encoding="utf-8")
 
     findings = validate_repo._validate_pipeline_taxonomy(
@@ -343,11 +372,14 @@ def test_pipeline_taxonomy_validation_reports_graduate_paper_maturity_drift(tmp_
         docs_dir=docs_dir,
     )
 
+    required_bits = next(
+        bits for bits in validate_repo.PIPELINE_TAXONOMY_ROW_REQUIREMENTS if bits[1] == "`graduate-paper`"
+    )
     assert [(item.level, item.message) for item in findings] == [
         (
             "WARN",
             "`docs/PIPELINE_TAXONOMY.md` is missing taxonomy row semantics for "
-            "`graduate-paper`: `Thesis`, ``graduate-paper``, ``Research-stage``, `Low`.",
+            "`graduate-paper`: " + ", ".join(f"`{bit}`" for bit in required_bits) + ".",
         ),
         (
             "WARN",

@@ -79,6 +79,11 @@ A150++ minima (defaults; used by gates and self-loops):
 - limitation_hooks: >=3
 - allowed_bibkeys_mapped: >=28
 
+`course_paper` minima use a smaller context pack: paragraph_plan 6,
+anchor_facts >=6, comparison_cards >=3, limitation_hooks >=2, and
+allowed_bibkeys_mapped >=8. The writer-facing `must_use` subset is 3 anchors,
+2 comparisons, and 1 limitation.
+
 - **Plan compliance**: follow `paragraph_plan` (don’t skip planned paragraphs; merge only if you keep the same contrasts/anchors).
 - **Connector intent**: treat `paragraph_plan[].connector_phrase` as semantic guidance, not copy-paste; paraphrase and vary; avoid `Next, we ...` narration.
 - **Anchors are must-use**: include at least one `anchor_facts` item that matches your paragraph’s claim type (eval / numeric / limitation), when present.
@@ -146,8 +151,8 @@ Better (literature-facing observation):
 
 ### Quick Start
 
-- `python .codex/skills/writer-context-pack/scripts/run.py --help`
-- `python .codex/skills/writer-context-pack/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/writer-context-pack/scripts/run.py --help`
+- `uv run python .codex/skills/writer-context-pack/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -160,9 +165,9 @@ Better (literature-facing observation):
 ### Examples
 
 - Default IO:
-  - `python .codex/skills/writer-context-pack/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/writer-context-pack/scripts/run.py --workspace <workspace>`
 - Explicit IO:
-  - `python .codex/skills/writer-context-pack/scripts/run.py --workspace workspaces/<ws> --inputs "outline/outline.yml;outline/subsection_briefs.jsonl;outline/chapter_briefs.jsonl;outline/evidence_drafts.jsonl;outline/anchor_sheet.jsonl;outline/evidence_bindings.jsonl;citations/ref.bib" --outputs "outline/writer_context_packs.jsonl"`
+  - `uv run python .codex/skills/writer-context-pack/scripts/run.py --workspace <workspace> --inputs "outline/outline.yml;outline/subsection_briefs.jsonl;outline/chapter_briefs.jsonl;outline/evidence_drafts.jsonl;outline/anchor_sheet.jsonl;outline/evidence_bindings.jsonl;citations/ref.bib" --outputs "outline/writer_context_packs.jsonl"`
 
 ### Refinement marker (recommended; prevents churn)
 

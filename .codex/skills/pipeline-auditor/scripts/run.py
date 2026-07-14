@@ -124,8 +124,8 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, load_yaml, parse_semicolon_list, pipeline_quality_contract_value, read_jsonl
-    from tooling.quality_gate import _citation_target, _draft_profile, _pipeline_profile
+    from tooling.common import atomic_write_text, load_yaml, parse_semicolon_list, read_jsonl
+    from tooling.quality_gate import _citation_target, _draft_profile, _pipeline_profile, survey_citation_policy
 
     workspace = Path(args.workspace).resolve()
 
@@ -171,7 +171,7 @@ def main() -> int:
     draft_profile = _draft_profile(workspace)
     citation_target = _citation_target(workspace)
 
-    min_h3_cites = 14 if draft_profile == "deep" else 12
+    min_h3_cites = 4 if draft_profile == "course_paper" else (14 if draft_profile == "deep" else 12)
 
     # Tables (survey deliverable): count Markdown tables in the merged draft.
     table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", draft)
@@ -185,8 +185,9 @@ def main() -> int:
     if re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", draft):
         blocking.append("draft contains TODO/TBD/FIXME placeholders")
 
-    if profile == "arxiv-survey" and table_n < 2:
-        blocking.append(f"draft has too few tables ({table_n}; expected >= 2)")
+    min_tables = 1 if draft_profile == "course_paper" else 2
+    if profile == "arxiv-survey" and table_n < min_tables:
+        blocking.append(f"draft has too few tables ({table_n}; expected >= {min_tables})")
 
     # Evidence-policy disclaimer spam: keep this once in front matter, not repeated per H3.
     evidence_disclaimer_details: list[tuple[str, int, list[str]]] = []
@@ -438,8 +439,8 @@ def main() -> int:
         stem0, n0 = rep_stems[0]
         warnings.append(f"repeated H3 opener stem across subsections ({n0}×): '{stem0} ...' (vary openers)")
 
-    # Final paper-voice hard gate for survey/deep runs.
-    if draft_profile in {"survey", "deep"}:
+    # Final paper-voice hard gate for all survey-family writing profiles.
+    if draft_profile in {"survey", "deep", "course_paper"}:
         narr_n = family_counts.get("subsection narration ('This subsection …')", 0)
         nav_n = family_counts.get("PPT-like navigation ('We now turn to …' / 'In the next section …')", 0)
         mech_reframe_n = family_counts.get("mechanical transition ('reframes the same chapter question around …')", 0)
@@ -541,36 +542,9 @@ def main() -> int:
 
     # Global cite coverage (encourage using more of the bibliography, not just a small subset).
     if profile == "arxiv-survey" and expected:
-        if draft_profile == "deep":
-            default_hard = 165
-            default_rec = 165
-        else:
-            default_hard = 150
-            default_rec = 165
-
-        min_unique_hard = int(
-            pipeline_quality_contract_value(
-                workspace,
-                "citation_policy",
-                "unique_hard_floor",
-                default=default_hard,
-            )
-            or default_hard
-        )
-        rec_unique = int(
-            pipeline_quality_contract_value(
-                workspace,
-                "citation_policy",
-                "unique_recommended",
-                default=default_rec,
-            )
-            or default_rec
-        )
-        if bib_keys:
-            min_unique_hard = min(min_unique_hard, len(bib_keys))
-            rec_unique = min(max(rec_unique, min_unique_hard), len(bib_keys))
-        else:
-            rec_unique = max(rec_unique, min_unique_hard)
+        policy = survey_citation_policy(workspace, bibliography_size=len(bib_keys), h3_count=len(expected))
+        min_unique_hard = int(policy["hard"])
+        rec_unique = int(policy["recommended"])
 
         target = rec_unique if citation_target == "recommended" else min_unique_hard
 
@@ -586,7 +560,11 @@ def main() -> int:
         elif citation_target != "recommended" and rec_unique > min_unique_hard and len(cited) < rec_unique:
             warnings.append(
                 f"unique citations below recommended target ({len(cited)}; recommend >= {rec_unique} for {draft_profile} profile)"
-                + (f" [hard={min_unique_hard}, rec_frac={int(len(bib_keys) * 0.55)}, bib={len(bib_keys)}]" if bib_keys else "")
+                + (
+                    f" [hard={min_unique_hard}, rec_frac={int(len(bib_keys) * float(policy['recommended_fraction']))}, bib={len(bib_keys)}]"
+                    if bib_keys
+                    else ""
+                )
             )
 
     # Citation-shape hard gate (reader-facing citation quality):
@@ -653,7 +631,7 @@ def main() -> int:
 
         max_uncited = 0.25
         if profile == "arxiv-survey":
-            max_uncited = 0.15 if draft_profile == "deep" else 0.20
+            max_uncited = 0.25 if draft_profile == "course_paper" else (0.15 if draft_profile == "deep" else 0.20)
 
         if rate > max_uncited:
             blocking.append(

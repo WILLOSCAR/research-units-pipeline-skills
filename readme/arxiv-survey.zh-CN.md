@@ -54,8 +54,15 @@ topic -> retrieval -> outline -> evidence -> report draft -> optional PDF
 - 希望读起来像课程论文、技术报告，还是短综述
 
 如果只需要 Markdown 草稿，用 `arxiv-survey`。如果最后要交 PDF，用
-`arxiv-survey-latex`。对于较短的课程论文，建议先确认紧凑提纲，再开始正文，
-避免系统按完整综述的规模展开。
+`arxiv-survey-latex`。Prompt 中明确出现 `course paper`、`term paper`、
+`end-of-term report`、`课程论文` 或 `期末报告` 时，同一条 Workflow 会自动启用
+`course_paper` Profile：`max_results=320`、`core_size=48`、
+`per_subsection=6`、最多 6 个 H3、全篇至少 24 个不同引用。页数、字数、语言和格式
+仍应写进 Goal，并在 C2 审批提纲。
+
+当前证据：[课程论文 Pilot 快照](../examples/course-paper-pilot/README.md)记录了 49 个
+已完成 Units、通过的 Artifact Audit，以及针对 8-10 页 Goal 生成的 10 页 PDF。这证明了
+一条完整交付路径；跨主题重复验证和真实 Token 记录仍未完成。
 
 示例：
 
@@ -89,11 +96,12 @@ C5 不是“一次写完整篇”，而是包含：
 
 - front matter 生成
 - 按 section 拆分写作
+- 定向 style 与 opener 修复
 - section logic review
-- argument self-loop
-- paragraph curation
-- style harmonization
-- opener variation
+- 段落边界压缩
+- 数值上下文清理
+- 最终 argument 与 section hash 快照
+- 确定性 merge
 - final audit
 
 真正的大部分质量提升都发生在这里。
@@ -110,6 +118,15 @@ C5 不是“一次写完整篇”，而是包含：
 - unique citation 推荐值 `>=165`
 
 这是一套面向完整综述的默认配置，不是快速概览模式。
+
+课程论文 Overlay 使用更小的预算：
+
+- `core_size=48`
+- `per_subsection=6`
+- `max_results=320`
+- 最多 `6` 个 H3 subsection
+- unique citation 硬门槛 `>=24`，推荐值 `>=32`
+- 每个 H3 为 5-7 段，至少 4 个不同引用
 
 当前 pipeline 还采用了 section-first 的结构策略：
 
@@ -197,7 +214,7 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 - structure：`taxonomy-builder`、`chapter-skeleton`、`section-bindings`、`section-briefs`、`outline-builder`、`section-mapper`
 - evidence：`paper-notes`、`subsection-briefs`、`citation-verifier`、`evidence-binder`、`evidence-draft`、`anchor-sheet`、`writer-context-pack`
 - writing：`front-matter-writer`、`chapter-lead-writer`、`subsection-writer`
-- convergence：`writer-selfloop`、`section-logic-polisher`、`argument-selfloop`、`paragraph-curator`、`style-harmonizer`、`opener-variator`、`global-reviewer`、`pipeline-auditor`
+- convergence：`writer-selfloop`、`style-harmonizer`、`opener-variator`、`section-logic-polisher`、`paragraph-curator`、`evaluation-anchor-checker`、`argument-selfloop`、`global-reviewer`、`pipeline-auditor`
 - PDF delivery：`latex-scaffold`、`latex-compile-qa`
 
 如果最终产物质量不够，真正应该修的通常是这些上游 skills，而不是直接去补 `output/DRAFT.md`。
@@ -221,7 +238,8 @@ survey 路径不是一个单体 skill，它是由一串 skills 串起来的，�
 - subsection briefs 太抽象
 - evidence packs 太薄
 - front matter 或 section 开头仍然被模板驱动
-- paragraph curation 没有清掉足够多的重叠
+- 上游写作仍有内容重叠；`paragraph-curator` 只压缩相邻段落边界，
+  不会删除正文，也不负责语义重写
 
 真正的修法一般在 briefs、evidence packs 或 writing skills 上游。
 

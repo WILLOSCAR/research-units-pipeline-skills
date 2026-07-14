@@ -28,7 +28,7 @@ Goal: produce a compile-ready Beamer deck from the final tutorial.
 
 ### Quick Start
 
-- `python .codex/skills/beamer-scaffold/scripts/run.py --workspace <ws>`
+- `uv run python .codex/skills/beamer-scaffold/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -41,4 +41,4 @@ Goal: produce a compile-ready Beamer deck from the final tutorial.
 ### Examples
 
 - Build `latex/slides/main.tex` from the tutorial:
-  - `python .codex/skills/beamer-scaffold/scripts/run.py --workspace <ws>`
+  - `uv run python .codex/skills/beamer-scaffold/scripts/run.py --workspace <workspace>`

@@ -38,8 +38,9 @@ Optional context (read-only; helps you avoid guessing):
 ## Recommended slot in the survey pipeline
 
 Use this as the **last section-level numeric hygiene sweep before merge**:
-- after `paragraph-curator` + `style-harmonizer` + `opener-variator`
-- before `transition-weaver` / `section-merger`
+- after `style-harmonizer`, `opener-variator`, `section-logic-polisher`, and
+  `paragraph-curator`
+- immediately before the final `argument-selfloop` snapshot and merge
 
 Reason:
 - earlier section-level rewrite passes can legitimately rephrase or fuse numeric sentences
@@ -121,7 +122,7 @@ Better (downgrade when context is missing):
 
 ### Quick Start
 
-- `python .codex/skills/evaluation-anchor-checker/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/evaluation-anchor-checker/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -134,4 +135,4 @@ Better (downgrade when context is missing):
 ### Examples
 
 - Run the numeric hygiene sweep before merge:
-  - `python .codex/skills/evaluation-anchor-checker/scripts/run.py --workspace workspaces/<ws> --inputs 'sections/*.md;outline/writer_context_packs.jsonl;citations/ref.bib' --outputs 'sections/*.md;output/EVAL_ANCHOR_REPORT.md;output/eval_anchors_checked.refined.ok'`
+  - `uv run python .codex/skills/evaluation-anchor-checker/scripts/run.py --workspace <workspace> --inputs 'sections/*.md;outline/writer_context_packs.jsonl;citations/ref.bib' --outputs 'sections/*.md;output/EVAL_ANCHOR_REPORT.md;output/eval_anchors_checked.refined.ok'`

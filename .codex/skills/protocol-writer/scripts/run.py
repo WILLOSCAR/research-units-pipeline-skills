@@ -47,9 +47,12 @@ def main() -> int:
         "What bias and heterogeneity limits the conclusions?",
     ]
     extraction_fields = [
+        {"field": "population_or_setting", "definition": "population, dataset, environment, or evaluation setting", "allowed_values": "free text or not reported", "notes": "name the observed setting without inference"},
         {"field": "task", "definition": "primary task or study focus", "allowed_values": "free text", "notes": "use short stable labels"},
         {"field": "metric", "definition": "main reported metric or endpoint", "allowed_values": "free text", "notes": "keep the reported wording"},
         {"field": "study_type", "definition": "study design or evaluation type", "allowed_values": "free text", "notes": "empirical, benchmark, user study, etc."},
+        {"field": "result_summary", "definition": "bounded result supported by the available record", "allowed_values": "free text or not reported", "notes": "do not infer beyond abstract/full text"},
+        {"field": "evidence_pointer", "definition": "URL or local source pointer for the extracted row", "allowed_values": "URL or workspace path", "notes": "must resolve to the screened record"},
     ]
     text = protocol_markdown(
         goal=goal,

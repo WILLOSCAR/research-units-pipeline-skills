@@ -24,6 +24,10 @@ class ReviewPipelineProductizationTests(unittest.TestCase):
         self.assertEqual(tuple(spec.default_checkpoints), ("C0", "C1", "C2", "C3"))
         self.assertEqual(spec.units_template, "templates/UNITS.research-brief.csv")
         self.assertIn("output/SNAPSHOT.md", spec.target_artifacts)
+        self.assertIn("output/BRIEF_SCORECARD.json", spec.target_artifacts)
+        self.assertEqual(spec.query_defaults["max_results"], 80)
+        self.assertEqual(spec.query_defaults["core_size"], 12)
+        self.assertEqual(spec.quality_contract["semantic_rubric"]["pass_score"], 80)
 
     def test_paper_review_pipeline_spec_loads(self) -> None:
         path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="paper-review")
@@ -34,6 +38,8 @@ class ReviewPipelineProductizationTests(unittest.TestCase):
         self.assertEqual(tuple(spec.default_checkpoints), ("C0", "C1", "C2", "C3"))
         self.assertEqual(spec.units_template, "templates/UNITS.paper-review.csv")
         self.assertIn("output/REVIEW.md", spec.target_artifacts)
+        self.assertIn("output/REVIEW_SCORECARD.json", spec.target_artifacts)
+        self.assertEqual(spec.quality_contract["semantic_rubric"]["pass_score"], 80)
 
     def test_evidence_review_pipeline_spec_loads(self) -> None:
         path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="evidence-review")

@@ -1,7 +1,7 @@
 ---
 name: post-merge-voice-gate
 description: |
-  Post-merge paper-voice gate: detect planner-talk / axis-label artifacts introduced during merge (especially from `outline/transitions.md`), then route fixes back to the earliest source.
+  Post-merge paper-voice gate: inspect the reader-facing draft for planner-talk and axis-label artifacts, then route fixes to the actual source.
   **Trigger**: post-merge voice gate, merge voice gate, transition leakage, planner talk, 合并后口吻门, 过渡句污染.
   **Use when**: `section-merger` has produced `output/DRAFT.md` and you want to ensure merge-injected text won't drag the draft into generator voice before polishing.
   **Skip if**: you are still pre-merge (no `output/DRAFT.md`) or you plan to rework structure upstream first.
@@ -9,14 +9,15 @@ description: |
   **Guardrail**: analysis-only; do not edit `output/DRAFT.md`; do not invent facts/citations; write only the report + routing.
 ---
 
-# Post-merge Voice Gate (treat transitions as injected prose)
+# Post-merge Voice Gate
 
 Purpose: catch the highest-impact "automation tells" that appear *after* merge.
 
 Why this exists:
-- `outline/transitions.md` is injected verbatim into `output/DRAFT.md`.
+- Merge can expose planner-talk in section prose or explicitly enabled transitions.
 - Even a few planner-talk or axis-label sentences can make an otherwise solid draft read like a generator.
-- Fixes should land at the *earliest responsible artifact* (usually `outline/transitions.md`), not as ad-hoc edits in the merged draft.
+- Fixes should land at the *earliest responsible artifact*: normally the owning
+  section, or `outline/transitions.md` only when insertion was enabled.
 
 This skill is a gate:
 - It writes a report (`output/POST_MERGE_VOICE_REPORT.md`).
@@ -27,7 +28,7 @@ This skill is a gate:
 ```text
 You are the post-merge voice gatekeeper for a survey draft.
 
-Your job is to detect high-signal generator voice that entered the draft via merge injection:
+Your job is to detect high-signal generator voice in the merged draft:
 - planner-talk transitions ("To keep the chapter...", "The remaining uncertainty is...")
 - slide/navigation narration ("Next, we move...", "We now turn...")
 - axis-label slash lists (A / B / C; planning/memory) used as prose
@@ -46,6 +47,10 @@ Output:
 - `output/DRAFT.md`
 - `outline/transitions.md`
 
+`outline/transitions.md` is an optional planning artifact by default. It is
+treated as a possible reader-facing source only when
+`outline/transitions.insert_h3.ok` or `outline/transitions.insert_h2.ok` exists.
+
 
 ## Output
 
@@ -54,7 +59,7 @@ Output:
 ## What this gate checks (high-signal only)
 
 - Planner-talk transition stems (construction notes that read like comments in the paper body)
-- Slash-list axis markers in injected transitions (A / B / C)
+- Slash-list axis markers in reader-facing draft prose (A / B / C)
 - Slide/navigation narration that should be argument bridges
 
 ## Rewrite triggers (if you see these, FAIL and route)
@@ -67,7 +72,7 @@ These stems are high-signal generator voice once injected into the draft body:
 
 ## Routing rules (earliest responsible artifact)
 
-- If the offending phrase appears in `outline/transitions.md`:
+- If transition insertion is enabled and the offending phrase appears in `outline/transitions.md`:
   - Fix: rerun `transition-weaver` (or hand-edit `outline/transitions.md`), then rerun `section-merger`.
 - Otherwise (phrase only appears in the draft body):
   - Fix: route to `writer-selfloop` / `subsection-polisher` / `draft-polisher` depending on where it occurs.
@@ -90,7 +95,7 @@ Better (natural prose):
 
 ### Quick Start
 
-- `python .codex/skills/post-merge-voice-gate/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/post-merge-voice-gate/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -103,7 +108,7 @@ Better (natural prose):
 ### Examples
 
 - Run right after `section-merger` (recommended):
-  - `python .codex/skills/post-merge-voice-gate/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/post-merge-voice-gate/scripts/run.py --workspace <workspace>`
 
 ### Notes
 

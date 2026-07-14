@@ -48,8 +48,8 @@ Uses: `papers/papers_dedup.jsonl`.
 
 ### Quick Start
 
-- `python .codex/skills/survey-seed-harvest/scripts/run.py --help`
-- `python .codex/skills/survey-seed-harvest/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/survey-seed-harvest/scripts/run.py --help`
+- `uv run python .codex/skills/survey-seed-harvest/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -59,7 +59,7 @@ Uses: `papers/papers_dedup.jsonl`.
 ### Examples
 
 - More conservative term selection:
-  - `python .codex/skills/survey-seed-harvest/scripts/run.py --workspace <ws> --top-k 80 --min-freq 3`
+  - `uv run python .codex/skills/survey-seed-harvest/scripts/run.py --workspace <workspace> --top-k 80 --min-freq 3`
 
 ### Notes
 

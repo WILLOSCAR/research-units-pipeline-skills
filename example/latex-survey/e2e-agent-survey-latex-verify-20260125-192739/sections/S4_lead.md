@@ -1,3 +1,0 @@
-Long-horizon behavior depends on how an agent forms plans and how it maintains usable state over time. Planning and reasoning modules can change action selection, but their benefits are often protocol-dependent: tool budgets, verification access, and environment noise can flip apparent rankings [@Hu2025Training; @Chen2024Steering].
-
-Memory mechanisms provide persistence and evidence access, but they also introduce new failure modes when stale or adversarial information enters the loop. The two subsections in this chapter examine these components jointly: planning and reasoning loops as a control policy, and memory and retrieval as a state substrate whose trust assumptions must be explicit for comparisons to remain meaningful [@Du2025Memr; @Wei2025Memguard].

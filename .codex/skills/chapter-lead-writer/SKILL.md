@@ -130,7 +130,7 @@ It is not the long-term home for lead archetypes, bridge examples, or narration 
 
 ### Quick Start
 
-- `python .codex/skills/chapter-lead-writer/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/chapter-lead-writer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -142,7 +142,7 @@ It is not the long-term home for lead archetypes, bridge examples, or narration 
 
 ### Examples
 
-- `python .codex/skills/chapter-lead-writer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/chapter-lead-writer/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

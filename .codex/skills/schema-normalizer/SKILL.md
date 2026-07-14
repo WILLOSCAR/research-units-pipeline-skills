@@ -69,9 +69,9 @@ Recommended placement in `arxiv-survey(-latex)`:
 
 ### Quick Start
 
-- `python .codex/skills/schema-normalizer/scripts/run.py --help`
+- `uv run python .codex/skills/schema-normalizer/scripts/run.py --help`
 - Normalize the C4 bridge artifacts:
-  - `python .codex/skills/schema-normalizer/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/schema-normalizer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -84,7 +84,7 @@ Recommended placement in `arxiv-survey(-latex)`:
 ### Examples
 
 - Normalize the default C4 artifacts (ids/titles + citations format):
-  - `python .codex/skills/schema-normalizer/scripts/run.py --workspace workspaces/<ws> --inputs outline/outline.yml;citations/ref.bib;outline/subsection_briefs.jsonl;outline/chapter_briefs.jsonl;outline/evidence_bindings.jsonl;outline/evidence_drafts.jsonl;outline/anchor_sheet.jsonl --outputs output/SCHEMA_NORMALIZATION_REPORT.md`
+  - `uv run python .codex/skills/schema-normalizer/scripts/run.py --workspace <workspace> --inputs outline/outline.yml;citations/ref.bib;outline/subsection_briefs.jsonl;outline/chapter_briefs.jsonl;outline/evidence_bindings.jsonl;outline/evidence_drafts.jsonl;outline/anchor_sheet.jsonl --outputs output/SCHEMA_NORMALIZATION_REPORT.md`
 
 - Normalize writer packs too (if you are running this after `writer-context-pack`):
-  - `python .codex/skills/schema-normalizer/scripts/run.py --workspace workspaces/<ws> --inputs outline/outline.yml;citations/ref.bib;outline/writer_context_packs.jsonl --outputs output/SCHEMA_NORMALIZATION_REPORT.md`
+  - `uv run python .codex/skills/schema-normalizer/scripts/run.py --workspace <workspace> --inputs outline/outline.yml;citations/ref.bib;outline/writer_context_packs.jsonl --outputs output/SCHEMA_NORMALIZATION_REPORT.md`

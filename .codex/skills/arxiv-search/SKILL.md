@@ -75,9 +75,9 @@ Do not treat `run.py` as the place for:
 
 ### Quick Start
 
-- `python .codex/skills/arxiv-search/scripts/run.py --help`
-- Online: `python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace_dir> --query "<query>" --max-results 200`
-- Offline import: `python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace_dir> --input <export.csv|json|jsonl>`
+- `uv run python .codex/skills/arxiv-search/scripts/run.py --help`
+- Online: `uv run python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace> --query "<query>" --max-results 200`
+- Offline import: `uv run python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace> --input <export.csv|json|jsonl>`
 
 ### All Options
 
@@ -91,11 +91,11 @@ Do not treat `run.py` as the place for:
 ### Examples
 
 - Online (multi-query + excludes):
-  - `python .codex/skills/arxiv-search/scripts/run.py --workspace <ws> --query "LLM agent" --query "tool use" --exclude "survey" --max-results 300`
+  - `uv run python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace> --query "LLM agent" --query "tool use" --exclude "survey" --max-results 300`
 - Fetch a single paper by arXiv ID (direct `id_list` fetch):
-  - `python .codex/skills/arxiv-search/scripts/run.py --workspace <ws> --query 2509.02547 --max-results 1`
+  - `uv run python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace> --query 2509.02547 --max-results 1`
 - Offline auto-detect (no flags):
-  - Place `papers/import.csv` (or `.json/.jsonl`) under the workspace, then run: `python .codex/skills/arxiv-search/scripts/run.py --workspace <ws>`
+  - Place `papers/import.csv` (or `.json/.jsonl`) under the workspace, then run: `uv run python .codex/skills/arxiv-search/scripts/run.py --workspace <workspace>`
 - Offline import + time window (via `queries.md`):
   - Set `- time window: { from: 2022, to: 2025 }` then run offline import normally
 

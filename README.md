@@ -1,200 +1,166 @@
-# research-units-pipeline-skills
+# Research Harness
 
-> Languages: **English** | [简体中文](README.zh-CN.md)
+Turn a research goal into a reviewable deliverable without losing the sources,
+decisions, and intermediate evidence behind it.
 
-An Auto Research Design System for agent-assisted research work.
-
-This repository combines **semantic research skills** with a **file-first
-harness**. It is meant for people using coding agents such as Codex to run
-research workflows without losing the intermediate evidence. A run becomes a
-durable workspace: planned units, intermediate artifacts, checkpoints, audits,
-and improvement records.
-
-The short version:
+Research Harness combines reusable research Skills with a file-first execution
+Harness. It can produce a brief, paper review, evidence synthesis, literature
+survey, course paper, or source-grounded tutorial, while keeping every long Run
+recoverable and auditable.
 
 ```text
-intent -> workflow -> workspace -> unit -> skill -> artifact -> audit -> improvement
+Goal -> Run -> Evidence -> Improve
 ```
 
-It is not a generic workflow engine, a prompt collection, or a claim that
-research can be fully automated. The repo is narrower and more practical: it
-keeps research work inspectable, resumable, and improvable while the model
-handles the semantic reading and writing.
+This is an end-to-end **Auto Research Design System**, not a fully autonomous
+scientist. Skills perform research transformations; Workflow contracts organize
+them into a delivery path; the Harness records state, checks artifacts, and
+locates failures so a person or agent can make the next bounded repair.
 
-## What It Produces
+## Try A Small Run
 
-Use this repo when the output matters enough that you want files, checkpoints,
-and reviewable evidence rather than a one-off chat answer.
-
-| Goal | Path to use | Main deliverable |
-|---|---|---|
-| Evidence-first literature survey | `arxiv-survey` | `output/DRAFT.md` |
-| Survey with LaTeX/PDF delivery | `arxiv-survey-latex` | `output/DRAFT.md`, `latex/main.pdf` |
-| Course paper or end-of-term report from a topic | Use `arxiv-survey` for Markdown or `arxiv-survey-latex` for PDF; this is a use-case overlay, not a new workflow | report draft, optional PDF |
-| Fast topic briefing and reading path | `research-brief` | `output/SNAPSHOT.md` |
-| Single-paper critique or referee-style review | `paper-review` | `output/REVIEW.md` |
-| Protocol-driven evidence synthesis | `evidence-review` | `output/SYNTHESIS.md` |
-| Literature-grounded research ideas | `idea-brainstorm` | `output/REPORT.md`, `output/REPORT.json` |
-| Tutorial from webpages, PDFs, notes, or repo docs | `source-tutorial` | `output/TUTORIAL.md`, PDF, slides |
-| Guided Chinese thesis organization | `graduate-paper` | thesis project artifacts |
-
-Most users choose one of these paths and inspect the workspace outputs.
-Maintainers work on the pipeline contracts, project skills, harness scripts,
-and validation rules behind those paths.
-
-## How A Run Works
-
-```mermaid
-flowchart TD
-    A["User intent"] --> B["Executable workflow contract or research-stage design"]
-    B --> C["Workspace ledger"]
-    C --> D["Units"]
-    D --> E["Project skills"]
-    E --> F["Artifacts"]
-    F --> G["Harness audit"]
-    G --> H["Deliverable"]
-    G --> I["Improvement record"]
-    I --> B
-```
-
-- A `workflow` is the user-facing product path, such as `paper-review`.
-- A `workspace` is one run directory under `workspaces/<name>/`.
-- A `unit` is a small, checkable step in `UNITS.csv`.
-- A `skill` is a reusable research or writing capability under `.codex/skills/`.
-- An `artifact` is an intermediate or final file, usually Markdown, CSV, YAML,
-  JSON, TeX, or PDF.
-- An `audit` is a bounded check of workspace state, run state, or output
-  quality.
-- An `improvement` record maps weak output back to a concrete repair surface:
-  a skill, pipeline, artifact, validator, or decision.
-
-The design choice is artifact-first execution. The model should not rely on
-conversation memory to carry a complex research workflow. It should write
-state, evidence, and decisions to files that can be inspected by humans and
-reused by later units.
-
-## Quick Start
-
-Start an agent session in this repository and ask for a concrete outcome:
-
-```text
-Use paper-review to critique this manuscript and give me a lab-style review.
-```
-
-```text
-Use research-brief to explain test-time adaptation for robotics and produce a reading path.
-```
-
-```text
-Use source-tutorial to turn these webpages and repo docs into a tutorial with PDF and slides.
-```
-
-```text
-Write an arxiv-survey-latex survey about embodied agents and show me the outline first.
-```
-
-```text
-Use arxiv-survey-latex to write a compact course paper on robot learning. Keep the outline reviewable before drafting and target a final PDF.
-```
-
-For tighter control, name the executable pipeline contract directly:
-
-- [pipelines/arxiv-survey.pipeline.md](pipelines/arxiv-survey.pipeline.md)
-- [pipelines/arxiv-survey-latex.pipeline.md](pipelines/arxiv-survey-latex.pipeline.md)
-- [pipelines/research-brief.pipeline.md](pipelines/research-brief.pipeline.md)
-- [pipelines/paper-review.pipeline.md](pipelines/paper-review.pipeline.md)
-- [pipelines/evidence-review.pipeline.md](pipelines/evidence-review.pipeline.md)
-- [pipelines/idea-brainstorm.pipeline.md](pipelines/idea-brainstorm.pipeline.md)
-- [pipelines/source-tutorial.pipeline.md](pipelines/source-tutorial.pipeline.md)
-
-Research-stage design document:
-
-- [pipelines/graduate-paper-pipeline.md](pipelines/graduate-paper-pipeline.md)
-
-Feature guides:
-
-| Path | English | 中文 |
-|---|---|---|
-| `arxiv-survey` / `arxiv-survey-latex` | [Guide](readme/arxiv-survey.md) | [说明](readme/arxiv-survey.zh-CN.md) |
-| `research-brief` | [Guide](readme/research-brief.md) | [说明](readme/research-brief.zh-CN.md) |
-| `paper-review` | [Guide](readme/paper-review.md) | [说明](readme/paper-review.zh-CN.md) |
-| `evidence-review` | [Guide](readme/evidence-review.md) | [说明](readme/evidence-review.zh-CN.md) |
-| `idea-brainstorm` | [Guide](readme/idea-brainstorm.md) | [说明](readme/idea-brainstorm.zh-CN.md) |
-| `source-tutorial` | [Guide](readme/source-tutorial.md) | [说明](readme/source-tutorial.zh-CN.md) |
-| `graduate-paper` | [Guide](readme/graduate-paper.md) | [说明](readme/graduate-paper.zh-CN.md) |
-
-## Architecture
-
-The repo has two cooperating layers.
-
-**Skills** hold semantic research behavior:
-
-- what sources or inputs to read;
-- what artifact to write;
-- what acceptance criteria apply;
-- what guardrails the model must respect.
-
-**Harness** holds deterministic execution support:
-
-- workspace initialization and recovery;
-- pipeline contract validation;
-- unit execution;
-- doctor, audit, improve, and pack commands;
-- output manifests and report schemas;
-- repo-level tests and readiness checks.
-
-Keep this split when extending the project. Put research judgment in skills.
-Put repeatable checks and recovery logic in the harness.
-
-For the full architecture map and current function map, see
-[docs/AUTO_RESEARCH_DESIGN_SYSTEM.md](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md).
-
-## Current Status
-
-The active workflow families are:
-
-- **Survey**: `arxiv-survey`, `arxiv-survey-latex`
-- **Orientation**: `research-brief`
-- **Review**: `paper-review`, `evidence-review`
-- **Ideation**: `idea-brainstorm`
-- **Tutorial**: `source-tutorial`
-- **Thesis**: `graduate-paper`
-
-Seven workflows currently have pipeline contracts, unit templates, and harness
-validation. `graduate-paper` is guided thesis design material with
-thesis-oriented skills; it is not yet a strict executable pipeline.
-
-Course papers and end-of-term reports are treated as a survey use case, not a
-separate workflow family. Use `arxiv-survey` when Markdown is enough and
-`arxiv-survey-latex` when the class deliverable needs a PDF.
-
-The maintainer roadmap is focused on `paper-review`: a completed Auto Review
-workspace, semantic rubric, scorecard, final review, audit, improvement report,
-and artifact pack. Some of those proof artifacts are not yet required by the
-current `paper-review` pipeline contract; the next proof should produce them
-around the current contract before the contract is promoted. Here, an artifact
-pack means a manifest of the files that make a run inspectable and portable.
-Do not add a new workflow family before that proof exists.
-
-For the current catalog and maturity map, see
-[docs/PIPELINE_TAXONOMY.md](docs/PIPELINE_TAXONOMY.md).
-
-## Developer Surface
-
-This section is for maintainers. Use these checks when changing pipeline
-contracts, skill IO, workspace artifacts, schemas, or validation rules.
+The simplest topic-seeded demo is `research-brief`:
 
 ```bash
-uv run python scripts/validate_repo.py --no-check-quality --strict
-uv run python scripts/readiness_audit.py --progress workspaces/harness-upgrade/GOAL_STATUS.md --strict
-uv run python scripts/audit_skills.py --fail-on WARN
-uv run --extra test python -m pytest -q
-uv run python scripts/audit_skills.py --review-category template_placeholder --limit 20
-uv run python scripts/audit_skills.py --summary-only
-uv run python scripts/generate_skill_graph.py
+uv run rh goal create \
+  --topic "test-time adaptation for robotics" \
+  --workflow research-brief \
+  --workspace workspaces/robot-adaptation
+
+uv run rh run start --workspace workspaces/robot-adaptation
+uv run rh run status --workspace workspaces/robot-adaptation
+uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-Workspace diagnostics:
+The result includes a readable brief (`output/SNAPSHOT.md`), a structured
+scorecard (`output/BRIEF_SCORECARD.json`), and an artifact index with hashes and
+provenance. If a quality gate fails, diagnose the Run with:
+
+```bash
+uv run rh improve diagnose --workspace workspaces/robot-adaptation
+```
+
+`improve diagnose` identifies the failed contract and its repair surface. It
+does not silently edit the Workspace or promote changes to the Harness.
+
+The `rh goal create` shortcut is most useful for topic-seeded Workflows. Paths
+that require an existing manuscript, source set, protocol, or human checkpoint
+will stop and name the missing input. They can also be invoked naturally from
+Codex:
+
+```text
+Use paper-review to review this manuscript. Keep every major concern traceable to the paper.
+```
+
+```text
+Use arxiv-survey-latex to write an 8-10 page course paper on RAG evaluation and produce a PDF.
+```
+
+## Choose A Workflow
+
+| Outcome | Workflow | Main deliverable |
+|---|---|---|
+| Understand a topic and decide what to read | `research-brief` | `output/SNAPSHOT.md` |
+| Review one paper or manuscript | `paper-review` | `output/REVIEW.md` |
+| Synthesize studies under an explicit protocol | `evidence-review` | `output/SYNTHESIS.md` |
+| Build an evidence-first literature survey | `arxiv-survey` | `output/DRAFT.md` |
+| Deliver a survey, course paper, or report as PDF | `arxiv-survey-latex` | `latex/main.pdf` |
+| Develop literature-grounded research directions | `idea-brainstorm` | `output/REPORT.md` |
+| Turn an existing source set into a tutorial | `source-tutorial` | tutorial, article PDF, slides |
+
+`graduate-paper` remains a research-stage Chinese thesis path. It contains
+useful Skills and design material, but does not yet have the strict executable
+contract used by the seven Workflows above.
+
+Course papers are a bounded use-case profile of the survey family, not another
+Workflow. An explicit course-paper request selects smaller retrieval, evidence,
+outline, paragraph, and citation budgets while retaining the same traceability
+and quality gates. The current
+[course-paper evidence snapshot](examples/course-paper-pilot/README.md) records
+a completed 49-Unit Run, a passing Artifact audit, and a 10-page PDF for an
+8-10 page Goal. This is one end-to-end delivery proof, not a claim of quality
+across every topic.
+
+## One Product Loop
+
+| Stage | User question | Durable record |
+|---|---|---|
+| **Goal** | What outcome and constraints matter? | request, Workflow, required artifacts, success criteria |
+| **Run** | What ran, what is next, and can it resume? | Units, Attempts, Events, Decisions, Checkpoints |
+| **Evidence** | What supports the result? | sources, intermediate Artifacts, hashes, scorecards, audits |
+| **Improve** | Where did this Run fail, and what owns the repair? | Failure ledger, diagnosis, explicit repair surface |
+
+```mermaid
+flowchart LR
+    G["Goal"] --> W["Workflow contract"]
+    W --> R["Recoverable Run"]
+    R --> U["Units"]
+    U --> S["Research and control Skills"]
+    S --> A["Artifacts and deliverable"]
+    A --> Q["Scorecard and audit"]
+    Q --> E["Evidence"]
+    E --> I["Improve diagnosis"]
+    I -. "bounded repair" .-> R
+
+    H["Harness kernel: state, scheduling, provenance, recovery"] --- R
+    H --- Q
+```
+
+The important separation is responsibility, not a rigid binary:
+
+- **Research Skills** retrieve, extract, compare, synthesize, review, and write.
+- **Control Skills** materialize reports, checkpoints, manifests, and local gates.
+- **Workflow contracts** define ordered Units, inputs, outputs, and acceptance.
+- **Harness kernel** owns Run identity, scheduling, Attempts, recovery,
+  provenance, implementation fingerprints, diagnosis, and audit.
+
+Every Workspace keeps a readable project surface plus a machine-readable Run
+ledger:
+
+```text
+workspaces/<run>/
+├── GOAL.md
+├── UNITS.csv
+├── STATUS.md
+├── DECISIONS.md
+├── output/
+└── .harness/
+    ├── goal.json
+    ├── run.json
+    ├── harness.lock.json
+    ├── events.jsonl
+    ├── attempts.jsonl
+    ├── artifacts.jsonl
+    ├── failures/ledger.jsonl
+    └── evaluations/ledger.jsonl
+```
+
+New Runs pin the initial Pipeline, Unit, Skill, and kernel revisions. Each
+successful Unit also records the implementation fingerprint it actually used;
+`doctor` reports a completed Unit as stale when its Skill implementation later
+changes.
+
+## Current Evidence
+
+Seven Workflows have executable contracts and Unit templates. Structural
+operability is broader than semantic proof:
+
+- `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review`
+  have Workflow-local scorecards plus failure -> repair -> rerun tests.
+- `source-tutorial` has a strict local-source delivery test through article and
+  Beamer PDF compilation.
+- the survey family has one completed compact course-paper/PDF Run and extensive
+  contract tests; diverse-topic quality and measured token comparisons remain
+  open.
+- external held-out evaluation, candidate worktrees, automatic promotion, and
+  a hosted Run store are not implemented.
+
+Scorecards validate observable contracts and traceability. They do not reproduce
+experiments, establish scientific truth, or replace expert judgment.
+
+## Maintainer Interface
+
+Use the lower-level adapter when developing or auditing the system:
 
 ```bash
 uv run python scripts/pipeline.py doctor --workspace workspaces/<name> --write
@@ -203,28 +169,30 @@ uv run python scripts/pipeline.py improve --workspace workspaces/<name> --write
 uv run python scripts/pipeline.py pack --workspace workspaces/<name> --write
 ```
 
-`doctor` diagnoses workspace state. `audit` summarizes the run. `improve`
-maps defects to repair surfaces. `pack` creates a deliverable manifest.
+Validate the repository with:
 
-## Reading Map
+```bash
+uv run python scripts/validate_repo.py --no-check-quality --strict
+uv run python scripts/readiness_audit.py --strict
+uv run python scripts/audit_skills.py --fail-on WARN
+uv run --extra test python -m pytest -q
+```
 
-- [docs/AUTO_RESEARCH_DESIGN_SYSTEM.md](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md):
-  system model and architecture diagram.
-- [docs/PIPELINE_TAXONOMY.md](docs/PIPELINE_TAXONOMY.md): workflow catalog,
-  maturity, and next proof.
-- [docs/PROJECT_LANGUAGE.md](docs/PROJECT_LANGUAGE.md): canonical language for
-  workflow, workspace, unit, artifact, audit, and improvement.
-- [docs/HARNESS_ROADMAP.md](docs/HARNESS_ROADMAP.md): current product and
-  engineering direction.
-- [docs/HARNESS_READINESS.md](docs/HARNESS_READINESS.md): local checks and
-  readiness criteria.
-- [docs/SCHEMAS.md](docs/SCHEMAS.md): generated report schema names.
-- [docs/adr/](docs/adr/): architecture decisions.
-- [SKILL_INDEX.md](SKILL_INDEX.md): skill index.
-- [SKILLS_STANDARD.md](SKILLS_STANDARD.md): skill authoring standard.
+When extending a Workflow, change its contract under `pipelines/`, align the
+matching `templates/UNITS.*.csv`, implement the owned capability under
+`.codex/skills/`, and add a completed Run or failure/repair regression before
+raising its maturity claim.
 
-Multi-language feature documentation hubs live under `readme/README.*.md`.
+## Documentation
 
-## Star History
+- Start with the [Workflow catalog](docs/PIPELINE_TAXONOMY.md) and
+  [usage guides](readme/README.en.md).
+- Understand the [Auto Research architecture](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md),
+  [project language](docs/PROJECT_LANGUAGE.md), and
+  [operability audit](docs/PIPELINE_OPERABILITY_AUDIT.md).
+- Review [schemas](docs/SCHEMAS.md), the [roadmap](docs/HARNESS_ROADMAP.md),
+  [readiness gates](docs/HARNESS_READINESS.md), and [ADRs](docs/adr/).
+
+[中文说明](README.zh-CN.md)
 
 [![Star History Chart](https://api.star-history.com/svg?repos=WILLOSCAR/research-units-pipeline-skills&type=Date)](https://star-history.com/#WILLOSCAR/research-units-pipeline-skills&Date)

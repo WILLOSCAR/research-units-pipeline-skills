@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import shutil
 from dataclasses import dataclass
@@ -23,13 +24,14 @@ def _pipeline_profile(workspace: Path) -> str:
 def _draft_profile(workspace: Path) -> str:
     """Return the draft strictness profile from `queries.md` (best-effort).
 
-    Supported values: `survey`, `deep` (default: `survey` for arxiv-survey pipelines).
+    Supported values: `survey`, `deep`, and `course_paper`.
     """
     from tooling.common import pipeline_query_default
 
     profile = _pipeline_profile(workspace)
     default = str(pipeline_query_default(workspace, "draft_profile", "" if profile != "arxiv-survey" else "survey") or "").strip().lower()
-    if default not in {"survey", "deep"}:
+    default = default.replace("-", "_")
+    if default not in {"survey", "deep", "course_paper"}:
         default = "survey" if profile == "arxiv-survey" else "default"
 
     queries_path = workspace / "queries.md"
@@ -45,8 +47,8 @@ def _draft_profile(workspace: Path) -> str:
             key = key.strip().lower().replace(" ", "_")
             if key != "draft_profile":
                 continue
-            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower()
-            if value in {"survey", "deep"}:
+            value = value.split("#", 1)[0].strip().strip('"').strip("'").strip().lower().replace("-", "_")
+            if value in {"survey", "deep", "course_paper"}:
                 return value
             return default
     except Exception:
@@ -428,6 +430,80 @@ def _quality_contract_int(workspace: Path, *, keys: tuple[str, ...], default: in
     return parsed if parsed > 0 else int(default)
 
 
+def survey_citation_policy(workspace: Path, *, bibliography_size: int, h3_count: int) -> dict[str, int | float | str]:
+    """Resolve one citation budget for all survey-family producers and gates."""
+    from tooling.common import pipeline_quality_contract_value
+
+    profile = _draft_profile(workspace)
+    defaults: dict[str, dict[str, int | float]] = {
+        "survey": {
+            "unique_hard_floor": 150,
+            "unique_recommended": 165,
+            "per_h3": 14,
+            "base": 35,
+            "bibliography_fraction": 0.50,
+            "recommended_fraction": 0.55,
+        },
+        "deep": {
+            "unique_hard_floor": 165,
+            "unique_recommended": 165,
+            "per_h3": 16,
+            "base": 40,
+            "bibliography_fraction": 0.60,
+            "recommended_fraction": 0.60,
+        },
+        "course_paper": {
+            "unique_hard_floor": 24,
+            "unique_recommended": 32,
+            "per_h3": 3,
+            "base": 6,
+            "bibliography_fraction": 0.35,
+            "recommended_fraction": 0.45,
+        },
+    }
+    selected = defaults.get(profile, defaults["survey"])
+
+    def _number(key: str) -> int | float:
+        fallback = selected[key]
+        value = pipeline_quality_contract_value(
+            workspace,
+            "citation_policy",
+            "by_profile",
+            profile,
+            key,
+            default=fallback,
+        )
+        try:
+            return float(value) if isinstance(fallback, float) else int(value)
+        except (TypeError, ValueError):
+            return fallback
+
+    floor = int(_number("unique_hard_floor"))
+    recommended_floor = int(_number("unique_recommended"))
+    per_h3 = int(_number("per_h3"))
+    base = int(_number("base"))
+    fraction = float(_number("bibliography_fraction"))
+    recommended_fraction = float(_number("recommended_fraction"))
+
+    structural = base + per_h3 * max(0, int(h3_count))
+    bibliography_target = int(max(0, bibliography_size) * fraction)
+    hard = max(floor, bibliography_target)
+    recommended = max(hard, recommended_floor, int(max(0, bibliography_size) * recommended_fraction))
+    if bibliography_size > 0:
+        hard = min(hard, bibliography_size)
+        recommended = min(recommended, bibliography_size)
+
+    return {
+        "profile": profile,
+        "hard": hard,
+        "recommended": recommended,
+        "structural": structural,
+        "bibliography_target": bibliography_target,
+        "bibliography_fraction": fraction,
+        "recommended_fraction": recommended_fraction,
+    }
+
+
 def _evidence_mode(workspace: Path) -> str:
     from tooling.common import pipeline_query_default
 
@@ -645,6 +721,10 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
         return _check_sections_manifest_index(workspace, outputs)
     if skill == "writer-selfloop":
         return _check_writer_selfloop(workspace, outputs)
+    if skill == "paragraph-curator":
+        return _check_paragraph_curator(workspace, outputs)
+    if skill == "argument-selfloop":
+        return _check_argument_snapshot(workspace, outputs)
     if skill == "evaluation-anchor-checker":
         return _check_eval_anchor_report(workspace, outputs)
     if skill == "section-logic-polisher":
@@ -675,6 +755,14 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
         return _check_contract_report(workspace, outputs)
     if skill == "protocol-writer":
         return _check_protocol(workspace, outputs)
+    if skill == "screening-manager":
+        return _check_evidence_screening(workspace, outputs)
+    if skill == "extraction-form":
+        return _check_evidence_extraction(workspace, outputs, require_bias=False)
+    if skill == "bias-assessor":
+        return _check_evidence_extraction(workspace, outputs, require_bias=True)
+    if skill == "synthesis-writer":
+        return _check_evidence_synthesis(workspace, outputs)
     if skill == "source-manifest":
         return _check_source_manifest(workspace, outputs)
     if skill == "source-ingest":
@@ -1361,6 +1449,8 @@ def _check_citation_injection(workspace: Path, outputs: list[str]) -> list[Quali
 
 
 def _check_pdf_text_extractor(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    import csv
+
     from tooling.common import read_jsonl
 
     out_rel = outputs[0] if outputs else "papers/fulltext_index.jsonl"
@@ -1371,7 +1461,53 @@ def _check_pdf_text_extractor(workspace: Path, outputs: list[str]) -> list[Quali
 
     mode = _evidence_mode(workspace)
     if mode != "fulltext":
-        # Abstract/snippet mode: do not require extracted text coverage.
+        core_path = workspace / "papers" / "core_set.csv"
+        core_ids: set[str] = set()
+        if core_path.exists():
+            with core_path.open(encoding="utf-8", newline="") as handle:
+                core_ids = {
+                    str(row.get("paper_id") or "").strip()
+                    for row in csv.DictReader(handle)
+                    if str(row.get("paper_id") or "").strip()
+                }
+        indexed_ids = {
+            str(record.get("paper_id") or "").strip()
+            for record in records
+            if isinstance(record, dict) and str(record.get("paper_id") or "").strip()
+        }
+        missing_ids = sorted(core_ids - indexed_ids)
+        if missing_ids:
+            preview = ", ".join(missing_ids[:8])
+            suffix = " ..." if len(missing_ids) > 8 else ""
+            return [
+                QualityIssue(
+                    code="abstract_index_incomplete",
+                    message=(
+                        f"`{out_rel}` is missing {len(missing_ids)}/{len(core_ids)} core paper(s): "
+                        f"{preview}{suffix}. Abstract mode must index the complete core set."
+                    ),
+                )
+            ]
+        unexpected_statuses = sorted(
+            {
+                str(record.get("status") or "").strip()
+                for record in records
+                if isinstance(record, dict)
+                and str(record.get("paper_id") or "").strip() in core_ids
+                and str(record.get("status") or "").strip() != "skip_mode_abstract"
+            }
+        )
+        if unexpected_statuses:
+            return [
+                QualityIssue(
+                    code="abstract_index_status_invalid",
+                    message=(
+                        f"`{out_rel}` contains non-abstract skip statuses: "
+                        + ", ".join(unexpected_statuses)
+                        + "."
+                    ),
+                )
+            ]
         return []
 
     ok = 0
@@ -1488,6 +1624,7 @@ def _next_action_lines(*, skill: str, unit_id: str) -> list[str]:
             "- Edit `outline/mapping.tsv`: diversify mapped papers per subsection and reduce over-reuse of a few papers across unrelated sections.",
             "- Replace generic `why` (e.g., `matched_terms=...`) with a short semantic rationale (mechanism/task/benchmark/safety angle).",
             "- Use `outline/mapping_report.md` to find hotspots and weak-signal subsections.",
+            "- Use `outline/mapping_gap_candidates.tsv` to identify in-scope candidates from the deduplicated pool before changing the frozen core set or expanding retrieval.",
         ],
         "paper-notes": [
             "- Edit `papers/paper_notes.jsonl`: fully enrich `priority=high` papers (method, key_results, concrete limitations) and remove all `TODO`s.",
@@ -1908,7 +2045,9 @@ def _check_citations(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
 
 
 def _check_taxonomy(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    from tooling.common import load_yaml
+    import csv
+
+    from tooling.common import candidate_keywords, load_yaml, tokenize
 
     out_rel = outputs[0] if outputs else "outline/taxonomy.yml"
     path = workspace / out_rel
@@ -1944,7 +2083,14 @@ def _check_taxonomy(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         if desc:
             total_desc += 1
             desc_values.append(desc)
-            if desc.startswith("Papers and ideas centered on '") or desc.startswith("Key aspects of '"):
+            if desc.startswith(
+                (
+                    "Papers and ideas centered on '",
+                    "Key aspects of '",
+                    "Cluster capturing work where '",
+                    "Subtopic under '",
+                )
+            ):
                 template_desc += 1
         name = str(node.get("name") or "").strip()
         if name:
@@ -1976,6 +2122,37 @@ def _check_taxonomy(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 message="Many taxonomy node descriptions are very short; expand descriptions with concrete scope cues and representative works.",
             )
         )
+
+    core_path = workspace / "papers" / "core_set.csv"
+    if core_path.exists():
+        try:
+            with core_path.open("r", encoding="utf-8", newline="") as handle:
+                titles = [
+                    str(row.get("title") or "").strip()
+                    for row in csv.DictReader(handle)
+                    if str(row.get("title") or "").strip()
+                ]
+        except Exception:
+            titles = []
+        core_topics = candidate_keywords(titles, top_k=6, min_freq=max(2, len(titles) // 12))
+        taxonomy_tokens = set(tokenize(" ".join(
+            f"{str(node.get('name') or '')} {str(node.get('description') or '')}"
+            for node in nodes
+            if isinstance(node, dict)
+        )))
+        required_overlap = min(2, len(core_topics))
+        overlap = [topic for topic in core_topics if topic in taxonomy_tokens]
+        if required_overlap and len(overlap) < required_overlap:
+            issues.append(
+                QualityIssue(
+                    code="taxonomy_domain_drift",
+                    message=(
+                        "Taxonomy does not reflect the core-set vocabulary: "
+                        f"expected at least {required_overlap} of {core_topics}, found {overlap}. "
+                        "Rebuild from the current GOAL/queries/core set; do not reuse an unrelated domain pack."
+                    ),
+                )
+            )
     return issues
 
 
@@ -2095,7 +2272,7 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         max_final_h2 = _quality_contract_int(
             workspace,
             keys=("structure_policy", "max_final_h2_by_profile", draft_profile),
-            default=9 if draft_profile == "deep" else 8,
+            default={"course_paper": 7, "deep": 9}.get(draft_profile, 8),
         )
         max_outline_h2 = max(1, max_final_h2 - extra_global_h2)
 
@@ -2117,27 +2294,8 @@ def _check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         max_h3 = _quality_contract_int(
             workspace,
             keys=("structure_policy", "max_h3_by_profile", draft_profile),
-            default=12 if draft_profile == "deep" else 10,
+            default={"course_paper": 6, "deep": 12}.get(draft_profile, 10),
         )
-
-        spec = load_workspace_pipeline_spec(workspace)
-        if spec is not None and str(spec.structure_mode or "").strip().lower() == "section_first":
-            core_sections = 0
-            for section in outline:
-                if not isinstance(section, dict):
-                    continue
-                title = str(section.get("title") or "").strip().lower()
-                subs = section.get("subsections") or []
-                if title in {"introduction", "related work"}:
-                    continue
-                if isinstance(subs, list) and subs:
-                    core_sections += 1
-            target_h3 = int(getattr(spec, "core_chapter_h3_target", 0) or 0)
-            if core_sections > 0 and target_h3 > 0:
-                # The explicit section-first contract should not be self-contradictory:
-                # if the pipeline declares a target H3 budget per core chapter, the
-                # global survey H3 cap must allow that chapter plan to materialize.
-                max_h3 = max(max_h3, core_sections * target_h3)
 
         if subs_total > max_h3:
             return [
@@ -2189,6 +2347,30 @@ def _check_mapping(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
             QualityIssue(
                 code="mapping_contains_placeholders",
                 message=f"`{out_rel}` still contains placeholder rows/rationales; regenerate mapping or edit it to cover all subsections with real rationales.",
+            )
+        )
+
+    low_confidence_rows = 0
+    for row in rows:
+        why = str(row.get("why") or "").strip().lower()
+        if any(
+            marker in why
+            for marker in (
+                "weak lexical overlap",
+                "low-confidence candidate",
+                "sparse explicit term overlap",
+                "based on overall similarity",
+            )
+        ):
+            low_confidence_rows += 1
+    if low_confidence_rows:
+        issues.append(
+            QualityIssue(
+                code="mapping_low_confidence",
+                message=(
+                    f"`{out_rel}` contains {low_confidence_rows} low-confidence mapping row(s); "
+                    "expand the evidence set, refine subsection concepts, or replace them with reviewed semantic mappings."
+                ),
             )
         )
 
@@ -2292,7 +2474,12 @@ def _check_mapping(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     if sections and paper_to_sections:
         top_pid, top_secs = max(paper_to_sections.items(), key=lambda kv: len(kv[1]))
         top_count = len(top_secs)
-        threshold = max(6, int(len(sections) * 0.35))
+        if _draft_profile(workspace) == "course_paper":
+            import math
+
+            threshold = max(3, math.ceil(len(sections) * 0.60))
+        else:
+            threshold = max(6, int(len(sections) * 0.35))
         if top_count > threshold:
             issues.append(
                 QualityIssue(
@@ -2470,15 +2657,16 @@ def _check_paper_notes(workspace: Path, outputs: list[str]) -> list[QualityIssue
             # A150++ scaling: require a denser evidence bank for arxiv-survey pipelines so later
             # binding/packs can stay in-scope without pushing the writer into hollow prose.
             if _pipeline_profile(workspace) == "arxiv-survey":
-                # Default contract: >=7 addressable evidence items per paper on average.
-                min_items = max(len(seen), int(len(seen) * 7))
+                items_per_paper = 4 if _draft_profile(workspace) == "course_paper" else 7
+                min_items = max(len(seen), int(len(seen) * items_per_paper))
                 if len(bank) < min_items:
                     issues.append(
                         QualityIssue(
                             code="evidence_bank_too_small",
                             message=(
                                 f"`{bank_rel}` has {len(bank)} items for {len(seen)} papers; "
-                                f"A150++ expects >= {min_items} (>=7 items/paper on average)."
+                                f"The `{_draft_profile(workspace)}` profile expects >= {min_items} "
+                                f"(>={items_per_paper} items/paper on average)."
                             ),
                         )
                     )
@@ -2666,7 +2854,7 @@ def _check_subsection_briefs(workspace: Path, outputs: list[str]) -> list[Qualit
 
     profile = _pipeline_profile(workspace)
     # Survey default: paragraph plans must be thick enough to prevent 1–2 paragraph stubs downstream.
-    min_plan_len = 8 if profile == "arxiv-survey" else 2
+    min_plan_len = (6 if _draft_profile(workspace) == "course_paper" else 8) if profile == "arxiv-survey" else 2
 
     required_top = {
         "sub_id",
@@ -3104,10 +3292,12 @@ def _check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityI
     draft_profile = _draft_profile(workspace)
     min_comparisons = 3
     if profile == "arxiv-survey":
-        min_comparisons = 6 if draft_profile == "deep" else 4
-        min_snippets = 14 if draft_profile == "deep" else 12
-        min_eval = 6 if draft_profile == "deep" else 5
-        min_fail = 6 if draft_profile == "deep" else 5
+        thresholds = {
+            "course_paper": (3, 6, 3, 3),
+            "deep": (6, 14, 6, 6),
+            "survey": (4, 12, 5, 5),
+        }
+        min_comparisons, min_snippets, min_eval, min_fail = thresholds.get(draft_profile, thresholds["survey"])
     else:
         min_snippets = 1
         min_eval = 1
@@ -3272,7 +3462,7 @@ def _check_anchor_sheet(workspace: Path, outputs: list[str]) -> list[QualityIssu
     profile = _pipeline_profile(workspace)
     draft_profile = _draft_profile(workspace)
     if profile == "arxiv-survey":
-        min_anchors = 12 if draft_profile == "deep" else 10
+        min_anchors = {"course_paper": 6, "deep": 12}.get(draft_profile, 10)
     else:
         min_anchors = 1
 
@@ -3423,7 +3613,7 @@ def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[Qua
     profile = _pipeline_profile(workspace)
     draft_profile = _draft_profile(workspace)
     if profile == "arxiv-survey":
-        min_plan = 10
+        min_plan = 5 if draft_profile == "course_paper" else 10
     else:
         min_plan = 4
 
@@ -3444,7 +3634,11 @@ def _check_writer_context_packs(workspace: Path, outputs: list[str]) -> list[Qua
 
     if profile == "arxiv-survey":
         per_subsection = int(_per_subsection(workspace))
-        if draft_profile == "deep":
+        if draft_profile == "course_paper":
+            min_comparisons = 3
+            min_lim_hooks = 2
+            min_anchors = 6
+        elif draft_profile == "deep":
             min_comparisons = 6
             min_lim_hooks = 3
             min_anchors = 12
@@ -3743,13 +3937,19 @@ def _check_evidence_bindings(workspace: Path, outputs: list[str]) -> list[Qualit
                     bank_ids.add(eid)
 
     profile = _pipeline_profile(workspace)
+    draft_profile = _draft_profile(workspace)
     per_subsection = int(_per_subsection(workspace)) if profile == "arxiv-survey" else 0
     # A150++ expectation: with wide per-H3 mapping, bindings should keep most of that breadth,
     # and select a solid subset of usable bibkeys plus enough evidence IDs to write concretely.
     min_mapped = per_subsection if per_subsection else 0
-    min_ids = max(10, per_subsection - 4) if per_subsection else (10 if profile == "arxiv-survey" else 6)
-    min_selected = max(12, int(round(per_subsection * 0.70))) if per_subsection else (12 if profile == "arxiv-survey" else 6)
-    min_distinct_papers = max(10, int(min_ids) - 6) if profile == "arxiv-survey" else 0
+    if profile == "arxiv-survey" and draft_profile == "course_paper":
+        min_ids = max(6, per_subsection - 2) if per_subsection else 6
+        min_selected = max(6, int(round(per_subsection * 0.70))) if per_subsection else 6
+        min_distinct_papers = max(4, int(min_ids) - 2)
+    else:
+        min_ids = max(10, per_subsection - 4) if per_subsection else (10 if profile == "arxiv-survey" else 6)
+        min_selected = max(12, int(round(per_subsection * 0.70))) if per_subsection else (12 if profile == "arxiv-survey" else 6)
+        min_distinct_papers = max(10, int(min_ids) - 6) if profile == "arxiv-survey" else 0
 
     bad = 0
     missing_bank = 0
@@ -3929,8 +4129,9 @@ def _check_table_schema(workspace: Path, outputs: list[str]) -> list[QualityIssu
     if _check_placeholder_markers(text) or "…" in text:
         return [QualityIssue(code="table_schema_placeholders", message=f"`{out_rel}` contains placeholders; fill schema with real table definitions.")]
     n = len(re.findall(r"(?m)^##\s+Table\s+[IA]\d+:", text))
-    if n < 4:
-        return [QualityIssue(code="table_schema_too_few", message=f"`{out_rel}` should define >=4 tables (I* index + A* appendix; found {n}).")]
+    min_tables = 2 if _draft_profile(workspace) == "course_paper" else 4
+    if n < min_tables:
+        return [QualityIssue(code="table_schema_too_few", message=f"`{out_rel}` should define >={min_tables} tables across the index and Appendix layers (found {n}).")]
     return []
 
 
@@ -3950,8 +4151,9 @@ def _check_tables_index_md(workspace: Path, outputs: list[str]) -> list[QualityI
             )
         ]
     table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
-    if len(table_seps) < 2:
-        return [QualityIssue(code="tables_missing", message=f"`{out_rel}` should contain >=2 Markdown tables (found {len(table_seps)}).")]
+    min_tables = 1 if _draft_profile(workspace) == "course_paper" else 2
+    if len(table_seps) < min_tables:
+        return [QualityIssue(code="tables_missing", message=f"`{out_rel}` should contain >={min_tables} Markdown tables (found {len(table_seps)}).")]
     if "[@" not in text:
         return [QualityIssue(code="tables_no_cites", message=f"`{out_rel}` should include citations in table rows (e.g., `[@BibKey]`).")]
     if re.search(r"\[@(?:Key|KEY)\d+", text):
@@ -3984,8 +4186,9 @@ def _check_tables_appendix_md(workspace: Path, outputs: list[str]) -> list[Quali
             )
         ]
     table_seps = re.findall(r"(?m)^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", text)
-    if len(table_seps) < 2:
-        return [QualityIssue(code="tables_appendix_missing", message=f"`{out_rel}` should contain >=2 Markdown tables (found {len(table_seps)}).")]
+    min_tables = 1 if _draft_profile(workspace) == "course_paper" else 2
+    if len(table_seps) < min_tables:
+        return [QualityIssue(code="tables_appendix_missing", message=f"`{out_rel}` should contain >={min_tables} Markdown tables (found {len(table_seps)}).")]
     if "[@" not in text:
         return [QualityIssue(code="tables_appendix_no_cites", message=f"`{out_rel}` should include citations in table rows (e.g., `[@BibKey]`).")]
     if re.search(r"\[@(?:Key|KEY)\d+", text):
@@ -4204,6 +4407,139 @@ def _check_eval_anchor_report(workspace: Path, outputs: list[str]) -> list[Quali
         ]
 
     return []
+
+
+def _expected_h3_ids(workspace: Path) -> list[str]:
+    from tooling.common import load_yaml
+
+    outline_path = workspace / "outline" / "outline.yml"
+    outline = load_yaml(outline_path) if outline_path.exists() else []
+    expected: list[str] = []
+    if not isinstance(outline, list):
+        return expected
+    for section in outline:
+        if not isinstance(section, dict):
+            continue
+        for subsection in section.get("subsections") or []:
+            if not isinstance(subsection, dict):
+                continue
+            sub_id = str(subsection.get("id") or "").strip()
+            if sub_id:
+                expected.append(sub_id)
+    return expected
+
+
+def _section_path_for_id(sub_id: str) -> str:
+    safe = "".join(char if char.isalnum() else "_" for char in str(sub_id or "")).strip("_")
+    return f"sections/S{safe}.md"
+
+
+def _check_paragraph_curator(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    report_rel = next((item for item in outputs if item.endswith("PARAGRAPH_CURATION_REPORT.md")), "output/PARAGRAPH_CURATION_REPORT.md")
+    marker_rel = next((item for item in outputs if item.endswith(".refined.ok")), "sections/paragraphs_curated.refined.ok")
+    report_path = workspace / report_rel
+    marker_path = workspace / marker_rel
+    if not report_path.exists():
+        return [QualityIssue(code="missing_paragraph_curation_report", message=f"`{report_rel}` does not exist.")]
+
+    issues: list[QualityIssue] = []
+    report = report_path.read_text(encoding="utf-8", errors="ignore")
+    if not re.search(r"(?im)^-\s*Status:\s*PASS\s*$", report):
+        issues.append(QualityIssue(code="paragraph_curation_not_pass", message=f"`{report_rel}` does not report PASS."))
+    if not marker_path.exists():
+        issues.append(QualityIssue(code="paragraph_curation_marker_missing", message=f"`{marker_rel}` does not exist."))
+
+    profile = _draft_profile(workspace)
+    minimum, maximum = {
+        "course_paper": (5, 7),
+        "survey": (10, 12),
+        "deep": (11, 13),
+    }.get(profile, (1, 14))
+    off_budget: list[str] = []
+    for sub_id in _expected_h3_ids(workspace):
+        relpath = _section_path_for_id(sub_id)
+        path = workspace / relpath
+        if not path.exists():
+            off_budget.append(f"{sub_id}=missing")
+            continue
+        count = len([part for part in re.split(r"\n\s*\n", path.read_text(encoding="utf-8", errors="ignore").strip()) if part.strip()])
+        if count < minimum or count > maximum:
+            off_budget.append(f"{sub_id}={count}")
+    if off_budget:
+        issues.append(
+            QualityIssue(
+                code="paragraph_curation_outside_profile_budget",
+                message=f"H3 paragraph counts fall outside the `{profile}` budget {minimum}-{maximum}: {', '.join(off_budget[:8])}.",
+            )
+        )
+    return issues
+
+
+def _check_argument_snapshot(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import read_jsonl
+
+    todo_rel = next((item for item in outputs if item.endswith("ARGUMENT_SELFLOOP_TODO.md")), "output/ARGUMENT_SELFLOOP_TODO.md")
+    summaries_rel = next((item for item in outputs if item.endswith("SECTION_ARGUMENT_SUMMARIES.jsonl")), "output/SECTION_ARGUMENT_SUMMARIES.jsonl")
+    skeleton_rel = next((item for item in outputs if item.endswith("ARGUMENT_SKELETON.md")), "output/ARGUMENT_SKELETON.md")
+    manifest_rel = next((item for item in outputs if item.endswith("sections_manifest.jsonl")), "sections/sections_manifest.jsonl")
+    required = [todo_rel, summaries_rel, skeleton_rel, manifest_rel]
+    missing = [relpath for relpath in required if not (workspace / relpath).exists()]
+    if missing:
+        return [QualityIssue(code="argument_snapshot_missing_outputs", message=f"Argument snapshot is missing: {', '.join(missing)}.")]
+
+    issues: list[QualityIssue] = []
+    report = (workspace / todo_rel).read_text(encoding="utf-8", errors="ignore")
+    if not re.search(r"(?im)^-\s*Status:\s*PASS\s*$", report):
+        issues.append(QualityIssue(code="argument_snapshot_not_pass", message=f"`{todo_rel}` does not report PASS."))
+
+    skeleton = (workspace / skeleton_rel).read_text(encoding="utf-8", errors="ignore")
+    if not re.search(r"(?im)^##\s+Consistency Contract\s*$", skeleton):
+        issues.append(QualityIssue(code="argument_snapshot_missing_contract", message=f"`{skeleton_rel}` lacks `## Consistency Contract`."))
+
+    allowed_moves = {"setup", "thesis", "contrast", "evidence", "evaluation", "limitation", "synthesis", "takeaway"}
+    summaries = [record for record in read_jsonl(workspace / summaries_rel) if isinstance(record, dict)]
+    by_id = {str(record.get("id") or "").strip(): record for record in summaries if str(record.get("id") or "").strip()}
+    incomplete: list[str] = []
+    for sub_id in _expected_h3_ids(workspace):
+        record = by_id.get(sub_id)
+        paragraphs = record.get("paragraphs") if isinstance(record, dict) else None
+        if not isinstance(paragraphs, list) or not paragraphs:
+            incomplete.append(sub_id)
+            continue
+        for paragraph in paragraphs:
+            moves = paragraph.get("moves") if isinstance(paragraph, dict) else None
+            if not isinstance(moves, list) or not moves or any(str(move) not in allowed_moves for move in moves):
+                incomplete.append(sub_id)
+                break
+    if incomplete:
+        issues.append(
+            QualityIssue(
+                code="argument_snapshot_incomplete_moves",
+                message=f"Argument summaries are missing valid paragraph moves for: {', '.join(dict.fromkeys(incomplete))}.",
+            )
+        )
+
+    manifest = [record for record in read_jsonl(workspace / manifest_rel) if isinstance(record, dict)]
+    manifest_by_path = {str(record.get("path") or "").strip(): record for record in manifest}
+    stale: list[str] = []
+    for sub_id in _expected_h3_ids(workspace):
+        relpath = _section_path_for_id(sub_id)
+        path = workspace / relpath
+        record = manifest_by_path.get(relpath)
+        if not path.exists() or not isinstance(record, dict):
+            stale.append(relpath)
+            continue
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if str(record.get("sha256") or "") != digest or int(record.get("bytes") or 0) != path.stat().st_size:
+            stale.append(relpath)
+    if stale:
+        issues.append(
+            QualityIssue(
+                code="sections_manifest_stale",
+                message=f"`{manifest_rel}` does not fingerprint the current section content: {', '.join(stale[:8])}.",
+            )
+        )
+    return issues
 
 
 def _check_sections_manifest_index(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
@@ -4582,7 +4918,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 # Survey H3s should stay evidence-dense, but local floors must not force
                 # citation-padding or template-only breadth paragraphs. Use a lower local
                 # floor here and rely on the global citation target later in the pipeline.
-                min_cites = 8 if draft_profile == "deep" else 6
+                min_cites = 4 if draft_profile == "course_paper" else (8 if draft_profile == "deep" else 6)
                 if len(cite_keys) < min_cites:
                     issues.append(
                         QualityIssue(
@@ -4592,7 +4928,10 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     )
 
             if profile == "arxiv-survey":
-                if draft_profile == "deep":
+                if draft_profile == "course_paper":
+                    min_paragraphs = 5
+                    min_chars = 1600
+                elif draft_profile == "deep":
                     min_paragraphs = 9
                     # Keep sections "thick" without forcing filler; prefer argument-move checks over raw length.
                     # This is a post-citation length floor (citations removed) used as a readability proxy.
@@ -4741,7 +5080,7 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     r"(?i)\b(?:benchmark|dataset|datasets|metric|metrics|evaluation|eval\.|protocol|human|ablation|"
                     r"latency|cost|budget|token|tokens|throughput|compute)\b|评测|基准|数据集|指标|协议|人工|实验|成本|预算|延迟"
                 )
-                limitation_re = r"(?i)\b(?:limitation|limited|provisional|unclear|sensitive|caveat|downside|failure|risk|open\s+question|remains)\b|受限|尚不明确|缺乏|需要核验|局限|失败|风险|待验证"
+                limitation_re = r"(?i)\b(?:limitations?|limited|provisional|unclear|sensitive|caveat|downside|failure|risk|open\s+question|remains)\b|受限|尚不明确|缺乏|需要核验|局限|失败|风险|待验证"
 
                 if uid in numeric_available:
                     has_cited_numeric = any(re.search(r"\d", p) and "[@" in p for p in paragraphs)
@@ -4756,7 +5095,12 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                             )
                         )
 
-                if draft_profile == "deep":
+                if draft_profile == "course_paper":
+                    min_contrast = 1
+                    min_eval = 1
+                    min_lim = 1
+                    min_anchor_paras = 2
+                elif draft_profile == "deep":
                     min_contrast = 3
                     min_eval = 3
                     min_lim = 2
@@ -4839,13 +5183,14 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                 profile = _pipeline_profile(workspace)
                 if profile == "arxiv-survey":
                     sub_specific = {k for k in cite_keys if k in allowed_sub}
-                    if len(sub_specific) < 3:
+                    min_sub_specific = 2 if draft_profile == "course_paper" else 3
+                    if len(sub_specific) < min_sub_specific:
                         issues.append(
                             QualityIssue(
                                 code="sections_h3_sparse_subsection_cites",
                                 message=(
                                     f"`{rel}` cites too few subsection-specific papers ({len(sub_specific)}). "
-                                    "Chapter-scoped reuse is allowed, but each H3 should still ground itself in >=3 papers mapped to that subsection."
+                                    f"Chapter-scoped reuse is allowed, but each H3 should still ground itself in >={min_sub_specific} papers mapped to that subsection."
                                 ),
                             )
                         )
@@ -4938,7 +5283,11 @@ def _check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Qualit
                     draft_profile = _draft_profile(workspace)
                     front_kind = "introduction" if is_intro else "related_work"
                     default_front = (
-                        {"min_cites": 40, "min_paras": 3, "min_chars": 3600}
+                        {"min_cites": 6, "min_paras": 3, "min_chars": 1200}
+                        if draft_profile == "course_paper" and is_intro
+                        else {"min_cites": 8, "min_paras": 3, "min_chars": 1400}
+                        if draft_profile == "course_paper"
+                        else {"min_cites": 40, "min_paras": 3, "min_chars": 3600}
                         if draft_profile == "deep" and is_intro
                         else {"min_cites": 55, "min_paras": 2, "min_chars": 4200}
                         if draft_profile == "deep"
@@ -5101,6 +5450,8 @@ def _check_audit_report(workspace: Path, outputs: list[str]) -> list[QualityIssu
 
 
 def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import reader_request_leakage
+
     out_rel = outputs[0] if outputs else "output/DRAFT.md"
     path = workspace / out_rel
     if not path.exists():
@@ -5108,6 +5459,17 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     text = path.read_text(encoding="utf-8", errors="ignore")
 
     issues: list[QualityIssue] = []
+    request_leaks = reader_request_leakage(text)
+    if request_leaks:
+        issues.append(
+            QualityIssue(
+                code="draft_delivery_request_leakage",
+                message=(
+                    "Draft contains user delivery instructions instead of a reader-facing research subject "
+                    f"({', '.join(request_leaks)}). Normalize the paper title/front matter from `GOAL.md` before merging."
+                ),
+            )
+        )
     if re.search(r"\bTODO\b", text):
         issues.append(QualityIssue(code="draft_contains_todo", message="Draft still contains `TODO` placeholders."))
     if re.search(r"(?i)\b(?:TBD|FIXME)\b", text):
@@ -5173,6 +5535,22 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
                 message=(
                     "Draft contains the repeated axes template ('The main axes we track are ...'), which reads as scaffolding. "
                     "Use subsection-specific axes from `outline/subsection_briefs.jsonl` / `outline/evidence_drafts.jsonl` and avoid repeating a global template sentence."
+                ),
+            )
+        )
+
+    dangling_numeric_caveats = re.findall(
+        r"(?i)\b(?:that number|the cited number|this numeric margin|the numeric margin)\b",
+        text,
+    )
+    if dangling_numeric_caveats:
+        issues.append(
+            QualityIssue(
+                code="draft_dangling_numeric_caveat",
+                message=(
+                    "Draft contains anaphoric numeric caveats after the underlying number was removed "
+                    f"({len(dangling_numeric_caveats)} occurrence(s)). Rewrite each caveat as a standalone, "
+                    "evidence-bounded claim about the cited setup."
                 ),
             )
         )
@@ -5369,12 +5747,12 @@ def _check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         min_h3_cites = _quality_contract_int(
             workspace,
             keys=("subsection_policy", draft_profile, "min_unique_citations"),
-            default=14 if draft_profile == "deep" else 12,
+            default={"course_paper": 4, "deep": 14}.get(draft_profile, 12),
         )
         min_h3_chars = _quality_contract_int(
             workspace,
             keys=("subsection_policy", draft_profile, "min_chars"),
-            default=6000 if draft_profile == "deep" else 5000,
+            default={"course_paper": 1600, "deep": 6000}.get(draft_profile, 5000),
         )
         no_cite = 0
         too_short = 0
@@ -5707,22 +6085,137 @@ def _check_protocol(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     if _check_placeholder_markers(text):
         issues.append(QualityIssue(code="protocol_placeholders", message="Protocol contains placeholder markers (TODO/TBD/FIXME)."))
 
-    low = text.lower()
-    required = [
-        ("databases", "数据库"),
-        ("inclusion", "纳入"),
-        ("exclusion", "排除"),
-        ("extraction", "提取"),
-        ("time window", "时间窗"),
-    ]
-    missing = [en for en, zh in required if (en not in low and zh not in text)]
-    if missing:
+    from tooling.evidence_review_evaluation import CANONICAL_EXTRACTION_FIELDS
+    from tooling.review_protocol import parse_protocol
+
+    protocol = parse_protocol(text)
+    field_names = {str(item.get("field") or "").strip() for item in protocol.get("extraction_fields") or []}
+    missing_fields = [field for field in CANONICAL_EXTRACTION_FIELDS if field not in field_names]
+    missing_parts: list[str] = []
+    if "## Databases and Sources" not in text:
+        missing_parts.append("databases and sources")
+    if "## Time Window" not in text:
+        missing_parts.append("time window")
+    if len(protocol.get("review_questions") or []) < 1:
+        missing_parts.append("review questions")
+    if len(protocol.get("inclusion") or []) < 2:
+        missing_parts.append("numbered inclusion clauses")
+    if len(protocol.get("exclusion") or []) < 2:
+        missing_parts.append("numbered exclusion clauses")
+    if missing_fields:
+        missing_parts.append("extraction fields: " + ", ".join(missing_fields))
+    if missing_parts:
         issues.append(
             QualityIssue(
                 code="protocol_missing_sections",
-                message=f"Protocol is missing key sections: {', '.join(missing)} (add databases/queries/inclusion-exclusion/time window/extraction fields).",
+                message=f"Protocol is missing operational contract parts: {', '.join(missing_parts)}.",
             )
         )
+    return issues
+
+
+def _check_evidence_screening(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    import csv
+
+    from tooling.review_protocol import parse_protocol
+
+    out_rel = outputs[0] if outputs else "papers/screening_log.csv"
+    path = workspace / out_rel
+    protocol_path = workspace / "output" / "PROTOCOL.md"
+    if not path.exists() or not protocol_path.exists():
+        return [QualityIssue(code="missing_screening_inputs", message="Evidence screening requires the protocol and screening log.")]
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = [dict(row) for row in csv.DictReader(handle)]
+    protocol = parse_protocol(protocol_path.read_text(encoding="utf-8", errors="ignore"))
+    valid_codes = {code for code, _ in (protocol.get("inclusion") or []) + (protocol.get("exclusion") or [])}
+    invalid = 0
+    included = 0
+    for row in rows:
+        decision = str(row.get("decision") or "").strip().lower()
+        included += int(decision == "include")
+        codes = {value.strip() for value in re.split(r"[;,\s]+", str(row.get("reason_codes") or "")) if value.strip()}
+        if (
+            decision not in {"include", "exclude"}
+            or not str(row.get("paper_id") or "").strip()
+            or not codes
+            or not codes.issubset(valid_codes)
+            or not str(row.get("reason") or "").strip()
+        ):
+            invalid += 1
+    issues: list[QualityIssue] = []
+    if not rows:
+        issues.append(QualityIssue(code="empty_screening_log", message=f"`{out_rel}` has no screening decisions."))
+    if invalid:
+        issues.append(QualityIssue(code="untraceable_screening_rows", message=f"`{out_rel}` has {invalid} row(s) without valid protocol-linked decisions and reasons."))
+    if rows and included == 0:
+        issues.append(QualityIssue(code="screening_includes_nothing", message=f"`{out_rel}` includes no studies; revise the protocol or candidate pool before extraction."))
+    return issues
+
+
+def _check_evidence_extraction(workspace: Path, outputs: list[str], *, require_bias: bool) -> list[QualityIssue]:
+    import csv
+
+    from tooling.evidence_review_evaluation import CANONICAL_EXTRACTION_FIELDS
+
+    out_rel = outputs[0] if outputs else "papers/extraction_table.csv"
+    path = workspace / out_rel
+    screening_path = workspace / "papers" / "screening_log.csv"
+    if not path.exists() or not screening_path.exists():
+        return [QualityIssue(code="missing_extraction_inputs", message="Evidence extraction requires the screening log and extraction table.")]
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = [dict(row) for row in csv.DictReader(handle)]
+    with screening_path.open("r", encoding="utf-8", newline="") as handle:
+        screening = [dict(row) for row in csv.DictReader(handle)]
+    included_ids = {str(row.get("paper_id") or "").strip() for row in screening if str(row.get("decision") or "").strip().lower() == "include"}
+    extracted_ids = {str(row.get("paper_id") or "").strip() for row in rows if str(row.get("paper_id") or "").strip()}
+    issues: list[QualityIssue] = []
+    if not rows:
+        return [QualityIssue(code="empty_extraction_table", message=f"`{out_rel}` has no extracted studies.")]
+    columns = set(rows[0])
+    missing_columns = [field for field in CANONICAL_EXTRACTION_FIELDS if field not in columns]
+    if missing_columns:
+        issues.append(QualityIssue(code="extraction_missing_columns", message=f"`{out_rel}` is missing canonical fields: {', '.join(missing_columns)}."))
+    missing_ids = sorted(included_ids - extracted_ids)
+    if missing_ids or extracted_ids - included_ids:
+        issues.append(QualityIssue(code="extraction_screening_mismatch", message=f"Extraction IDs must equal included screening IDs; missing={missing_ids}, unexpected={sorted(extracted_ids - included_ids)}."))
+    thin_rows = 0
+    for row in rows:
+        values = [str(row.get(field) or "").strip().lower() for field in CANONICAL_EXTRACTION_FIELDS]
+        if any(not value or value.startswith("not reported") or value.startswith("not classifiable") for value in values):
+            thin_rows += 1
+    if thin_rows:
+        issues.append(QualityIssue(code="extraction_rows_not_substantive", message=f"`{out_rel}` has {thin_rows} row(s) with missing or explicitly unavailable canonical evidence fields; enrich or exclude them before synthesis."))
+    if require_bias:
+        allowed = {"low", "unclear", "high"}
+        rob_fields = ("rob_selection", "rob_measurement", "rob_confounding", "rob_reporting", "rob_overall")
+        invalid_bias = sum(
+            1
+            for row in rows
+            if any(str(row.get(field) or "").strip().lower() not in allowed for field in rob_fields)
+            or not str(row.get("rob_notes") or "").strip()
+        )
+        if invalid_bias:
+            issues.append(QualityIssue(code="incomplete_bias_assessment", message=f"`{out_rel}` has {invalid_bias} row(s) with incomplete risk-of-bias fields."))
+    return issues
+
+
+def _check_evidence_synthesis(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.evidence_review_evaluation import REQUIRED_SYNTHESIS_SECTIONS, evaluate_evidence_review
+
+    out_rel = outputs[0] if outputs else "output/SYNTHESIS.md"
+    path = workspace / out_rel
+    if not path.exists():
+        return [QualityIssue(code="missing_evidence_synthesis", message=f"`{out_rel}` does not exist.")]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    issues = [
+        QualityIssue(code="evidence_synthesis_missing_section", message=f"`{out_rel}` is missing `{heading}`.")
+        for heading in REQUIRED_SYNTHESIS_SECTIONS
+        if heading not in text
+    ]
+    payload = evaluate_evidence_review(workspace)
+    trace = next((item for item in payload["dimensions"] if item["id"] == "synthesis_traceability"), None)
+    if trace and trace["status"] != "PASS":
+        issues.append(QualityIssue(code="evidence_synthesis_untraceable", message=str(trace["evidence"])))
     return issues
 
 
@@ -5944,15 +6437,12 @@ def _check_latex_scaffold(workspace: Path, outputs: list[str]) -> list[QualityIs
     if not path.exists():
         return [QualityIssue(code="missing_main_tex", message=f"`{out_rel}` does not exist.")]
     text = path.read_text(encoding="utf-8", errors="ignore")
-    profile = pipeline_profile(workspace)
-    bib_path = workspace / "citations" / "ref.bib"
+    profile = _pipeline_profile(workspace)
 
     issues: list[QualityIssue] = []
     if profile not in {"source-tutorial"} and "\\begin{abstract}" not in text:
         issues.append(QualityIssue(code="latex_missing_abstract", message="LaTeX output has no `\\begin{abstract}` block."))
-    if bib_path.exists() and "\\bibliography{../citations/ref}" not in text:
-        issues.append(QualityIssue(code="latex_missing_bib", message="LaTeX output does not reference `../citations/ref.bib`."))
-    if not bib_path.exists() and profile not in {"source-tutorial"} and "\\bibliography{../citations/ref}" not in text:
+    if profile not in {"source-tutorial"} and "\\bibliography{../citations/ref}" not in text:
         issues.append(QualityIssue(code="latex_missing_bib", message="LaTeX output does not reference `../citations/ref.bib`."))
     # Heuristics: markdown artifacts should not leak into TeX.
     if "[@" in text:
@@ -5965,6 +6455,8 @@ def _check_latex_scaffold(workspace: Path, outputs: list[str]) -> list[QualityIs
 
 
 def _check_latex_compile_qa(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    from tooling.common import load_workspace_goal_constraints
+
     pdf_rel = outputs[0] if outputs else "latex/main.pdf"
     report_rel = outputs[1] if len(outputs) > 1 else "output/LATEX_BUILD_REPORT.md"
 
@@ -5979,7 +6471,7 @@ def _check_latex_compile_qa(workspace: Path, outputs: list[str]) -> list[Quality
 
     report_text = report_path.read_text(encoding="utf-8", errors="ignore")
     issues: list[QualityIssue] = []
-    profile = pipeline_profile(workspace)
+    profile = _pipeline_profile(workspace)
 
     if "Status: SUCCESS" not in report_text and "- Status: SUCCESS" not in report_text:
         issues.append(
@@ -6062,12 +6554,25 @@ def _check_latex_compile_qa(workspace: Path, outputs: list[str]) -> list[Quality
             )
             return issues
 
-    min_pages = 4 if profile == "source-tutorial" else 8
+    constraints = load_workspace_goal_constraints(workspace)
+    page_range = constraints.get("page_range") if isinstance(constraints.get("page_range"), dict) else {}
+    min_pages = int(page_range.get("min") or (4 if profile == "source-tutorial" else 8))
+    max_pages = int(page_range.get("max") or 0)
     if pages < min_pages:
         issues.append(
             QualityIssue(
                 code="pdf_too_short",
                 message=f"`{pdf_rel}` is too short ({pages} pages); expand the draft until the compiled PDF has >= {min_pages} pages.",
+            )
+        )
+    if max_pages and pages > max_pages:
+        issues.append(
+            QualityIssue(
+                code="pdf_too_long",
+                message=(
+                    f"`{pdf_rel}` exceeds the Goal page limit ({pages} pages; target {min_pages}-{max_pages} total PDF pages). "
+                    "Compress layout or prose without dropping required evidence, then recompile."
+                ),
             )
         )
 

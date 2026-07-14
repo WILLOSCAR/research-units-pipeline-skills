@@ -9,6 +9,11 @@
       "min_snippets": 14,
       "min_comparisons": 6,
       "min_limitations": 6
+    },
+    "course_paper": {
+      "min_snippets": 6,
+      "min_comparisons": 3,
+      "min_limitations": 3
     }
   },
   "block_messages": {

@@ -19,6 +19,7 @@ should go.
 The output stays intentionally light:
 
 - `output/SNAPSHOT.md`
+- `output/BRIEF_SCORECARD.md` and `output/BRIEF_SCORECARD.json`
 
 ## 2. Common Starting Inputs
 
@@ -32,7 +33,7 @@ This path is intentionally optimized for small, usable evidence rather than exha
 
 ## 3. Data Flow
 
-`topic / small paper pool -> retrieval + dedupe -> small core set -> taxonomy + bullets-only outline -> compact snapshot -> deliverable self-check`
+`topic / small paper pool -> focused retrieval + dedupe -> compact core set -> taxonomy + bullets-only outline -> compact snapshot -> scored self-check`
 
 What matters is not exhaustive coverage but whether the output can tell a reader:
 
@@ -82,7 +83,7 @@ Do not use it when:
 | `C0` | initialize workspace and seed queries | `STATUS.md`, `UNITS.csv`, `DECISIONS.md`, `queries.md` |
 | `C1` | retrieve a small, usable core set | `papers/papers_raw.jsonl`, `papers/core_set.csv` |
 | `C2` | lock topic boundary and bullets-only outline | `outline/taxonomy.yml`, `outline/outline.yml` |
-| `C3` | write and self-check the briefing | `output/SNAPSHOT.md`, `output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `C3` | write and score the briefing | `output/SNAPSHOT.md`, `output/BRIEF_SCORECARD.json`, `output/DELIVERABLE_SELFLOOP_TODO.md` |
 
 ## 8. Quality Bar
 
@@ -92,8 +93,20 @@ The brief should:
 - surface the key themes as claims, not generic section narration
 - point the reader to what to read first
 - stay compact and pointer-heavy
+- resolve every paper pointer to `papers/core_set.csv`
 
-## 9. Recommended Prompt
+The default profile retrieves up to 80 candidates and keeps a 12-paper core
+set. Override those values in `queries.md` only when the topic genuinely needs
+a larger evidence base.
+
+## 9. Current Reliability Boundary
+
+This Workflow has a scored failure/repair/rerun proof. The scorecard validates
+structure, compactness, reading-path pointers, and core-set traceability. It
+does not judge whether retrieval found the best or complete literature, so
+ambiguous topics still need a human check of `queries.md` and the core set.
+
+## 10. Recommended Prompt
 
 ```text
 Use the research-brief workflow to give me a one-page briefing on robot test-time adaptation, with key themes and what to read first.

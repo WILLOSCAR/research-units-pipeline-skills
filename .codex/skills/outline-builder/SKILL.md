@@ -11,6 +11,8 @@ description: |
 
 # Outline Builder
 
+`outline/outline.refined.ok` freezes a reviewed outline only while the marker is newer than the outline, all declared inputs, the defaults asset, and the generator. Upstream changes invalidate the marker and trigger a backed-up regeneration.
+
 Build `outline/outline.yml` from either:
 - `outline/taxonomy.yml` (legacy H3-first compatibility path)
 - `outline/chapter_skeleton.yml` + `outline/section_briefs.jsonl` (section-first transition path)
@@ -76,8 +78,8 @@ Keep these stable:
 
 ## Quick Start
 
-- `python .codex/skills/outline-builder/scripts/run.py --help`
-- `python .codex/skills/outline-builder/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/outline-builder/scripts/run.py --help`
+- `uv run python .codex/skills/outline-builder/scripts/run.py --workspace <workspace>`
 
 ## Execution notes
 
@@ -94,7 +96,7 @@ The optional style references under `ref/agent-surveys/` are for human calibrati
 
 ### Quick Start
 
-- `python .codex/skills/outline-builder/scripts/run.py --workspace <workspace_dir>`
+- `uv run python .codex/skills/outline-builder/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -106,7 +108,7 @@ The optional style references under `ref/agent-surveys/` are for human calibrati
 
 ### Examples
 
-- `python .codex/skills/outline-builder/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/outline-builder/scripts/run.py --workspace <workspace>`
 
 ## Troubleshooting
 

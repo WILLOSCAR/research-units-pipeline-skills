@@ -15,22 +15,23 @@ from tooling.harness_contracts import (
     CURRENT_WORKFLOWS,
     EXECUTABLE_PIPELINE_CONTRACTS,
     EXECUTABLE_UNIT_TEMPLATES,
+    EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
+    IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS,
     PAPER_REVIEW_TAXONOMY_ARTIFACTS,
+    RESEARCH_BRIEF_TAXONOMY_ARTIFACTS,
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
     PROJECT_LANGUAGE_REQUIRED_TERMS,
     READINESS_AUDIT_SCHEMA,
     READINESS_MIN_ITERATIONS,
-    READINESS_PROGRESS_PATH,
     READINESS_REQUIRED_DOCS,
     READINESS_VALIDATION_SURFACES,
 )
 
-DEFAULT_PROGRESS_PATH = READINESS_PROGRESS_PATH
 SCHEMA = READINESS_AUDIT_SCHEMA
 MIN_ITERATIONS = READINESS_MIN_ITERATIONS
 REQUIRED_DOCS = READINESS_REQUIRED_DOCS
@@ -60,8 +61,11 @@ def main() -> int:
     parser.add_argument("--repo-root", default=str(REPO_ROOT), help="Repository root to inspect.")
     parser.add_argument(
         "--progress",
-        default=DEFAULT_PROGRESS_PATH,
-        help="Progress ledger path, relative to repo root unless absolute.",
+        default="",
+        help=(
+            "Optional progress ledger path, relative to repo root unless absolute. "
+            "When omitted, readiness only audits active repo evidence surfaces."
+        ),
     )
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     parser.add_argument("--report", default="", help="Optional output report path.")
@@ -69,8 +73,8 @@ def main() -> int:
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
-    progress_path = Path(args.progress)
-    if not progress_path.is_absolute():
+    progress_path = Path(args.progress) if args.progress else None
+    if progress_path is not None and not progress_path.is_absolute():
         progress_path = repo_root / progress_path
 
     payload = build_readiness_audit(repo_root=repo_root, progress_path=progress_path)
@@ -90,10 +94,8 @@ def main() -> int:
     return 0
 
 
-def build_readiness_audit(*, repo_root: Path, progress_path: Path) -> dict[str, object]:
+def build_readiness_audit(*, repo_root: Path, progress_path: Path | None) -> dict[str, object]:
     checks = [
-        _check_progress_iterations(progress_path),
-        _check_progress_active(progress_path),
         _check_required_paths(repo_root=repo_root, rel_paths=REQUIRED_DOCS, check_id="docs", label="required docs"),
         _check_readme_links(repo_root=repo_root),
         _check_adr_set(repo_root=repo_root),
@@ -119,16 +121,23 @@ def build_readiness_audit(*, repo_root: Path, progress_path: Path) -> dict[str, 
             label="validation surfaces",
         ),
     ]
+    if progress_path is not None:
+        checks = [
+            _check_progress_iterations(progress_path),
+            _check_progress_active(progress_path),
+            *checks,
+        ]
     verdict = "PASS" if all(check.status == "PASS" for check in checks) else "ATTENTION"
     return {
         "schema": SCHEMA,
         "repo": str(repo_root),
-        "progress": str(progress_path),
+        "progress": str(progress_path) if progress_path is not None else "not configured",
         "verdict": verdict,
         "checks": [asdict(check) for check in checks],
         "note": (
             "This audit checks completion evidence surfaces only. Final closure still requires "
-            "running the commands listed in docs/HARNESS_READINESS.md."
+            "running the commands listed in docs/HARNESS_READINESS.md. Pass `--progress <path>` "
+            "only when an active long-running goal ledger should be audited as additional evidence."
         ),
     }
 
@@ -313,6 +322,30 @@ def _check_workflow_taxonomy(*, repo_root: Path) -> ReadinessCheck:
             "WARN",
             "Pipeline taxonomy is missing paper-review artifact(s): " + _format_check_list(missing_review_artifacts) + ".",
             "Keep existing paper-review contract artifacts separate from future proof artifacts.",
+        )
+    missing_brief_artifacts = [artifact for artifact in RESEARCH_BRIEF_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_brief_artifacts:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing research-brief artifact(s): " + _format_check_list(missing_brief_artifacts) + ".",
+            "Keep the scored research-brief contract aligned with its Pipeline artifacts.",
+        )
+    missing_idea_artifacts = [artifact for artifact in IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_idea_artifacts:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing idea-brainstorm artifact(s): " + _format_check_list(missing_idea_artifacts) + ".",
+            "Keep the scored idea-brainstorm contract aligned with its Pipeline artifacts.",
+        )
+    missing_evidence_artifacts = [artifact for artifact in EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_evidence_artifacts:
+        return ReadinessCheck(
+            "workflow_taxonomy",
+            "WARN",
+            "Pipeline taxonomy is missing evidence-review artifact(s): " + _format_check_list(missing_evidence_artifacts) + ".",
+            "Keep the scored evidence-review contract aligned with its protocol-to-synthesis artifacts.",
         )
     return ReadinessCheck(
         "workflow_taxonomy",

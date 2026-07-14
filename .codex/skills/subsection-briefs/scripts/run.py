@@ -268,9 +268,22 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import ensure_dir, latest_outline_state, load_workspace_pipeline_spec, load_yaml, now_iso_seconds, parse_semicolon_list, read_jsonl, read_tsv, write_jsonl
+    from tooling.common import (
+        ensure_dir,
+        latest_outline_state,
+        load_workspace_pipeline_spec,
+        load_yaml,
+        now_iso_seconds,
+        parse_semicolon_list,
+        read_jsonl,
+        read_tsv,
+        refinement_marker_is_current,
+        write_jsonl,
+    )
+    from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()
+    draft_profile = _draft_profile(workspace)
     spec = load_workspace_pipeline_spec(workspace)
     if spec is not None and str(spec.structure_mode or "").strip() == "section_first":
         state = latest_outline_state(workspace)
@@ -296,9 +309,18 @@ def main() -> int:
 
     # Explicit freeze policy: only skip regeneration if the user creates `outline/subsection_briefs.refined.ok`.
     freeze_marker = out_path.parent / "subsection_briefs.refined.ok"
+    domain_pack_dir = Path(__file__).resolve().parents[1] / "assets" / "domain_packs"
+    prerequisites = [
+        out_path,
+        Path(__file__),
+        *[workspace / item for item in inputs],
+        *sorted(domain_pack_dir.glob("*.json")),
+    ]
     if out_path.exists() and out_path.stat().st_size > 0:
-        if freeze_marker.exists():
+        if refinement_marker_is_current(freeze_marker, prerequisites):
             return 0
+        if freeze_marker.exists():
+            freeze_marker.unlink()
         _backup_existing(out_path)
 
     _assert_h3_cutover_ready(workspace=workspace, consumer="subsection-briefs")
@@ -378,6 +400,7 @@ def main() -> int:
             axes=axes,
             clusters=clusters,
             evidence_summary=dict(evidence_summary),
+            draft_profile=draft_profile,
         )
 
         scope_rule = _scope_rule(goal=goal, sub_title=sub_title)
@@ -1082,6 +1105,7 @@ def _build_clusters(*, paper_refs: list[PaperRef], goal: str, sub_title: str, wa
     min_cluster_size = int(policy.get("cluster_min_size") or 2)
     allow_overlap_below_papers = int(policy.get("allow_overlap_below_papers") or 4)
     max_clusters = int(policy.get("max_clusters") or 2)
+    all_paper_refs = list(paper_refs)
     filtered_refs = [p for p in paper_refs if not _META_PAPER_TITLE_RE.search(str(p.title or ''))]
     if len(filtered_refs) >= 4:
         paper_refs = filtered_refs
@@ -1152,10 +1176,11 @@ def _build_clusters(*, paper_refs: list[PaperRef], goal: str, sub_title: str, wa
                     rationale = re.sub(r"\s+", " ", str(spec.get("rationale") or "").strip())
                     match_terms = _list_strings(spec.get("match_any"))
                     match_tags = {x.lower() for x in _list_strings(spec.get("match_tags_any"))}
+                    candidate_refs = all_paper_refs if bool(spec.get("include_meta")) else paper_refs
                     if not label:
                         continue
                     selected: list[PaperRef] = []
-                    for p in paper_refs:
+                    for p in candidate_refs:
                         title_text = str(p.title or "").lower()
                         paper_tags = _paper_tags(p)
                         if match_terms and _contains_any(title_text, match_terms):
@@ -1215,8 +1240,11 @@ def _build_clusters(*, paper_refs: list[PaperRef], goal: str, sub_title: str, wa
         add_cluster("Recent representative works", "Grouped by recency (bootstrap).", recent, permit_overlap=allow_overlap)
         add_cluster("Earlier / related works", "Grouped by older years (bootstrap).", classic, permit_overlap=allow_overlap)
 
-    # Fallback 2: ensure at least two clusters via disjoint split when enough papers remain.
+    # Fallback 2: if one broad bootstrap tag consumed most papers, discard that
+    # one-sided partition before building two disjoint comparison groups.
     if len(clusters) < 2:
+        clusters.clear()
+        used_pids.clear()
         ranked = sorted(paper_refs, key=lambda x: (-x.year, x.paper_id))
         if len(ranked) >= max(min_cluster_size * 2, 4):
             mid = max(min_cluster_size, len(ranked) // 2)
@@ -1272,6 +1300,7 @@ def _paragraph_plan(
     axes: list[str],
     clusters: list[dict[str, Any]],
     evidence_summary: dict[str, int],
+    draft_profile: str = "survey",
 ) -> list[dict[str, Any]]:
     """Return a paragraph-by-paragraph writing plan (NO PROSE).
 
@@ -1405,6 +1434,11 @@ def _paragraph_plan(
             "use_clusters": [x for x in [c1, c2, c3] if x],
         },
     ]
+
+    if str(draft_profile or "").strip().lower().replace("-", "_") == "course_paper":
+        plan = [plan[index] for index in (0, 1, 3, 4, 7, 9)]
+        for index, item in enumerate(plan, start=1):
+            item["para"] = index
 
     if not has_fulltext:
         plan[-1]["policy"] = "Use conservative language; avoid strong conclusions; prefer questions-to-answer + explicit evidence gaps list."

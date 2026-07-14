@@ -1,6 +1,18 @@
 {
   "chapter_theme_rules": [
     {
+      "match_any": ["failure decomposition", "evaluation targets"],
+      "emit": "retrieval and generation failure decomposition"
+    },
+    {
+      "match_any": ["measurement validity", "evaluation protocols"],
+      "emit": "measurement validity and evaluator design"
+    },
+    {
+      "match_any": ["robustness", "transfer"],
+      "emit": "robustness, transfer, and deployment"
+    },
+    {
       "match_any": ["problem settings", "embodiment"],
       "emit": "problem settings and embodiment assumptions"
     },

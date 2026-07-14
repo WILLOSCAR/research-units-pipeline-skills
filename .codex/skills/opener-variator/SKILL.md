@@ -30,8 +30,10 @@ Optional (helps you stay aligned):
 
 ## Outputs
 
-Note: keep this as an openers-last pass. Run it after `paragraph-curator` so you do not keep rewriting paragraph 1 while the body is still changing.
-Current compatibility policy: the script is marker-only; substantive opener repair should happen upstream in `subsection-writer` / `chapter-lead-writer`, not through blind regex rewriting.
+Run this targeted pass immediately after `style-harmonizer` and before logic
+polish. Current compatibility policy: the script is marker-only; substantive
+opener repair should happen upstream in `subsection-writer` /
+`chapter-lead-writer`, not through blind regex rewriting.
 
 - Updated `sections/S<sub_id>.md` files (still body-only; no headings)
 
@@ -112,7 +114,7 @@ Better (tension-first):
 
 ### Quick Start
 
-- `python .codex/skills/opener-variator/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/opener-variator/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -125,4 +127,4 @@ Better (tension-first):
 ### Examples
 
 - Rewrite openers in a survey workspace:
-  - `python .codex/skills/opener-variator/scripts/run.py --workspace workspaces/survey-llm-agents`
+  - `uv run python .codex/skills/opener-variator/scripts/run.py --workspace workspaces/survey-llm-agents`

@@ -86,7 +86,23 @@ Slides should:
 - work for presentation
 - still be understandable when read alone
 
-## 6. Recommended Prompt
+## 6. Current Reliability Boundary
+
+This workflow expects an explicit source set. A topic-only request should route
+to `research-brief` or a survey workflow first.
+
+When a source set is sparse or noisy, inspect `sources/manifest.yml`,
+`sources/index.jsonl`, `outline/module_plan.yml`,
+`outline/source_coverage.jsonl`, and `outline/tutorial_context_packs.jsonl`
+before accepting `output/TUTORIAL.md`. The current self-check is still stronger
+on structure than on module-plan fidelity and source grounding.
+
+The delivery path is covered by a strict local-source regression: it executes
+the complete Workflow and compiles both article and Beamer PDFs with `latexmk`
+when the toolchain is available. This proves delivery mechanics, not the
+pedagogical quality of arbitrary source sets.
+
+## 7. Recommended Prompt
 
 ```text
 Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.

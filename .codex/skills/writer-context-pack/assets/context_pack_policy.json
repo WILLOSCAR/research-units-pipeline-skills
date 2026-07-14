@@ -9,6 +9,11 @@
       "comparison_keep_limit": 9,
       "comparison_pair_limit": 4,
       "claim_keep_limit": 6
+    },
+    "course_paper": {
+      "comparison_keep_limit": 5,
+      "comparison_pair_limit": 3,
+      "claim_keep_limit": 4
     }
   },
   "relevance": {

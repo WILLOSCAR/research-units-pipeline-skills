@@ -25,12 +25,15 @@ from tooling.harness_contracts import (
     ADR_REQUIRED_METADATA,
     ADR_REQUIRED_SECTIONS,
     AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS,
+    EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
     FORBIDDEN_OVERLAY_PIPELINE_FILENAMES,
+    IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS,
     PAPER_REVIEW_TAXONOMY_ARTIFACTS,
+    RESEARCH_BRIEF_TAXONOMY_ARTIFACTS,
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
@@ -155,7 +158,13 @@ def _validate_pipeline(path: Path) -> list[Finding]:
                 )
                 return findings
 
-            for row in reader:
+            for line_number, row in enumerate(reader, start=2):
+                row_shape_error = _units_row_shape_error(row)
+                if row_shape_error:
+                    findings.append(
+                        Finding("ERROR", f"{units_template}:{line_number}: malformed CSV row: {row_shape_error}")
+                    )
+                    continue
                 skill = (row.get("skill") or "").strip()
                 if not skill:
                     continue
@@ -627,6 +636,39 @@ def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_di
             )
         )
 
+    missing_research_brief_artifacts = [artifact for artifact in RESEARCH_BRIEF_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_research_brief_artifacts:
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing research-brief contract artifacts: "
+                + ", ".join(f"`{artifact}`" for artifact in missing_research_brief_artifacts)
+                + ".",
+            )
+        )
+
+    missing_idea_artifacts = [artifact for artifact in IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_idea_artifacts:
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing idea-brainstorm contract artifacts: "
+                + ", ".join(f"`{artifact}`" for artifact in missing_idea_artifacts)
+                + ".",
+            )
+        )
+
+    missing_evidence_artifacts = [artifact for artifact in EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
+    if missing_evidence_artifacts:
+        findings.append(
+            Finding(
+                "WARN",
+                "`docs/PIPELINE_TAXONOMY.md` is missing evidence-review contract artifacts: "
+                + ", ".join(f"`{artifact}`" for artifact in missing_evidence_artifacts)
+                + ".",
+            )
+        )
+
     forbidden_pipeline_paths = [pipelines_dir / filename for filename in FORBIDDEN_OVERLAY_PIPELINE_FILENAMES]
     present_forbidden = [path for path in forbidden_pipeline_paths if path.exists()]
     if present_forbidden:
@@ -903,6 +945,16 @@ def _looks_like_path(value: str) -> bool:
     if "/" in value:
         return True
     return False
+
+
+def _units_row_shape_error(row: dict[str | None, str | list[str] | None]) -> str | None:
+    extras = row.get(None)
+    if extras:
+        return "unexpected extra columns; quote commas inside a field or use non-delimiter punctuation"
+    missing = sorted(str(key) for key, value in row.items() if key is not None and value is None)
+    if missing:
+        return f"missing values for columns: {', '.join(missing)}"
+    return None
 
 
 def _strip_section(body: str, *, headings: set[str]) -> str:

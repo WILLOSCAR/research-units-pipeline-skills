@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -20,6 +21,14 @@ from tooling.common import (
     update_status_log,
 )
 from tooling.harness import write_unit_manifest
+from tooling.run_state import (
+    ensure_run_state,
+    finish_attempt,
+    record_failure,
+    record_evaluation,
+    record_recovered_interruption,
+    start_attempt,
+)
 
 
 @dataclass(frozen=True)
@@ -98,6 +107,57 @@ def _append_run_error(*, workspace: Path, unit_id: str, skill: str, kind: str, m
         return
 
 
+def _declared_scorecard(workspace: Path, outputs: list[str]) -> tuple[str, dict[str, object]] | None:
+    for relpath in outputs:
+        if not relpath.upper().endswith("_SCORECARD.JSON"):
+            continue
+        path = workspace / relpath
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if not isinstance(payload, dict) or str(payload.get("verdict") or "").upper() not in {"PASS", "FAIL"}:
+            continue
+
+        return relpath, payload
+    return None
+
+
+def _scorecard_failure(relpath: str, payload: dict[str, object]) -> dict[str, object] | None:
+    """Return a stable failure summary from a declared machine-readable scorecard."""
+
+    if str(payload.get("verdict") or "").upper() != "FAIL":
+        return None
+
+    failures = payload.get("failures") if isinstance(payload.get("failures"), list) else []
+    messages: list[str] = []
+    repair_surface: list[str] = [relpath]
+    severity = "medium"
+    for failure in failures:
+        if not isinstance(failure, dict):
+            continue
+        message = str(failure.get("message") or failure.get("code") or "").strip()
+        if message:
+            messages.append(message)
+        for surface in failure.get("repair_surface") or []:
+            value = str(surface or "").strip()
+            if value and value not in repair_surface:
+                repair_surface.append(value)
+        if str(failure.get("severity") or "").strip().lower() in {"high", "critical"}:
+            severity = "high"
+
+    score = payload.get("score")
+    threshold = payload.get("pass_score")
+    summary = "; ".join(messages[:3]) or "The declared semantic scorecard did not pass."
+    return {
+        "symptom": f"Scorecard `{relpath}` failed with score {score}/{threshold}. {summary}",
+        "causal_behavior": "The deliverable was produced, but its structured semantic contract did not satisfy the configured rubric.",
+        "repair_surface": repair_surface,
+        "severity": severity,
+    }
+
 
 def run_one_unit(
     *,
@@ -111,10 +171,13 @@ def run_one_unit(
     if not units_path.exists():
         return RunResult(unit_id=None, status="ERROR", message=f"Missing {units_path}")
 
+    ensure_run_state(workspace=workspace, repo_root=repo_root)
     table = UnitsTable.load(units_path)
     recovered = recover_stale_doing_units(table)
     if recovered:
         table.save(units_path)
+        for recovered_unit_id in recovered:
+            record_recovered_interruption(workspace=workspace, unit_id=recovered_unit_id)
         update_status_log(
             status_path,
             f"{now_iso_seconds()} RECOVERED stale DOING unit(s) to BLOCKED: {', '.join(recovered)}",
@@ -128,10 +191,18 @@ def run_one_unit(
     unit_id = row.get("unit_id", "").strip()
     skill = row.get("skill", "").strip()
     owner = row.get("owner", "").strip().upper()
+    inputs = parse_semicolon_list(row.get("inputs"))
 
     row["status"] = "DOING"
     table.save(units_path)
     update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DOING {skill}")
+    attempt_id = start_attempt(
+        workspace=workspace,
+        repo_root=repo_root,
+        unit_id=unit_id,
+        skill=skill,
+        inputs=inputs,
+    )
 
     auto_approve_set = {str(x or "").strip().upper() for x in (auto_approve or set()) if str(x or "").strip()}
 
@@ -142,6 +213,15 @@ def run_one_unit(
             table.save(units_path)
             update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DONE (HUMAN approved {checkpoint})")
             _refresh_status_checkpoint(status_path, table)
+            finish_attempt(
+                workspace=workspace,
+                attempt_id=attempt_id,
+                unit_id=unit_id,
+                skill=skill,
+                status="SUCCEEDED",
+                exit_code=0,
+                message=f"HUMAN approved {checkpoint}",
+            )
             return RunResult(unit_id=unit_id, status="DONE", message=f"HUMAN approved {checkpoint}")
 
         if checkpoint and checkpoint.upper() in auto_approve_set:
@@ -150,12 +230,30 @@ def run_one_unit(
             table.save(units_path)
             update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DONE (AUTO approved {checkpoint})")
             _refresh_status_checkpoint(status_path, table)
+            finish_attempt(
+                workspace=workspace,
+                attempt_id=attempt_id,
+                unit_id=unit_id,
+                skill=skill,
+                status="SUCCEEDED",
+                exit_code=0,
+                message=f"AUTO approved {checkpoint}",
+            )
             return RunResult(unit_id=unit_id, status="DONE", message=f"AUTO approved {checkpoint}")
 
         row["status"] = "BLOCKED"
         table.save(units_path)
         update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED (await HUMAN approval {checkpoint})")
         _refresh_status_checkpoint(status_path, table)
+        finish_attempt(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            status="WAITING_HUMAN",
+            exit_code=None,
+            message=f"Await HUMAN approval {checkpoint}",
+        )
         return RunResult(unit_id=unit_id, status="BLOCKED", message=f"Await HUMAN approval {checkpoint} in DECISIONS.md")
 
     script_path = repo_root / ".codex" / "skills" / skill / "scripts" / "run.py"
@@ -171,6 +269,25 @@ def run_one_unit(
             ),
         )
         _refresh_status_checkpoint(status_path, table)
+        record_failure(
+            workspace=workspace,
+            unit_id=unit_id,
+            attempt_id=attempt_id,
+            failure_type="missing_skill_adapter",
+            symptom=f"Unit cannot execute automatically because `{skill}` has no run.py adapter.",
+            causal_behavior="The unit entered execution but no deterministic skill adapter was available.",
+            harness_mechanism="The executor dispatches scripted skills through `.codex/skills/<skill>/scripts/run.py`.",
+            repair_surface=[skill_md, "UNITS.csv"],
+        )
+        finish_attempt(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            status="FAILED_TERMINAL",
+            exit_code=None,
+            message=f"No executable script for skill '{skill}'.",
+        )
         return RunResult(
             unit_id=unit_id,
             status="BLOCKED",
@@ -181,7 +298,6 @@ def run_one_unit(
             ),
         )
 
-    inputs = parse_semicolon_list(row.get("inputs"))
     raw_outputs = parse_semicolon_list(row.get("outputs"))
     outputs = [_strip_optional_marker(rel) for rel in raw_outputs]
     required_outputs = [outputs[i] for i, rel in enumerate(raw_outputs) if not rel.strip().startswith("?")]
@@ -202,7 +318,7 @@ def run_one_unit(
         checkpoint,
     ]
 
-    log_rel = f"output/unit_logs/{unit_id}.{skill}.log"
+    log_rel = f"output/unit_logs/{unit_id}.{skill}.{attempt_id}.log"
     log_path = workspace / log_rel
 
     try:
@@ -234,6 +350,26 @@ def run_one_unit(
             log_rel=None,
         )
         _refresh_status_checkpoint(status_path, table)
+        record_failure(
+            workspace=workspace,
+            unit_id=unit_id,
+            attempt_id=attempt_id,
+            failure_type="exec_error",
+            symptom=f"The skill process could not be started: {type(exc).__name__}: {exc}",
+            causal_behavior="The executor failed before a process result was available.",
+            harness_mechanism="The local subprocess adapter raised while dispatching the skill script.",
+            repair_surface=["tooling/executor.py", f".codex/skills/{skill}/scripts/run.py"],
+            severity="high",
+        )
+        finish_attempt(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            status="FAILED_TERMINAL",
+            exit_code=None,
+            message=str(exc),
+        )
         return RunResult(unit_id=unit_id, status="BLOCKED", message=str(exc))
 
     def record_manifest(status: str) -> None:
@@ -245,6 +381,8 @@ def run_one_unit(
                 outputs=outputs,
                 exit_code=int(completed.returncode),
                 status=status,
+                attempt_id=attempt_id,
+                repo_root=repo_root,
             )
         except Exception as exc:  # pragma: no cover
             _append_run_error(
@@ -257,6 +395,19 @@ def run_one_unit(
             )
 
     missing = [rel for rel in required_outputs if rel and not (workspace / rel).exists()]
+    scorecard = _declared_scorecard(workspace, outputs)
+    scorecard_failure = None
+    if scorecard:
+        scorecard_relpath, scorecard_payload = scorecard
+        record_evaluation(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            scorecard_path=scorecard_relpath,
+            payload=scorecard_payload,
+        )
+        scorecard_failure = _scorecard_failure(scorecard_relpath, scorecard_payload)
     if completed.returncode == 0 and not missing:
         if strict:
             from tooling.quality_gate import check_unit_outputs, write_quality_report
@@ -282,6 +433,26 @@ def run_one_unit(
                 rel_report = str((workspace / "output" / "QUALITY_GATE.md").relative_to(workspace))
                 update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED (quality gate: {rel_report})")
                 _refresh_status_checkpoint(status_path, table)
+                record_failure(
+                    workspace=workspace,
+                    unit_id=unit_id,
+                    attempt_id=attempt_id,
+                    failure_type="quality_gate_failed",
+                    symptom=f"Strict output validation blocked the unit; see `{rel_report}`.",
+                    causal_behavior="The skill produced files, but one or more acceptance checks failed.",
+                    harness_mechanism="Strict mode evaluates declared outputs before committing the unit as DONE.",
+                    repair_surface=[rel_report, f".codex/skills/{skill}/SKILL.md", "tooling/quality_gate.py"],
+                )
+                finish_attempt(
+                    workspace=workspace,
+                    attempt_id=attempt_id,
+                    unit_id=unit_id,
+                    skill=skill,
+                    status="FAILED_RETRYABLE",
+                    exit_code=int(completed.returncode),
+                    outputs=outputs,
+                    message=f"Quality gate failed; see {rel_report}",
+                )
                 reroute_hint = _reroute_hint(workspace)
                 return RunResult(
                     unit_id=unit_id,
@@ -304,6 +475,26 @@ def run_one_unit(
                 log_rel=log_rel if log_path.exists() else None,
             )
             _refresh_status_checkpoint(status_path, table)
+            record_failure(
+                workspace=workspace,
+                unit_id=unit_id,
+                attempt_id=attempt_id,
+                failure_type="section_first_cutover",
+                symptom=cutover_block,
+                causal_behavior="A whole-draft output was produced before section-first prerequisites were satisfied.",
+                harness_mechanism="The executor enforces the section-first cutover after script execution.",
+                repair_surface=["tooling/executor.py", f".codex/skills/{skill}/SKILL.md"],
+            )
+            finish_attempt(
+                workspace=workspace,
+                attempt_id=attempt_id,
+                unit_id=unit_id,
+                skill=skill,
+                status="FAILED_RETRYABLE",
+                exit_code=int(completed.returncode),
+                outputs=outputs,
+                message=cutover_block,
+            )
             return RunResult(unit_id=unit_id, status="BLOCKED", message=cutover_block)
 
         row["status"] = "DONE"
@@ -311,6 +502,16 @@ def run_one_unit(
         record_manifest("DONE")
         update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DONE {skill}")
         _refresh_status_checkpoint(status_path, table)
+        finish_attempt(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            status="SUCCEEDED",
+            exit_code=int(completed.returncode),
+            outputs=outputs,
+            message="OK",
+        )
         return RunResult(unit_id=unit_id, status="DONE", message="OK")
 
     row["status"] = "BLOCKED"
@@ -327,18 +528,65 @@ def run_one_unit(
             log_rel=log_rel if log_path.exists() else None,
         )
         _refresh_status_checkpoint(status_path, table)
+        record_failure(
+            workspace=workspace,
+            unit_id=unit_id,
+            attempt_id=attempt_id,
+            failure_type="missing_outputs",
+            symptom=f"Required outputs were not produced: {', '.join(missing)}",
+            causal_behavior="The skill process exited, but its declared artifact contract was incomplete.",
+            harness_mechanism="The executor verifies required `UNITS.csv` outputs before marking a unit DONE.",
+            repair_surface=[f".codex/skills/{skill}/scripts/run.py", "UNITS.csv"],
+        )
+        finish_attempt(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            status="FAILED_RETRYABLE",
+            exit_code=int(completed.returncode),
+            outputs=outputs,
+            message=f"Missing outputs: {', '.join(missing)}",
+        )
         return RunResult(unit_id=unit_id, status="BLOCKED", message=f"Missing outputs: {', '.join(missing)}" + (f"; see {log_rel}" if log_path.exists() else ""))
-    update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED (script failed)")
+    failure_label = "semantic scorecard failed" if scorecard_failure else "script failed"
+    failure_message = (
+        str(scorecard_failure["symptom"])
+        if scorecard_failure
+        else f"Skill script failed (exit {completed.returncode})"
+    )
+    update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED ({failure_label})")
     _append_run_error(
         workspace=workspace,
         unit_id=unit_id,
         skill=skill,
-        kind="script_failed",
-        message=f"Skill script failed (exit {completed.returncode})",
+        kind="semantic_quality_gate_failed" if scorecard_failure else "script_failed",
+        message=failure_message,
         log_rel=log_rel if log_path.exists() else None,
     )
     _refresh_status_checkpoint(status_path, table)
-    return RunResult(unit_id=unit_id, status="BLOCKED", message=f"Skill script failed (exit {completed.returncode})" + (f"; see {log_rel}" if log_path.exists() else ""))
+    record_failure(
+        workspace=workspace,
+        unit_id=unit_id,
+        attempt_id=attempt_id,
+        failure_type="semantic_quality_gate_failed" if scorecard_failure else "script_failed",
+        symptom=str(scorecard_failure["symptom"]) if scorecard_failure else f"Skill process exited with code {completed.returncode}.",
+        causal_behavior=str(scorecard_failure["causal_behavior"]) if scorecard_failure else "The skill adapter returned a non-zero process result.",
+        harness_mechanism="The executor reads declared scorecard failures before classifying a non-zero skill exit." if scorecard_failure else "The executor treats non-zero skill exits as blocked attempts.",
+        repair_surface=list(scorecard_failure["repair_surface"]) if scorecard_failure else [f".codex/skills/{skill}/scripts/run.py", log_rel],
+        severity=str(scorecard_failure["severity"]) if scorecard_failure else "high",
+    )
+    finish_attempt(
+        workspace=workspace,
+        attempt_id=attempt_id,
+        unit_id=unit_id,
+        skill=skill,
+        status="FAILED_RETRYABLE",
+        exit_code=int(completed.returncode),
+        outputs=outputs,
+        message=failure_message,
+    )
+    return RunResult(unit_id=unit_id, status="BLOCKED", message=failure_message + (f"; see {log_rel}" if log_path.exists() else ""))
 
 
 def recover_stale_doing_units(table: UnitsTable) -> list[str]:
@@ -405,6 +653,35 @@ def _compute_current_checkpoint(table: UnitsTable) -> str:
     return "DONE"
 
 
+def downstream_unit_ids(table: UnitsTable, *, root_unit_id: str) -> list[str]:
+    """Return all transitive downstream dependents of `root_unit_id` in traversal order."""
+
+    root = str(root_unit_id or "").strip()
+    if not root:
+        return []
+
+    direct_children: dict[str, list[str]] = {}
+    for row in table.rows:
+        unit_id = str(row.get("unit_id") or "").strip()
+        if not unit_id:
+            continue
+        for dep in parse_semicolon_list(row.get("depends_on")):
+            direct_children.setdefault(dep, []).append(unit_id)
+
+    downstream: list[str] = []
+    seen: set[str] = set()
+    stack = [root]
+    while stack:
+        current = stack.pop()
+        for child_id in direct_children.get(current, []):
+            if child_id in seen:
+                continue
+            seen.add(child_id)
+            downstream.append(child_id)
+            stack.append(child_id)
+    return downstream
+
+
 def invalidate_downstream_units(table: UnitsTable, *, root_unit_id: str) -> list[str]:
     """Reset all transitive downstream dependents of `root_unit_id` to TODO.
 
@@ -413,30 +690,15 @@ def invalidate_downstream_units(table: UnitsTable, *, root_unit_id: str) -> list
     and make later `run` invocations stop too early.
     """
 
-    root = str(root_unit_id or "").strip()
-    if not root:
-        return []
-
-    direct_children: dict[str, list[dict[str, str]]] = {}
+    downstream = set(downstream_unit_ids(table, root_unit_id=root_unit_id))
+    affected: list[str] = []
     for row in table.rows:
         unit_id = str(row.get("unit_id") or "").strip()
-        for dep in parse_semicolon_list(row.get("depends_on")):
-            direct_children.setdefault(dep, []).append(row)
-
-    affected: list[str] = []
-    seen: set[str] = set()
-    stack = [root]
-    while stack:
-        current = stack.pop()
-        for child in direct_children.get(current, []):
-            child_id = str(child.get("unit_id") or "").strip()
-            if not child_id or child_id in seen:
-                continue
-            seen.add(child_id)
-            if str(child.get("status") or "").strip().upper() != "TODO":
-                child["status"] = "TODO"
-                affected.append(child_id)
-            stack.append(child_id)
+        if unit_id not in downstream:
+            continue
+        if str(row.get("status") or "").strip().upper() != "TODO":
+            row["status"] = "TODO"
+            affected.append(unit_id)
     return affected
 
 

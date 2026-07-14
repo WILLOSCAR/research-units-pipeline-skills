@@ -72,22 +72,28 @@ def maybe_parse_queries_md(path) -> tuple[list[str], list[str], str, str]:
     mode = ""
     for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw.strip()
-        if line.startswith("- keywords:"):
+        indent = len(raw) - len(raw.lstrip())
+        if indent == 0 and line.startswith("- keywords:"):
             mode = "keywords"
             continue
-        if line.startswith("- exclude:"):
+        if indent == 0 and line.startswith("- exclude:"):
             mode = "exclude"
             continue
-        if line.startswith("- time_window.from:"):
+        if indent == 0 and line.startswith("- time_window.from:"):
             time_from = line.split(":", 1)[1].strip()
+            mode = ""
             continue
-        if line.startswith("- time_window.to:"):
+        if indent == 0 and line.startswith("- time_window.to:"):
             time_to = line.split(":", 1)[1].strip()
+            mode = ""
             continue
-        if mode in {"keywords", "exclude"} and line.startswith("- "):
+        if indent > 0 and mode in {"keywords", "exclude"} and line.startswith("- "):
             value = line[2:].strip().strip('"').strip("'")
             if value:
                 (keywords if mode == "keywords" else exclude).append(value)
+            continue
+        if indent == 0 and line.startswith("- "):
+            mode = ""
     return keywords, exclude, time_from, time_to
 
 
@@ -112,7 +118,7 @@ def protocol_markdown(
     ]
     for idx, rq in enumerate(review_questions, start=1):
         lines.append(f"- RQ{idx}: {rq}")
-    lines.extend(["", "## Sources"])
+    lines.extend(["", "## Databases and Sources"])
     for source in sources:
         lines.append(f"- {source}")
     lines.extend(
@@ -121,6 +127,8 @@ def protocol_markdown(
             "## Search Terms",
             f"- include_keywords: {'; '.join(include_keywords) if include_keywords else 'review topic'}",
             f"- exclude_keywords: {'; '.join(exclude_keywords) if exclude_keywords else 'none'}",
+            "",
+            "## Time Window",
             f"- time_window_from: {time_window_from or '2000'}",
             f"- time_window_to: {time_window_to or 'present'}",
             f"- search_date: {now_iso_seconds()}",

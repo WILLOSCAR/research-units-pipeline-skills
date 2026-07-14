@@ -24,6 +24,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
+    from tooling.common import read_jsonl
     from tooling.review_artifacts import write_text
     from tooling.review_render import render_rubric_review_markdown
     from tooling.review_text import parse_item_blocks
@@ -35,14 +36,18 @@ def main() -> int:
     if not claims_path.exists() or not gaps_path.exists():
         raise SystemExit("rubric-writer requires `output/CLAIMS.md` and `output/MISSING_EVIDENCE.md`.")
 
-    claims = parse_item_blocks(claims_path.read_text(encoding="utf-8", errors="ignore"))
-    gaps = parse_item_blocks(gaps_path.read_text(encoding="utf-8", errors="ignore"))
+    claims_jsonl = workspace / "output" / "CLAIMS.jsonl"
+    gaps_jsonl = workspace / "output" / "EVIDENCE_AUDIT.jsonl"
+    claims = read_jsonl(claims_jsonl) if claims_jsonl.exists() else parse_item_blocks(claims_path.read_text(encoding="utf-8", errors="ignore"))
+    gaps = read_jsonl(gaps_jsonl) if gaps_jsonl.exists() else parse_item_blocks(gaps_path.read_text(encoding="utf-8", errors="ignore"))
     major = []
     for gap in gaps:
         severity = str(gap.get("severity") or "").strip().lower()
         if severity == "major":
             major.append(
                 {
+                    "gap_id": gap.get("gap_id", gap.get("id", "")),
+                    "claim_id": gap.get("claim_id", ""),
                     "gap": gap.get("gap___concern", gap.get("gap_concern", gap.get("gap", ""))),
                     "minimal_fix": gap.get("minimal_fix", ""),
                 }

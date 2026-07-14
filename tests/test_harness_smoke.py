@@ -63,7 +63,22 @@ def test_all_executable_pipelines_initialize_workspace(tmp_path: Path) -> None:
         )
         missing = [
             rel
-            for rel in ("PIPELINE.lock.md", "UNITS.csv", "STATUS.md", "DECISIONS.md")
+            for rel in (
+                "PIPELINE.lock.md",
+                "UNITS.csv",
+                "STATUS.md",
+                "DECISIONS.md",
+                ".harness/goal.json",
+                ".harness/run.json",
+                ".harness/harness.lock.json",
+                ".harness/events.jsonl",
+                ".harness/attempts.jsonl",
+                ".harness/decisions.jsonl",
+                ".harness/artifacts.jsonl",
+                ".harness/failures/ledger.jsonl",
+                ".harness/plan/planned.json",
+                ".harness/plan/effective.json",
+            )
             if not (workspace / rel).exists()
         ]
         if result.returncode != 0 or missing:
@@ -89,7 +104,7 @@ def test_kickoff_prints_copyable_run_command(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr or result.stdout
     assert "<ws>" not in result.stdout
-    assert f"uv run python scripts/pipeline.py run --workspace '{workspace.resolve()}'" in result.stdout
+    assert f"uv run rh run start --workspace '{workspace.resolve()}'" in result.stdout
 
 
 def test_skill_dependency_graph_can_be_rendered_from_current_skill_contracts() -> None:

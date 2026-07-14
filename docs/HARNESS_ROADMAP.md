@@ -1,59 +1,96 @@
 # Roadmap
 
-This roadmap keeps only the current engineering direction. Historical
-architecture discussion has been removed from the active docs.
+The project is converging on one product model:
 
-## Current Phase
+```text
+Goal -> Run -> Evidence -> Improve
+```
 
-Stabilize the Auto Research Design System and prove it through Auto Review.
+No new Workflow family is needed in the current phase. The priority is to
+prove the common Harness through completed, scored Runs.
 
-## Next Proof: Auto Review
+## Phase 1: Durable Run Foundation
 
-Use `paper-review` to produce:
+Status: first implementation landed.
 
-- completed workspace;
+- structured Goal and Run identity;
+- initial Pipeline, Unit template, Skill, and Kernel hashes in the Run lock;
+- per-Attempt Skill implementation fingerprints, with `doctor` detection when a DONE Unit becomes stale;
+- append-only Event and Attempt history;
+- Artifact provenance and mechanical Failure records;
+- human decisions represented in the machine ledger;
+- outcome-first `rh` command over the existing Pipeline adapter.
+
+Validated in tests and completed local Runs:
+
+- confirm retries preserve all prior Attempt records;
+- confirm stale `DOING` recovery records `INTERRUPTED` before rerun;
+- compare Artifact ledger hashes with Unit manifests;
+- exercise a realistic completed Workspace rather than only test fixtures.
+
+## Phase 2: Auto Review Proof
+
+Status: first vertical proof complete. Machine-readable Claims, Evidence gaps,
+novelty rows, a scored review gate, and one defect -> repair -> rerun history
+have been exercised through the executable contract.
+
+Use `paper-review` to produce one reviewable completed Run containing:
+
+- manuscript profile and addressable Claims;
+- Claim-Evidence links and evidence gaps;
+- novelty and risk analysis;
 - final `output/REVIEW.md`;
-- intermediate claim, evidence, novelty, and risk artifacts;
-- `DOCTOR_REPORT`, `RUN_AUDIT`, `IMPROVEMENT_REPORT`, and `ARTIFACT_PACK`;
-- semantic rubric;
-- scorecard.
+- semantic-contract rubric and machine-readable scorecard;
+- doctor, audit, improvement report, and Artifact index;
+- at least one defect -> repair -> rerun trace.
 
-The current `paper-review` pipeline contract does not yet require every proof
-artifact above. Treat rubric, scorecard, improvement report, and artifact pack
-as the next completed-workspace evidence. Promote them into the contract only
-after the pilot shows the right artifact shape.
+The current schema remains local to Auto Review. The next pressure is repeated
+Runs and input diversity, not a premature global evidence graph.
 
-## Workstreams
+## Phase 3: Workflow-Local Evaluation
 
-| Workstream | Status | Next move |
-|---|---|---|
-| Workflow contracts | Stable for 7 executable workflows | Keep taxonomy validation strict |
-| Project skills | Broad capability exists; latest audit is INFO-only | Compress template placeholders and repeated examples in batches, then review interfaces after Auto Review proof |
-| Harness reports | Doctor, audit, improve, pack exist | Use them in completed workspace proof |
-| Semantic evaluation | Thin | Add Auto Review rubric and scorecard |
-| Thesis workflow | Guided only | Decide later whether to promote to executable |
-| Product facade | Deferred | Revisit after Auto Review proof |
-| Runtime/dashboard | Deferred | Revisit only after completed-run corpus |
+Status: four scored fixture proofs landed for `paper-review`, `research-brief`,
+`idea-brainstorm`, and `evidence-review`. The survey family also has a
+[completed 49-Unit `course_paper` pilot](../examples/course-paper-pilot/README.md)
+with a passing Artifact audit and a 10-page PDF.
 
-## Skill Optimization Plan
+- keep Workflow-specific scorecards behind a common Run evaluation record;
+- preserve score, dimensions, verdict, Attempts, and repair surfaces in `.harness/evaluations/ledger.jsonl`;
+- use compact `research-brief` defaults as the first concrete token-budget reduction;
+- keep the Evidence Review protocol, screening, extraction, synthesis, and scorecard chain covered by its realistic fixture;
+- keep the course-paper profile bounded at 320 retrieval results, 48 core papers,
+  6 mappings per subsection, 6 H3s, and a 24-citation hard floor;
+- treat the completed course-paper Run as one pilot, not cross-topic proof;
+- capture real model, token, cost, and latency metrics before introducing global `brief`, `standard`, and `deep` profiles.
 
-The repo has more than one hundred project skills. Do not rewrite all of them
-blindly. The safe path is:
+Next pressure:
 
-1. Use `uv run python scripts/audit_skills.py --summary-only --fail-on NONE` to find
-   low-risk compression targets.
-2. First remove reader-facing ellipsis placeholders, repeated examples, and
-   path drift from skills whose outputs are copied into final artifacts.
-3. Keep intentionally scoped domain packs as examples unless they leak into
-   portable routing text.
-4. Upgrade skill interfaces only when a completed workspace shows concrete
-   pressure, such as weak evidence, repetitive prose, or poor audit results.
+- repeat Auto Review, Research Brief, Research Idea, and Evidence Review across diverse inputs;
+- repeat the course-paper profile across unrelated topics and compare measured token, retry, latency, and quality data;
+- compare scorecard findings with expert review;
+- compare Source Tutorial module grounding and slide alignment against human review.
 
-## Non-Goals Now
+## Phase 4: Bounded Harness Evolution
 
-- no new workflow families;
-- no workflow slug rename;
-- no database run store;
-- no external workflow runtime;
-- no benchmark dashboard;
-- no claim of fully autonomous science.
+Only after a completed-run corpus and stable semantic evaluators exist:
+
+1. cluster durable Failure records;
+2. create candidate changes in isolated worktrees;
+3. enforce Policy allowlists and protected Kernel paths;
+4. replay the target failure;
+5. run historical regression and held-out evaluation;
+6. compare quality, cost, latency, and stability;
+7. require human approval for promotion;
+8. retain the previous baseline for rollback.
+
+## Deferred
+
+- worker leases and distributed scheduling;
+- database-backed Run store;
+- dashboard or hosted runtime;
+- automatic Harness promotion;
+- model-weight candidates;
+- `graduate-paper` promotion to an executable Workflow.
+
+These are not rejected. They lack enough completed-run evidence to justify
+their interfaces today.

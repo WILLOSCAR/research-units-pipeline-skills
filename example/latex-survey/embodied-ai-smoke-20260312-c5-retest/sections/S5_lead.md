@@ -1,3 +1,0 @@
-Data, Training & Post-Training is where differences in evaluation and data scaling and shift stop looking like implementation detail and start changing what the evidence can support [@Mu2024Adademo; Hejna2024Optimizing; Lin2026Systematic; Wang2026Rethinking].
-
-Pretraining data and supervision, Post-training, feedback, and continual improvement, and Data quality, scaling, and distribution shift each expose that pressure from a different angle, showing why evaluation and data scaling and shift cannot be treated as interchangeable background choices [@Zhu2025Unified; Cui2026Contact; Dass2025Datamil; Lee2025Class].

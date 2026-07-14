@@ -1,8 +1,0 @@
-- 3.1 -> 3.2: The same pressure reappears in observation, action, and embodiment interfaces, where policy backbone becomes harder to separate from the rest of the evidence.
-- 3.2 -> 3.3: The next issue is task diversity, environment realism, and transfer constraints, where the earlier tension around task diversity becomes more concrete.
-- 4.1 -> 4.2: The next issue is world models, planning, and reasoning, where the earlier tension around planning becomes more concrete.
-- 4.2 -> 4.3: The same pressure reappears in transfer across embodiments and viewpoints, where known limitations becomes harder to separate from the rest of the evidence.
-- 5.1 -> 5.2: The same pressure reappears in post-training, feedback, and continual improvement, where benchmarks and metrics becomes harder to separate from the rest of the evidence.
-- 5.2 -> 5.3: The next issue is data quality, scaling, and distribution shift, where the earlier tension around benchmarks and metrics becomes more concrete.
-- 6.1 -> 6.2: The next issue is safety, reliability, and real-world deployment, where the earlier tension around benchmark realism becomes more concrete.
-- 6.2 -> 6.3: The same pressure reappears in failure analysis, robustness, and stress testing, where benchmarks and metrics becomes harder to separate from the rest of the evidence.

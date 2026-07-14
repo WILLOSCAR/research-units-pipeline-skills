@@ -56,8 +56,8 @@ When network access is restricted, run in offline mode to produce auditable reco
 
 ### Quick Start
 
-- `python .codex/skills/citation-verifier/scripts/run.py --help`
-- Offline (record now, verify later): `python .codex/skills/citation-verifier/scripts/run.py --workspace <workspace_dir> --offline`
+- `uv run python .codex/skills/citation-verifier/scripts/run.py --help`
+- Offline (record now, verify later): `uv run python .codex/skills/citation-verifier/scripts/run.py --workspace <workspace> --offline`
 
 ### All Options
 
@@ -68,9 +68,9 @@ When network access is restricted, run in offline mode to produce auditable reco
 ### Examples
 
 - Generate BibTeX + offline verification records:
-  - `python .codex/skills/citation-verifier/scripts/run.py --workspace <ws> --offline --verification-note "auto-generated; needs manual verification"`
+  - `uv run python .codex/skills/citation-verifier/scripts/run.py --workspace <workspace> --offline --verification-note "auto-generated; needs manual verification"`
 - Later, verify-only (when network is available):
-  - `python .codex/skills/citation-verifier/scripts/run.py --workspace <ws> --verify-only`
+  - `uv run python .codex/skills/citation-verifier/scripts/run.py --workspace <workspace> --verify-only`
 
 ### Notes
 

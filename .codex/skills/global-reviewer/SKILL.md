@@ -223,8 +223,8 @@ This skill includes a deterministic helper script that generates a **gate-compli
 
 ### Quick Start
 
-- `python .codex/skills/global-reviewer/scripts/run.py --help`
-- `python .codex/skills/global-reviewer/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/global-reviewer/scripts/run.py --help`
+- `uv run python .codex/skills/global-reviewer/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -237,7 +237,7 @@ This skill includes a deterministic helper script that generates a **gate-compli
 ### Examples
 
 - Generate a global review after merging a draft:
-  - `python .codex/skills/global-reviewer/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/global-reviewer/scripts/run.py --workspace <workspace>`
 
 Freeze policy:
 - If you hand-edit the review and want to freeze it, create `output/GLOBAL_REVIEW.refined.ok` to prevent overwrites.

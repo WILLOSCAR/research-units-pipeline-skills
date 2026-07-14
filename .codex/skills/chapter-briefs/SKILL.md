@@ -81,8 +81,8 @@ Contract (paper-like, no new facts):
 
 ### Quick Start
 
-- `python .codex/skills/chapter-briefs/scripts/run.py --help`
-- `python .codex/skills/chapter-briefs/scripts/run.py --workspace workspaces/<ws>`
+- `uv run python .codex/skills/chapter-briefs/scripts/run.py --help`
+- `uv run python .codex/skills/chapter-briefs/scripts/run.py --workspace <workspace>`
 
 ### All Options
 
@@ -95,9 +95,9 @@ Contract (paper-like, no new facts):
 ### Examples
 
 - Default IO:
-  - `python .codex/skills/chapter-briefs/scripts/run.py --workspace workspaces/<ws>`
+  - `uv run python .codex/skills/chapter-briefs/scripts/run.py --workspace <workspace>`
 - Explicit IO:
-  - `python .codex/skills/chapter-briefs/scripts/run.py --workspace workspaces/<ws> --inputs "outline/outline.yml;outline/subsection_briefs.jsonl;GOAL.md" --outputs "outline/chapter_briefs.jsonl"`
+  - `uv run python .codex/skills/chapter-briefs/scripts/run.py --workspace <workspace> --inputs "outline/outline.yml;outline/subsection_briefs.jsonl;GOAL.md" --outputs "outline/chapter_briefs.jsonl"`
 
 ### Refinement marker (recommended; prevents churn)
 
