@@ -41,6 +41,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
     from tooling.common import atomic_write_text, ensure_dir, now_iso_seconds
+    from tooling.quality_checks.survey_writing import section_files_newer_than, section_tree_sha256
 
     workspace = Path(args.workspace).resolve()
     sections_dir = workspace / 'sections'
@@ -48,15 +49,45 @@ def main() -> int:
     marker = sections_dir / 'style_harmonized.refined.ok'
     ensure_dir(marker.parent)
 
-    flagged = []
-    if todo_path.exists() and todo_path.stat().st_size > 0:
-        flagged = _extract_flagged_paths(todo_path.read_text(encoding='utf-8', errors='ignore'))
+    if not todo_path.exists() or todo_path.stat().st_size == 0:
+        print('Blocked: output/WRITER_SELFLOOP_TODO.md is missing or empty.', file=sys.stderr)
+        marker.unlink(missing_ok=True)
+        return 2
 
-    targets = [workspace / rel for rel in flagged] if flagged else []
-    _ = targets
-    # Upstream writer skills should now own style quality. This unit remains a
-    # contract marker only, so it intentionally avoids blind regex rewrites.
-    atomic_write_text(marker, f'style harmonized at {now_iso_seconds()}\n')
+    todo_text = todo_path.read_text(encoding='utf-8', errors='ignore')
+    if '- Status: PASS' not in todo_text or '## Style Smells' not in todo_text:
+        print('Blocked: rerun writer-selfloop and obtain a PASS report with Style Smells.', file=sys.stderr)
+        marker.unlink(missing_ok=True)
+        return 2
+
+    flagged = _extract_flagged_paths(todo_text)
+    if flagged:
+        preview = ', '.join(flagged[:8])
+        print(
+            f'Blocked: style repairs remain for {preview}. Rewrite only those sections, '
+            'then rerun writer-selfloop before retrying this unit.',
+            file=sys.stderr,
+        )
+        marker.unlink(missing_ok=True)
+        return 2
+
+    stale_sections = section_files_newer_than(workspace, todo_path)
+    if stale_sections:
+        preview = ', '.join(stale_sections[:8])
+        print(
+            f'Blocked: writer-selfloop report is stale for {preview}. Rerun writer-selfloop '
+            'after the latest section edits, then retry this unit.',
+            file=sys.stderr,
+        )
+        marker.unlink(missing_ok=True)
+        return 2
+
+    # The model-facing Skill owns the rewrite. This deterministic adapter only
+    # certifies a fresh writer-selfloop report with no remaining flagged files.
+    atomic_write_text(
+        marker,
+        f'style harmonized at {now_iso_seconds()}\nsection_tree_sha256: {section_tree_sha256(workspace)}\n',
+    )
     return 0
 
 

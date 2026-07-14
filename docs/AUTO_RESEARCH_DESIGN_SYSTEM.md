@@ -119,6 +119,10 @@ evaluation and promotion are not implemented today.
 | Run State | `tooling/run_state.py` functions | Run identity, initial revision lock, events, attempts, artifacts, failures, decisions |
 | Executor | `run_one_unit(...)` | Unit selection, skill process dispatch, output checks, recovery transitions |
 | Harness reports | `tooling/harness.py` builders | Doctor, run audit, audit diff, improvement report, Artifact index |
+| Quality registry | `tooling/quality_gate.py` | Stable Skill-to-check dispatch and compatibility entrypoints |
+| Quality domains | `tooling/quality_checks/` | Workflow-family semantic checks for survey, review, ideation, tutorial, and delivery Artifacts |
+| Scorecard kernel | `tooling/scorecards.py` | Shared policy loading, scoring, failure projection, validation, rendering, and persistence |
+| Workflow evaluators | `tooling/*_evaluation.py` | Workflow-local dimensions and Evidence semantics behind the shared scorecard envelope |
 | Research Skills | `.codex/skills/<skill>/SKILL.md` and optional scripts | Retrieval, extraction, synthesis, review, and writing transformations |
 | Control Skills | deterministic scripts under `.codex/skills/` | Checkpoints, manifests, scorecards, local quality gates, and delivery checks |
 | Pipeline contracts | `pipelines/*.pipeline.md` | Workflow stages, required skills, checkpoints, target artifacts |
@@ -187,9 +191,10 @@ Each new workspace receives:
 - `failure_id`: identity of each durable failure record.
 
 `harness.lock.json` records the Git revision and dirty state, pipeline hash,
-unit-template hash, referenced Skill hashes, and deterministic Kernel hashes.
-The local CLI does not know the model/provider parameters, so it records that
-they were not captured instead of inventing them.
+unit-template hash, each referenced Skill's complete implementation-directory
+hash (including scripts, assets, and references), and deterministic Kernel
+hashes. The local CLI does not know the model/provider parameters, so it records
+that they were not captured instead of inventing them.
 
 Each successful Unit manifest additionally fingerprints the Skill directory
 that executed that Attempt. If the implementation later changes, `doctor`
@@ -212,6 +217,7 @@ unit.attempt.failed
 unit.attempt.interrupted
 artifact.registered
 failure.recorded
+failure.resolved
 decision.recorded
 ```
 
@@ -308,25 +314,38 @@ templates/UNITS.*.csv
 future context/retrieval/retry policies
 ```
 
-The same candidate must not be allowed to rewrite the mechanisms that judge or
-promote it:
+The same candidate must not be allowed to rewrite the currently implemented
+mechanisms that judge it:
 
 ```text
 scripts/pipeline.py
+tooling/common.py
 tooling/executor.py
 tooling/harness.py
+tooling/harness_contracts.py
+tooling/ideation.py
+tooling/pipeline_spec.py
 tooling/quality_gate.py
+tooling/quality_reporting.py
+tooling/quality_checks/**
 tooling/run_state.py
+tooling/scorecards.py
 tooling/brief_evaluation.py
 tooling/evidence_review_evaluation.py
 tooling/idea_evaluation.py
 tooling/review_evaluation.py
-schema validators
-artifact provenance
-permission and budget enforcement
-held-out evaluation fixtures
-promotion and rollback rules
+tooling/review_protocol.py
 ```
+
+The exact file inventory is defined once as `HARNESS_KERNEL_PATHS` in
+`tooling/harness_contracts.py`. Run initialization hashes every existing path
+from that contract into `.harness/harness.lock.json`; readiness validation uses
+the same inventory, so the documented protection boundary and the executable
+lock cannot silently diverge.
+
+When promotion is implemented, its schema validators, Artifact provenance,
+permission and budget enforcement, held-out fixtures, and rollback rules must
+join the protected Kernel before candidates can rely on them.
 
 Today this is a documented architecture rule, not a security sandbox. A real
 candidate system must enforce it through process and filesystem permissions.

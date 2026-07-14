@@ -23,6 +23,7 @@ the decision should guide future contributors and agents across runs.
 | [0010](0010-pair-review-markdown-with-structured-evidence.md) | Pair review Markdown with structured Evidence | accepted |
 | [0011](0011-keep-semantic-scorecards-workflow-local.md) | Keep semantic scorecards Workflow-local | accepted |
 | [0012](0012-publish-curated-run-evidence-not-full-workspaces.md) | Publish curated Run evidence, not full Workspaces | accepted |
+| [0013](0013-route-quality-checks-through-workflow-domains.md) | Route quality checks through Workflow domains | accepted |
 
 ## ADR Format Contract
 

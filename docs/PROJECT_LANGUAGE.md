@@ -31,7 +31,7 @@ unbounded self-modification. Distinguish these two operations:
 |---|---|
 | Auto Research Design System | The whole repository: research and control Skills, Workflow contracts, and a file-first Harness for end-to-end research delivery. |
 | Harness | Deterministic execution support for protocol, state, scheduling, Attempts, checkpoints, recovery, provenance, validation, Audit, and handoff. |
-| Harness kernel | Protected code that owns Run identity, scheduling, state transitions, provenance, diagnosis, and evaluator dispatch. |
+| Harness kernel | Protected code that owns Run identity, scheduling, state transitions, provenance, diagnosis, quality dispatch, and shared scorecard mechanics. Its file inventory is `HARNESS_KERNEL_PATHS`. |
 | Skill | A reusable capability under `.codex/skills/`. Research Skills transform research content; control Skills materialize deterministic reports, manifests, checkpoints, or local gates. |
 | Workflow | User-selectable research path such as `paper-review`; this is the product-facing unit of choice. |
 | Pipeline | Concrete contract under `pipelines/` that implements a Workflow through stages, required Skills, target Artifacts, and acceptance rules. |

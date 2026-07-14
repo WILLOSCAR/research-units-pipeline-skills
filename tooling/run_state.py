@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from tooling.common import UnitsTable, atomic_write_text, ensure_dir, goal_constraints_from_request, load_workspace_pipeline_spec, now_iso_seconds
+from tooling.harness_contracts import HARNESS_KERNEL_PATHS
 
 
 HARNESS_DIR = ".harness"
@@ -558,9 +559,13 @@ def _build_harness_lock(
     for skill in sorted({str(row.get("skill") or "").strip() for row in units if row.get("skill")}):
         skill_path = repo_root / ".codex" / "skills" / skill / "SKILL.md"
         if skill_path.exists():
+            implementation = _implementation_fingerprint(skill_path.parent)
             record = {
                 "path": _relative_or_absolute(skill_path, repo_root),
                 "sha256": _file_sha256(skill_path),
+                "implementation_path": _relative_or_absolute(skill_path.parent, repo_root),
+                "implementation_sha256": implementation["sha256"],
+                "implementation_file_count": implementation["file_count"],
             }
             script_path = skill_path.parent / "scripts" / "run.py"
             if script_path.exists():
@@ -568,20 +573,9 @@ def _build_harness_lock(
                 record["script_sha256"] = _file_sha256(script_path)
             skills[skill] = record
 
-    kernel_paths = (
-        "scripts/pipeline.py",
-        "tooling/executor.py",
-        "tooling/harness.py",
-        "tooling/quality_gate.py",
-        "tooling/run_state.py",
-        "tooling/brief_evaluation.py",
-        "tooling/evidence_review_evaluation.py",
-        "tooling/idea_evaluation.py",
-        "tooling/review_evaluation.py",
-    )
     kernel = {
         relpath: _file_sha256(repo_root / relpath)
-        for relpath in kernel_paths
+        for relpath in HARNESS_KERNEL_PATHS
         if (repo_root / relpath).exists()
     }
     revision = _git_output(repo_root, "rev-parse", "HEAD")
@@ -760,6 +754,21 @@ def _path_fingerprint(path: Path) -> dict[str, Any]:
             digest.update(_file_sha256(item).encode("ascii"))
         return {"type": "directory", "file_count": len(files), "sha256": digest.hexdigest()}
     return {"type": "file", "size": path.stat().st_size, "sha256": _file_sha256(path)}
+
+
+def _implementation_fingerprint(path: Path) -> dict[str, Any]:
+    files = sorted(
+        item
+        for item in path.rglob("*")
+        if item.is_file()
+        and "__pycache__" not in item.parts
+        and item.suffix not in {".pyc", ".pyo"}
+    )
+    digest = hashlib.sha256()
+    for item in files:
+        digest.update(str(item.relative_to(path)).encode("utf-8"))
+        digest.update(bytes.fromhex(_file_sha256(item)))
+    return {"file_count": len(files), "sha256": digest.hexdigest()}
 
 
 def _file_sha256(path: Path) -> str:

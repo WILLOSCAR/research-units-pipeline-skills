@@ -31,9 +31,11 @@ Optional (helps you stay aligned):
 ## Outputs
 
 Run this targeted pass immediately after `style-harmonizer` and before logic
-polish. Current compatibility policy: the script is marker-only; substantive
-opener repair should happen upstream in `subsection-writer` /
-`chapter-lead-writer`, not through blind regex rewriting.
+polish. The deterministic script is a certification adapter: it refuses to
+create the marker while the latest `writer-selfloop` report still names flagged
+files or predates any `sections/*.md` file. Perform the semantic rewrite through
+this Skill or the responsible upstream writer, rerun `writer-selfloop`, then
+retry the adapter. A passing marker records the certified Section-tree SHA256.
 
 - Updated `sections/S<sub_id>.md` files (still body-only; no headings)
 

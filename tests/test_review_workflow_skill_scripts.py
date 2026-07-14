@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -35,6 +36,79 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
             text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
             self.assertIn("[x] Approve C2", text)
+
+    def test_style_certification_adapters_block_until_writer_report_is_clean(self) -> None:
+        cases = {
+            "style-harmonizer": "sections/style_harmonized.refined.ok",
+            "opener-variator": "sections/opener_varied.refined.ok",
+        }
+        for skill, marker_rel in cases.items():
+            with self.subTest(skill=skill), self._workspace() as tmp:
+                workspace = Path(tmp)
+                (workspace / "output").mkdir(parents=True)
+                (workspace / "sections").mkdir(parents=True)
+                (workspace / "sections" / "S1_1.md").write_text(
+                    "This subsection provides an overview of the evidence.\n",
+                    encoding="utf-8",
+                )
+                report = workspace / "output" / "WRITER_SELFLOOP_TODO.md"
+                report.write_text(
+                    "# Writer self-loop\n\n"
+                    "- Status: PASS\n\n"
+                    "## Style Smells\n\n"
+                    "- repeated opener cadence\n"
+                    "  - files: `sections/S1_1.md`\n",
+                    encoding="utf-8",
+                )
+                script = REPO_ROOT / ".codex" / "skills" / skill / "scripts" / "run.py"
+
+                blocked = subprocess.run(
+                    [sys.executable, str(script), "--workspace", str(workspace)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+                self.assertEqual(blocked.returncode, 2, msg=blocked.stderr or blocked.stdout)
+                self.assertIn("repairs remain", blocked.stderr)
+                self.assertFalse((workspace / marker_rel).exists())
+
+                report.write_text(
+                    "# Writer self-loop\n\n"
+                    "- Status: PASS\n\n"
+                    "## Style Smells\n\n"
+                    "- (none)\n",
+                    encoding="utf-8",
+                )
+                section = workspace / "sections" / "S1_1.md"
+                stale_mtime = report.stat().st_mtime_ns + 1
+                os.utime(section, ns=(stale_mtime, stale_mtime))
+                stale = subprocess.run(
+                    [sys.executable, str(script), "--workspace", str(workspace)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+                self.assertEqual(stale.returncode, 2, msg=stale.stderr or stale.stdout)
+                self.assertIn("report is stale", stale.stderr)
+                self.assertFalse((workspace / marker_rel).exists())
+
+                fresh_mtime = section.stat().st_mtime_ns + 1
+                os.utime(report, ns=(fresh_mtime, fresh_mtime))
+                passed = subprocess.run(
+                    [sys.executable, str(script), "--workspace", str(workspace)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+
+                self.assertEqual(passed.returncode, 0, msg=passed.stderr or passed.stdout)
+                self.assertTrue((workspace / marker_rel).exists())
+                self.assertIn(
+                    "section_tree_sha256:",
+                    (workspace / marker_rel).read_text(encoding="utf-8"),
+                )
 
     def test_snapshot_writer_generates_snapshot_from_outline_and_core_set(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "snapshot-writer" / "scripts" / "run.py"

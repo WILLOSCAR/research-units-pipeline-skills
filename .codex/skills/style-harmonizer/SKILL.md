@@ -30,10 +30,12 @@ Optional (helps you stay in-scope while rewriting):
 
 Run this targeted pass after `writer-selfloop` and before `opener-variator` and
 logic polish. If major edits happened since the report, rerun
-`writer-selfloop` so `## Style Smells` reflects current text. The script is
-marker-only; surface-form repair should be pushed upstream into
-`subsection-writer` / `chapter-lead-writer` unless a human explicitly requests
-a local rewrite pass.
+`writer-selfloop` so `## Style Smells` reflects current text. The deterministic
+script is a certification adapter: it refuses to create the marker while the
+latest report still names flagged files or predates any `sections/*.md` file.
+Perform the semantic rewrite through this Skill or the responsible upstream
+writer, rerun `writer-selfloop`, then retry the adapter. A passing marker records
+the certified Section-tree SHA256.
 
 - Updated `sections/*.md` files (same filenames; still body-only; no headings)
 - Re-running `writer-selfloop` is the audit trail (Style Smells should shrink).

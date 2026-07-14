@@ -17,13 +17,14 @@ compiled delivery proofs exist; product-wide semantic readiness is incomplete.
 | Artifact provenance | Unit manifests, hashes, Artifact ledger, Artifact index | Ready enough |
 | Implementation freshness | successful Attempts fingerprint their Skill implementation; doctor flags stale DONE Units | Tested locally |
 | Mechanical diagnosis | doctor, audit, Failure ledger, improvement report | Ready enough |
+| Quality dispatch | 63 explicit Skill routes across Workflow-family modules, pinned by the Run lock | Modularized and tested |
 | Auto Review proof | completed scored Run with semantic failure, repair, rerun, audit, and pack | First vertical proof |
 | Research Brief proof | compact retrieval defaults plus pointer failure, repair, and rerun | Second vertical proof |
 | Research Idea proof | bounded retrieval defaults plus anchor failure, repair, and rerun | Third vertical proof |
 | Evidence Review proof | protocol-to-synthesis pointer failure, repair, and rerun | Fourth vertical proof |
 | Source Tutorial delivery | local source -> tutorial -> article PDF + Beamer PDF -> contract audit | Compiled delivery proof |
 | Course-paper delivery | [49-Unit Run snapshot](../examples/course-paper-pilot/README.md) -> audited 10-page PDF for an 8-10 page Goal | First completed semantic/compiled pilot |
-| Semantic evaluation | Workflow-local scorecards feed a common evaluation ledger; cross-Workflow corpus does not | Four evaluators implemented |
+| Semantic evaluation | Workflow-local dimensions use one shared scorecard lifecycle and feed a common evaluation ledger; cross-Workflow corpus does not | Four evaluators implemented |
 | Bounded Harness evolution | architecture rule only | Not implemented |
 
 ## Local Checks

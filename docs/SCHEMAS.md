@@ -10,7 +10,7 @@ runtime.
 |---|---|---|---|
 | `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
 | `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
-| `harness-lock.v1` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | Git revision and hashes for Pipeline, Units, Skill instructions/scripts, and Kernel |
+| `harness-lock.v1` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | Git revision and hashes for Pipeline, Units, complete Skill implementation directories, and Kernel |
 | `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
 | `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history |
 | `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt |
@@ -94,6 +94,12 @@ All four Workflow-local scorecards are projected into `run-evaluation.v1`. The
 common record does not force Claims or review-specific fields onto other
 Workflows. Model, token, cost, and latency values remain nullable until the
 runtime can measure them.
+
+`tooling/scorecards.py` owns only the shared scorecard lifecycle: semantic
+policy loading, four-point dimension records, aggregate verdicts, failure
+projection, envelope validation, Markdown rendering, and JSON persistence.
+Each `tooling/*_evaluation.py` module still owns its Workflow's dimensions,
+Evidence interpretation, counts, and limitations.
 
 `paper-review-scorecard.v1` measures observable semantic contracts. It does not
 claim to determine scientific truth, reproduce experiments, or replace an

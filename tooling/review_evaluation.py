@@ -5,12 +5,14 @@ import re
 from pathlib import Path
 from typing import Any
 
-from tooling.common import (
-    atomic_write_text,
-    load_workspace_pipeline_spec,
-    now_iso_seconds,
-    read_jsonl,
-    read_tsv,
+from tooling.common import read_jsonl, read_tsv
+from tooling.scorecards import (
+    build_dimension as _dimension,
+    finalize_scorecard,
+    load_scorecard_policy,
+    render_scorecard,
+    validate_scorecard,
+    write_scorecard,
 )
 
 
@@ -42,98 +44,41 @@ def evaluate_paper_review(workspace: Path) -> dict[str, Any]:
         _review_dimension(review_text, gaps),
         _recommendation_dimension(review_text, gaps),
     ]
-    max_score = sum(int(item["max_score"]) for item in dimensions)
-    earned_score = sum(int(item["score"]) for item in dimensions)
-    score = round((earned_score / max_score) * 100) if max_score else 0
-    failed_critical = [
-        str(item["id"])
-        for item in dimensions
-        if item["id"] in critical_dimensions and item["status"] != "PASS"
-    ]
-    failures = [_dimension_failure(item) for item in dimensions if item["status"] != "PASS"]
-    verdict = "PASS" if score >= pass_score and not failed_critical else "FAIL"
-
-    return {
-        "schema": SCORECARD_SCHEMA,
-        "generated_at": now_iso_seconds(),
-        "workflow": "paper-review",
-        "verdict": verdict,
-        "score": score,
-        "pass_score": pass_score,
-        "critical_dimensions": sorted(critical_dimensions),
-        "failed_critical_dimensions": failed_critical,
-        "counts": {
+    return finalize_scorecard(
+        schema=SCORECARD_SCHEMA,
+        workflow="paper-review",
+        dimensions=dimensions,
+        pass_score=pass_score,
+        critical_dimensions=critical_dimensions,
+        counts={
             "claims": len(claims),
             "evidence_gaps": len(gaps),
             "novelty_rows": len(novelty_rows),
             "major_gaps": len([gap for gap in gaps if _clean(gap.get("severity")) == "major"]),
         },
-        "dimensions": dimensions,
-        "failures": failures,
-        "limitations": [
+        limitations=[
             "This scorecard validates observable semantic contracts and traceability; it does not replace expert judgment of scientific correctness.",
             "Novelty quality is bounded by the related work available inside the Workspace.",
         ],
-    }
+    )
 
 
 def write_paper_review_scorecard(workspace: Path) -> tuple[int, dict[str, Any]]:
-    payload = evaluate_paper_review(workspace)
-    output = workspace / "output"
-    output.mkdir(parents=True, exist_ok=True)
-    atomic_write_text(
-        output / "REVIEW_SCORECARD.json",
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+    return write_scorecard(
+        workspace,
+        payload=evaluate_paper_review(workspace),
+        json_name="REVIEW_SCORECARD.json",
+        markdown_name="REVIEW_SCORECARD.md",
+        title="Paper Review Scorecard",
     )
-    atomic_write_text(output / "REVIEW_SCORECARD.md", render_paper_review_scorecard(payload))
-    return (0 if payload["verdict"] == "PASS" else 2), payload
 
 
 def validate_paper_review_scorecard(payload: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    if payload.get("schema") != SCORECARD_SCHEMA:
-        errors.append(f"schema must be {SCORECARD_SCHEMA}")
-    if payload.get("verdict") not in {"PASS", "FAIL"}:
-        errors.append("verdict must be PASS or FAIL")
-    if not isinstance(payload.get("score"), int) or not 0 <= int(payload.get("score", -1)) <= 100:
-        errors.append("score must be an integer from 0 to 100")
-    dimensions = payload.get("dimensions")
-    if not isinstance(dimensions, list) or not dimensions:
-        errors.append("dimensions must be a non-empty list")
-    failures = payload.get("failures")
-    if not isinstance(failures, list):
-        errors.append("failures must be a list")
-    return errors
+    return validate_scorecard(payload, schema=SCORECARD_SCHEMA)
 
 
 def render_paper_review_scorecard(payload: dict[str, Any]) -> str:
-    lines = [
-        "# Paper Review Scorecard",
-        "",
-        f"- Verdict: {payload['verdict']}",
-        f"- Score: {payload['score']}/100",
-        f"- Pass threshold: {payload['pass_score']}/100",
-        "",
-        "## Dimensions",
-        "",
-        "| Dimension | Status | Score | Evidence | Repair surface |",
-        "|---|---|---:|---|---|",
-    ]
-    for item in payload["dimensions"]:
-        evidence = _escape_table(str(item.get("evidence") or ""))
-        repair = _escape_table(", ".join(str(value) for value in item.get("repair_surface") or []))
-        lines.append(
-            f"| {item['label']} | {item['status']} | {item['score']}/{item['max_score']} | {evidence} | {repair} |"
-        )
-    lines.extend(["", "## Failed Checks", ""])
-    if payload["failures"]:
-        for failure in payload["failures"]:
-            lines.append(f"- `{failure['code']}`: {failure['message']}")
-    else:
-        lines.append("- (none)")
-    lines.extend(["", "## Limits", ""])
-    lines.extend(f"- {item}" for item in payload["limitations"])
-    return "\n".join(lines).rstrip() + "\n"
+    return render_scorecard(payload, title="Paper Review Scorecard")
 
 
 def _read_records(path: Path) -> list[dict[str, Any]]:
@@ -144,15 +89,11 @@ def _read_records(path: Path) -> list[dict[str, Any]]:
 
 
 def _rubric_policy(workspace: Path) -> tuple[int, set[str]]:
-    spec = load_workspace_pipeline_spec(workspace)
-    rubric = spec.quality_contract.get("semantic_rubric", {}) if spec is not None else {}
-    try:
-        pass_score = int(rubric.get("pass_score", DEFAULT_PASS_SCORE))
-    except (TypeError, ValueError):
-        pass_score = DEFAULT_PASS_SCORE
-    values = rubric.get("critical_dimensions", DEFAULT_CRITICAL_DIMENSIONS)
-    critical = {_clean(value) for value in values if _clean(value)} if isinstance(values, (list, tuple, set)) else set(DEFAULT_CRITICAL_DIMENSIONS)
-    return pass_score, critical or set(DEFAULT_CRITICAL_DIMENSIONS)
+    return load_scorecard_policy(
+        workspace,
+        default_pass_score=DEFAULT_PASS_SCORE,
+        default_critical_dimensions=DEFAULT_CRITICAL_DIMENSIONS,
+    )
 
 
 def _artifact_dimension(output: Path) -> dict[str, Any]:
@@ -277,40 +218,5 @@ def _recommendation_dimension(review_text: str, gaps: list[dict[str, Any]]) -> d
     )
 
 
-def _dimension(
-    dimension_id: str,
-    label: str,
-    *,
-    passed: bool,
-    partial: bool,
-    evidence: str,
-    repair_surface: list[str],
-) -> dict[str, Any]:
-    score = 4 if passed else (2 if partial else 0)
-    return {
-        "id": dimension_id,
-        "label": label,
-        "status": "PASS" if passed else "FAIL",
-        "score": score,
-        "max_score": 4,
-        "evidence": evidence,
-        "repair_surface": repair_surface,
-    }
-
-
-def _dimension_failure(item: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "code": str(item["id"]),
-        "message": str(item["evidence"]),
-        "causal_behavior": f"The {item['label'].lower()} contract is incomplete or inconsistent.",
-        "repair_surface": list(item.get("repair_surface") or []),
-        "severity": "high" if item["id"] in DEFAULT_CRITICAL_DIMENSIONS else "medium",
-    }
-
-
 def _clean(value: Any) -> str:
     return str(value or "").strip().lower()
-
-
-def _escape_table(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")

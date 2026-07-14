@@ -16,7 +16,7 @@ dependencies = [
 rh = "tooling.product_cli:main"
 
 [tool.setuptools]
-packages = ["tooling"]
+packages = ["tooling", "tooling.quality_checks"]
 
 [project.optional-dependencies]
 test = [

@@ -29,6 +29,7 @@ from tooling.run_state import (
     record_recovered_interruption,
     start_attempt,
 )
+from tooling.scorecards import validate_scorecard
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,13 @@ class RunResult:
     unit_id: str | None
     status: str
     message: str
+
+
+@dataclass(frozen=True)
+class _DeclaredScorecard:
+    relpath: str
+    payload: dict[str, object]
+    validation_errors: tuple[str, ...]
 
 
 def _section_first_cutover_block_message(*, workspace: Path, outputs: list[str]) -> str | None:
@@ -107,7 +115,10 @@ def _append_run_error(*, workspace: Path, unit_id: str, skill: str, kind: str, m
         return
 
 
-def _declared_scorecard(workspace: Path, outputs: list[str]) -> tuple[str, dict[str, object]] | None:
+def _declared_scorecard(workspace: Path, outputs: list[str]) -> _DeclaredScorecard | None:
+    spec = load_workspace_pipeline_spec(workspace)
+    rubric = spec.quality_contract.get("semantic_rubric", {}) if spec is not None else {}
+    expected_schema = str(rubric.get("schema") or "").strip()
     for relpath in outputs:
         if not relpath.upper().endswith("_SCORECARD.JSON"):
             continue
@@ -116,18 +127,49 @@ def _declared_scorecard(workspace: Path, outputs: list[str]) -> tuple[str, dict[
             continue
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            continue
-        if not isinstance(payload, dict) or str(payload.get("verdict") or "").upper() not in {"PASS", "FAIL"}:
-            continue
+        except (json.JSONDecodeError, OSError) as exc:
+            return _DeclaredScorecard(
+                relpath=relpath,
+                payload={},
+                validation_errors=(f"scorecard must be valid JSON ({type(exc).__name__}: {exc})",),
+            )
+        if not isinstance(payload, dict):
+            return _DeclaredScorecard(
+                relpath=relpath,
+                payload={},
+                validation_errors=("scorecard must be a JSON object",),
+            )
 
-        return relpath, payload
+        actual_schema = str(payload.get("schema") or "").strip()
+        schema = expected_schema or actual_schema
+        errors: list[str] = []
+        if not schema:
+            errors.append("schema must be a non-empty string")
+        else:
+            errors.extend(validate_scorecard(payload, schema=schema))
+        return _DeclaredScorecard(
+            relpath=relpath,
+            payload=payload,
+            validation_errors=tuple(errors),
+        )
     return None
 
 
-def _scorecard_failure(relpath: str, payload: dict[str, object]) -> dict[str, object] | None:
+def _scorecard_failure(
+    relpath: str,
+    payload: dict[str, object],
+    *,
+    validation_errors: tuple[str, ...] = (),
+) -> dict[str, object] | None:
     """Return a stable failure summary from a declared machine-readable scorecard."""
 
+    if validation_errors:
+        return {
+            "symptom": f"Scorecard `{relpath}` is invalid: {'; '.join(validation_errors[:3])}",
+            "causal_behavior": "The declared machine-readable evaluation does not satisfy the shared scorecard contract.",
+            "repair_surface": [relpath, "tooling/scorecards.py"],
+            "severity": "high",
+        }
     if str(payload.get("verdict") or "").upper() != "FAIL":
         return None
 
@@ -398,17 +440,23 @@ def run_one_unit(
     scorecard = _declared_scorecard(workspace, outputs)
     scorecard_failure = None
     if scorecard:
-        scorecard_relpath, scorecard_payload = scorecard
-        record_evaluation(
-            workspace=workspace,
-            attempt_id=attempt_id,
-            unit_id=unit_id,
-            skill=skill,
-            scorecard_path=scorecard_relpath,
-            payload=scorecard_payload,
+        scorecard_relpath = scorecard.relpath
+        scorecard_payload = scorecard.payload
+        if not scorecard.validation_errors:
+            record_evaluation(
+                workspace=workspace,
+                attempt_id=attempt_id,
+                unit_id=unit_id,
+                skill=skill,
+                scorecard_path=scorecard_relpath,
+                payload=scorecard_payload,
+            )
+        scorecard_failure = _scorecard_failure(
+            scorecard_relpath,
+            scorecard_payload,
+            validation_errors=scorecard.validation_errors,
         )
-        scorecard_failure = _scorecard_failure(scorecard_relpath, scorecard_payload)
-    if completed.returncode == 0 and not missing:
+    if completed.returncode == 0 and not missing and scorecard_failure is None:
         if strict:
             from tooling.quality_gate import check_unit_outputs, write_quality_report
             try:

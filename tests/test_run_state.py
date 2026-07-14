@@ -41,7 +41,13 @@ def _jsonl(path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def _write_units(path: Path, *, status: str = "TODO") -> None:
+def _write_units(
+    path: Path,
+    *,
+    status: str = "TODO",
+    skill: str = "skill-without-script",
+    outputs: str = "output/result.md",
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
@@ -51,8 +57,8 @@ def _write_units(path: Path, *, status: str = "TODO") -> None:
                 "unit_id": "U010",
                 "title": "Demonstrate attempt history",
                 "type": "TEST",
-                "skill": "skill-without-script",
-                "outputs": "output/result.md",
+                "skill": skill,
+                "outputs": outputs,
                 "checkpoint": "C1",
                 "status": status,
                 "owner": "CODEX",
@@ -110,11 +116,76 @@ def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None
     assert lock["units_template"]["sha256"]
     assert lock["skills"]
     assert all(record.get("script_sha256") for record in lock["skills"].values())
+    assert all(record.get("implementation_sha256") for record in lock["skills"].values())
+    assert all(record.get("implementation_file_count", 0) > 0 for record in lock["skills"].values())
     assert lock["kernel"]["tooling/run_state.py"]
+    assert lock["kernel"]["tooling/scorecards.py"]
+    assert lock["kernel"]["tooling/quality_checks/survey_writing.py"]
     assert lock["kernel"]["tooling/brief_evaluation.py"]
     assert lock["kernel"]["tooling/review_evaluation.py"]
     assert [event["type"] for event in events] == ["run.created", "run.planned"]
     assert [event["seq"] for event in events] == [1, 2]
+
+
+def test_harness_lock_pins_skill_assets_with_the_executable_implementation(tmp_path: Path) -> None:
+    workspace = tmp_path / "idea-run"
+
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "idea-brainstorm",
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    lock = json.loads((workspace / ".harness" / "harness.lock.json").read_text(encoding="utf-8"))
+    idea_brief = lock["skills"]["idea-brief"]
+    assert idea_brief["implementation_path"] == ".codex/skills/idea-brief"
+    assert idea_brief["implementation_file_count"] >= 3
+    assert len(idea_brief["implementation_sha256"]) == 64
+
+
+def test_invalid_declared_scorecard_blocks_success_and_is_not_recorded(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    workspace = tmp_path / "run"
+    skill = "invalid-scorecard-skill"
+    scorecard_rel = "output/INVALID_SCORECARD.json"
+    _write_units(workspace / "UNITS.csv", skill=skill, outputs=scorecard_rel)
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+
+    script = repo_root / ".codex" / "skills" / skill / "scripts" / "run.py"
+    script.parent.mkdir(parents=True)
+    script.write_text(
+        "\n".join(
+            [
+                "import argparse",
+                "import json",
+                "from pathlib import Path",
+                "parser = argparse.ArgumentParser()",
+                "parser.add_argument('--workspace', required=True)",
+                "parser.add_argument('--unit-id')",
+                "parser.add_argument('--inputs')",
+                "parser.add_argument('--outputs', required=True)",
+                "parser.add_argument('--checkpoint')",
+                "args = parser.parse_args()",
+                "path = Path(args.workspace) / args.outputs.split(';')[0]",
+                "path.parent.mkdir(parents=True, exist_ok=True)",
+                "path.write_text(json.dumps({'schema': 'invalid.v1', 'verdict': 'PASS', 'score': True, 'pass_score': 'eighty'}), encoding='utf-8')",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = run_one_unit(workspace=workspace, repo_root=repo_root, strict=True)
+
+    assert result.status == "BLOCKED"
+    assert "is invalid" in result.message
+    assert _jsonl(workspace / ".harness" / "evaluations" / "ledger.jsonl") == []
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    assert failures[-1]["failure_type"] == "semantic_quality_gate_failed"
 
 
 def test_retries_preserve_attempt_and_failure_history(tmp_path: Path) -> None:

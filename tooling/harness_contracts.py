@@ -21,6 +21,7 @@ HARNESS_DOC_ENTRYPOINTS = {
     "docs/adr/0010-pair-review-markdown-with-structured-evidence.md": "Auto Review structured-evidence ADR",
     "docs/adr/0011-keep-semantic-scorecards-workflow-local.md": "Workflow-local semantic scorecards ADR",
     "docs/adr/0012-publish-curated-run-evidence-not-full-workspaces.md": "curated Run-evidence ADR",
+    "docs/adr/0013-route-quality-checks-through-workflow-domains.md": "Workflow-domain quality routing ADR",
 }
 
 HARNESS_README_LINKS = (
@@ -87,6 +88,37 @@ HARNESS_LOCAL_CHECKS = (
     "uv run --extra test python -m pytest -q",
 )
 
+HARNESS_KERNEL_PATHS = (
+    "scripts/pipeline.py",
+    "tooling/common.py",
+    "tooling/executor.py",
+    "tooling/harness.py",
+    "tooling/harness_contracts.py",
+    "tooling/ideation.py",
+    "tooling/pipeline_spec.py",
+    "tooling/quality_gate.py",
+    "tooling/quality_reporting.py",
+    "tooling/run_state.py",
+    "tooling/scorecards.py",
+    "tooling/brief_evaluation.py",
+    "tooling/evidence_review_evaluation.py",
+    "tooling/idea_evaluation.py",
+    "tooling/review_evaluation.py",
+    "tooling/review_protocol.py",
+    "tooling/quality_checks/__init__.py",
+    "tooling/quality_checks/common.py",
+    "tooling/quality_checks/delivery.py",
+    "tooling/quality_checks/evidence_review.py",
+    "tooling/quality_checks/research_idea.py",
+    "tooling/quality_checks/source_tutorial.py",
+    "tooling/quality_checks/survey_planning.py",
+    "tooling/quality_checks/survey_policy.py",
+    "tooling/quality_checks/survey_retrieval.py",
+    "tooling/quality_checks/survey_structure.py",
+    "tooling/quality_checks/survey_text.py",
+    "tooling/quality_checks/survey_writing.py",
+)
+
 READINESS_AUDIT_SCHEMA = "harness-readiness-audit.v1"
 READINESS_MIN_ITERATIONS = 10
 
@@ -138,21 +170,15 @@ EXECUTABLE_UNIT_TEMPLATES = (
 READINESS_VALIDATION_SURFACES = (
     "scripts/validate_repo.py",
     "scripts/audit_skills.py",
-    "scripts/pipeline.py",
     "scripts/generate_skill_graph.py",
     "scripts/readiness_audit.py",
-    "tooling/harness_contracts.py",
     "tests/test_harness_smoke.py",
     "tests/test_harness_validation.py",
     "tests/test_pipeline_harness_doctor.py",
     "tests/test_run_state.py",
-    "tooling/run_state.py",
+    "tests/test_scorecards.py",
     "tooling/product_cli.py",
-    "tooling/quality_gate.py",
-    "tooling/brief_evaluation.py",
-    "tooling/evidence_review_evaluation.py",
-    "tooling/idea_evaluation.py",
-    "tooling/review_evaluation.py",
+    *HARNESS_KERNEL_PATHS,
     "tests/test_evidence_review_vertical.py",
     "tests/test_idea_brainstorm_vertical.py",
     "tests/test_source_tutorial_delivery.py",
