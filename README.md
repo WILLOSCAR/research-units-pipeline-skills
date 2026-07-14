@@ -5,8 +5,8 @@ decisions, and intermediate evidence behind it.
 
 Research Harness combines reusable research Skills with a file-first execution
 Harness. It can produce a brief, paper review, evidence synthesis, literature
-survey, course paper, or source-grounded tutorial, while keeping every long Run
-recoverable and auditable.
+survey, bounded research report, or source-grounded tutorial, while keeping
+every long Run recoverable and auditable.
 
 ```text
 Goal -> Run -> Evidence -> Improve
@@ -63,8 +63,8 @@ Use arxiv-survey-latex to write an 8-10 page course paper on RAG evaluation and 
 | Understand a topic and decide what to read | `research-brief` | `output/SNAPSHOT.md` |
 | Review one paper or manuscript | `paper-review` | `output/REVIEW.md` |
 | Synthesize studies under an explicit protocol | `evidence-review` | `output/SYNTHESIS.md` |
-| Build an evidence-first literature survey | `arxiv-survey` | `output/DRAFT.md` |
-| Deliver a survey, course paper, or report as PDF | `arxiv-survey-latex` | `latex/main.pdf` |
+| Build a literature survey or evidence-first long report in Markdown | `arxiv-survey` | `output/DRAFT.md` |
+| Deliver the same survey/report path as LaTeX and PDF | `arxiv-survey-latex` | `latex/main.pdf` |
 | Develop literature-grounded research directions | `idea-brainstorm` | `output/REPORT.md` |
 | Turn an existing source set into a tutorial | `source-tutorial` | tutorial, article PDF, slides |
 
@@ -72,14 +72,39 @@ Use arxiv-survey-latex to write an 8-10 page course paper on RAG evaluation and 
 useful Skills and design material, but does not yet have the strict executable
 contract used by the seven Workflows above.
 
-Course papers are a bounded use-case profile of the survey family, not another
-Workflow. An explicit course-paper request selects smaller retrieval, evidence,
-outline, paragraph, and citation budgets while retaining the same traceability
-and quality gates. The current
-[course-paper evidence snapshot](examples/course-paper-pilot/README.md) records
-a completed 49-Unit Run, a passing Artifact audit, and a 10-page PDF for an
-8-10 page Goal. This is one end-to-end delivery proof, not a claim of quality
-across every topic.
+### Survey As A Report Engine
+
+The Survey family is the long-form, topic-seeded path. It can deliver more than
+a publication-style survey when the requested result still depends on finding,
+comparing, and citing multiple research papers.
+
+| Requested result | What the Workflow emphasizes |
+|---|---|
+| Course paper, course report, term paper, or end-of-term report | A bounded research question, assignment-length outline, evidence-backed argument, comparison table, limitations, and conclusion |
+| Seminar or topic report | A focused conceptual path suitable for class discussion or presentation, grounded in several papers rather than one assigned reading |
+| Short literature-review report | Representative approaches, evidence, disagreements, limitations, and open questions without claiming systematic-review completeness |
+| Technical survey or research-landscape report | A decision-facing map of methods, benchmarks, assumptions, and gaps when research literature is the primary evidence |
+| Full literature survey | Broader retrieval, taxonomy, evidence, and citation coverage for a field-level account |
+
+An explicit bounded-report request activates a smaller execution profile; a
+full survey keeps the broader profile. Users describe the outcome and constraints
+in the Goal rather than setting internal profile keys. Choose `arxiv-survey` for
+Markdown and `arxiv-survey-latex` when PDF or LaTeX is part of the deliverable.
+
+Survey Runs default to abstract-backed evidence. For a graded report that must
+support paper-level interpretation, request `evidence_mode: fulltext`; this is
+slower and more expensive. A quick topic orientation belongs in
+`research-brief`, one-manuscript criticism in `paper-review`, a protocol-driven
+systematic synthesis in `evidence-review`, and transformation of a fixed source
+pack in `source-tutorial`.
+
+The [Survey guide](readme/arxiv-survey.md) gives concrete Goal fields, report
+shapes, evidence modes, execution budgets, checkpoints, and copyable examples.
+
+The current [bounded-report evidence snapshot](examples/course-paper-pilot/README.md)
+is a course-paper instance: one completed 49-Unit Run, a passing Artifact audit,
+and a 10-page PDF for an 8-10 page Goal. It proves one delivery path, not stable
+quality across every topic or report genre.
 
 ## One Product Loop
 
@@ -149,9 +174,9 @@ operability is broader than semantic proof:
   have Workflow-local scorecards plus failure -> repair -> rerun tests.
 - `source-tutorial` has a strict local-source delivery test through article and
   Beamer PDF compilation.
-- the survey family has one completed compact course-paper/PDF Run and extensive
-  contract tests; diverse-topic quality and measured token comparisons remain
-  open.
+- the survey family has one completed bounded-report/PDF Run (a course-paper
+  instance) and extensive contract tests; diverse-topic quality and measured
+  token comparisons remain open.
 - external held-out evaluation, candidate worktrees, automatic promotion, and
   a hosted Run store are not implemented.
 

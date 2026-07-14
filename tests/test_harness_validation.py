@@ -81,8 +81,8 @@ def _valid_taxonomy_text() -> str:
         + "\n".join(rows)
         + "\n\n"
         "`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`.\n\n"
-        "## Use-Case Overlays\n\n"
-        "Course paper / end-of-term report from a topic uses survey workflows.\n\n"
+        "## Survey Delivery Profiles\n\n"
+        "Course reports use the bounded report overlay in survey workflows.\n\n"
         "## Current Priority\n\n"
         "`paper-review`\n\n"
         + "\n".join(validate_repo.PAPER_REVIEW_TAXONOMY_ARTIFACTS)

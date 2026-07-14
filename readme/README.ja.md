@@ -26,7 +26,7 @@
 
 | Path | Use it for | Status | Guide |
 |---|---|---|---|
-| 授業レポート / 期末レポート | `arxiv-survey` or `arxiv-survey-latex` | use-case overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
+| 授業・ゼミ・文献ベースの技術レポート | `arxiv-survey` or `arxiv-survey-latex` | bounded report overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
 | `graduate-paper` | 中国語 thesis 資料の再構成 | research-stage path, not executable | [Guide EN](graduate-paper.md) |
 
 ## 並列な 3 つの Research Judgment Path

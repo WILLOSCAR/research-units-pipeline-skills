@@ -40,7 +40,9 @@ Optional template:
 
 User goal → choose:
 - “survey / 综述 / 调研” → `pipelines/arxiv-survey.pipeline.md`
-- “survey + PDF / LaTeX / 可编译” → `pipelines/arxiv-survey-latex.pipeline.md`
+- “course/term/seminar report, short literature review, 课程/期末/研讨课报告, 短文献综述” → the same survey Workflow with a bounded report profile
+- “topic/technical/research-landscape report, 专题/技术调研” → use the bounded Survey profile only when research literature is the primary evidence; market, pricing, procurement, live-web, and experiment reports are outside this route
+- “survey or bounded report + PDF / LaTeX / 可编译” → `pipelines/arxiv-survey-latex.pipeline.md`
 - “research brief / briefing / rapid review / 速览” → `pipelines/research-brief.pipeline.md`
 - “paper review / critique / referee / 审稿” → `pipelines/paper-review.pipeline.md`
 - “evidence review / systematic review / PRISMA / 系统综述” → `pipelines/evidence-review.pipeline.md`

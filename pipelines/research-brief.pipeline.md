@@ -1,8 +1,8 @@
 ---
 name: research-brief
-version: 1.0
+version: 1.2
 profile: research-brief
-routing_hints: [research brief, rapid review, topic overview, briefing, newcomer memo, snapshot, literature snapshot, 速览, 快速理解, 研究速览]
+routing_hints: [research brief, rapid review, topic overview, briefing, newcomer memo, snapshot, literature snapshot, help me understand, understand a topic, reading path, what should i read, 速览, 快速理解, 研究速览, 帮我理解, 快速了解, 入门, 阅读路径, 先读什么]
 routing_priority: 32
 routing_default: false
 target_artifacts:
@@ -31,13 +31,11 @@ contract_model: pipeline.frontmatter/v1
 query_defaults:
   max_results: 80
   core_size: 12
-  brief_style: newcomer_memo
 overridable_query_fields:
   - keywords
   - exclude
   - max_results
   - core_size
-  - brief_style
   - time_window.from
   - time_window.to
 quality_contract:
@@ -73,7 +71,7 @@ stages:
     title: Structure
     checkpoint: C2
     mode: no_prose
-    required_skills: [taxonomy-builder, outline-builder, pipeline-router]
+    required_skills: [taxonomy-builder, outline-builder, pipeline-router, human-checkpoint]
     optional_skills: [outline-budgeter]
     produces: [outline/taxonomy.yml, outline/outline.yml, DECISIONS.md]
     human_checkpoint:

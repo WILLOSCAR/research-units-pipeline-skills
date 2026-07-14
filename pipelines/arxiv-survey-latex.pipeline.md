@@ -1,9 +1,9 @@
 ---
 name: arxiv-survey-latex
-version: 4.0
+version: 4.1
 variant_of: arxiv-survey
 variant_overrides:
-  routing_hints: [latex, pdf, tex, course paper pdf, term paper pdf, 可编译, 编译, 课程论文 PDF, 期末报告 PDF]
+  routing_hints: [latex, pdf, tex, course paper pdf, term paper pdf, course report pdf, seminar report pdf, technical survey report pdf, 可编译, 编译, 课程论文 PDF, 课程报告 PDF, 期末报告 PDF, 研讨课报告 PDF, 技术调研报告 PDF]
   routing_default: false
   routing_priority: 20
   units_template: templates/UNITS.arxiv-survey-latex.csv

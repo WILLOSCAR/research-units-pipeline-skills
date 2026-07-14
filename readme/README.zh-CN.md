@@ -26,7 +26,7 @@
 
 | 路径 | 用来做什么 | 状态 | 说明 |
 |---|---|---|---|
-| 课程论文 / 期末报告 | 复用 `arxiv-survey` 或 `arxiv-survey-latex` | 在原 Survey Workflow 中自动启用紧凑 Profile | [说明](arxiv-survey.zh-CN.md) |
+| 课程论文/报告、研讨课报告或文献型技术调研报告 | 复用 `arxiv-survey` 或 `arxiv-survey-latex` | 在原 Survey Workflow 中自动启用有界报告 Profile | [说明](arxiv-survey.zh-CN.md) |
 | `graduate-paper` | 把现有中文毕业论文材料重组成论文工程 | 研究阶段路径，不是可执行 pipeline | [说明](graduate-paper.zh-CN.md) |
 
 ## 最快上手 Demo
@@ -48,8 +48,8 @@
 pipeline 可用性审计见
 [Pipeline Operability Audit](../docs/PIPELINE_OPERABILITY_AUDIT.md)。
 
-Survey 家族现在已有一条完成的紧凑课程论文 Pilot：49 个 Units、Artifact Audit PASS、
-10 页 PDF。它是一条参考 Run，不是跨主题质量证明。
+Survey 家族现在已有一条完成的有界报告 Pilot（课程论文实例）：49 个 Units、Artifact
+Audit PASS、10 页 PDF。它是一条参考 Run，不是跨主题或跨报告类型的质量证明。
 
 ## 推荐阅读顺序
 

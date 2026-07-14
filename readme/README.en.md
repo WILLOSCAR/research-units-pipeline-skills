@@ -26,7 +26,7 @@ Use the current workflow names directly. Old alias names are no longer part of a
 
 | Path | Use it for | Status | Guide |
 |---|---|---|---|
-| course paper / term report | use `arxiv-survey` for Markdown or `arxiv-survey-latex` for PDF | automatic compact profile in the existing survey workflow | [Guide](arxiv-survey.md) |
+| course paper/report, seminar report, or literature-backed technical report | use `arxiv-survey` for Markdown or `arxiv-survey-latex` for PDF | automatic bounded report profile in the existing Survey Workflow | [Guide](arxiv-survey.md) |
 | `graduate-paper` | restructuring an existing Chinese thesis project | research-stage path, not executable | [Guide](graduate-paper.md) |
 
 ## Fastest First Demo
@@ -49,10 +49,10 @@ Seven workflows are executable and harness-backed, but semantic maturity differs
 by path. For the latest pipeline-by-pipeline usability review, see
 [Pipeline Operability Audit](../docs/PIPELINE_OPERABILITY_AUDIT.md).
 
-The survey family now has one
-[completed compact course-paper pilot](../examples/course-paper-pilot/README.md)
+The Survey family now has one
+[completed bounded-report pilot](../examples/course-paper-pilot/README.md)
 (49 Units, passing Artifact audit, 10-page PDF). Treat it as a reference Run,
-not cross-topic quality proof.
+not cross-topic or cross-genre quality proof.
 
 ## Recommended Starting Point
 

@@ -143,6 +143,7 @@ def _validate_pipeline(path: Path) -> list[Finding]:
 
     template_skills: set[str] = set()
     template_outputs: set[str] = set()
+    template_rows: list[dict[str, str]] = []
     missing_skill_dirs: set[str] = set()
     missing_skill_md: set[str] = set()
     skills_without_scripts: set[str] = set()
@@ -165,6 +166,7 @@ def _validate_pipeline(path: Path) -> list[Finding]:
                         Finding("ERROR", f"{units_template}:{line_number}: malformed CSV row: {row_shape_error}")
                     )
                     continue
+                template_rows.append({str(key): str(value or "") for key, value in row.items() if key is not None})
                 skill = (row.get("skill") or "").strip()
                 if not skill:
                     continue
@@ -190,6 +192,15 @@ def _validate_pipeline(path: Path) -> list[Finding]:
     except Exception as exc:
         findings.append(Finding("ERROR", f"Failed to read `{units_template}`: {exc}"))
         return findings
+
+    findings.extend(
+        _validate_stage_units_alignment(
+            path=path,
+            spec=spec,
+            units_template=units_template,
+            rows=template_rows,
+        )
+    )
 
     for skill in sorted(missing_skill_dirs):
         findings.append(Finding("ERROR", f"{path.name}: `{units_template}` references missing skill dir: `{skill}`"))
@@ -263,10 +274,25 @@ def _validate_machine_readable_contract(*, path: Path, fm: dict[str, Any], spec:
         if stage.human_checkpoint:
             write_to = str(stage.human_checkpoint.get("write_to") or "").strip()
             approve = str(stage.human_checkpoint.get("approve") or stage.human_checkpoint.get("question") or "").strip()
+            if "human-checkpoint" not in stage.required_skills:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{path.name}: `stages.{stage_id}.human_checkpoint` requires "
+                        "`human-checkpoint` in `required_skills`.",
+                    )
+                )
             if not approve:
                 findings.append(Finding("ERROR", f"{path.name}: `stages.{stage_id}.human_checkpoint` is missing `approve`/`question`."))
             if write_to != "DECISIONS.md":
                 findings.append(Finding("ERROR", f"{path.name}: `stages.{stage_id}.human_checkpoint.write_to` must be `DECISIONS.md`."))
+            if write_to and write_to not in stage.produces:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{path.name}: `stages.{stage_id}.produces` must include human checkpoint output `{write_to}`.",
+                    )
+                )
 
     if spec.query_defaults and not spec.overridable_query_fields:
         findings.append(Finding("WARN", f"{path.name}: `query_defaults` is present but `overridable_query_fields` is empty."))
@@ -335,6 +361,54 @@ def _validate_machine_readable_contract(*, path: Path, fm: dict[str, Any], spec:
                 )
             )
 
+    return findings
+
+
+def _validate_stage_units_alignment(
+    *,
+    path: Path,
+    spec: PipelineSpec,
+    units_template: str,
+    rows: list[dict[str, str]],
+) -> list[Finding]:
+    findings: list[Finding] = []
+    for stage_id, stage in spec.stages.items():
+        if not stage.human_checkpoint:
+            continue
+        write_to = str(stage.human_checkpoint.get("write_to") or "").strip()
+        checkpoint_rows = [
+            row
+            for row in rows
+            if row.get("checkpoint", "").strip() == stage.checkpoint
+            and row.get("skill", "").strip() == "human-checkpoint"
+        ]
+        if not checkpoint_rows:
+            findings.append(
+                Finding(
+                    "ERROR",
+                    f"{path.name}: `stages.{stage_id}.human_checkpoint` has no matching "
+                    f"`human-checkpoint` Unit in `{units_template}`.",
+                )
+            )
+            continue
+        for row in checkpoint_rows:
+            unit_id = row.get("unit_id", "?").strip() or "?"
+            inputs = set(_split_semicolon(row.get("inputs", "")))
+            outputs = {item.lstrip("?").strip() for item in _split_semicolon(row.get("outputs", ""))}
+            if write_to and write_to not in inputs:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{units_template}:{unit_id}: human checkpoint must read `{write_to}` before updating it.",
+                    )
+                )
+            if write_to and write_to not in outputs:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{units_template}:{unit_id}: human checkpoint must emit `{write_to}`.",
+                    )
+                )
     return findings
 
 

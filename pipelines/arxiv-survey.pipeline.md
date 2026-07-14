@@ -1,8 +1,8 @@
 ---
 name: arxiv-survey
-version: 4.0
+version: 4.1
 profile: arxiv-survey
-routing_hints: [survey, review, 综述, 调研, literature review, course paper, term paper, end-of-term report, 课程论文, 期末报告]
+routing_hints: [survey, 综述, 调研, literature review, course paper, term paper, course report, seminar report, topic report, short literature review, technical survey report, research landscape report, end-of-term report, 课程论文, 课程报告, 期末论文, 期末报告, 结课报告, 研讨课报告, 文献综述报告, 短文献综述, 专题报告, 专题调研报告, 技术调研报告, 技术综述报告]
 routing_default: true
 routing_priority: 10
 target_artifacts:
@@ -118,21 +118,21 @@ quality_contract:
       survey:
         unique_hard_floor: 150
         unique_recommended: 165
-        per_h3: 14
+        global_budget_per_h3: 14
         base: 35
         bibliography_fraction: 0.50
         recommended_fraction: 0.55
       deep:
         unique_hard_floor: 165
         unique_recommended: 165
-        per_h3: 16
+        global_budget_per_h3: 16
         base: 40
         bibliography_fraction: 0.60
         recommended_fraction: 0.60
       course_paper:
         unique_hard_floor: 24
         unique_recommended: 32
-        per_h3: 3
+        global_budget_per_h3: 3
         base: 6
         bibliography_fraction: 0.35
         recommended_fraction: 0.45
@@ -237,35 +237,21 @@ stages:
 
 Default contract (survey-grade, A150++):
 - `queries.md` defaults are set for a *survey deliverable* (no silent downgrade): `core_size=300`, `per_subsection=28`, global unique citations hard floor `>=150` (recommended `>=165` when `core_size=300`; default `citation_target=recommended`).
-- Explicit course-paper intent selects a bounded overlay in the same Workflow: `max_results=320`, `core_size=48`, `per_subsection=6`, `draft_profile=course_paper`, `citation_target=hard`, and a 24-citation hard floor. Six candidates per H3 preserve evidence choice while avoiding low-relevance filler in the compact profile.
+- Explicit bounded-report intent selects a compact overlay in the same Workflow: course papers, course reports, term reports, seminar reports, and explicitly literature-based technical/landscape reports use `max_results=320`, `core_size=48`, `per_subsection=6`, `draft_profile=course_paper`, `citation_target=hard`, and a 24-citation hard floor. The machine key remains `course_paper` for compatibility; it controls execution density, not the reader-facing genre.
 - `draft_profile` controls the full execution density (`course_paper`, `survey`, or `deep`), including structure, evidence packs, context packs, prose, and audit thresholds.
 - `evidence_mode` controls **evidence strength** (`abstract` default; `fulltext` optional and heavier).
 
+The YAML frontmatter and matching `templates/UNITS.arxiv-survey*.csv` are the
+canonical Skill, Artifact, dependency, and checkpoint contracts. The sections
+below explain execution policy and must not restate those machine-readable
+lists.
+
 ## Stage 0 - Init (C0)
-required_skills:
-- workspace-init
-- pipeline-router
-produces:
-- STATUS.md
-- UNITS.csv
-- CHECKPOINTS.md
-- DECISIONS.md
-- GOAL.md
-- PIPELINE.lock.md
-- queries.md
+
+C0 materializes the Workspace, locks the selected Workflow contract, records
+the Goal, and seeds only retrieval-relevant topic text into `queries.md`.
 
 ## Stage 1 - Retrieval & core set (C1)
-required_skills:
-- literature-engineer
-- dedupe-rank
-optional_skills:
-- keyword-expansion
-- survey-seed-harvest
-produces:
-- papers/papers_raw.jsonl
-- papers/retrieval_report.md
-- papers/papers_dedup.jsonl
-- papers/core_set.csv
 
 Notes:
 - `queries.md` may specify `max_results` and a year `time window`; `arxiv-search` will paginate and attach arXiv metadata (categories, arxiv_id, etc.) when online.
@@ -273,30 +259,6 @@ Notes:
 - Evidence-first expectation (A150++): aim for a large dedup pool (target >=1200, not ~200) and a stable, verifiable core set (`core_size=300`) so later stages can bind wide in-scope citation pools without forcing out-of-scope drift.
 
 ## Stage 2 - Structure (C2) [NO PROSE]
-required_skills:
-- taxonomy-builder
-- chapter-skeleton
-- section-bindings
-- section-briefs
-- outline-builder
-- section-mapper
-- outline-refiner
-optional_skills:
-- outline-budgeter
-produces:
-- outline/taxonomy.yml
-- outline/chapter_skeleton.yml
-- outline/section_bindings.jsonl
-- outline/section_binding_report.md
-- outline/section_briefs.jsonl
-- outline/outline.yml
-- outline/mapping.tsv
-- outline/coverage_report.md
-- outline/outline_state.jsonl
-- output/REROUTE_STATE.json
-human_checkpoint:
-- approve: scope + section skeleton + outline
-- write_to: DECISIONS.md
 
 Notes:
 - `chapter-skeleton` is the first retrieval-informed chapter contract; it stays chapter-level and does not emit stable H3 ids.
@@ -310,17 +272,6 @@ Notes:
 - If the outline is over-fragmented, use `outline-budgeter` (NO PROSE) to merge adjacent H3s into fewer, thicker units, then rerun `section-mapper` → `outline-refiner` before `Approve C2`.
 
 ## Stage 3 - Evidence (C3) [NO PROSE]
-required_skills:
-- pdf-text-extractor
-- paper-notes
-- subsection-briefs
-- chapter-briefs
-produces:
-- papers/fulltext_index.jsonl
-- papers/paper_notes.jsonl
-- papers/evidence_bank.jsonl
-- outline/subsection_briefs.jsonl
-- outline/chapter_briefs.jsonl
 
 Notes:
 - `queries.md` can set `evidence_mode: "abstract"|"fulltext"` (A150++ default: `abstract`).
@@ -333,35 +284,6 @@ Notes:
   These markers are used as explicit “reviewed/refined” signals and as a freeze switch (scripts won’t overwrite refined briefs).
 
 ## Stage 4 - Citations + evidence packs (C4) [NO PROSE]
-required_skills:
-- citation-verifier
-- evidence-binder
-- evidence-draft
-- table-schema
-- anchor-sheet
-- table-filler
-- appendix-table-writer
-- schema-normalizer
-- writer-context-pack
-- evidence-selfloop
-- claim-matrix-rewriter
-optional_skills:
-- survey-visuals
-produces:
-- citations/ref.bib
-- citations/verified.jsonl
-- outline/evidence_bindings.jsonl
-- outline/evidence_binding_report.md
-- outline/table_schema.md
-- outline/tables_index.md
-- outline/tables_appendix.md
-- output/TABLES_APPENDIX_REPORT.md
-- outline/evidence_drafts.jsonl
-- outline/anchor_sheet.jsonl
-- output/SCHEMA_NORMALIZATION_REPORT.md
-- outline/writer_context_packs.jsonl
-- output/EVIDENCE_SELFLOOP_TODO.md
-- outline/claim_evidence_matrix.md
 
 Notes:
 - `evidence-draft` turns paper notes into per-subsection evidence packs (claim candidates + concrete comparisons + eval protocol + limitations) that the writer must follow.
@@ -379,53 +301,6 @@ Notes:
   These markers make “reviewed/refined” explicit and prevent accidental regeneration/overwrite; strict mode relies on content checks (placeholders/blocking_missing/scope), not marker presence.
 
 ## Stage 5 - Draft (C5) [PROSE AFTER C2]
-required_skills:
-- front-matter-writer
-- chapter-lead-writer
-- subsection-writer
-- writer-selfloop
-- style-harmonizer
-- opener-variator
-- section-logic-polisher
-- paragraph-curator
-- evaluation-anchor-checker
-- argument-selfloop
-- transition-weaver
-- section-merger
-- post-merge-voice-gate
-- citation-diversifier
-- citation-injector
-- draft-polisher
-- global-reviewer
-- pipeline-auditor
-- artifact-contract-auditor
-optional_skills:
-- prose-writer
-- subsection-polisher
-- redundancy-pruner
-- terminology-normalizer
-- limitation-weaver
-- latex-scaffold
-- latex-compile-qa
-produces:
-- sections/sections_manifest.jsonl
-- sections/abstract.md
-- sections/discussion.md
-- sections/conclusion.md
-- output/WRITER_SELFLOOP_TODO.md
-- output/EVAL_ANCHOR_REPORT.md
-- output/SECTION_LOGIC_REPORT.md
-- output/ARGUMENT_SELFLOOP_TODO.md
-- output/SECTION_ARGUMENT_SUMMARIES.jsonl
-- output/ARGUMENT_SKELETON.md
-- output/MERGE_REPORT.md
-- output/DRAFT.md
-- output/POST_MERGE_VOICE_REPORT.md
-- output/CITATION_BUDGET_REPORT.md
-- output/CITATION_INJECTION_REPORT.md
-- output/GLOBAL_REVIEW.md
-- output/AUDIT_REPORT.md
-- output/CONTRACT_REPORT.md
 
 Notes:
 - C5 writing system (semantic + minimal artifacts; no extra machinery):

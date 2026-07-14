@@ -1,6 +1,6 @@
 ---
 name: source-tutorial
-version: 1.0
+version: 1.1
 profile: source-tutorial
 routing_hints: [source tutorial, tutorial, 教程, 教学, lesson, course notes]
 routing_priority: 35
@@ -34,20 +34,6 @@ target_artifacts:
 default_checkpoints: [C0,C1,C2,C3,C4]
 units_template: templates/UNITS.source-tutorial.csv
 contract_model: pipeline.frontmatter/v1
-query_defaults:
-  source_limit: 12
-  docs_site_max_depth: 2
-  docs_site_max_pages: 12
-  tutorial_form: article_first
-  source_grounding: weak_explicit
-  repo_depth: readme_docs_first
-overridable_query_fields:
-  - source_limit
-  - docs_site_max_depth
-  - docs_site_max_pages
-  - tutorial_form
-  - source_grounding
-  - repo_depth
 quality_contract:
   tutorial_policy:
     tutorial_form: article_first
@@ -75,9 +61,9 @@ stages:
   C2:
     title: Pedagogical structure
     mode: no_prose
-    required_skills: [source-tutorial-spec, concept-graph, module-planner, exercise-builder, module-source-coverage, tutorial-context-pack]
+    required_skills: [source-tutorial-spec, concept-graph, module-planner, exercise-builder, module-source-coverage, tutorial-context-pack, human-checkpoint]
     optional_skills: []
-    produces: [output/TUTORIAL_SPEC.md, outline/concept_graph.yml, outline/module_plan.yml, outline/source_coverage.jsonl, outline/tutorial_context_packs.jsonl]
+    produces: [output/TUTORIAL_SPEC.md, outline/concept_graph.yml, outline/module_plan.yml, outline/source_coverage.jsonl, outline/tutorial_context_packs.jsonl, DECISIONS.md]
     human_checkpoint:
       approve: source scope + learner profile + tutorial structure
       write_to: DECISIONS.md

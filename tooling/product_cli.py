@@ -86,6 +86,14 @@ def _dispatch(args: argparse.Namespace) -> int:
 
 
 def _run_pipeline(*args: str) -> int:
+    if not PIPELINE_CLI.exists():
+        print(
+            "This rh command requires a Research Harness source checkout with "
+            "scripts/, pipelines/, templates/, and .codex/skills/. Run it from the cloned repository; "
+            "the current Python wheel is not a standalone Harness distribution.",
+            file=sys.stderr,
+        )
+        return 2
     completed = subprocess.run([sys.executable, str(PIPELINE_CLI), *args], cwd=REPO_ROOT, check=False)
     return int(completed.returncode)
 

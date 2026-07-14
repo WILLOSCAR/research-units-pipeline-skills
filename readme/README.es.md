@@ -26,7 +26,7 @@ Usa directamente los nombres actuales de los workflows. Los alias antiguos ya no
 
 | Ruta | Uso principal | Estado | Guía |
 |---|---|---|---|
-| trabajo de curso / reporte final | `arxiv-survey` or `arxiv-survey-latex` | use-case overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
+| trabajo o informe de curso, informe de seminario o informe tecnico basado en literatura | `arxiv-survey` or `arxiv-survey-latex` | bounded report overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
 | `graduate-paper` | reorganizar materiales de tesis china | research-stage path, not executable | [Guide EN](graduate-paper.md) |
 
 ## Tres Caminos de Juicio de Investigación

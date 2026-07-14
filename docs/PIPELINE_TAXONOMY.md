@@ -36,8 +36,8 @@ held-out evaluation.
 
 | Family | Workflow | Contract | Unit template | Main deliverable | Contract status | Current proof state |
 |---|---|---|---|---|---|---|
-| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md` | `Executable` | Completed course-paper pilot; general survey diversity open |
-| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `latex/main.pdf` | `Executable variant` | Completed semantic pilot plus compiled 10-page delivery |
+| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md` | `Executable` | One bounded-report pilot; general survey diversity open |
+| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `latex/main.pdf` | `Executable variant` | Same pilot compiled to an audited 10-page PDF |
 | Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | Scored fixture proof |
 | Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md`, scorecard | `Executable` | Scored fixture proof; expert comparison open |
 | Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md`, scorecard | `Executable` | Scored fixture proof; retrieval completeness open |
@@ -48,17 +48,42 @@ held-out evaluation.
 `arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`. It inherits
 the research lifecycle and adds TeX/PDF delivery Units and Artifacts.
 
-## Use-Case Overlays
+## Survey Delivery Profiles
 
-| Use case | Backing Workflow | Bounded contract |
-|---|---|---|
-| Course paper / end-of-term report | `arxiv-survey` or `arxiv-survey-latex` | Explicit intent selects `draft_profile=course_paper`: 320-result ceiling, 48-paper core, 6 mapped papers per H3, at most 6 H3s, and a 24-citation hard floor. The lifecycle remains topic -> retrieval -> outline -> evidence -> draft/PDF, so no separate Workflow is needed. |
+Survey deliverables vary in density and format without changing their research
+lifecycle:
+
+```text
+topic -> retrieval -> structure -> evidence -> draft -> audit -> optional PDF
+```
+
+| Reader-facing outcome | Workflow | Execution profile | Current boundary |
+|---|---|---|---|
+| Course paper, course report, term/end-of-term report | `arxiv-survey` or `arxiv-survey-latex` | bounded report overlay (`draft_profile=course_paper`) | Multi-source, literature-backed assignment; not an experiment report |
+| Seminar or topic report | same | bounded report profile when explicitly requested | Appropriate when the report compares multiple papers, not one assigned reading |
+| Short literature-review report | same | bounded report overlay | Focused question and compact delivery |
+| Technical survey or research-landscape report | same | bounded overlay or default `survey`, depending breadth | Research literature must be the main evidence base; live market/web research is outside the current contract |
+| Full literature survey | same | default `survey`; optional `deep` | Broad taxonomy and dense evidence requirements |
+
+The bounded profile materializes a 320-result ceiling, 48-paper core, 6 mapped
+papers per H3, at most 6 H3s, and a 24-citation hard floor. The compatibility
+key remains `course_paper`, but it represents execution density rather than a
+single genre. Explicit requests for supported report outcomes activate it;
+subject-matter mentions do not. Generic technical or landscape reports are
+excluded from automatic bounded routing when the request is about market,
+pricing, procurement, policy monitoring, or live-web evidence. PDF/LaTeX
+delivery intent selects the LaTeX variant after the Survey family is chosen.
+
+All Survey profiles default to `evidence_mode=abstract`. A Goal can request
+`fulltext` when methods, results, or limitations must be grounded beyond the
+abstract, at higher execution cost.
 
 Reference evidence: the
-[course-paper pilot snapshot](../examples/course-paper-pilot/README.md) records
-49 completed Units, a passing target-Artifact audit, and a 10-page PDF for an
-8-10 page Goal. The next proof is repetition across unrelated topics with
-measured model, token, retry, latency, and quality data.
+[bounded-report pilot snapshot](../examples/course-paper-pilot/README.md) is a
+course-paper instance with 49 completed Units, a passing target-Artifact audit,
+and a 10-page PDF for an 8-10 page Goal. The next proof is repetition across
+unrelated topics and report genres with measured model, token, retry, latency,
+and quality data.
 
 ## Scored Contract Surfaces
 
@@ -164,7 +189,7 @@ add new ones:
 1. compare `paper-review` scorecard findings with expert referee reports;
 2. repeat `research-brief`, `idea-brainstorm`, and `evidence-review` across
    unrelated inputs and record score stability;
-3. repeat the course-paper profile while measuring model, token, retry,
+3. repeat the bounded-report profile across course, seminar, and technical-survey prompts while measuring model, token, retry,
    latency, and final quality;
 4. strengthen `source-tutorial` source-to-module grounding checks;
 5. use the resulting Failure and Evaluation corpus before designing automated

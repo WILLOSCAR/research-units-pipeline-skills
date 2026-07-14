@@ -1,8 +1,8 @@
 ---
 name: paper-review
-version: 1.0
+version: 1.2
 profile: paper-review
-routing_hints: [paper review, paper critique, critique this paper, assess this paper, assess manuscript, referee report, peer review, 审稿, 论文评估]
+routing_hints: [paper review, manuscript review, paper critique, critique this paper, review this paper, review this manuscript, assess this paper, assess manuscript, referee report, peer review, 审稿, 论文评估, 评审这篇论文, 审阅这篇论文]
 routing_priority: 33
 routing_default: false
 target_artifacts:
@@ -30,11 +30,6 @@ target_artifacts:
 default_checkpoints: [C0,C1,C2,C3]
 units_template: templates/UNITS.paper-review.csv
 contract_model: pipeline.frontmatter/v1
-query_defaults:
-  review_style: lab_review
-  traceability_required: true
-overridable_query_fields:
-  - review_style
 quality_contract:
   deliverable_kind: paper_review
   evidence_mode: manuscript_traceable

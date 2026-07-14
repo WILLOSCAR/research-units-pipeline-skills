@@ -212,6 +212,7 @@ PROJECT_LANGUAGE_REQUIRED_TERMS = (
     "Skill",
     "Workflow",
     "Pipeline",
+    "Delivery profile",
     "Use-case overlay",
     "Workspace",
     "Unit",
@@ -231,15 +232,15 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
     "Executable variant",
     "Research-stage",
     "Current Families",
-    "Use-Case Overlays",
-    "Course paper / end-of-term report",
+    "Survey Delivery Profiles",
+    "bounded report overlay",
     "Current Priority",
     "`paper-review`",
 )
 
 PIPELINE_TAXONOMY_ROW_REQUIREMENTS = (
-    ("Survey", "`arxiv-survey`", "`Executable`", "Completed course-paper pilot"),
-    ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "compiled 10-page delivery"),
+    ("Survey", "`arxiv-survey`", "`Executable`", "bounded-report pilot"),
+    ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "audited 10-page PDF"),
     ("Orientation", "`research-brief`", "`Executable`", "Scored fixture proof"),
     ("Review", "`paper-review`", "`Executable`", "Scored fixture proof"),
     ("Review", "`evidence-review`", "`Executable`", "Scored fixture proof"),

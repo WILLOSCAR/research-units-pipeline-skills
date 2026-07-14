@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -8,7 +9,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from tooling.common import atomic_write_text, copy_tree, pipeline_cli_command, resolve_pipeline_spec_path, shell_quote, today_iso
+from tooling.common import (
+    atomic_write_text,
+    copy_tree,
+    pipeline_cli_command,
+    requested_delivery_formats,
+    resolve_pipeline_spec_path,
+    shell_quote,
+    today_iso,
+)
 from tooling.executor import run_one_unit
 from tooling.harness import (
     build_artifact_pack_payload,
@@ -561,27 +570,69 @@ def _auto_pick_pipeline(topic: str) -> str:
         except Exception:
             continue
 
-    scored: list[tuple[float, int, str]] = []
     for spec in specs:
-        score = 0.0
-        for hint in spec.routing_hints:
-            hint_low = hint.lower()
-            if hint_low and hint_low in topic_low:
-                score += max(1.0, len(hint_low.split()))
+        if re.search(rf"(?<![a-z0-9-]){re.escape(spec.name.lower())}(?![a-z0-9-])", topic_low):
+            return spec.name
+
+    base_specs = [spec for spec in specs if not spec.variant_of]
+    if not base_specs:
+        return "arxiv-survey"
+    scored = [
+        (_routing_score(spec, topic_low), int(spec.routing_priority), spec.name, spec)
+        for spec in base_specs
+    ]
+    matched = [item for item in scored if item[0] > 0]
+    if matched:
+        matched.sort(key=lambda item: (-item[0], -item[1], item[2]))
+        selected = matched[0][3]
+    else:
+        defaults = sorted(
+            [
+                (int(spec.routing_priority), spec.name, spec)
+                for spec in base_specs
+                if spec.routing_default
+            ],
+            key=lambda item: (-item[0], item[1]),
+        )
+        selected = defaults[0][2] if defaults else next(
+            (spec for spec in base_specs if spec.name == "arxiv-survey"),
+            base_specs[0],
+        )
+
+    if not {"pdf", "latex"}.intersection(requested_delivery_formats(topic)):
+        return selected.name
+
+    variants: list[tuple[float, int, str]] = []
+    for spec in specs:
+        if not spec.variant_of:
+            continue
+        base_path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value=spec.variant_of)
+        if base_path is None:
+            continue
+        try:
+            base_name = PipelineSpec.load(base_path).name
+        except Exception:
+            continue
+        if base_name != selected.name:
+            continue
+        score = _routing_score(spec, topic_low)
         if score > 0:
-            scored.append((score, int(spec.routing_priority), spec.name))
+            variants.append((score, int(spec.routing_priority), spec.name))
 
-    if scored:
-        scored.sort(key=lambda item: (-item[0], -item[1], item[2]))
-        return scored[0][2]
+    if variants:
+        variants.sort(key=lambda item: (-item[0], -item[1], item[2]))
+        return variants[0][2]
+    return selected.name
 
-    defaults = sorted(
-        [(int(spec.routing_priority), spec.name) for spec in specs if spec.routing_default],
-        key=lambda item: (-item[0], item[1]),
-    )
-    if defaults:
-        return defaults[0][1]
-    return "arxiv-survey"
+
+def _routing_score(spec: PipelineSpec, topic_low: str) -> float:
+    topic_normalized = " ".join(topic_low.replace("-", " ").replace("_", " ").split())
+    score = 0.0
+    for hint in spec.routing_hints:
+        hint_low = " ".join(hint.lower().replace("-", " ").replace("_", " ").split())
+        if hint_low and hint_low in topic_normalized:
+            score += max(1.0, len(hint_low.split()))
+    return score
 
 
 def _update_status(status_path: Path, *, spec_path: str, checkpoint: str) -> None:

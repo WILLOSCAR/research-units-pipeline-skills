@@ -2,7 +2,7 @@ unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,
 U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;PIPELINE.lock.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace模板文件齐全（含 error sinks: QUALITY_GATE/RUN_ERRORS）,C0,TODO,,CODEX
 U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,DECISIONS含C0问题块；queries.md 含非空关键词,C0,TODO,U001,CODEX
 U010,Write review protocol (search/inclusion/exclusion),STRUCTURE,protocol-writer,STATUS.md,output/PROTOCOL.md,包含数据库/检索式/时间窗；纳入/排除需编号（I1.. / E1..）；提取字段含定义+允许值/单位,C1,TODO,U002,CODEX
-U020,Human approve protocol,META,human-checkpoint,output/PROTOCOL.md,DECISIONS.md,勾选 DECISIONS.md 的 Approve C1（并记录 protocol）,C1,TODO,U010,HUMAN
+U020,Human approve protocol,META,human-checkpoint,output/PROTOCOL.md;DECISIONS.md,DECISIONS.md,勾选 DECISIONS.md 的 Approve C1（并记录 protocol）,C1,TODO,U010,HUMAN
 U025,Collect candidate pool (multi-route) and write retrieval report,RETRIEVE,literature-engineer,queries.md,papers/papers_raw.jsonl;papers/retrieval_report.md,候选池有足够覆盖（或>=100条记录）；每条含 title/authors/year/url + 稳定标识（arxiv_id/doi）+ provenance；retrieval_report.md 记录来源与缺失字段统计,C2,TODO,U020,CODEX
 U026,Dedupe candidate pool (keep auditable pool),CURATE,dedupe-rank,papers/papers_raw.jsonl,papers/papers_dedup.jsonl;papers/core_set.csv,papers_dedup.jsonl 去重后重复率<2%；core_set.csv 可作为候选池索引（systematic review 不应静默丢 papers）,C2,TODO,U025,CODEX
 U030,Run screening and produce screening log,CURATE,screening-manager,output/PROTOCOL.md;papers/papers_dedup.jsonl,papers/screening_log.csv,title/abstract筛选完成且有决策与理由（理由需引用 protocol clause ID：I#/E#）,C3,TODO,U026,CODEX

@@ -35,43 +35,111 @@ In practice:
 - start from `arxiv-survey` if you are still iterating on writing quality and do not need PDF yet
 - use `arxiv-survey-latex` when PDF is part of the contract from the beginning
 
-## 3. Course Paper / Term Report Use Case
+## 3. Survey As Long-Form Research Delivery
 
-You can also use the survey workflow as a course-paper path:
+The Survey family is a research-to-report engine whenever the deliverable must
+be built from a topic, a discovered literature set, explicit comparisons, and
+traceable citations:
 
 ```text
-topic -> retrieval -> outline -> evidence -> report draft -> optional PDF
+topic -> retrieval -> structure -> evidence -> long-form draft -> optional PDF
 ```
 
-This does not need a separate workflow. It is the same survey pipeline with a
-different product brief. Tell the agent the course requirements up front:
+It does not create another Workflow for every reader-facing genre. The same
+research lifecycle can be shaped into several outcomes:
 
-- topic and expected angle
-- language
+| Outcome | Fit | Execution choice |
+|---|---|---|
+| Course paper, course report, term paper, or end-of-term report | A graded, multi-source argument with a bounded page/word budget | bounded report overlay |
+| Seminar report or topic report | A focused explanation and comparison for discussion or presentation | bounded report overlay when multiple papers are required |
+| Short literature-review report | A compact account of approaches, evidence, limits, and open questions | bounded report overlay |
+| Technical survey or research-landscape report | A literature-backed map for an R&D audience | bounded overlay for a focused question; default survey profile for field-wide coverage |
+| Full literature survey | Broad taxonomy, dense evidence packs, and high citation coverage | default `survey` profile |
+
+These outcomes share research mechanics, not a rigid paper template:
+
+- a course paper/report usually moves from assignment question and background to
+  approach comparison, evidence table, limitations, and a bounded conclusion;
+- a seminar or topic report favors a teachable conceptual progression and
+  discussion-ready contrasts, while still tracing claims to several papers;
+- a short literature review maps representative approaches and disagreements
+  without claiming exhaustive screening;
+- a technical or research-landscape report foregrounds decision criteria,
+  benchmarks, deployment assumptions, failure modes, and unresolved gaps.
+
+The boundary is the evidence base. This path is appropriate when research
+papers are the primary sources. It is not currently a market-intelligence,
+live-web-monitoring, experiment-report, or one-source reading-response engine.
+Use `research-brief` for quick orientation, `paper-review` for one manuscript,
+`evidence-review` for protocol-driven screening and extraction, and
+`source-tutorial` when the source pack is already fixed.
+
+### 3.1 Bounded Report Profile
+
+An explicit request to write a `course paper`, `course report`, `term paper`,
+`seminar report`, `topic report`, `short literature review`, or equivalent
+Chinese outcome activates a bounded execution profile. Generic technical or
+research-landscape reports activate it only when they are phrased as requested
+deliverables and are not market, pricing, procurement, policy-monitoring, or
+live-web tasks. Merely researching “report generation” does not activate it.
+
+The compatibility key is still `draft_profile=course_paper`, but users normally
+do not set it. It describes execution density, not the final genre. The profile
+materializes:
+
+- `max_results=320`
+- `core_size=48`
+- `per_subsection=6`
+- at most `6` H3 subsections
+- at least `24` unique citations overall, with `32` recommended
+- 5-7 paragraphs and at least 4 unique citations per H3
+
+Use `arxiv-survey` for a Markdown-first deliverable. Ask to produce, compile, or
+deliver PDF/LaTeX in the Goal and the router selects `arxiv-survey-latex` within
+the same family. A subject such as “PDF output fidelity” does not count as a PDF
+delivery request.
+
+### 3.2 What To Put In The Goal
+
+State these constraints before retrieval so the C2 outline can be judged
+against the real assignment:
+
+- research topic or question, plus the angle that matters
+- audience and context, such as an undergraduate course, graduate seminar, or R&D review
+- language and desired reader-facing genre
 - page or word target
-- citation style or minimum citation count
-- whether PDF/LaTeX is required
-- whether the report should read like a class paper, technical report, or short survey
+- citation style, required sources, date range, and hard exclusions
+- Markdown versus LaTeX/PDF delivery
+- `evidence_mode: abstract` or `evidence_mode: fulltext`
 
-Use `arxiv-survey` for a Markdown-first class report. Use `arxiv-survey-latex`
-when the final deliverable should be a PDF. Explicit `course paper`, `term
-paper`, `end-of-term report`, `课程论文`, or `期末报告` intent activates the
-bounded `course_paper` profile inside the same Workflow. It materializes
-`max_results=320`, `core_size=48`, `per_subsection=6`, at most 6 H3s, and a
-24-citation hard floor. Page, word, language, and format requirements still
-belong in the Goal and should be reviewed at C2.
+Page ranges and requested output formats are captured as structured Goal
+constraints today. Language, word count, citation style, and audience remain
+human-readable Goal/C2 decisions; the Harness does not pretend they are fully
+enforced when no deterministic gate exists.
+
+### 3.3 Evidence Strength And Cost
+
+The default is `evidence_mode: abstract`: citations and provenance remain
+traceable, but interpretation is normally grounded in metadata and abstracts.
+Use `evidence_mode: fulltext` when grading or expert review requires paper-level
+methods, results, and limitations. Full-text mode downloads and extracts a
+bounded paper subset, so it costs more time, storage, and model context.
+
+Examples:
+
+```text
+Use arxiv-survey-latex to write an 8-10 page course report on RAG evaluation for a graduate seminar. Compare evaluation protocols, include at least one reader-facing table, use evidence_mode: fulltext for the most important papers, and produce a final PDF. Show me the outline at C2 before drafting.
+```
+
+```text
+Use arxiv-survey to prepare a focused, literature-backed technical survey report on test-time adaptation for robotics. Research papers are the primary evidence. The audience is an R&D team; emphasize deployment assumptions, benchmarks, and failure modes. Deliver Markdown first.
+```
 
 Current evidence: the
-[course-paper pilot snapshot](../examples/course-paper-pilot/README.md) records
-49 completed Units, a passing Artifact audit, and a 10-page PDF for an 8-10
-page Goal. This proves one full delivery path. Repeated topics and measured
-token use remain open.
-
-Example:
-
-```text
-Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages, keep the outline reviewable before drafting, and produce a final PDF.
-```
+[bounded-report pilot snapshot](../examples/course-paper-pilot/README.md) is one
+course-paper instance with 49 completed Units, a passing Artifact audit, and a
+10-page PDF for an 8-10 page Goal. It proves one full delivery path. Repeated
+topics, other report genres, and measured token comparisons remain open.
 
 ## 4. What Makes This Workflow Different
 
@@ -122,7 +190,7 @@ The default survey contract is intentionally heavy:
 
 This is a survey-grade configuration, not a fast snapshot mode.
 
-The course-paper overlay is intentionally smaller:
+The bounded-report overlay (machine key `course_paper`) is intentionally smaller:
 
 - `core_size=48`
 - `per_subsection=6`
@@ -186,19 +254,19 @@ Write a LaTeX survey about embodied AI and show me the outline first.
 If you want the PDF path explicitly:
 
 ```text
-Use pipelines/arxiv-survey-latex.pipeline.md and write a survey on embodied AI.
+Use arxiv-survey-latex to write a survey on embodied AI and produce a PDF.
 ```
 
-If you want a course paper or end-of-term report:
+If you want a course paper, course report, seminar report, or end-of-term report:
 
 ```text
-Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages and produce a final PDF.
+Use arxiv-survey-latex to write a compact course report on robot learning. Target 8-10 pages and produce a final PDF.
 ```
 
 If you want a markdown-only survey first:
 
 ```text
-Use pipelines/arxiv-survey.pipeline.md and draft a survey on test-time adaptation for robots.
+Use arxiv-survey to draft a Markdown survey on test-time adaptation for robots.
 ```
 
 If you want less interruption:

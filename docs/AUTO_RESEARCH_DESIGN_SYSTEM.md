@@ -366,7 +366,7 @@ candidate system must enforce it through process and filesystem permissions.
 | Research Idea proof | Bounded defaults plus anchor failure, repair, and rerun | Third vertical proof |
 | Evidence Review proof | Protocol-to-synthesis pointer failure, repair, and rerun | Fourth vertical proof |
 | Source Tutorial delivery | Local source fixture compiles article and Beamer PDFs under strict gates | Delivery proof |
-| Course-paper delivery | [49-Unit semantic Run snapshot](../examples/course-paper-pilot/README.md), passing audit, 10-page PDF | First completed pilot |
+| Bounded-report delivery | [49-Unit course-paper Run snapshot](../examples/course-paper-pilot/README.md), passing audit, 10-page PDF | First completed pilot; other report genres open |
 | Bounded Self-Harness | Architecture described; external evaluator absent | Not implemented |
 
 ## 13. Current Proof Strategy
@@ -419,5 +419,5 @@ Pipeline foundation. The change is a clarification of product hierarchy:
 The direction is still aligned with the original repository: Skills perform
 bounded work, Pipelines compose them, and the Harness makes execution durable
 and inspectable. The main remaining risk is overgeneralizing a small set of
-fixture proofs and one course-paper pilot into cross-Workflow scientific
+fixture proofs and one bounded-report pilot into cross-Workflow scientific
 maturity.

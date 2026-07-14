@@ -26,7 +26,7 @@
 
 | Path | Use it for | Status | Guide |
 |---|---|---|---|
-| 수업 리포트 / 기말 보고서 | `arxiv-survey` or `arxiv-survey-latex` | use-case overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
+| 수업·세미나·문헌 기반 기술 보고서 | `arxiv-survey` or `arxiv-survey-latex` | bounded report overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
 | `graduate-paper` | 중국어 thesis 자료 재구성 | research-stage path, not executable | [Guide EN](graduate-paper.md) |
 
 ## 병렬인 3가지 Research Judgment Path

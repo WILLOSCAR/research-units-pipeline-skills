@@ -3,8 +3,8 @@
 把一个研究目标转成可复核的交付物，同时保留来源、决策与中间证据。
 
 Research Harness 把可复用的研究 Skills 与 file-first 执行 Harness 组合起来。它可以交付
-研究简报、论文评审、证据综述、文献 Survey、课程论文或基于给定资料的教程；长任务即使
-中断，也能恢复、检查和审计。
+研究简报、论文评审、证据综述、文献 Survey、有边界的研究报告或基于给定资料的教程；
+长任务即使中断，也能恢复、检查和审计。
 
 ```text
 Goal -> Run -> Evidence -> Improve
@@ -59,19 +59,42 @@ Protocol 或人工 Checkpoint 的路径，会在缺少输入时停止并说明�
 | 快速理解主题并决定先读什么 | `research-brief` | `output/SNAPSHOT.md` |
 | 评审一篇论文或 Manuscript | `paper-review` | `output/REVIEW.md` |
 | 按明确 Protocol 综合多项研究 | `evidence-review` | `output/SYNTHESIS.md` |
-| 构建证据优先的文献 Survey | `arxiv-survey` | `output/DRAFT.md` |
-| 交付 Survey、课程论文或 PDF 报告 | `arxiv-survey-latex` | `latex/main.pdf` |
+| 用 Markdown 交付文献 Survey 或证据优先的长报告 | `arxiv-survey` | `output/DRAFT.md` |
+| 把同一条 Survey / 报告路径交付为 LaTeX 与 PDF | `arxiv-survey-latex` | `latex/main.pdf` |
 | 形成有文献依据的研究方向 | `idea-brainstorm` | `output/REPORT.md` |
 | 把已有资料转成教程 | `source-tutorial` | 教程、Article PDF、Slides |
 
 `graduate-paper` 仍是中文毕业论文的 research-stage 路径。它有可用 Skills 和设计材料，
 但还没有上述 7 条 Workflow 使用的严格可执行 Contract。
 
-课程论文是 Survey 家族的有界 Profile，不是新增 Workflow。明确提出课程论文时，系统会
-缩小检索、证据、提纲、段落和引用预算，同时保留同一套可追溯性与质量门。当前公开的
-[课程论文证据快照](examples/course-paper-pilot/README.md)记录了一次完成的 49-Unit Run、
-通过的 Artifact Audit，以及针对 8-10 页 Goal 生成的 10 页 PDF。这是一份端到端交付
-证明，不代表所有主题都已达到相同质量。
+### 把 Survey 当成研究报告引擎
+
+Survey 家族是一条从 topic 启动的长篇交付路径。只要最终产物仍然依赖多篇研究论文的
+检索、比较、综合与引用，它就不只可以写 publication-style Survey：
+
+| 想交付的内容 | Workflow 会重点组织什么 |
+|---|---|
+| 课程论文、课程报告、期末/结课报告 | 有边界的研究问题、符合篇幅的提纲、证据支撑的论证、对比表、局限和结论 |
+| 研讨课报告或专题报告 | 适合课堂讨论或汇报的概念主线，并用多篇论文支撑，而不是只复述一篇指定阅读 |
+| 短文献综述 | 代表性路线、已有证据、分歧、局限与开放问题，但不冒充系统综述的穷尽性 |
+| 技术调研或研究现状报告 | 在学术文献是主要证据时，整理方法、Benchmark、前提、风险与研究空白 |
+| 完整领域综述 | 使用更广的检索、Taxonomy、证据与引用覆盖，形成领域级说明 |
+
+Goal 明确要求有边界的报告时，会自动使用较小的执行配置；完整 Survey 保持更广的配置。
+用户只需描述最终用途和约束，不需要理解或手写内部 Profile。只要 Markdown 就选
+`arxiv-survey`；从一开始就要求 PDF / LaTeX，则选 `arxiv-survey-latex`。
+
+Survey 默认使用 abstract-backed evidence。如果课程评分要求逐篇论文层面的论证，请明确
+设置 `evidence_mode: fulltext`，同时接受更高的运行时间和成本。只想快速理解 topic 应走
+`research-brief`；只评一篇 manuscript 应走 `paper-review`；按 Protocol 做系统性综合应走
+`evidence-review`；把一组固定资料改造成教程应走 `source-tutorial`。
+
+[Survey 使用说明](readme/arxiv-survey.zh-CN.md)进一步给出 Goal 应填写的字段、不同报告的
+结构、证据模式、执行预算、Checkpoint 和可直接改写的示例。
+
+当前公开的 [有界报告证据快照](examples/course-paper-pilot/README.md)是一条课程论文实例：
+49 个 Units 全部完成、Artifact Audit 通过，并针对 8-10 页 Goal 生成了 10 页 PDF。它证明
+一条端到端交付路径，不代表所有主题或报告类型都已稳定达到相同质量。
 
 ## 一个产品循环
 
@@ -137,8 +160,8 @@ workspaces/<run>/
 - `paper-review`、`research-brief`、`idea-brainstorm`、`evidence-review` 已有各自的
   Scorecard 和 Failure -> Repair -> Rerun 测试。
 - `source-tutorial` 已有从本地 Source 到 Article PDF 与 Beamer PDF 的严格交付测试。
-- Survey 家族已有一条完成的紧凑课程论文/PDF Run 和较完整的 Contract 测试；多主题
-  质量稳定性与真实 Token 对比仍未完成。
+- Survey 家族已有一条完成的有界报告/PDF Run（课程论文实例）和较完整的 Contract 测试；
+  多主题质量稳定性与真实 Token 对比仍未完成。
 - 外部 Held-out Evaluation、Candidate Worktree、自动 Promotion 和 Hosted Run Store
   尚未实现。
 

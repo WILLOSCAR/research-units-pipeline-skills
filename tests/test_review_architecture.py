@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import subprocess
 import sys
@@ -14,6 +15,40 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReviewArchitectureTests(unittest.TestCase):
+    def test_declared_human_checkpoints_include_the_control_skill(self) -> None:
+        for pipeline_path in sorted((REPO_ROOT / "pipelines").glob("*.pipeline.md")):
+            if pipeline_path.name == "graduate-paper-pipeline.md":
+                continue
+            spec = PipelineSpec.load(pipeline_path)
+            for stage in spec.stages.values():
+                if stage.human_checkpoint:
+                    self.assertIn(
+                        "human-checkpoint",
+                        stage.required_skills,
+                        msg=f"{spec.name}:{stage.id}",
+                    )
+
+    def test_human_checkpoint_units_read_and_write_decisions(self) -> None:
+        for pipeline_path in sorted((REPO_ROOT / "pipelines").glob("*.pipeline.md")):
+            if pipeline_path.name == "graduate-paper-pipeline.md":
+                continue
+            spec = PipelineSpec.load(pipeline_path)
+            with (REPO_ROOT / spec.units_template).open(encoding="utf-8", newline="") as handle:
+                rows = list(csv.DictReader(handle))
+            for stage in spec.stages.values():
+                if not stage.human_checkpoint:
+                    continue
+                matches = [
+                    row
+                    for row in rows
+                    if row["checkpoint"] == stage.checkpoint and row["skill"] == "human-checkpoint"
+                ]
+                self.assertTrue(matches, msg=f"{spec.name}:{stage.id}")
+                self.assertIn("DECISIONS.md", stage.produces, msg=f"{spec.name}:{stage.id}")
+                for row in matches:
+                    self.assertIn("DECISIONS.md", row["inputs"].split(";"), msg=row["unit_id"])
+                    self.assertIn("DECISIONS.md", row["outputs"].split(";"), msg=row["unit_id"])
+
     def test_review_products_expose_deliverable_contract_fields(self) -> None:
         brief = PipelineSpec.load(REPO_ROOT / "pipelines" / "research-brief.pipeline.md")
         paper = PipelineSpec.load(REPO_ROOT / "pipelines" / "paper-review.pipeline.md")

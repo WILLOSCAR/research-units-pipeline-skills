@@ -25,6 +25,34 @@ _SENTENCE_ABBREVIATION_RE = re.compile(
     flags=re.IGNORECASE,
 )
 
+_STRONG_BOUNDED_SURVEY_DELIVERABLE_EN = (
+    r"(?:course\s+paper|term\s+paper|course\s+report|class\s+report|"
+    r"seminar\s+paper|seminar\s+report|end(?:-|\s+)of(?:-|\s+)term\s+(?:paper|report)|"
+    r"short\s+literature(?:-|\s+)review(?:\s+report)?|literature\s+review\s+report)"
+)
+_GENERIC_BOUNDED_SURVEY_DELIVERABLE_EN = (
+    r"(?:topic\s+report|technical\s+(?:literature|survey|research)\s+report|"
+    r"research(?:-|\s+)landscape\s+report)"
+)
+_STRONG_BOUNDED_SURVEY_DELIVERABLE_ZH = (
+    r"(?:课程论文|课程报告|期末论文|期末报告|结课论文|结课报告|"
+    r"研讨课论文|研讨课报告|文献综述报告|短文献综述|短篇文献综述)"
+)
+_GENERIC_BOUNDED_SURVEY_DELIVERABLE_ZH = (
+    r"(?:专题报告|专题调研报告|技术调研报告|技术综述报告|研究现状报告)"
+)
+_BOUNDED_SURVEY_DELIVERABLE_EN = (
+    rf"(?:{_STRONG_BOUNDED_SURVEY_DELIVERABLE_EN}|{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_EN})"
+)
+_BOUNDED_SURVEY_DELIVERABLE_ZH = (
+    rf"(?:{_STRONG_BOUNDED_SURVEY_DELIVERABLE_ZH}|{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_ZH})"
+)
+_NON_LITERATURE_REPORT_CONTEXT_RE = re.compile(
+    r"(?i)\b(?:market|pricing|prices?|buying|purchasing|procurement|vendors?|"
+    r"competitive\s+intelligence|investment|stocks?|live\s+web|current\s+policy|"
+    r"current\s+regulation)\b|(?:市场|价格|采购|厂商|竞品|投资|股票|实时网页|舆情|现行政策|现行法规)"
+)
+
 
 def today_iso() -> str:
     return date.today().isoformat()
@@ -680,20 +708,13 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
     workspace = queries_path.parent
     profile = pipeline_profile(workspace)
     query_defaults = pipeline_query_defaults(workspace)
+    allowed_fields = pipeline_overridable_query_fields(workspace)
+    if not query_defaults and not allowed_fields:
+        return
 
     raw_tlow = topic.lower()
-    is_course_paper = profile == "arxiv-survey" and any(
-        token in raw_tlow
-        for token in (
-            "course paper",
-            "term paper",
-            "end-of-term report",
-            "end of term report",
-            "课程论文",
-            "期末报告",
-        )
-    )
-    if is_course_paper:
+    use_bounded_report_profile = profile == "arxiv-survey" and bounded_survey_profile_requested(topic)
+    if use_bounded_report_profile:
         query_defaults = {
             **query_defaults,
             "max_results": 320,
@@ -811,7 +832,7 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
         line = lines[i]
         stripped = line.strip()
 
-        if stripped.startswith("- keywords:") and not has_keywords:
+        if stripped.startswith("- keywords:") and not has_keywords and "keywords" in allowed_fields:
             out.append(line)
             i += 1
             while i < len(lines) and lines[i].startswith("  - "):
@@ -820,7 +841,7 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
                 out.append(f"  - \"{kw}\"")
             continue
 
-        if stripped.startswith("- exclude:") and not has_excludes:
+        if stripped.startswith("- exclude:") and not has_excludes and "exclude" in allowed_fields:
             out.append(line)
             i += 1
             while i < len(lines) and lines[i].startswith("  - "):
@@ -834,6 +855,8 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
             normalized_key = str(key or "").strip().lower().replace(" ", "_").replace("-", "_")
             if not normalized_key or not stripped.startswith(f"- {normalized_key}:"):
                 continue
+            if normalized_key not in allowed_fields:
+                continue
             if _has_nonempty_scalar(normalized_key):
                 break
             rendered = _render_query_scalar(value)
@@ -845,17 +868,32 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
         if materialized:
             continue
 
-        if stripped.startswith("- max_results:") and not _has_nonempty_scalar("max_results") and max_results_suggestion:
+        if (
+            stripped.startswith("- max_results:")
+            and "max_results" in allowed_fields
+            and not _has_nonempty_scalar("max_results")
+            and max_results_suggestion
+        ):
             out.append(f"- max_results: \"{max_results_suggestion}\"")
             i += 1
             continue
 
-        if stripped.startswith("- core_size:") and not _has_nonempty_scalar("core_size") and core_size_suggestion:
+        if (
+            stripped.startswith("- core_size:")
+            and "core_size" in allowed_fields
+            and not _has_nonempty_scalar("core_size")
+            and core_size_suggestion
+        ):
             out.append(f"- core_size: \"{core_size_suggestion}\"")
             i += 1
             continue
 
-        if stripped.startswith("- time window:") and not (has_time_from or has_time_to) and time_from_suggestion:
+        if (
+            stripped.startswith("- time window:")
+            and {"time_window.from", "time_window.to"}.intersection(allowed_fields)
+            and not (has_time_from or has_time_to)
+            and time_from_suggestion
+        ):
             out.append(line)
             i += 1
             # Skip existing from/to lines if present.
@@ -868,7 +906,7 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
         out.append(line)
         i += 1
 
-    out = _materialize_missing_query_defaults(out, query_defaults, allowed_fields=pipeline_overridable_query_fields(workspace))
+    out = _materialize_missing_query_defaults(out, query_defaults, allowed_fields=allowed_fields)
     atomic_write_text(queries_path, "\n".join(out).rstrip() + "\n")
 
 
@@ -884,27 +922,86 @@ def _dedupe_preserve_order(items: list[str]) -> list[str]:
     return out
 
 
+def bounded_survey_profile_requested(request: str) -> bool:
+    """Return whether a survey request explicitly asks for a bounded report deliverable."""
+
+    text = re.sub(r"\s+", " ", str(request or "").strip())
+    if not text:
+        return False
+
+    en_request = (
+        r"(?i)(?:\b(?:please\s+)?(?:write|draft|prepare|create|produce|deliver|compile|develop)\b"
+        r"|\b(?:need|want)\s+(?:an?\s+|the\s+)?)"
+    )
+    zh_request = r"(?:写|撰写|生成|准备|制作|完成|交付)"
+    strong_requested = bool(
+        re.search(rf"{en_request}[^.!?\n]{{0,140}}{_STRONG_BOUNDED_SURVEY_DELIVERABLE_EN}", text)
+        or re.search(rf"{zh_request}[^。！？\n]{{0,140}}{_STRONG_BOUNDED_SURVEY_DELIVERABLE_ZH}", text)
+        or re.match(
+            rf"(?i)^\s*(?:an?\s+|the\s+)?{_STRONG_BOUNDED_SURVEY_DELIVERABLE_EN}\s+(?:on|about|covering)\b",
+            text,
+        )
+        or re.search(
+            rf"(?i)\b(?:as|into)\s+(?:an?\s+|the\s+)?{_STRONG_BOUNDED_SURVEY_DELIVERABLE_EN}\s*[.!]?$",
+            text,
+        )
+        or re.match(rf"^\s*{_STRONG_BOUNDED_SURVEY_DELIVERABLE_ZH}(?:关于|：|:)", text)
+    )
+    if strong_requested:
+        return True
+
+    generic_requested = bool(
+        re.search(rf"{en_request}[^.!?\n]{{0,140}}{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_EN}", text)
+        or re.search(rf"{zh_request}[^。！？\n]{{0,140}}{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_ZH}", text)
+        or re.match(
+            rf"(?i)^\s*(?:an?\s+|the\s+)?{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_EN}\s+(?:on|about|covering)\b",
+            text,
+        )
+        or re.search(
+            rf"(?i)\b(?:as|into)\s+(?:an?\s+|the\s+)?{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_EN}\s*[.!]?$",
+            text,
+        )
+        or re.match(rf"^\s*{_GENERIC_BOUNDED_SURVEY_DELIVERABLE_ZH}(?:关于|：|:)", text)
+    )
+    return generic_requested and not _NON_LITERATURE_REPORT_CONTEXT_RE.search(text)
+
+
 def _sanitize_topic_for_query_seed(topic: str) -> str:
     text = str(topic or "").strip()
     if not text:
         return ""
     patterns = [
-        r"(?i)^\s*(?:please\s+)?(?:write|draft|prepare|create)\s+(?:an?\s+)?(?:(?:\d+\s*(?:-|–|to)\s*\d+|\d+)\s*(?:-\s*)?pages?\s+)?(?:compact\s+)?(?:course\s+paper|term\s+paper|end-of-term\s+report)\s+(?:on|about)\s+",
-        r"(?i)\s+(?:as\s+)?(?:a\s+)?(?:course\s+paper|term\s+paper|end-of-term\s+report)\s*$",
-        r"^\s*请?(?:帮我)?(?:写|生成|准备)(?:一篇)?(?:\s*\d+\s*(?:-|—|–|到|至)\s*\d+\s*页)?(?:关于)?",
-        r"(?:的)?(?:课程论文|期末报告)(?:，?并?(?:最终|最后)?(?:输出|生成|交付)(?:一份)?(?:PDF|LaTeX|Markdown)(?:文件|版本)?)?\s*$",
+        r"(?i)^\s*(?:please\s+)?(?:use|run)\s+(?:the\s+)?arxiv[-_\s]survey(?:[-_\s]latex)?(?:\s+workflow)?\s+(?:to\s+)?",
+        r"^\s*(?:请)?使用\s*arxiv[-_\s]survey(?:[-_\s]latex)?(?:\s*工作流)?(?:来|去)?\s*",
+        rf"(?i)^\s*(?:please\s+)?(?:write|draft|prepare|create)\s+(?:an?\s+)?(?:(?:\d+\s*(?:-|–|to)\s*\d+|\d+)\s*(?:-\s*)?pages?\s+)?(?:compact\s+)?{_BOUNDED_SURVEY_DELIVERABLE_EN}\s+(?:on|about)\s+",
+        r"[,，;；]?\s*(?:并|且)?(?:最终|最后)?(?:输出|生成|交付)(?:一份)?\s*(?:PDF|LaTeX|Markdown)(?:文件|版本)?\s*$",
+        r"(?i)[,;]?\s*as\s+(?:an?\s+)?(?:final\s+)?(?:latex(?:\s*/\s*pdf)?|pdf|markdown)(?:\s+(?:output|deliverable|version))?\s*\.?$",
         r"(?i)[,;]?\s*with\s+(?:a\s+)?(?:final\s+)?(?:latex(?:\s*/\s*pdf)?|pdf|markdown)(?:\s+(?:output|deliverable|version))?\s*\.?$",
         r"(?i)[,;]?\s*(?:and\s+)?(?:produce|return|deliver|include|generate)\s+(?:a\s+)?(?:final\s+)?(?:latex(?:\s*/\s*pdf)?|pdf|markdown)(?:\s+(?:output|deliverable|version))?\s*\.?$",
-        r"(?i)\bwith\s+latex\s*/\s*pdf\s+output\b",
-        r"(?i)\bwith\s+latex\s+output\b",
-        r"(?i)\bwith\s+pdf\s+output\b",
-        r"(?i)\bwith\s+markdown\s+output\b",
-        r"(?i)\blatex\s*/\s*pdf\s+output\b",
-        r"(?i)\bpdf\s+output\b",
-        r"(?i)\blatex\s+output\b",
-        r"(?i)\bmarkdown\s+output\b",
-        r"(?i)\bfor\s+latex\s*/\s*pdf\b",
+        r"(?i)[,，;；]?\s*(?:target(?:ing)?\s+)?(?:\d+\s*(?:-|–|—|to|到|至)\s*\d+|\d+)\s*(?:-\s*)?(?:pages?|页)(?:\s+(?:long|in\s+length))?\s*\.?$",
     ]
+    if bounded_survey_profile_requested(topic):
+        patterns.extend(
+            [
+                r"^\s*请?(?:帮我)?(?:写|撰写|生成|准备|制作|完成)(?:一篇|一份)?(?:\s*\d+\s*(?:-|—|–|到|至)\s*\d+\s*页)?\s*(?:的|、?关于)?",
+                rf"(?i)\s+(?:as\s+|into\s+)?(?:an?\s+|the\s+)?{_BOUNDED_SURVEY_DELIVERABLE_EN}\s*[.!]?$",
+                rf"(?:的)?{_BOUNDED_SURVEY_DELIVERABLE_ZH}\s*$",
+            ]
+        )
+    if requested_delivery_formats(topic):
+        patterns.extend(
+            [
+                r"(?i)\bwith\s+latex\s*/\s*pdf\s+output\b",
+                r"(?i)\bwith\s+latex\s+output\b",
+                r"(?i)\bwith\s+pdf\s+output\b",
+                r"(?i)\bwith\s+markdown\s+output\b",
+                r"(?i)\blatex\s*/\s*pdf\s+output\b",
+                r"(?i)\bpdf\s+output\b",
+                r"(?i)\blatex\s+output\b",
+                r"(?i)\bmarkdown\s+output\b",
+                r"(?i)\bfor\s+latex\s*/\s*pdf\b",
+            ]
+        )
     for pattern in patterns:
         text = re.sub(pattern, "", text)
     text = re.sub(r"\s+", " ", text).strip(" ,;:-")
@@ -990,7 +1087,7 @@ def reader_request_leakage(text: str) -> list[str]:
             "imperative paper request",
             r"(?i)\b(?:please\s+)?(?:write|draft|prepare|create)\s+(?:an?\s+)?"
             r"(?:(?:\d+\s*(?:-|–|to)\s*\d+|\d+)\s*(?:-\s*)?pages?\s+)?"
-            r"(?:compact\s+)?(?:course\s+paper|term\s+paper|end-of-term\s+report)\s+(?:on|about)\b",
+            rf"(?:compact\s+)?{_BOUNDED_SURVEY_DELIVERABLE_EN}\s+(?:on|about)\b",
         ),
         (
             "delivery-format request",
@@ -1000,7 +1097,7 @@ def reader_request_leakage(text: str) -> list[str]:
         (
             "Chinese paper request",
             r"(?:请?(?:帮我)?(?:写|生成|准备)(?:一篇)?(?:\s*\d+\s*(?:-|—|–|到|至)\s*\d+\s*页)?(?:关于)?)"
-            r"[^\n。]{0,180}(?:课程论文|期末报告)",
+            rf"[^\n。]{{0,180}}{_BOUNDED_SURVEY_DELIVERABLE_ZH}",
         ),
     ]
     return [label for label, pattern in checks if re.search(pattern, text or "")]
@@ -1026,17 +1123,35 @@ def goal_constraints_from_request(request: str) -> dict[str, Any]:
                 "scope": "compiled_pdf_total",
             }
 
-    formats: list[str] = []
-    for name, pattern in (
-        ("pdf", r"(?i)\bPDF\b"),
-        ("latex", r"(?i)\b(?:LaTeX|TeX)\b"),
-        ("markdown", r"(?i)\b(?:Markdown|\.md)\b"),
-    ):
-        if re.search(pattern, text):
-            formats.append(name)
+    formats = requested_delivery_formats(text)
     if formats:
         constraints["deliverable_formats"] = formats
     return constraints
+
+
+def requested_delivery_formats(request: str) -> list[str]:
+    """Return output formats requested as deliverables, not formats named as subjects."""
+
+    text = re.sub(r"\s+", " ", str(request or "").strip())
+    if not text:
+        return []
+
+    formats: list[str] = []
+    for name, token in (
+        ("pdf", r"PDF"),
+        ("latex", r"(?:LaTeX|TeX)"),
+        ("markdown", r"(?:Markdown|\.md)"),
+    ):
+        patterns = (
+            rf"(?i)\b(?:produce|generate|return|deliver|include|create|render|export|compile|provide|save)\b[^.!?\n]{{0,40}}\b{token}\b",
+            rf"(?i)\b(?:with|as|in)\s+(?:an?\s+|the\s+)?(?:final\s+|compiled\s+)?{token}(?:\s+(?:output|deliverable|version|file|format))?(?=\s*(?:[,.;]|$|\band\b))",
+            rf"(?i)\b{token}\s+(?:deliverable|version|file|format)\b",
+            rf"(?i)(?:生成|输出|交付|导出|返回|编译|提供|保存)[^。！？\n]{{0,20}}{token}",
+            rf"(?i){token}(?:文件|版本|格式|交付物)",
+        )
+        if any(re.search(pattern, text) for pattern in patterns):
+            formats.append(name)
+    return formats
 
 
 def load_workspace_goal_constraints(workspace: Path) -> dict[str, Any]:
@@ -1145,7 +1260,9 @@ def load_workspace_pipeline_spec(workspace: Path):
     from tooling.pipeline_spec import PipelineSpec
 
     try:
-        repo_root = find_repo_root(workspace)
+        # Pipeline contracts belong to the checkout executing the run. A Workspace
+        # may live outside that checkout or below another directory with AGENTS.md.
+        repo_root = find_repo_root(Path(__file__).resolve())
     except FileNotFoundError:
         return None
 
@@ -1274,7 +1391,7 @@ def _materialize_missing_query_defaults(lines: list[str], query_defaults: dict[s
         norm_key = str(key or "").strip().lower().replace(" ", "_").replace("-", "_")
         if not norm_key or norm_key in existing_keys:
             continue
-        if allowed_fields and norm_key not in allowed_fields:
+        if allowed_fields is not None and norm_key not in allowed_fields:
             continue
         rendered = _render_query_scalar(value)
         if rendered is None:

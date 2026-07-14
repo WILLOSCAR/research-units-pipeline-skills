@@ -9,7 +9,7 @@ U050,Plan tutorial modules,STRUCTURE,module-planner,outline/concept_graph.yml,ou
 U060,Add exercises to each tutorial module,STRUCTURE,exercise-builder,outline/module_plan.yml,outline/module_plan.yml,每模块至少 1 个可验证练习,C2,TODO,U050,CODEX
 U070,Audit module grounding against sources,QA,module-source-coverage,outline/module_plan.yml;sources/index.jsonl;sources/provenance.jsonl,outline/source_coverage.jsonl,每个模块都映射到 source IDs 或显式记录缺口,C2,TODO,U060,CODEX
 U080,Build per-module tutorial context packs,STRUCTURE,tutorial-context-pack,outline/module_plan.yml;outline/source_coverage.jsonl;sources/provenance.jsonl,outline/tutorial_context_packs.jsonl,每模块生成 1 个 context pack 且包含 objective/source snippets/exercise seed,C2,TODO,U070,CODEX
-U090,Human approve learner profile and tutorial structure,META,human-checkpoint,output/TUTORIAL_SPEC.md;outline/module_plan.yml,DECISIONS.md,DECISIONS.md 勾选 Approve C2,C2,TODO,U080,HUMAN
+U090,Human approve learner profile and tutorial structure,META,human-checkpoint,output/TUTORIAL_SPEC.md;outline/module_plan.yml;DECISIONS.md,DECISIONS.md,DECISIONS.md 勾选 Approve C2,C2,TODO,U080,HUMAN
 U100,Write tutorial prose from approved packs,WRITE,source-tutorial-writer,outline/tutorial_context_packs.jsonl;outline/module_plan.yml;DECISIONS.md,output/TUTORIAL.md,正文是 article-first tutorial 且模块顺序与已批准 plan 一致,C3,TODO,U090,CODEX
 U110,Run tutorial self-loop until PASS,QA,tutorial-selfloop,output/TUTORIAL.md;outline/module_plan.yml,output/TUTORIAL_SELFLOOP_TODO.md,报告状态为 PASS,C3,TODO,U100,CODEX
 U120,Scaffold article LaTeX from tutorial,LATEX,latex-scaffold,output/TUTORIAL.md,latex/main.tex,latex/main.tex 存在且无 Markdown 残留,C4,TODO,U110,CODEX

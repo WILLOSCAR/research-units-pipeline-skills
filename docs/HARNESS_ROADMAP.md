@@ -51,22 +51,22 @@ Runs and input diversity, not a premature global evidence graph.
 
 Status: four scored fixture proofs landed for `paper-review`, `research-brief`,
 `idea-brainstorm`, and `evidence-review`. The survey family also has a
-[completed 49-Unit `course_paper` pilot](../examples/course-paper-pilot/README.md)
+[completed 49-Unit bounded-report pilot (`course_paper` compatibility key)](../examples/course-paper-pilot/README.md)
 with a passing Artifact audit and a 10-page PDF.
 
 - keep Workflow-specific scorecards behind a common Run evaluation record;
 - preserve score, dimensions, verdict, Attempts, and repair surfaces in `.harness/evaluations/ledger.jsonl`;
 - use compact `research-brief` defaults as the first concrete token-budget reduction;
 - keep the Evidence Review protocol, screening, extraction, synthesis, and scorecard chain covered by its realistic fixture;
-- keep the course-paper profile bounded at 320 retrieval results, 48 core papers,
+- keep the bounded-report profile bounded at 320 retrieval results, 48 core papers,
   6 mappings per subsection, 6 H3s, and a 24-citation hard floor;
-- treat the completed course-paper Run as one pilot, not cross-topic proof;
+- treat the completed course-paper instance as one pilot, not cross-topic or cross-genre proof;
 - capture real model, token, cost, and latency metrics before introducing global `brief`, `standard`, and `deep` profiles.
 
 Next pressure:
 
 - repeat Auto Review, Research Brief, Research Idea, and Evidence Review across diverse inputs;
-- repeat the course-paper profile across unrelated topics and compare measured token, retry, latency, and quality data;
+- repeat the bounded-report profile across unrelated course, seminar, and technical-survey prompts and compare measured token, retry, latency, and quality data;
 - compare scorecard findings with expert review;
 - compare Source Tutorial module grounding and slide alignment against human review.
 

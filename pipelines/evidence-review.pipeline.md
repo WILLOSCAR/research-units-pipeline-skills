@@ -1,6 +1,6 @@
 ---
 name: evidence-review
-version: 1.1
+version: 1.2
 profile: evidence-review
 routing_hints: [evidence review, evidence synthesis, systematic review, prisma, 系统综述, 证据综述]
 routing_priority: 34
@@ -30,13 +30,9 @@ target_artifacts:
 default_checkpoints: [C0,C1,C2,C3,C4,C5]
 units_template: templates/UNITS.evidence-review.csv
 contract_model: pipeline.frontmatter/v1
-query_defaults:
-  rigor: systematic
-  evidence_mode: abstract
 overridable_query_fields:
   - keywords
   - exclude
-  - evidence_mode
   - time_window.from
   - time_window.to
 quality_contract:
@@ -66,7 +62,7 @@ stages:
     title: Protocol
     checkpoint: C1
     mode: no_prose
-    required_skills: [protocol-writer]
+    required_skills: [protocol-writer, human-checkpoint]
     optional_skills: []
     produces: [output/PROTOCOL.md, DECISIONS.md]
     human_checkpoint:

@@ -340,6 +340,18 @@ def test_product_cli_goal_create_maps_to_existing_workflow(tmp_path: Path) -> No
     assert "scripts/pipeline.py" not in status.stdout
 
 
+def test_product_cli_fails_clearly_without_a_harness_checkout(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    from tooling import product_cli
+
+    monkeypatch.setattr(product_cli, "PIPELINE_CLI", tmp_path / "missing" / "pipeline.py")
+    assert product_cli._run_pipeline("kickoff", "--topic", "demo") == 2
+    assert "not a standalone Harness distribution" in capsys.readouterr().err
+
+
 def test_product_status_does_not_create_a_missing_workspace(tmp_path: Path) -> None:
     workspace = tmp_path / "missing"
 

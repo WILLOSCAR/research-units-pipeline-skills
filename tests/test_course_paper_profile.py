@@ -11,15 +11,19 @@ import os
 import re
 from pathlib import Path
 
+from scripts.pipeline import _auto_pick_pipeline
 from tooling.pipeline_spec import PipelineSpec
 from tooling.common import (
     _query_seed_variants,
     _sanitize_topic_for_query_seed,
+    _materialize_missing_query_defaults,
     bounded_complete_text,
+    bounded_survey_profile_requested,
     goal_constraints_from_request,
     load_yaml,
     normalize_title_for_dedupe,
     reader_request_leakage,
+    requested_delivery_formats,
     refinement_marker_is_current,
     research_subject_from_request,
     research_title_from_request,
@@ -76,6 +80,73 @@ def test_delivery_request_normalizes_to_reader_facing_subject_and_title() -> Non
         "page_range": {"min": 8, "max": 10, "scope": "compiled_pdf_total"},
         "deliverable_formats": ["pdf"],
     }
+
+
+def test_bounded_report_requests_share_the_compact_survey_profile() -> None:
+    requests = {
+        "Write a seminar report on robot foundation models, target 6-8 pages, with PDF output.": "robot foundation models",
+        "Prepare a technical survey report about test-time adaptation as a Markdown deliverable.": "test-time adaptation",
+        "写一篇关于检索增强生成评测的课程报告，8-10 页，并生成 PDF": "检索增强生成评测",
+        "准备一份关于具身智能的研讨课报告，6 到 8 页": "具身智能",
+        "生成关于多智能体评测的专题调研报告": "多智能体评测",
+        "Write a topic report on evaluation leakage across language-model benchmarks.": "evaluation leakage across language-model benchmarks.",
+        "准备一份关于机器人基础模型的短文献综述": "机器人基础模型",
+    }
+
+    for request, subject in requests.items():
+        assert bounded_survey_profile_requested(request)
+        assert _sanitize_topic_for_query_seed(request) == subject
+
+    assert not bounded_survey_profile_requested("Write a laboratory experiment report")
+    assert not bounded_survey_profile_requested("Review this single manuscript")
+    assert not bounded_survey_profile_requested("Analyze research landscape report generation models")
+    assert not bounded_survey_profile_requested("Write a technical survey report on semiconductor memory market pricing")
+    assert _sanitize_topic_for_query_seed("生成模型评估") == "生成模型评估"
+    assert _sanitize_topic_for_query_seed("Analyze methods for research landscape report") == (
+        "Analyze methods for research landscape report"
+    )
+
+
+def test_workflow_instruction_is_removed_before_query_seeding() -> None:
+    request = (
+        "Use arxiv-survey-latex to write an 8-10 page course report on RAG evaluation "
+        "and produce a final PDF."
+    )
+
+    assert bounded_survey_profile_requested(request)
+    assert _sanitize_topic_for_query_seed(request) == "RAG evaluation"
+    chinese_request = (
+        "使用 arxiv-survey-latex 写一篇 8-10 页的检索增强生成评测课程报告，并生成 PDF"
+    )
+    assert bounded_survey_profile_requested(chinese_request)
+    assert _sanitize_topic_for_query_seed(chinese_request) == "检索增强生成评测"
+
+
+def test_delivery_format_detection_requires_delivery_context() -> None:
+    assert requested_delivery_formats("Analyze PDF output fidelity in multimodal models") == []
+    assert requested_delivery_formats("Analyze LaTeX parsing failures in research corpora") == []
+    assert _sanitize_topic_for_query_seed("Analyze PDF output fidelity in multimodal models") == (
+        "Analyze PDF output fidelity in multimodal models"
+    )
+    assert requested_delivery_formats("Write a course report on RAG and produce a final PDF") == ["pdf"]
+    assert requested_delivery_formats("写一篇 RAG 课程报告，并生成 PDF") == ["pdf"]
+    assert goal_constraints_from_request("Analyze PDF output fidelity in multimodal models") == {}
+
+
+def test_auto_router_selects_research_intent_before_delivery_variant() -> None:
+    cases = {
+        "Write an 8-10 page course paper on RAG evaluation, with a final PDF.": "arxiv-survey-latex",
+        "Write a seminar report on robot learning": "arxiv-survey",
+        "Review this paper on RAG evaluation and return Markdown": "paper-review",
+        "Help me understand test-time adaptation and build a reading path": "research-brief",
+        "Run a systematic review with PRISMA and produce a PDF": "evidence-review",
+        "Turn these sources into a tutorial with a PDF and slides": "source-tutorial",
+        "Analyze PDF output fidelity in multimodal models": "arxiv-survey",
+        "Use arxiv-survey-latex to write a report on RAG evaluation": "arxiv-survey-latex",
+    }
+
+    for request, expected in cases.items():
+        assert _auto_pick_pipeline(request) == expected
 
 
 def test_latex_gate_enforces_goal_page_range_not_only_a_minimum(monkeypatch) -> None:
@@ -369,6 +440,103 @@ def test_course_paper_intent_materializes_compact_profile_without_new_workflow()
         assert not (REPO_ROOT / "pipelines" / "course-paper.pipeline.md").exists()
 
 
+def test_course_report_pdf_auto_routes_and_materializes_compact_profile() -> None:
+    with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+        workspace = Path(tmp)
+        request = "写一篇关于检索增强生成评测的课程报告，8-10 页，并生成 PDF"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/pipeline.py",
+                "kickoff",
+                "--topic",
+                request,
+                "--workspace",
+                str(workspace),
+                "--overwrite",
+                "--overwrite-units",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stdout + result.stderr
+        lock = (workspace / "PIPELINE.lock.md").read_text(encoding="utf-8")
+        queries = (workspace / "queries.md").read_text(encoding="utf-8")
+        assert "pipelines/arxiv-survey-latex.pipeline.md" in lock
+        assert '- draft_profile: "course_paper"' in queries
+        assert '- max_results: "320"' in queries
+        assert '  - "检索增强生成评测"' in queries
+        assert "课程报告" not in queries
+        assert "8-10" not in queries
+
+
+def test_external_workspace_keeps_variant_defaults_and_bounded_profile() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        queries = _kickoff(
+            workspace=Path(tmp),
+            topic="Write a seminar report on agent evaluation, target 6-8 pages, with PDF output.",
+        )
+
+        assert '- draft_profile: "course_paper"' in queries
+        assert '- core_size: "48"' in queries
+        assert '  - "agent evaluation"' in queries
+
+
+def test_external_workspace_below_foreign_repo_marker_uses_executing_contract() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        foreign_root = Path(tmp)
+        (foreign_root / "AGENTS.md").write_text("# unrelated checkout\n", encoding="utf-8")
+        workspace = foreign_root / "runs" / "w1"
+        queries = _kickoff(
+            workspace=workspace,
+            topic="Write a seminar report on agent evaluation, target 6-8 pages, with PDF output.",
+        )
+
+        assert '- draft_profile: "course_paper"' in queries
+        assert '- core_size: "48"' in queries
+        assert '  - "agent evaluation"' in queries
+
+
+def test_non_retrieval_workflow_does_not_materialize_unused_query_controls() -> None:
+    with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+        queries = _kickoff(
+            workspace=Path(tmp),
+            topic="Review this manuscript and trace every major concern",
+            pipeline="paper-review",
+        )
+
+        assert "Review this manuscript" not in queries
+        assert '- max_results: ""' in queries
+        assert '- draft_profile: ""' in queries
+
+
+def test_retrieval_workflow_materializes_only_declared_query_controls() -> None:
+    with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+        queries = _kickoff(
+            workspace=Path(tmp),
+            topic="Systematic review of tutoring agents",
+            pipeline="evidence-review",
+        )
+
+        assert '  - "Systematic review of tutoring agents"' in queries
+        assert '- max_results: ""' in queries
+        assert '- evidence_mode: ""' in queries
+        assert "rigor:" not in queries
+
+
+def test_empty_query_allowlist_materializes_no_defaults() -> None:
+    lines = ["# Queries", "", "## Notes"]
+    assert _materialize_missing_query_defaults(
+        lines,
+        {"draft_profile": "survey"},
+        allowed_fields=set(),
+    ) == lines
+
+
 def test_default_survey_profile_is_not_downgraded() -> None:
     with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
         workspace = Path(tmp)
@@ -389,6 +557,9 @@ def test_default_survey_profile_is_not_downgraded() -> None:
 def test_course_paper_policy_is_coherent_across_contract_and_quality_gate() -> None:
     spec = PipelineSpec.load(REPO_ROOT / "pipelines" / "arxiv-survey.pipeline.md")
     policy = spec.quality_contract
+    course_citations = policy["citation_policy"]["by_profile"]["course_paper"]
+    assert course_citations["global_budget_per_h3"] == 3
+    assert "per_h3" not in course_citations
     assert policy["structure_policy"]["max_h3_by_profile"]["course_paper"] == 6
     assert policy["subsection_policy"]["course_paper"] == {
         "min_unique_citations": 4,

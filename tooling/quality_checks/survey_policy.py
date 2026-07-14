@@ -189,7 +189,7 @@ def survey_citation_policy(workspace: Path, *, bibliography_size: int, h3_count:
         "survey": {
             "unique_hard_floor": 150,
             "unique_recommended": 165,
-            "per_h3": 14,
+            "global_budget_per_h3": 14,
             "base": 35,
             "bibliography_fraction": 0.50,
             "recommended_fraction": 0.55,
@@ -197,7 +197,7 @@ def survey_citation_policy(workspace: Path, *, bibliography_size: int, h3_count:
         "deep": {
             "unique_hard_floor": 165,
             "unique_recommended": 165,
-            "per_h3": 16,
+            "global_budget_per_h3": 16,
             "base": 40,
             "bibliography_fraction": 0.60,
             "recommended_fraction": 0.60,
@@ -205,7 +205,7 @@ def survey_citation_policy(workspace: Path, *, bibliography_size: int, h3_count:
         "course_paper": {
             "unique_hard_floor": 24,
             "unique_recommended": 32,
-            "per_h3": 3,
+            "global_budget_per_h3": 3,
             "base": 6,
             "bibliography_fraction": 0.35,
             "recommended_fraction": 0.45,
@@ -230,12 +230,12 @@ def survey_citation_policy(workspace: Path, *, bibliography_size: int, h3_count:
 
     floor = int(_number("unique_hard_floor"))
     recommended_floor = int(_number("unique_recommended"))
-    per_h3 = int(_number("per_h3"))
+    global_budget_per_h3 = int(_number("global_budget_per_h3"))
     base = int(_number("base"))
     fraction = float(_number("bibliography_fraction"))
     recommended_fraction = float(_number("recommended_fraction"))
 
-    structural = base + per_h3 * max(0, int(h3_count))
+    structural = base + global_budget_per_h3 * max(0, int(h3_count))
     bibliography_target = int(max(0, bibliography_size) * fraction)
     hard = max(floor, bibliography_target)
     recommended = max(hard, recommended_floor, int(max(0, bibliography_size) * recommended_fraction))

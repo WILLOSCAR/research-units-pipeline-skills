@@ -1,345 +1,194 @@
-# Pipeline Operability Audit
+# Workflow Operability Audit
 
-Date: 2026-07-04
+Date: 2026-07-15
 
-Follow-up, 2026-07-13: the Auto Review actions identified here have landed for
-`paper-review`. The Workflow now emits structured Claim, Evidence, and novelty
-sidecars, produces `paper-review-scorecard.v1`, and has a completed local
-failure -> repair -> rerun proof. Findings for the other Workflows remain the
-July 4 audit snapshot.
+This is a current-state audit of the seven executable Workflows. It replaces
+the earlier dated snapshot and its accumulated follow-up notes. `graduate-paper`
+is outside this audit because it does not use the same executable Unit contract.
 
-Second follow-up, 2026-07-13: `research-brief` now defaults to a focused
-80-result retrieval budget and 12-paper core set, writes
-`research-brief-scorecard.v1`, validates pointers against the core set, and has
-its own failure -> repair -> rerun proof. These scorecards enter the common Run
-Evaluation ledger. Other Workflow findings remain open.
-
-Third follow-up, 2026-07-13: `idea-brainstorm` now defaults to a bounded
-240-result retrieval budget and 36-paper core set, writes
-`idea-brainstorm-scorecard.v1`, and has a fixture-assisted anchor failure ->
-repair -> rerun proof. It joins the same Run Evaluation ledger without claiming
-to evaluate scientific novelty.
-
-Fourth follow-up, 2026-07-13: `source-tutorial` now has a repeatable strict
-delivery test from a local Markdown source through tutorial writing, article
-PDF, Beamer PDF, and contract audit. The test exposed and fixed two LaTeX
-quality-gate defects. Semantic grounding remains a separate open question.
-
-Fifth follow-up, 2026-07-13: `evidence-review` now writes
-`evidence-review-scorecard.v1` and has a fixture-assisted synthesis-pointer
-failure -> repair -> rerun proof. Protocol parsing, clause-linked screening,
-canonical extraction fields, bias rows, and synthesis traceability now have
-explicit gates. Exhaustive retrieval and expert scientific agreement remain
-open.
-
-Sixth follow-up, 2026-07-14: explicit course-paper and end-of-term-report intent
-now selects a compact profile within `arxiv-survey` / `arxiv-survey-latex`
-instead of adding a Workflow. The profile materializes a 320-result ceiling,
-48-paper core, 6 mappings per subsection, at most 6 H3s, and a 24-citation hard
-floor. Profile-aware gates cover evidence density, subsection plans, bindings,
-context packs, front matter, paragraph budgets, tables, citation policy, page
-constraints, and final audit. The public
-[course-paper evidence snapshot](../examples/course-paper-pilot/README.md)
-records 49 completed Units, a passing Artifact audit, and a 10-page PDF for an
-8-10 page Goal. Repetition and measured token comparison remain open.
-
-Seventh follow-up, 2026-07-14: the C5 mutation order now ends with numeric
-hygiene and a final argument/manifest snapshot before merge. Paragraph
-compaction preserves all prose and citation-block order; merge rejects stale
-section fingerprints; and the post-merge voice gate treats transition
-suggestions as reader-facing only when an insertion marker enabled them.
-
-This audit checks the executable workflows that currently define the public
-Auto Research surface. It excludes `graduate-paper`, which is still a
-research-stage thesis design path rather than a strict executable pipeline.
-
-The audit answers one practical question:
+The audit asks one operational question:
 
 ```text
-Can a user run this workflow, get durable artifacts, and know where to repair
-the run when the output is weak?
+Can a user select the right Workflow, run it against its real input contract,
+inspect durable evidence, and locate the smallest repair when the result fails?
 ```
 
 ## Method
 
-The review combined three checks:
+The current review combines:
 
-- paired agent review for each executable workflow, with one agent simulating a
-  run and one agent supervising failure modes;
-- local smoke tests with compact or underspecified inputs, using strict mode
-  where possible;
-- direct inspection of pipeline contracts, unit templates, project skills, and
-  harness behavior.
-
-The local smoke test created temporary workspaces under
-`workspaces/pipeline-operability-20260704/`, ran `kickoff`, wrote doctor
-reports, and attempted the first strict execution steps.
+- Pipeline frontmatter, Unit-template, target-Artifact, Skill, and checkpoint comparison;
+- safe kickoff probes for Workflow routing and Survey delivery-profile materialization;
+- strict repository, readiness, Skill, and test-suite validation;
+- independent reviews of product language, routing, contract completeness, and token efficiency;
+- inspection of completed fixture/pilot evidence without treating fixtures as cross-topic proof.
 
 ## Executive Verdict
 
-All seven executable workflows have pipeline contracts, unit templates, and
-skill coverage. That means they can initialize a workspace and expose a
-repairable run ledger.
+All seven Workflows have executable Pipeline contracts, Unit templates, Skill
+coverage, durable Workspace state, target-Artifact audits, and an explicit
+blocking path. Structural operability is therefore high. Semantic maturity is
+uneven and remains bounded by the evidence listed below.
 
-That does not mean every workflow already produces a semantically strong final
-answer under ambiguous inputs. The current maturity split is:
+| Workflow | Structural operability | Current proof | Main open risk |
+|---|---:|---|---|
+| `arxiv-survey` | High | Contract tests plus one bounded-report pilot | Broad-topic survey quality and measured token cost |
+| `arxiv-survey-latex` | High | Same pilot compiled to an audited 10-page PDF | Runtime portability and repeated PDF freshness proof |
+| `research-brief` | High | Scored fixture with failure -> repair -> rerun | Reading-path usefulness across unrelated topics |
+| `paper-review` | High | Scored traceability fixture with repair history | Agreement with expert scientific judgment |
+| `evidence-review` | High | Scored protocol-to-synthesis fixture | Retrieval completeness and study-validity judgment |
+| `idea-brainstorm` | High | Scored signal-to-shortlist fixture | Expert novelty judgment and real cost measurement |
+| `source-tutorial` | High | Strict local-source article and slide compilation | Grounding depth with sparse or mixed source packs |
 
-| Workflow | Structural operability | Semantic output readiness | Main risk |
-|---|---:|---:|---|
-| `arxiv-survey` | High | Medium-high | One compact semantic pilot is complete; diverse topics and token measurements remain open |
-| `arxiv-survey-latex` | High | Medium-high | One audited 10-page PDF delivery is complete; runtime portability and repeated proof remain open |
-| `research-brief` | High | Medium-high | Pointer and structure contracts are scored; literature selection still needs diverse-run evaluation |
-| `paper-review` | High | Medium | Observable traceability is scored; scientific judgment still needs expert review |
-| `evidence-review` | High | Medium-high | Protocol-to-synthesis traceability is scored; retrieval completeness and scientific judgment still need expert evaluation |
-| `idea-brainstorm` | High | Medium-high | Trace/actionability/diversity are scored; novelty still needs expert comparison |
-| `source-tutorial` | High | Medium | Article and slide delivery compile under strict gates; grounding checks still tolerate weak context |
+An executable or scored contract does not establish scientific truth. It shows
+that observable defects can be found, recorded, and routed to an owner.
 
-The harness is useful precisely because of this split. It turns weak runs into
-visible repair work instead of hiding them in conversation state.
+## Routing And Input Contracts
 
-## Smoke Results
+Workflow selection now happens in two steps:
 
-| Workflow | Smoke behavior | Interpretation |
+1. choose the base research intent;
+2. choose a delivery variant only inside that Workflow family.
+
+This prevents `PDF` from turning a paper review or source tutorial into a
+Survey, while still selecting `arxiv-survey-latex` for a Survey/report Goal
+that requires PDF or LaTeX.
+
+| User intent | Workflow | Required starting input |
 |---|---|---|
-| `arxiv-survey` | Initialized, routed, then blocked at literature construction when no usable source pool was available. | Correct early failure for a retrieval-heavy workflow. |
-| `arxiv-survey-latex` | Same early survey behavior; LaTeX terminal path was also reviewed separately. | Variant is structurally aligned with the base survey. |
-| `research-brief` | Initialized and routed, then blocked at retrieval under compact input. | Expected, but the brief path needs a smaller retrieval profile. |
-| `paper-review` | Initialized and blocked on missing `output/PAPER.md`. | Correct for a single-manuscript workflow. |
-| `evidence-review` | Initialized and blocked on an incomplete protocol. A later fixture-assisted Run exercised invalid synthesis evidence, repair, and rerun. | Correct early block plus a completed semantic traceability proof. |
-| `idea-brainstorm` | Initialized and blocked when the idea brief lacked required query/table/open-question sections. | Correct early failure; good candidate for better prompt hints. |
-| `source-tutorial` | Initialized and blocked on missing source manifest/input. | Correct for a source-set workflow; topic-only usage should be routed elsewhere. |
+| Quickly understand a topic and decide what to read | `research-brief` | topic |
+| Review one paper or manuscript | `paper-review` | manuscript or `output/PAPER.md` |
+| Run protocol-driven screening and synthesis | `evidence-review` | review question and approved protocol |
+| Build a literature survey or long literature-backed report | Survey family | topic and delivery constraints |
+| Develop research directions from literature signals | `idea-brainstorm` | topic and ideation constraints |
+| Transform a known source set into teaching material | `source-tutorial` | source manifest or source locators |
 
-The important fix from this audit is that a blocked unit should not be resumed
-as if it were merely pending. `doctor` now points blocked units to
-`pipeline.py improve --workspace <workspace> --write` and the local quality
-reports instead of suggesting a blind next-unit run.
+Missing owned inputs block explicitly. A topic-only tutorial request should not
+invent a source pack; a manuscript review should not silently become a topic
+survey.
+
+## Survey Family
+
+The Survey family shares one research lifecycle:
+
+```text
+topic -> retrieval -> structure -> evidence -> draft -> audit -> optional PDF
+```
+
+Its delivery profiles change execution density, not the lifecycle.
+
+| Profile | Intended outcome | Current defaults |
+|---|---|---|
+| bounded report (`course_paper` compatibility key) | explicitly requested course paper/report, seminar/topic report, short literature-review report, or focused literature-backed technical report | 320 candidates, 48-paper core, 6 mapped papers per H3, at most 6 H3s, 24 unique citations hard / 32 recommended |
+| `survey` | full literature survey | 1800 candidates, 300-paper core, 28 mapped papers per H3, 150 unique citations hard / 165 recommended |
+| `deep` | stricter survey density, usually with full text | higher evidence and subsection gates than `survey` |
+
+The bounded report profile is appropriate only when research literature is the
+main evidence base. It does not claim support for market intelligence, live web
+monitoring, lab experiment reports, or one-source reading responses.
+
+Survey Runs default to `evidence_mode=abstract`. `fulltext` is available when
+methods, results, and limitations must be supported beyond abstracts, at higher
+runtime and context cost.
+
+The published bounded-report pilot is one course-paper instance: 49 completed
+Units, a passing Artifact audit, and a 10-page PDF for an 8-10 page Goal. This
+is an end-to-end proof, not cross-topic or cross-genre validation.
 
 ## Workflow Findings
 
-### `arxiv-survey`
+### Research Brief
 
-Coverage is broad and coherent: retrieval, dedupe, taxonomy, outline, section
-mapping, paper notes, evidence packs, citations, drafting, self-loops, and
-artifact audit all have project skills behind them.
+The Workflow uses an 80-result ceiling and 12-paper core set, then scores brief
+structure, specificity, source pointers, and reading-path integrity. Its main
+remaining question is whether those pointers are useful to human readers across
+diverse topics, not whether the files exist.
 
-Current reliability is best when the user has a real survey objective and is
-willing to inspect the C2 outline before prose. Explicit course-paper intent no
-longer inherits survey-grade scale: it selects the bounded `course_paper`
-profile and keeps the same traceable lifecycle.
+### Paper Review
 
-Priority fixes:
+The Workflow joins manuscript Claims, evidence gaps, novelty rows, final review
+concerns, and a Workflow-local scorecard. Stable IDs make major findings
+traceable. The scorecard cannot determine experimental validity or substitute
+for an expert referee.
 
-- repeat the compact course-paper Run on unrelated topics;
-- record token, latency, retry, and quality differences against the survey profile;
-- make strict quality gates the recommended default for survey execution;
-- move citation-density and section-coverage checks earlier, before the most
-  expensive drafting loops;
-- keep `PIPELINE.lock.md` visible in target artifact contracts so run identity
-  is not an implicit harness detail.
+### Evidence Review
 
-### `arxiv-survey-latex`
+The Workflow keeps protocol clauses, screening decisions, extraction rows,
+bias fields, synthesis pointers, and scorecard dimensions observable. Sparse
+or malformed inputs block. Exhaustive retrieval, causal validity, and evidence
+grading remain expert and corpus-level questions.
 
-This variant is structurally sound because it keeps the survey lifecycle and
-adds TeX/PDF delivery. The main risks are runtime prerequisites and stale PDF
-semantics.
+### Research Idea
 
-The audit found that a failed LaTeX rebuild could previously leave a stale
-`latex/main.pdf` around and still look successful to the surrounding run. The
-compile skill now returns failure on missing or failed builds and removes stale
-PDFs when compilation does not succeed.
+The Workflow keeps a bounded 240-result / 36-paper literature base and a trace
+from signals through direction generation, screening, shortlist, and memo. It
+checks traceability, actionability, diversity, and kill criteria; it does not
+certify novelty.
 
-Priority fixes:
+### Source Tutorial
 
-- document external dependencies such as `latexmk` and a page-count backend;
-- repeat compiled delivery across supported local LaTeX environments;
-- retain freshness checks proving that the current PDF comes from the current
-  `latex/main.tex`, not a stale artifact.
+The Workflow starts from an explicit source set and derives one pedagogical
+structure for tutorial Markdown, article PDF, and Beamer slides. Compilation is
+covered by a strict local-source regression. Grounding quality still needs
+stronger tests for sparse sources, hard source failures, snippets, exercises,
+and module-to-slide alignment.
 
-### `research-brief`
+## Contract Corrections In This Audit
 
-The workflow has the right product intent: a compact orientation and reading
-path. Its current implementation still borrows too much shape from the survey
-path. In simulated runs, generic outline scaffolds can leak into the final
-snapshot and the self-loop checks only a small subset of the promised brief
-sections.
+- removed the generic Survey `review` hint and added direct Paper Review and Research Brief intent phrases;
+- changed auto-routing to select research intent before Survey PDF/LaTeX variants;
+- expanded the bounded report intent vocabulary for course, seminar, and literature-backed technical reports;
+- removed delivery instructions from retrieval-query seeds and preserved page/format constraints in the Goal ledger;
+- made Pipeline lookup work for explicitly requested Workspaces outside the repository tree;
+- aligned `human-checkpoint` declarations with the three Unit templates that actually pause for approval;
+- removed user-overridable query knobs that no runtime component consumed;
+- renamed the global citation-sizing field so it cannot be mistaken for the per-H3 citation minimum.
 
-Priority fixes:
+## Token And Failure-Efficiency Findings
 
-- repeat the compact 80-result / 12-paper profile on diverse topics;
-- make `snapshot-writer` read `DECISIONS.md`, rank reasons, and selected
-  abstracts rather than flattening upstream outline bullets;
-- compare the scorecard with human judgments of topic boundary and reading-path
-  usefulness.
+The Harness commands are not the main token cost. Cost is dominated by early
+semantic expansion and repeated context in retrieval, evidence packs, writer
+context packs, and late drafting loops.
 
-### `paper-review`
+Current controls:
 
-This is now the first Auto Review vertical proof. Markdown outputs are paired
-with JSONL/TSV evidence records, major concerns cite Claim or Gap IDs, and the
-final self-loop writes a scored traceability contract. A failed scorecard is
-recorded as a semantic quality-gate Failure with an explicit repair surface.
+- route quick orientation to `research-brief` instead of default Survey;
+- use the bounded report profile for compact assignments instead of survey-scale retrieval;
+- require C2 structure approval before expensive prose;
+- keep C2-C4 machine-readable and no-prose;
+- pass bounded evidence/context packs into writers instead of the complete corpus;
+- route blocked Runs to `improve diagnose` instead of blind full reruns.
 
-Landed:
+Still open:
 
-- completed a fixture-backed Run with a deliberate traceability defect;
-- added Claim, Evidence-gap, and novelty sidecars with stable joins;
-- added a scorecard for artifact completeness, traceability, coverage,
-  positioning, and recommendation consistency;
-- preserved failed and repaired Attempts in the Run ledger and improvement
-  report.
+- add a C4 citation-feasibility gate before drafting becomes expensive;
+- measure model tokens, retries, latency, and cost rather than estimating them from Artifact size;
+- batch semantic screening and extraction for larger Evidence Review pools;
+- compare early-gate savings across repeated bounded-report and survey Runs.
 
-Remaining risk: the scorecard evaluates observable contracts, not experimental
-validity or the truth of scientific claims. Repeated Runs and expert review are
-still required before treating it as a strong evaluator.
+## Current Limits
 
-### `evidence-review`
+The project does not yet provide:
 
-The pipeline separates protocol, screening, extraction, bias, synthesis, and
-Workflow-local evaluation. Protocol parsing no longer swallows top-level
-scalar keys into keyword lists. Screening reasons must resolve to protocol
-clause IDs; extraction rows must cover included paper IDs and canonical
-population, task, metric, study type, result, and evidence-pointer fields; the
-final synthesis exposes paper-linked evidence and a bounded conclusion.
+- a standalone installed distribution; the current runtime is the repository checkout with its Workflow contracts, templates, and Skills;
+- cross-topic held-out semantic evaluation;
+- reliable model/provider/token/cost capture for every Attempt;
+- automatic candidate worktrees, promotion, or rollback;
+- a hosted Run store or distributed scheduler;
+- proof that one scorecard schema should be shared across all Workflows.
 
-Landed:
-
-- added `evidence-review-scorecard.v1` and the common Evaluation-ledger bridge;
-- added stage-local strict gates for protocol, screening, extraction, bias,
-  and synthesis;
-- fixed candidate-record joins so stable paper IDs survive into extraction;
-- exercised an invalid synthesis pointer, semantic Failure, repair, rerun, and
-  completed Run state.
-
-Remaining risk: sparse source metadata now blocks instead of silently passing,
-but the evaluator cannot establish retrieval completeness, study validity, or
-scientific truth. Larger pools need batching and expert comparison before this
-can be called a mature systematic-review engine.
-
-### `idea-brainstorm`
-
-The workflow is now a scored discussion-memo generator, not a project-
-commitment engine. It has a complete trace shape: brief, bounded literature
-base, signal table, direction pool, screening table, shortlist, report, JSON
-sidecar, and Workflow-local scorecard.
-
-Landed:
-
-- reduced defaults from 1800 candidates / 100 core papers to 240 / 36;
-- added `idea-brainstorm-scorecard.v1` for structure, trace consistency,
-  literature anchors, actionability, and lead-set diversity;
-- exercised a deliberate invalid anchor, semantic Failure, repair, rerun, and
-  `run-evaluation.v1` history;
-- added a fixture-assisted vertical test across taxonomy, paper notes, signals,
-  direction generation, screening, shortlist, memo, and self-loop.
-
-Priority fixes:
-
-- write the C2 focus decision back into the durable brief or decisions file;
-- add a schema/version marker for `output/REPORT.json`;
-- avoid hardcoded section-number assumptions in the self-loop when report size
-  settings change;
-- compare scored shortlists with expert novelty judgments across diverse topics;
-- measure real token use before introducing global budget modes.
-
-### `source-tutorial`
-
-The workflow is conceptually clean: it turns a source set into a tutorial, PDF,
-and slides. The important boundary is that the input must be a source set, not
-just a topic. With no source manifest or source locator, the correct behavior
-is to block early and ask for sources.
-
-Landed:
-
-- retained the existing real-source completed Workspace with a 4-page article
-  and 21-page slide deck;
-- added a deterministic local-source regression that executes every Unit and
-  compiles both PDFs with `latexmk` when available;
-- fixed strict LaTeX quality gates to resolve the active Workflow profile and
-  to avoid imposing a survey bibliography contract on Source Tutorial.
-
-The deeper reliability risk is later in the chain: once a sparse or weak source
-set passes intake, the writer and tutorial self-loop still have too many
-fallbacks. A tutorial can become structurally complete while module grounding,
-snippets, exercises, or learner-profile constraints remain thin.
-
-Priority fixes:
-
-- provide a minimal source-pack example and validator;
-- clarify the topic-only fallback route: use `research-brief` or survey first;
-- make `source-tutorial-writer` fail when the spec, context packs, snippets, or
-  exercises are missing instead of falling back to generic prose;
-- make `tutorial-selfloop` compare the final tutorial against
-  `outline/module_plan.yml`, not only heading presence;
-- split required sources into hard and soft requirements, and block when a hard
-  source fails;
-- connect declared source-limit and docs-depth query knobs to the actual ingest
-  runtime, or remove the unsupported knobs from the contract;
-- keep PDF and slides aligned with module structure rather than generating
-  independent delivery artifacts.
-
-## Token Cost Findings
-
-The main token sinks are not the harness commands themselves. They are semantic
-middle stages that expand too early or repeat context:
-
-- survey defaults retrieve and process a large candidate/core set even when the
-  user wants a compact report;
-- evidence packs, writer context packs, and late drafting loops repeat source
-  context after structural mistakes have already become expensive;
-- brief mode retrieves and outlines like a small survey instead of acting like
-  a focused briefing;
-- evidence-review will become expensive if semantic screening is strengthened
-  without batching;
-- idea-brainstorm takes broad notes before the focus lenses are fully locked.
-
-Recommended controls:
-
-- add explicit budget modes: `brief`, `standard`, and `deep`;
-- prefer early structure gates over late prose gates;
-- store compact machine-readable sidecars so later units do not reread large
-  Markdown reports;
-- pass only artifact references and excerpts into later units unless full text
-  is required;
-- make `pipeline.py improve` the default response to blocked units, not another
-  full execution attempt.
-
-## Extension Ideas
-
-Do not add a new workflow merely because the first Auto Review proof is
-complete. The best extensions remain smaller product surfaces over existing
-workflows:
-
-- repeated compact course-paper Runs over `arxiv-survey` / `arxiv-survey-latex`;
-- repeated Auto Review fixtures and harder manuscripts over `paper-review`;
-- source-pack validator over `source-tutorial`;
-- Workflow-local semantic scorecards behind the common Evaluation ledger;
-- token budget modes shared by all executable workflows;
-- fixture workspaces that demonstrate successful, blocked, and improved runs.
-
-## Changes Landed From This Audit
-
-- Skill command examples now use the repository runtime form
-  `uv run python ...`.
-- `PIPELINE.lock.md` is explicit in executable target artifact contracts and
-  U001 template outputs.
-- `doctor` now directs blocked units toward repair reports and `improve`
-  instead of blind continuation.
-- `latex-compile-qa` now fails on missing or failed builds and removes stale
-  PDFs when compilation fails.
-- DONE Unit manifests fingerprint the Skill implementation used by the
-  successful Attempt; `doctor` reports implementation drift.
-- final survey section manifests carry bytes and SHA-256 fingerprints that are
-  checked again by merge.
+These are roadmap items, not implied current capabilities.
 
 ## Next Review Target
 
-The next high-value proof is repeated evaluation across the four scored
-Workflows, while retaining the existing compiled delivery proof:
+The next useful evidence corpus is:
 
 ```text
-paper-review + research-brief + idea-brainstorm + evidence-review corpus
-+ repeated course-paper Runs
--> score stability -> expert comparison -> measured token/quality trade-offs
+repeated Auto Review + Research Brief + Evidence Review + Research Idea Runs
++ bounded reports across course, seminar, and technical-survey prompts
++ mixed-source tutorials
+-> score stability -> expert comparison -> measured quality/cost trade-offs
 ```
 
-That corpus should decide which Evidence fields and semantic checks are truly
-shared, and which must remain Workflow-local.
+That corpus should determine which checks generalize and which must remain
+Workflow-local before any automated Harness promotion is designed.

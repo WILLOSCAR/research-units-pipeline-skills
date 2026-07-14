@@ -35,40 +35,93 @@
 - 如果你还在重点迭代写作质量，不急着出 PDF，可以先用 `arxiv-survey`
 - 如果 PDF 本身就是合同的一部分，直接用 `arxiv-survey-latex`
 
-## 3. 课程论文 / 期末报告用法
+## 3. 把 Survey 当成长篇研究交付路径
 
-survey workflow 也可以作为课程论文或期末报告路径：
+只要最终产物需要从一个 topic 出发，经过文献发现、比较、证据组织和可追溯引用，Survey
+家族就可以承担 research-to-report 的工作：
 
 ```text
-topic -> retrieval -> outline -> evidence -> report draft -> optional PDF
+topic -> retrieval -> structure -> evidence -> long-form draft -> optional PDF
 ```
 
-这里不需要新增一条 workflow。它本质上还是同一条 survey pipeline，只是产品 brief
-变成“围绕一个 topic 产出可提交的课程报告”。使用时最好一开始就告诉 agent：
+它不会为每一种读者侧名称都新增 Workflow。同一条研究生命周期可以形成不同交付物：
 
-- 课程 topic 和你希望强调的角度
-- 输出语言
+| 交付物 | 适用条件 | 执行选择 |
+|---|---|---|
+| 课程论文、课程报告、期末/结课报告 | 有明确篇幅边界、需要多篇文献支撑的课程作业 | 有界报告 Overlay |
+| 研讨课报告或专题报告 | 围绕一个问题做解释、比较，并用于课堂讨论或汇报 | 需要多篇论文时使用有界 Overlay |
+| 短文献综述报告 | 紧凑总结路线、证据、局限与开放问题 | 有界报告 Overlay |
+| 技术调研或研究现状报告 | 面向研发读者、主要证据来自研究文献 | 聚焦问题用有界 Overlay；全领域覆盖用默认 `survey` Profile |
+| 完整文献 Survey | 需要更广 taxonomy、更密 evidence packs 和更高引用覆盖 | 默认 `survey` Profile |
+
+这些交付物共享研究流程，但不是套用同一个文章模板：
+
+- 课程论文/报告通常围绕作业问题，依次组织背景、路线比较、证据表、局限和有边界的结论；
+- 研讨课或专题报告更强调适合讲解与讨论的概念主线，但主要判断仍需由多篇论文支撑；
+- 短文献综述聚焦代表性路线、分歧与研究空白，不宣称做了穷尽式筛选；
+- 技术调研或研究现状报告面向决策，突出 Benchmark、部署前提、失败模式和未解决问题。
+
+判断边界看证据来源：这条路径适合“研究论文是主要来源”的任务；目前不适合市场情报、
+实时网页监控、实验报告或单一材料读后感。快速入门用 `research-brief`，单篇论文评审用
+`paper-review`，带 Protocol 的筛选与提取用 `evidence-review`，已有固定资料包再改造成教程
+则用 `source-tutorial`。
+
+### 3.1 有界报告 Profile
+
+Goal 明确要求撰写课程论文/报告、期末或结课报告、研讨课/专题报告、短文献综述等交付物时，
+会启用有边界的执行 Profile。普通技术调研或研究现状报告只有在它被明确作为交付物提出，
+并且不是市场、价格、采购、政策监控或实时网页任务时才会自动启用；研究“报告生成模型”
+本身不会误触发。
+
+兼容机器键仍为 `draft_profile=course_paper`，但用户通常不需要设置。它表示执行密度，
+而不是最终文体，并会写入：
+
+- `max_results=320`
+- `core_size=48`
+- `per_subsection=6`
+- 最多 `6` 个 H3 subsection
+- 全文至少 `24` 个不同引用，推荐 `32` 个
+- 每个 H3 为 5-7 段，至少 4 个不同引用
+
+Markdown-first 交付选 `arxiv-survey`。Goal 明确要求生成、编译或交付 PDF/LaTeX 时，
+路由器会在 Survey 家族内部选择 `arxiv-survey-latex`；“研究 PDF 输出质量”这类研究主题
+不会被当成 PDF 交付要求。
+
+### 3.2 Goal 里应该写什么
+
+最好在检索前写清这些约束，让 C2 提纲能按照真实作业要求接受审阅：
+
+- 研究 topic / question，以及真正想强调的角度
+- 受众和场景，例如本科课程、研究生研讨课或研发评审
+- 语言和希望呈现的文体
 - 页数或字数目标
-- 引用格式或最低引用数量
-- 是否需要 PDF / LaTeX
-- 希望读起来像课程论文、技术报告，还是短综述
+- 引用格式、必引来源、时间范围和硬排除项
+- Markdown 还是 LaTeX/PDF
+- `evidence_mode: abstract` 或 `evidence_mode: fulltext`
 
-如果只需要 Markdown 草稿，用 `arxiv-survey`。如果最后要交 PDF，用
-`arxiv-survey-latex`。Prompt 中明确出现 `course paper`、`term paper`、
-`end-of-term report`、`课程论文` 或 `期末报告` 时，同一条 Workflow 会自动启用
-`course_paper` Profile：`max_results=320`、`core_size=48`、
-`per_subsection=6`、最多 6 个 H3、全篇至少 24 个不同引用。页数、字数、语言和格式
-仍应写进 Goal，并在 C2 审批提纲。
+目前页数范围和输出格式会进入结构化 Goal constraints；语言、字数、引用格式和受众仍是
+人类可读的 Goal/C2 决策。没有确定性 Gate 的地方，Harness 不会假装已经完全自动验收。
 
-当前证据：[课程论文 Pilot 快照](../examples/course-paper-pilot/README.md)记录了 49 个
-已完成 Units、通过的 Artifact Audit，以及针对 8-10 页 Goal 生成的 10 页 PDF。这证明了
-一条完整交付路径；跨主题重复验证和真实 Token 记录仍未完成。
+### 3.3 证据强度与成本
+
+默认是 `evidence_mode: abstract`：引用与 provenance 仍然可追溯，但解释通常基于元数据和
+摘要。如果课程评分或专家评审要求逐篇核对方法、结果和局限，请改成
+`evidence_mode: fulltext`。全文模式会下载并抽取一个有界论文子集，因此需要更多运行时间、
+存储和模型上下文。
 
 示例：
 
 ```text
-Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages, keep the outline reviewable before drafting, and produce a final PDF.
+使用 arxiv-survey-latex 写一篇 8-10 页的 RAG 评测课程报告，面向研究生研讨课。比较不同评测协议，至少包含一张面向读者的对比表，对关键论文使用 evidence_mode: fulltext，最终生成 PDF；在 C2 先让我确认提纲。
 ```
+
+```text
+使用 arxiv-survey 写一份关于机器人测试时自适应、以研究论文为主要证据的聚焦技术调研报告。读者是研发团队，重点比较部署假设、Benchmark 与失败模式，先交付 Markdown。
+```
+
+当前证据：[有界报告 Pilot 快照](../examples/course-paper-pilot/README.md)是一条课程论文
+实例，包含 49 个已完成 Units、通过的 Artifact Audit，以及针对 8-10 页 Goal 生成的
+10 页 PDF。它证明了一条完整交付路径；跨主题、其他报告类型和真实 Token 对比仍待验证。
 
 ## 4. 这条工作流有什么不同
 
@@ -119,7 +172,7 @@ C5 不是“一次写完整篇”，而是包含：
 
 这是一套面向完整综述的默认配置，不是快速概览模式。
 
-课程论文 Overlay 使用更小的预算：
+有界报告 Overlay（机器键 `course_paper`）使用更小的预算：
 
 - `core_size=48`
 - `per_subsection=6`
@@ -174,7 +227,7 @@ C5 不是“一次写完整篇”，而是包含：
 
 ## 8. 怎么运行
 
-示例保留英文 workflow / pipeline 名称；具体要求可以用中文写。
+示例保留机器可识别的 Workflow 名称；具体要求可以用中文写。
 
 典型 prompt：
 
@@ -185,19 +238,19 @@ Write a LaTeX survey about embodied AI and show me the outline first.
 如果你想明确指定 PDF 路径：
 
 ```text
-Use pipelines/arxiv-survey-latex.pipeline.md and write a survey on embodied AI.
+使用 arxiv-survey-latex 写一篇具身智能 Survey，并生成 PDF。
 ```
 
-如果你想写课程论文或期末报告：
+如果你想写课程论文、课程报告、研讨课报告或期末报告：
 
 ```text
-Use arxiv-survey-latex to write a compact course paper on robot learning. Target 8-10 pages and produce a final PDF.
+使用 arxiv-survey-latex 写一份关于机器人学习的紧凑课程报告，目标 8-10 页，并生成 PDF。
 ```
 
 如果你想先走 markdown-only survey：
 
 ```text
-Use pipelines/arxiv-survey.pipeline.md and draft a survey on test-time adaptation for robots.
+使用 arxiv-survey 写一篇机器人测试时自适应的 Markdown Survey。
 ```
 
 如果你想少停顿一些：

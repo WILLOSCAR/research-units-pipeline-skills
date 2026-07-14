@@ -35,7 +35,8 @@ unbounded self-modification. Distinguish these two operations:
 | Skill | A reusable capability under `.codex/skills/`. Research Skills transform research content; control Skills materialize deterministic reports, manifests, checkpoints, or local gates. |
 | Workflow | User-selectable research path such as `paper-review`; this is the product-facing unit of choice. |
 | Pipeline | Concrete contract under `pipelines/` that implements a Workflow through stages, required Skills, target Artifacts, and acceptance rules. |
-| Use-case overlay | Bounded product profile that reuses a Workflow without adding another Pipeline, such as `draft_profile=course_paper` in the survey family. |
+| Delivery profile | Execution-density policy inside one Workflow, such as `course_paper`, `survey`, or `deep` in the Survey family. It changes budgets and gates, not the research lifecycle. |
+| Use-case overlay | Reader-facing use case that reuses an existing Workflow and delivery profile without adding another Pipeline. Course papers, course reports, and seminar reports share the Survey family's bounded report overlay; its compatibility key is `draft_profile=course_paper`. |
 
 ## Execution Terms
 
@@ -95,6 +96,8 @@ validation, recovery, and repair localization.
 - Say `diagnose` when the system only locates a repair; reserve `repair` for an
   applied change and successful rerun.
 - Say `use-case overlay` when an existing Workflow carries the same lifecycle.
+- Say `delivery profile` for machine-level density or quality policy; do not use
+  it as a synonym for a new Workflow or reader-facing genre.
 
 ## Repository Boundary
 
