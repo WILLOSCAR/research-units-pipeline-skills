@@ -6,7 +6,7 @@ description: |
   **Use when**: 已有 `latex/main.tex`（通常来自 `latex-scaffold`），需要确认可编译并输出失败原因报告。
   **Skip if**: 还没有 LaTeX scaffold（先跑 `latex-scaffold`）。
   **Network**: none.
-**Guardrail**: 编译失败也要落盘 `output/LATEX_BUILD_REPORT.md` 并返回失败状态；不做“内容改写”，只做编译/QA。
+  **Guardrail**: 编译失败也要落盘 `output/LATEX_BUILD_REPORT.md` 并返回失败状态；不做“内容改写”，只做编译/QA。
 ---
 
 # LaTeX Compile + QA

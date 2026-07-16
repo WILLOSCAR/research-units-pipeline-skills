@@ -50,10 +50,10 @@ research lifecycle can be shaped into several outcomes:
 
 | Outcome | Fit | Execution choice |
 |---|---|---|
-| Course paper, course report, term paper, or end-of-term report | A graded, multi-source argument with a bounded page/word budget | bounded report overlay |
-| Seminar report or topic report | A focused explanation and comparison for discussion or presentation | bounded report overlay when multiple papers are required |
-| Short literature-review report | A compact account of approaches, evidence, limits, and open questions | bounded report overlay |
-| Technical survey or research-landscape report | A literature-backed map for an R&D audience | bounded overlay for a focused question; default survey profile for field-wide coverage |
+| Course paper, course report, term paper, or end-of-term report | A graded, multi-source argument with a bounded page/word budget | bounded-report use-case overlay -> `course_paper` delivery profile |
+| Seminar report or topic report | A focused explanation and comparison for discussion or presentation | same overlay when multiple papers are required |
+| Short literature-review report | A compact account of approaches, evidence, limits, and open questions | bounded-report use-case overlay -> `course_paper` delivery profile |
+| Technical survey or research-landscape report | A literature-backed map for an R&D audience | same overlay for a focused question; default `survey` delivery profile for field-wide coverage |
 | Full literature survey | Broad taxonomy, dense evidence packs, and high citation coverage | default `survey` profile |
 
 These outcomes share research mechanics, not a rigid paper template:
@@ -74,11 +74,12 @@ Use `research-brief` for quick orientation, `paper-review` for one manuscript,
 `evidence-review` for protocol-driven screening and extraction, and
 `source-tutorial` when the source pack is already fixed.
 
-### 3.1 Bounded Report Profile
+### 3.1 Bounded-Report Use-Case Overlay
 
 An explicit request to write a `course paper`, `course report`, `term paper`,
 `seminar report`, `topic report`, `short literature review`, or equivalent
-Chinese outcome activates a bounded execution profile. Generic technical or
+Chinese outcome activates the bounded-report use-case overlay, which selects
+the `course_paper` delivery profile. Generic technical or
 research-landscape reports activate it only when they are phrased as requested
 deliverables and are not market, pricing, procurement, policy-monitoring, or
 live-web tasks. Merely researching “report generation” does not activate it.
@@ -190,7 +191,7 @@ The default survey contract is intentionally heavy:
 
 This is a survey-grade configuration, not a fast snapshot mode.
 
-The bounded-report overlay (machine key `course_paper`) is intentionally smaller:
+The `course_paper` delivery profile is intentionally smaller:
 
 - `core_size=48`
 - `per_subsection=6`

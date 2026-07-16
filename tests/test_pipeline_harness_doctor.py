@@ -148,6 +148,36 @@ def test_doctor_reports_next_runnable_unit(tmp_path: Path) -> None:
     assert "TODO: 1" in result.stdout
 
 
+def test_standalone_doctor_skips_deep_ledger_integrity_scan(monkeypatch, tmp_path: Path) -> None:
+    import tooling.run_state as run_state
+
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U001",
+                "title": "Seed",
+                "skill": "demo",
+                "owner": "CODEX",
+                "outputs": "output/seed.md",
+                "status": "TODO",
+            }
+        ],
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+
+    def fail_if_called(_workspace: Path) -> dict[str, object]:
+        raise AssertionError("standalone Doctor must not run the deep integrity pass")
+
+    monkeypatch.setattr(run_state, "inspect_run_integrity", fail_if_called)
+
+    exit_code, payload = build_doctor_payload(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert exit_code == 0
+    assert payload["schema"] == "doctor-report.v1"
+
+
 def test_doctor_points_blocked_units_to_repair_reports(tmp_path: Path) -> None:
     workspace = tmp_path / "ws"
     write_units(
@@ -735,6 +765,10 @@ def test_pack_writes_reviewable_artifact_manifest(tmp_path: Path) -> None:
     assert payload["summary"]["by_category"]["target_artifact"]["missing"] == 0
     categories = {record["category"] for record in payload["artifacts"]}
     assert {"target_artifact", "unit_output", "run_ledger", "harness_report", "unit_manifest"}.issubset(categories)
+    assert any(
+        record["category"] == "run_ledger" and record["path"] == ".harness/decisions.jsonl"
+        for record in payload["artifacts"]
+    )
     excerpt_md = excerpt_md_path.read_text(encoding="utf-8")
     excerpt_tsv = excerpt_tsv_path.read_text(encoding="utf-8")
     assert "# Artifact Pack Excerpt" in excerpt_md
@@ -743,6 +777,35 @@ def test_pack_writes_reviewable_artifact_manifest(tmp_path: Path) -> None:
     assert "category\tpath\texists\trole" in excerpt_tsv
     assert "target_artifact\toutput/SNAPSHOT.md\ttrue\tfinal deliverable or declared target artifact" in excerpt_tsv
     assert validate_artifact_pack_payload(payload) == []
+
+
+def test_harness_inspection_uses_one_shared_workspace_snapshot(monkeypatch, tmp_path: Path) -> None:
+    import tooling.harness as harness
+
+    workspace = tmp_path / "ws"
+    write_units(workspace / "UNITS.csv", [])
+    calls = {"snapshot": 0}
+    original_snapshot = harness._collect_workspace_inspection_snapshot
+
+    def counted_snapshot(*, workspace: Path, repo_root: Path):
+        calls["snapshot"] += 1
+        return original_snapshot(workspace=workspace, repo_root=repo_root)
+
+    monkeypatch.setattr(harness, "_collect_workspace_inspection_snapshot", counted_snapshot)
+
+    inspection = harness.build_harness_inspection(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert calls == {"snapshot": 1}
+    assert inspection.doctor["schema"] == "doctor-report.v1"
+    assert inspection.audit["schema"] == "run-audit.v1"
+    assert inspection.improvement["schema"] == "improvement-report.v1"
+    assert inspection.artifact_pack["schema"] == "artifact-pack.v1"
+    assert {
+        inspection.doctor["generated_at"],
+        inspection.audit["generated_at"],
+        inspection.improvement["generated_at"],
+        inspection.artifact_pack["generated_at"],
+    } == {inspection.doctor["generated_at"]}
 
 
 def test_artifact_pack_payload_validator_reports_shape_errors() -> None:

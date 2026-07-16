@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tooling.run_state import ConcurrentInvocationError, workspace_invocation_lock
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PIPELINE_CLI = REPO_ROOT / "scripts" / "pipeline.py"
@@ -30,16 +32,27 @@ def main(argv: list[str] | None = None) -> int:
     run = stages.add_parser("run", help="Start, inspect, or resume a run")
     run_actions = run.add_subparsers(dest="action", required=True)
     for action in ("start", "resume"):
-        action_parser = run_actions.add_parser(action, help=f"{action.title()} unit execution")
+        help_text = (
+            "Start unit execution"
+            if action == "start"
+            else "Reconcile persisted state and continue unit execution"
+        )
+        action_parser = run_actions.add_parser(action, help=help_text)
         action_parser.add_argument("--workspace", required=True)
         action_parser.add_argument("--max-steps", type=int, default=999)
         action_parser.add_argument("--strict", action="store_true")
-    run_status = run_actions.add_parser("status", help="Inspect state without executing units")
+    run_status = run_actions.add_parser(
+        "status",
+        help="Reconcile recoverable run state, then inspect it without executing units",
+    )
     run_status.add_argument("--workspace", required=True)
 
-    evidence = stages.add_parser("evidence", help="Inspect run evidence and deliverables")
+    evidence = stages.add_parser("evidence", help="Inspect Run evidence and index Workflow-local research artifacts")
     evidence_actions = evidence.add_subparsers(dest="action", required=True)
-    evidence_inspect = evidence_actions.add_parser("inspect", help="Write audit and Artifact-index views")
+    evidence_inspect = evidence_actions.add_parser(
+        "inspect",
+        help="Write Run Audit and Artifact-index views; research semantics remain Workflow-local",
+    )
     evidence_inspect.add_argument("--workspace", required=True)
     evidence_inspect.add_argument("--excerpt", action="store_true", help="Write portable Markdown and TSV excerpts")
 
@@ -49,7 +62,11 @@ def main(argv: list[str] | None = None) -> int:
     improve_diagnose.add_argument("--workspace", required=True)
 
     args = parser.parse_args(argv)
-    return _dispatch(args)
+    try:
+        return _dispatch(args)
+    except ConcurrentInvocationError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
 
 
 def _dispatch(args: argparse.Namespace) -> int:
@@ -69,18 +86,32 @@ def _dispatch(args: argparse.Namespace) -> int:
         if not _workspace_exists(args.workspace):
             return 2
         command = ["run", "--workspace", args.workspace, "--max-steps", str(args.max_steps)]
+        if args.action == "start":
+            command.append("--require-planned")
         if args.strict:
             command.append("--strict")
         return _run_pipeline(*command)
 
     if (args.stage, args.action) == ("run", "status"):
-        return _run_status(Path(args.workspace).resolve())
+        if not _workspace_exists(args.workspace):
+            return 2
+        workspace = Path(args.workspace).resolve()
+        with workspace_invocation_lock(workspace=workspace, operation="rh.run.status"):
+            return _run_status(workspace)
 
     if (args.stage, args.action) == ("evidence", "inspect"):
-        return _inspect_evidence(Path(args.workspace).resolve(), write_excerpt=bool(args.excerpt))
+        if not _workspace_exists(args.workspace):
+            return 2
+        workspace = Path(args.workspace).resolve()
+        with workspace_invocation_lock(workspace=workspace, operation="rh.evidence.inspect"):
+            return _inspect_evidence(workspace, write_excerpt=bool(args.excerpt))
 
     if (args.stage, args.action) == ("improve", "diagnose"):
-        return _diagnose_improvement(Path(args.workspace).resolve())
+        if not _workspace_exists(args.workspace):
+            return 2
+        workspace = Path(args.workspace).resolve()
+        with workspace_invocation_lock(workspace=workspace, operation="rh.improve.diagnose"):
+            return _diagnose_improvement(workspace)
 
     raise SystemExit("Unsupported product command")
 
@@ -107,20 +138,13 @@ def _workspace_exists(value: str) -> bool:
 
 
 def _run_status(workspace: Path) -> int:
-    from tooling.harness import (
-        build_doctor_payload,
-        render_doctor_report,
-        write_doctor_json,
-        write_doctor_report,
-    )
+    from tooling.harness import build_doctor_payload
 
     if not workspace.exists():
         print(f"Workspace not found: {workspace}", file=sys.stderr)
         return 2
 
     exit_code, payload = build_doctor_payload(workspace=workspace, repo_root=REPO_ROOT)
-    write_doctor_report(workspace=workspace, report=render_doctor_report(payload))
-    write_doctor_json(workspace=workspace, payload=payload)
 
     identity = payload.get("run_identity") or {}
     next_unit = payload.get("next_runnable") or {}
@@ -140,14 +164,13 @@ def _run_status(workspace: Path) -> int:
     if next_unit and not issues:
         print(f"Resume: uv run rh run resume --workspace {workspace}")
     else:
-        print(f"Inspect: {workspace / 'output' / 'DOCTOR_REPORT.md'}")
+        print(f"Inspect: uv run python scripts/pipeline.py doctor --workspace {workspace} --write")
     return int(exit_code)
 
 
 def _inspect_evidence(workspace: Path, *, write_excerpt: bool) -> int:
     from tooling.harness import (
-        build_artifact_pack_payload,
-        build_run_audit_payload,
+        build_harness_inspection,
         render_artifact_pack_excerpt_markdown,
         render_artifact_pack_excerpt_tsv,
         render_artifact_pack_report,
@@ -164,10 +187,11 @@ def _inspect_evidence(workspace: Path, *, write_excerpt: bool) -> int:
         print(f"Workspace not found: {workspace}", file=sys.stderr)
         return 2
 
-    audit_code, audit = build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+    inspection = build_harness_inspection(workspace=workspace, repo_root=REPO_ROOT)
+    audit_code, audit = inspection.audit_exit_code, inspection.audit
     write_run_audit_report(workspace=workspace, report=render_run_audit_report(audit))
     write_run_audit_json(workspace=workspace, payload=audit)
-    pack_code, pack = build_artifact_pack_payload(workspace=workspace, repo_root=REPO_ROOT)
+    pack_code, pack = inspection.artifact_pack_exit_code, inspection.artifact_pack
     write_artifact_pack_report(workspace=workspace, report=render_artifact_pack_report(pack))
     write_artifact_pack_json(workspace=workspace, payload=pack)
     if write_excerpt:
@@ -182,7 +206,8 @@ def _inspect_evidence(workspace: Path, *, write_excerpt: bool) -> int:
 
     run_state = audit.get("run_state") or {}
     summary = pack.get("summary") or {}
-    print(f"Evidence: {audit.get('verdict') or 'ATTENTION'}")
+    print(f"Run evidence: {audit.get('verdict') or 'ATTENTION'}")
+    print("Research evidence: indexed as Workflow-local Artifacts (not normalized across Workflows)")
     print(
         "Targets: "
         f"{run_state.get('target_artifacts_present', 0)}/{run_state.get('target_artifacts_total', 0)}"

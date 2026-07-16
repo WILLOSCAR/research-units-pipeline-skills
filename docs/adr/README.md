@@ -24,6 +24,9 @@ the decision should guide future contributors and agents across runs.
 | [0011](0011-keep-semantic-scorecards-workflow-local.md) | Keep semantic scorecards Workflow-local | accepted |
 | [0012](0012-publish-curated-run-evidence-not-full-workspaces.md) | Publish curated Run evidence, not full Workspaces | accepted |
 | [0013](0013-route-quality-checks-through-workflow-domains.md) | Route quality checks through Workflow domains | accepted |
+| [0014](0014-commit-unit-completion-as-a-recoverable-provenance-transaction.md) | Commit Unit completion as a recoverable provenance transaction | accepted |
+| [0015](0015-serialize-workspace-commands-with-a-process-scoped-lock.md) | Serialize Workspace commands with a process-scoped lock | accepted |
+| [0016](0016-author-skills-for-predictability-and-bounded-context-load.md) | Author Skills for predictability and bounded context load | accepted |
 
 ## ADR Format Contract
 

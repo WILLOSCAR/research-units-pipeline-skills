@@ -22,6 +22,7 @@ HARNESS_DOC_ENTRYPOINTS = {
     "docs/adr/0011-keep-semantic-scorecards-workflow-local.md": "Workflow-local semantic scorecards ADR",
     "docs/adr/0012-publish-curated-run-evidence-not-full-workspaces.md": "curated Run-evidence ADR",
     "docs/adr/0013-route-quality-checks-through-workflow-domains.md": "Workflow-domain quality routing ADR",
+    "docs/adr/0014-commit-unit-completion-as-a-recoverable-provenance-transaction.md": "recoverable Unit-completion ADR",
 }
 
 HARNESS_README_LINKS = (
@@ -82,7 +83,7 @@ ADR_REQUIRED_SECTIONS = (
 
 HARNESS_SKILL_AUDIT_GATE = "uv run python scripts/audit_skills.py --fail-on WARN"
 HARNESS_LOCAL_CHECKS = (
-    "uv run python scripts/validate_repo.py --no-check-quality --strict",
+    "uv run python scripts/validate_repo.py --strict",
     "uv run python scripts/readiness_audit.py --strict",
     HARNESS_SKILL_AUDIT_GATE,
     "uv run --extra test python -m pytest -q",
@@ -91,6 +92,7 @@ HARNESS_LOCAL_CHECKS = (
 HARNESS_KERNEL_PATHS = (
     "scripts/pipeline.py",
     "tooling/common.py",
+    "tooling/completion.py",
     "tooling/executor.py",
     "tooling/harness.py",
     "tooling/harness_contracts.py",
@@ -170,14 +172,18 @@ EXECUTABLE_UNIT_TEMPLATES = (
 READINESS_VALIDATION_SURFACES = (
     "scripts/validate_repo.py",
     "scripts/audit_skills.py",
+    "scripts/evaluate_skill_invocations.py",
     "scripts/generate_skill_graph.py",
     "scripts/readiness_audit.py",
+    "tests/fixtures/skill_invocation_cases.yaml",
     "tests/test_harness_smoke.py",
     "tests/test_harness_validation.py",
     "tests/test_pipeline_harness_doctor.py",
     "tests/test_run_state.py",
     "tests/test_scorecards.py",
+    "tests/test_skill_invocation_eval.py",
     "tooling/product_cli.py",
+    "tooling/skill_invocation_eval.py",
     *HARNESS_KERNEL_PATHS,
     "tests/test_evidence_review_vertical.py",
     "tests/test_idea_brainstorm_vertical.py",
@@ -206,6 +212,8 @@ PROJECT_LANGUAGE_REQUIRED_TERMS = (
     "Goal",
     "Run",
     "Evidence",
+    "Research Evidence",
+    "Run Evidence",
     "Improve",
     "Auto Research Design System",
     "Harness",
@@ -219,6 +227,8 @@ PROJECT_LANGUAGE_REQUIRED_TERMS = (
     "Artifact",
     "Audit",
     "Attempt",
+    "Completion",
+    "Decision",
     "Failure",
     "Evaluation",
     "Run-local repair",
@@ -233,7 +243,7 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
     "Research-stage",
     "Current Families",
     "Survey Delivery Profiles",
-    "bounded report overlay",
+    "bounded-report use-case overlay",
     "Current Priority",
     "`paper-review`",
 )
@@ -253,61 +263,6 @@ PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS = (
     "`arxiv-survey-latex`",
     "`arxiv-survey`",
     "Executable variant",
-)
-
-PAPER_REVIEW_TAXONOMY_ARTIFACTS = (
-    "output/PAPER.md",
-    "output/CLAIMS.md",
-    "output/CLAIMS.jsonl",
-    "output/MISSING_EVIDENCE.md",
-    "output/EVIDENCE_AUDIT.jsonl",
-    "output/NOVELTY_MATRIX.md",
-    "output/NOVELTY_MATRIX.tsv",
-    "output/REVIEW.md",
-    "output/REVIEW_SCORECARD.md",
-    "output/REVIEW_SCORECARD.json",
-    "output/DELIVERABLE_SELFLOOP_TODO.md",
-    "output/QUALITY_GATE.md",
-    "output/RUN_ERRORS.md",
-    "output/CONTRACT_REPORT.md",
-)
-
-RESEARCH_BRIEF_TAXONOMY_ARTIFACTS = (
-    "output/SNAPSHOT.md",
-    "output/BRIEF_SCORECARD.md",
-    "output/BRIEF_SCORECARD.json",
-    "output/DELIVERABLE_SELFLOOP_TODO.md",
-    "output/QUALITY_GATE.md",
-    "output/RUN_ERRORS.md",
-    "output/CONTRACT_REPORT.md",
-)
-
-IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS = (
-    "output/trace/IDEA_SIGNAL_TABLE.jsonl",
-    "output/trace/IDEA_DIRECTION_POOL.jsonl",
-    "output/trace/IDEA_SCREENING_TABLE.jsonl",
-    "output/trace/IDEA_SHORTLIST.jsonl",
-    "output/REPORT.md",
-    "output/REPORT.json",
-    "output/IDEA_SCORECARD.md",
-    "output/IDEA_SCORECARD.json",
-    "output/DELIVERABLE_SELFLOOP_TODO.md",
-    "output/QUALITY_GATE.md",
-    "output/RUN_ERRORS.md",
-    "output/CONTRACT_REPORT.md",
-)
-
-EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS = (
-    "output/PROTOCOL.md",
-    "papers/screening_log.csv",
-    "papers/extraction_table.csv",
-    "output/SYNTHESIS.md",
-    "output/EVIDENCE_SCORECARD.md",
-    "output/EVIDENCE_SCORECARD.json",
-    "output/DELIVERABLE_SELFLOOP_TODO.md",
-    "output/QUALITY_GATE.md",
-    "output/RUN_ERRORS.md",
-    "output/CONTRACT_REPORT.md",
 )
 
 FORBIDDEN_OVERLAY_PIPELINE_FILENAMES = (

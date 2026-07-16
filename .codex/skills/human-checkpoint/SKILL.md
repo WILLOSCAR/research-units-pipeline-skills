@@ -1,66 +1,87 @@
 ---
 name: human-checkpoint
-description: |
-  Record a human sign-off at a declared checkpoint (tick `Approve C*` in `DECISIONS.md`) so the pipeline can resume.
-  **Trigger**: approve checkpoint, human approval, sign off, HITL, Approve C2, 审批, 签字, 人类检查点.
-  **Use when**: A unit has `owner=HUMAN` and is BLOCKED waiting for a checkbox in `DECISIONS.md`.
-  **Skip if**: The approval is already recorded (the checkbox is ticked).
-  **Network**: none.
-  **Guardrail**: Do not modify any content artifacts; only update `DECISIONS.md` (and optionally append a short sign-off note).
+description: Review and record one pending human checkpoint in a research Workspace; use when a HUMAN Unit is blocked on an `Approve C*` decision, and never treat silence or artifact existence as approval.
 ---
 
-# Human Checkpoint (HITL sign-off)
+# Human Checkpoint
 
-Goal: make human approvals explicit and auditable, so downstream units can safely proceed.
-
-This skill is intentionally simple: it standardizes how a human signs off in `DECISIONS.md`.
+A checkpoint is **consent**, not a formatting step. It binds a named human
+Decision to the exact Artifacts and constraints reviewed before execution may
+continue.
 
 ## Inputs
 
-Required:
-- `DECISIONS.md`
-
-Optional:
-- `UNITS.csv` (to confirm which checkpoint is currently blocked, e.g., `C1`/`C2`)
-- `STATUS.md` (to confirm the current checkpoint)
+- `DECISIONS.md`.
+- `UNITS.csv` and `STATUS.md` for the active checkpoint.
+- Artifacts declared by the locked Pipeline for that checkpoint.
 
 ## Outputs
 
-- `DECISIONS.md` (updated checkbox + short sign-off note)
+- Updated `DECISIONS.md`.
+- A checkpoint Decision in the Run ledger.
 
-## Procedure
+## Steps
 
-1. Identify the blocked checkpoint
-   - Check the runner message (or `STATUS.md`), or inspect `UNITS.csv` for the first `owner=HUMAN` unit that is `BLOCKED`.
+### 1. Identify the pending checkpoint
 
-2. Open `DECISIONS.md` and find the approvals checklist
-   - Look for a line like: `- [ ] Approve C2 ...`
+Inspect `STATUS.md`, `UNITS.csv`, and the active runner message. Select the
+first blocked HUMAN Unit and its `C*` identifier. If multiple checkpoints
+appear active or the checklist is missing, stop and repair the projection
+before approving anything.
 
-3. Review the artifacts required by that checkpoint
-   - The pipeline doc (`pipelines/*.pipeline.md`) usually lists what to review (e.g., protocol, outline, module plan).
-   - If the checkpoint block is missing, add a short checklist into `DECISIONS.md` (what you reviewed).
+Completion criterion: exactly one pending checkpoint and its owning HUMAN Unit
+are identified.
 
-4. Approve
-   - Tick the checkbox: `- [x] Approve C*`
-   - Append a short note under the checkpoint block (recommended):
-     - Date
-     - Artifacts reviewed
-     - What you approved + constraints (if any)
-     - Signed by
+### 2. Review the declared Artifacts
 
-## Acceptance
+Read the locked Pipeline's checkpoint contract and inspect every named Artifact.
+Record requested constraints or scope changes in the checkpoint block before
+approval; do not silently modify reader-facing content as part of sign-off.
 
-- The correct `Approve C*` checkbox in `DECISIONS.md` is ticked (`[x]`).
-- Any added sign-off note does not silently expand scope or contradict the run goal.
+Completion criterion: the reviewer can name the Artifacts inspected and any
+constraints attached to the Decision.
+
+### 3. Record approval through the adapter
+
+Use the Pipeline adapter so the Markdown checkbox and machine Decision ledger
+remain synchronized:
+
+```bash
+uv run python scripts/pipeline.py approve \
+  --workspace workspaces/<name> \
+  --checkpoint <C*>
+```
+
+Do not infer approval from chat silence, a completed Artifact, or an existing
+but unchecked checklist item.
+
+Completion criterion: `DECISIONS.md` contains `[x] Approve C*` and the Run
+ledger records `checkpoint.approved` for the same checkpoint.
+
+### 4. Hand execution back to the Runner
+
+Resume through the Pipeline adapter. The Harness may complete the HUMAN Unit
+and expose the next eligible Unit; this Skill does not execute downstream
+semantic work itself.
+
+Completion criterion: the checkpoint is no longer the active blocker, or one
+new specific blocker is visible in durable Workspace state.
+
+## Context Pointers
+
+- The locked `pipelines/*.pipeline.md` owns checkpoint purpose and required
+  review Artifacts.
+- `DECISIONS.md` is the human-readable Decision surface.
+- `.harness/decisions.jsonl` is the machine-readable history; update it
+  through the adapter rather than by hand.
+- Use `pipeline-router` to recreate a missing checkpoint block.
+- `scripts/run.py` is a runner-compatibility helper that only toggles the
+  Markdown checkbox. Prefer `scripts/pipeline.py approve`, which also records
+  the machine Decision.
 
 ## Troubleshooting
 
-### The approvals checklist is missing in `DECISIONS.md`
-
-Fix:
-- Run `pipeline-router` for the relevant checkpoint block, or add a minimal block manually:
-
-```markdown
-## Approvals (check to unblock)
-- [ ] Approve C2
-```
+- If the approvals checklist is missing, materialize the checkpoint block with
+  `pipeline-router` before approval.
+- If reviewed upstream Artifacts later change, expect the Harness to revoke the
+  stale approval and request a new Decision.

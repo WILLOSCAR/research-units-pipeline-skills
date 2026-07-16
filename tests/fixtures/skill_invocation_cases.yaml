@@ -1,0 +1,114 @@
+schema: skill-invocation-cases.v1
+scope: harness-lifecycle
+cases:
+  - id: route-unbound-goal
+    prompt: I know the deliverable I want, but no Workflow has been selected. Choose one and record the decision without running it.
+    expected_primary: pipeline-router
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: route-review-vs-survey
+    prompt: Decide whether this request belongs to paper-review or arxiv-survey, then stop after creating the Pipeline lock.
+    expected_primary: pipeline-router
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: route-missing-format
+    prompt: The research Goal is clear, but the requested final format could change the Workflow. Ask the minimum routing question and wait.
+    expected_primary: pipeline-router
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: initialize-only
+    prompt: Create the missing files for workspaces/rag-notes, but do not choose a Workflow or execute any Unit.
+    expected_primary: workspace-init
+    allowed_support: []
+    forbidden: [pipeline-router, research-pipeline-runner]
+  - id: initialize-preserve-existing
+    prompt: Initialize an empty research Workspace and preserve every file that already exists.
+    expected_primary: workspace-init
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: run-end-to-end-survey
+    prompt: Start an end-to-end literature survey from this Goal and continue until a checkpoint or diagnosed failure stops the Run.
+    expected_primary: research-pipeline-runner
+    allowed_support: [pipeline-router, workspace-init]
+    forbidden: []
+  - id: resume-existing-run
+    prompt: Continue the existing Workspace from its durable state and keep executing eligible Units until the next stop line.
+    expected_primary: research-pipeline-runner
+    allowed_support: []
+    forbidden: [workspace-init]
+  - id: run-paper-review
+    prompt: Run the complete paper-review Workflow for this manuscript, including its scorecard and final Artifact audit.
+    expected_primary: research-pipeline-runner
+    allowed_support: [pipeline-router, workspace-init]
+    forbidden: []
+  - id: execute-next-unit-only
+    prompt: Execute exactly the next eligible TODO Unit in this Workspace and stop before starting another one.
+    expected_primary: unit-executor
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: execute-named-unit
+    prompt: Run U042 only, verify its acceptance rule, commit its Attempt, and then stop.
+    expected_primary: unit-executor
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: execute-manual-repair
+    prompt: Re-run one reopened Unit after I repaired its inputs; preserve the earlier Attempt history.
+    expected_primary: unit-executor
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: approve-checkpoint
+    prompt: I reviewed the C2 artifacts. Record my approval and do not execute downstream semantic work.
+    expected_primary: human-checkpoint
+    allowed_support: []
+    forbidden: [research-pipeline-runner, unit-executor]
+  - id: approve-with-constraints
+    prompt: Approve C1 after recording the scope constraints I supplied, keeping the human Decision auditable.
+    expected_primary: human-checkpoint
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: audit-final-file-coverage
+    prompt: Before sharing this Workspace, check whether every DONE Unit output and every final Pipeline target file exists.
+    expected_primary: artifact-contract-auditor
+    allowed_support: []
+    forbidden: [pipeline-auditor]
+  - id: audit-midrun-file-coverage
+    prompt: Produce a mid-Run snapshot of missing declared files without treating unfinished final targets as failures.
+    expected_primary: artifact-contract-auditor
+    allowed_support: []
+    forbidden: [pipeline-auditor]
+  - id: audit-contract-report
+    prompt: Regenerate output/CONTRACT_REPORT.md from the locked Pipeline and current UNITS.csv.
+    expected_primary: artifact-contract-auditor
+    allowed_support: []
+    forbidden: [pipeline-auditor]
+  - id: deep-provenance-audit
+    prompt: Verify Attempt pairs, Manifest identity, Artifact hashes, Decisions, Failures, and Evaluation ledger consistency.
+    expected_primary: none
+    allowed_support: []
+    forbidden: [artifact-contract-auditor]
+  - id: repository-architecture-refactor
+    prompt: Refactor the architecture of this repository and redesign its Python module boundaries.
+    expected_primary: none
+    allowed_support: []
+    forbidden:
+      - artifact-contract-auditor
+      - human-checkpoint
+      - pipeline-router
+      - research-pipeline-runner
+      - unit-executor
+      - workspace-init
+  - id: semantic-arxiv-search
+    prompt: Search arXiv for retrieval-augmented generation papers and write papers/papers_raw.jsonl only.
+    expected_primary: arxiv-search
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: semantic-subsection-writing
+    prompt: Write one approved H3 subsection from its evidence pack without advancing any other Unit.
+    expected_primary: subsection-writer
+    allowed_support: []
+    forbidden: [research-pipeline-runner, unit-executor]
+  - id: semantic-survey-audit
+    prompt: Audit the completed survey draft for citation health, section coverage, placeholders, and repeated template language.
+    expected_primary: pipeline-auditor
+    allowed_support: []
+    forbidden: [artifact-contract-auditor]

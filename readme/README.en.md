@@ -26,7 +26,7 @@ Use the current workflow names directly. Old alias names are no longer part of a
 
 | Path | Use it for | Status | Guide |
 |---|---|---|---|
-| course paper/report, seminar report, or literature-backed technical report | use `arxiv-survey` for Markdown or `arxiv-survey-latex` for PDF | automatic bounded report profile in the existing Survey Workflow | [Guide](arxiv-survey.md) |
+| course paper/report, seminar report, or literature-backed technical report | use `arxiv-survey` for Markdown or `arxiv-survey-latex` for PDF | bounded-report use-case overlay selecting the `course_paper` delivery profile | [Guide](arxiv-survey.md) |
 | `graduate-paper` | restructuring an existing Chinese thesis project | research-stage path, not executable | [Guide](graduate-paper.md) |
 
 ## Fastest First Demo
@@ -46,8 +46,8 @@ These three are parallel product paths, not one workflow with light/heavy modes:
 ## Current Reliability Note
 
 Seven workflows are executable and harness-backed, but semantic maturity differs
-by path. For the latest pipeline-by-pipeline usability review, see
-[Pipeline Operability Audit](../docs/PIPELINE_OPERABILITY_AUDIT.md).
+by path. See the [Workflow taxonomy](../docs/PIPELINE_TAXONOMY.md) and
+[Harness readiness](../docs/HARNESS_READINESS.md) for current proof boundaries.
 
 The Survey family now has one
 [completed bounded-report pilot](../examples/course-paper-pilot/README.md)

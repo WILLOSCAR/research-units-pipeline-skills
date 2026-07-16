@@ -44,9 +44,9 @@
 
 ## 当前可靠性说明
 
-7 条 workflow 具备可执行 contract 和 harness 支撑，但语义成熟度并不完全相同。最新逐
-pipeline 可用性审计见
-[Pipeline Operability Audit](../docs/PIPELINE_OPERABILITY_AUDIT.md)。
+7 条 workflow 具备可执行 contract 和 harness 支撑，但语义成熟度并不完全相同。当前
+证明边界见 [Workflow Taxonomy](../docs/PIPELINE_TAXONOMY.md) 与
+[Harness Readiness](../docs/HARNESS_READINESS.md)。
 
 Survey 家族现在已有一条完成的有界报告 Pilot（课程论文实例）：49 个 Units、Artifact
 Audit PASS、10 页 PDF。它是一条参考 Run，不是跨主题或跨报告类型的质量证明。

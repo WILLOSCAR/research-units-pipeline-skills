@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -11,8 +10,6 @@ from tooling.common import (
     atomic_write_text,
     decisions_has_approval,
     ensure_dir,
-    latest_outline_state,
-    load_workspace_pipeline_spec,
     now_iso_seconds,
     parse_semicolon_list,
     pipeline_cli_command,
@@ -20,16 +17,19 @@ from tooling.common import (
     update_status_field,
     update_status_log,
 )
+from tooling.completion import (
+    commit_unit_completion,
+    load_declared_scorecard,
+    scorecard_failure as declared_scorecard_failure,
+)
 from tooling.harness import write_unit_manifest
 from tooling.run_state import (
     ensure_run_state,
     finish_attempt,
     record_failure,
-    record_evaluation,
-    record_recovered_interruption,
+    record_decision,
     start_attempt,
 )
-from tooling.scorecards import validate_scorecard
 
 
 @dataclass(frozen=True)
@@ -37,57 +37,6 @@ class RunResult:
     unit_id: str | None
     status: str
     message: str
-
-
-@dataclass(frozen=True)
-class _DeclaredScorecard:
-    relpath: str
-    payload: dict[str, object]
-    validation_errors: tuple[str, ...]
-
-
-def _section_first_cutover_block_message(*, workspace: Path, outputs: list[str]) -> str | None:
-    spec = load_workspace_pipeline_spec(workspace)
-    if spec is None or str(spec.structure_mode or "").strip().lower() != "section_first":
-        return None
-    if "outline/outline_state.jsonl" not in outputs:
-        return None
-
-    latest = latest_outline_state(workspace)
-    if not latest:
-        return "Section-first cutover is not actionable yet: `outline/outline_state.jsonl` is missing or empty. Rerun `outline-refiner` after fixing the chapter/section layer."
-
-    structure_phase = str(latest.get("structure_phase") or "").strip()
-    h3_status = str(latest.get("h3_status") or "").strip().lower()
-    reroute_target = str(latest.get("reroute_target") or "").strip()
-    retry_budget = str(latest.get("retry_budget_remaining") or "").strip()
-    reroute_reason = str(latest.get("reroute_reason") or "").strip()
-
-    if structure_phase.lower() == "decomposed" and h3_status == "stable":
-        return None
-
-    missing: list[str] = []
-    for key in ("structure_phase", "h3_status", "approval_status", "reroute_target", "retry_budget_remaining"):
-        if key not in latest:
-            missing.append(key)
-            continue
-        if key in {"structure_phase", "h3_status"} and not str(latest.get(key) or "").strip():
-            missing.append(key)
-    if missing:
-        return (
-            "Section-first cutover cannot advance because the latest `outline_state.jsonl` record is missing "
-            f"required fields: {', '.join(missing)}."
-        )
-
-    reroute_label = reroute_target or "unknown"
-    retry_label = retry_budget or "unknown"
-    reason_suffix = f" Reason: {reroute_reason}." if reroute_reason else ""
-    return (
-        "Section-first cutover is still blocked; "
-        f"latest outline state has structure_phase={structure_phase or 'missing'}, "
-        f"h3_status={h3_status or 'missing'}, reroute_target={reroute_label}, "
-        f"retry_budget_remaining={retry_label}.{reason_suffix} Fix the reroute target explicitly, then rerun this unit."
-    )
 
 
 def _append_run_error(*, workspace: Path, unit_id: str, skill: str, kind: str, message: str, log_rel: str | None) -> None:
@@ -115,92 +64,6 @@ def _append_run_error(*, workspace: Path, unit_id: str, skill: str, kind: str, m
         return
 
 
-def _declared_scorecard(workspace: Path, outputs: list[str]) -> _DeclaredScorecard | None:
-    spec = load_workspace_pipeline_spec(workspace)
-    rubric = spec.quality_contract.get("semantic_rubric", {}) if spec is not None else {}
-    expected_schema = str(rubric.get("schema") or "").strip()
-    for relpath in outputs:
-        if not relpath.upper().endswith("_SCORECARD.JSON"):
-            continue
-        path = workspace / relpath
-        if not path.exists():
-            continue
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError) as exc:
-            return _DeclaredScorecard(
-                relpath=relpath,
-                payload={},
-                validation_errors=(f"scorecard must be valid JSON ({type(exc).__name__}: {exc})",),
-            )
-        if not isinstance(payload, dict):
-            return _DeclaredScorecard(
-                relpath=relpath,
-                payload={},
-                validation_errors=("scorecard must be a JSON object",),
-            )
-
-        actual_schema = str(payload.get("schema") or "").strip()
-        schema = expected_schema or actual_schema
-        errors: list[str] = []
-        if not schema:
-            errors.append("schema must be a non-empty string")
-        else:
-            errors.extend(validate_scorecard(payload, schema=schema))
-        return _DeclaredScorecard(
-            relpath=relpath,
-            payload=payload,
-            validation_errors=tuple(errors),
-        )
-    return None
-
-
-def _scorecard_failure(
-    relpath: str,
-    payload: dict[str, object],
-    *,
-    validation_errors: tuple[str, ...] = (),
-) -> dict[str, object] | None:
-    """Return a stable failure summary from a declared machine-readable scorecard."""
-
-    if validation_errors:
-        return {
-            "symptom": f"Scorecard `{relpath}` is invalid: {'; '.join(validation_errors[:3])}",
-            "causal_behavior": "The declared machine-readable evaluation does not satisfy the shared scorecard contract.",
-            "repair_surface": [relpath, "tooling/scorecards.py"],
-            "severity": "high",
-        }
-    if str(payload.get("verdict") or "").upper() != "FAIL":
-        return None
-
-    failures = payload.get("failures") if isinstance(payload.get("failures"), list) else []
-    messages: list[str] = []
-    repair_surface: list[str] = [relpath]
-    severity = "medium"
-    for failure in failures:
-        if not isinstance(failure, dict):
-            continue
-        message = str(failure.get("message") or failure.get("code") or "").strip()
-        if message:
-            messages.append(message)
-        for surface in failure.get("repair_surface") or []:
-            value = str(surface or "").strip()
-            if value and value not in repair_surface:
-                repair_surface.append(value)
-        if str(failure.get("severity") or "").strip().lower() in {"high", "critical"}:
-            severity = "high"
-
-    score = payload.get("score")
-    threshold = payload.get("pass_score")
-    summary = "; ".join(messages[:3]) or "The declared semantic scorecard did not pass."
-    return {
-        "symptom": f"Scorecard `{relpath}` failed with score {score}/{threshold}. {summary}",
-        "causal_behavior": "The deliverable was produced, but its structured semantic contract did not satisfy the configured rubric.",
-        "repair_surface": repair_surface,
-        "severity": severity,
-    }
-
-
 def run_one_unit(
     *,
     workspace: Path,
@@ -213,17 +76,8 @@ def run_one_unit(
     if not units_path.exists():
         return RunResult(unit_id=None, status="ERROR", message=f"Missing {units_path}")
 
-    ensure_run_state(workspace=workspace, repo_root=repo_root)
+    ensure_run_state(workspace=workspace, repo_root=repo_root, recover_stale_doing=True)
     table = UnitsTable.load(units_path)
-    recovered = recover_stale_doing_units(table)
-    if recovered:
-        table.save(units_path)
-        for recovered_unit_id in recovered:
-            record_recovered_interruption(workspace=workspace, unit_id=recovered_unit_id)
-        update_status_log(
-            status_path,
-            f"{now_iso_seconds()} RECOVERED stale DOING unit(s) to BLOCKED: {', '.join(recovered)}",
-        )
 
     runnable_idx = _find_first_runnable(table)
     if runnable_idx is None:
@@ -235,53 +89,54 @@ def run_one_unit(
     owner = row.get("owner", "").strip().upper()
     inputs = parse_semicolon_list(row.get("inputs"))
 
-    row["status"] = "DOING"
-    table.save(units_path)
-    update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DOING {skill}")
     attempt_id = start_attempt(
         workspace=workspace,
         repo_root=repo_root,
         unit_id=unit_id,
         skill=skill,
         inputs=inputs,
+        execution_mode="process",
     )
+    row["status"] = "DOING"
+    table.save(units_path)
+    update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DOING {skill}")
 
     auto_approve_set = {str(x or "").strip().upper() for x in (auto_approve or set()) if str(x or "").strip()}
 
     if owner == "HUMAN":
         checkpoint = row.get("checkpoint", "").strip()
         if checkpoint and decisions_has_approval(workspace / "DECISIONS.md", checkpoint):
-            row["status"] = "DONE"
-            table.save(units_path)
-            update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DONE (HUMAN approved {checkpoint})")
-            _refresh_status_checkpoint(status_path, table)
-            finish_attempt(
+            completion = commit_unit_completion(
                 workspace=workspace,
-                attempt_id=attempt_id,
+                repo_root=repo_root,
                 unit_id=unit_id,
-                skill=skill,
-                status="SUCCEEDED",
+                attempt_id=attempt_id,
                 exit_code=0,
                 message=f"HUMAN approved {checkpoint}",
             )
-            return RunResult(unit_id=unit_id, status="DONE", message=f"HUMAN approved {checkpoint}")
+            _refresh_status_checkpoint(status_path, UnitsTable.load(units_path))
+            return RunResult(unit_id=unit_id, status=completion.status, message=completion.message)
 
         if checkpoint and checkpoint.upper() in auto_approve_set:
             set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=True)
-            row["status"] = "DONE"
-            table.save(units_path)
-            update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DONE (AUTO approved {checkpoint})")
-            _refresh_status_checkpoint(status_path, table)
-            finish_attempt(
+            record_decision(
                 workspace=workspace,
-                attempt_id=attempt_id,
+                action="checkpoint.auto_approved",
+                subject=checkpoint,
+                decision="approved",
+                actor={"kind": "harness", "id": "auto-approval"},
+                note=f"Auto-approved while executing {unit_id}.",
+            )
+            completion = commit_unit_completion(
+                workspace=workspace,
+                repo_root=repo_root,
                 unit_id=unit_id,
-                skill=skill,
-                status="SUCCEEDED",
+                attempt_id=attempt_id,
                 exit_code=0,
                 message=f"AUTO approved {checkpoint}",
             )
-            return RunResult(unit_id=unit_id, status="DONE", message=f"AUTO approved {checkpoint}")
+            _refresh_status_checkpoint(status_path, UnitsTable.load(units_path))
+            return RunResult(unit_id=unit_id, status=completion.status, message=completion.message)
 
         row["status"] = "BLOCKED"
         table.save(units_path)
@@ -307,7 +162,7 @@ def run_one_unit(
             status_path,
             (
                 f"{now_iso_seconds()} {unit_id} BLOCKED "
-                f"(no script for {skill}; run manually per {skill_md} then mark DONE)"
+                f"(no script for {skill}; run manually per {skill_md}, then commit with pipeline.py mark)"
             ),
         )
         _refresh_status_checkpoint(status_path, table)
@@ -437,12 +292,15 @@ def run_one_unit(
             )
 
     missing = [rel for rel in required_outputs if rel and not (workspace / rel).exists()]
-    scorecard = _declared_scorecard(workspace, outputs)
+    scorecard = load_declared_scorecard(workspace, outputs)
     scorecard_failure = None
     if scorecard:
         scorecard_relpath = scorecard.relpath
         scorecard_payload = scorecard.payload
-        if not scorecard.validation_errors:
+        scorecard_failure = declared_scorecard_failure(scorecard)
+        if not scorecard.validation_errors and (completed.returncode != 0 or scorecard_failure is not None):
+            from tooling.run_state import record_evaluation
+
             record_evaluation(
                 workspace=workspace,
                 attempt_id=attempt_id,
@@ -451,11 +309,6 @@ def run_one_unit(
                 scorecard_path=scorecard_relpath,
                 payload=scorecard_payload,
             )
-        scorecard_failure = _scorecard_failure(
-            scorecard_relpath,
-            scorecard_payload,
-            validation_errors=scorecard.validation_errors,
-        )
     if completed.returncode == 0 and not missing and scorecard_failure is None:
         if strict:
             from tooling.quality_gate import check_unit_outputs, write_quality_report
@@ -508,59 +361,25 @@ def run_one_unit(
                     message=f"Quality gate failed; see {rel_report}" + (f"; {reroute_hint}" if reroute_hint else ""),
                 )
 
-        cutover_block = _section_first_cutover_block_message(workspace=workspace, outputs=outputs)
-        if cutover_block:
-            row["status"] = "BLOCKED"
-            table.save(units_path)
-            record_manifest("BLOCKED")
-            update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED (section-first cutover)")
-            _append_run_error(
-                workspace=workspace,
-                unit_id=unit_id,
-                skill=skill,
-                kind="section_first_cutover",
-                message=cutover_block,
-                log_rel=log_rel if log_path.exists() else None,
-            )
-            _refresh_status_checkpoint(status_path, table)
-            record_failure(
-                workspace=workspace,
-                unit_id=unit_id,
-                attempt_id=attempt_id,
-                failure_type="section_first_cutover",
-                symptom=cutover_block,
-                causal_behavior="A whole-draft output was produced before section-first prerequisites were satisfied.",
-                harness_mechanism="The executor enforces the section-first cutover after script execution.",
-                repair_surface=["tooling/executor.py", f".codex/skills/{skill}/SKILL.md"],
-            )
-            finish_attempt(
-                workspace=workspace,
-                attempt_id=attempt_id,
-                unit_id=unit_id,
-                skill=skill,
-                status="FAILED_RETRYABLE",
-                exit_code=int(completed.returncode),
-                outputs=outputs,
-                message=cutover_block,
-            )
-            return RunResult(unit_id=unit_id, status="BLOCKED", message=cutover_block)
-
-        row["status"] = "DONE"
-        table.save(units_path)
-        record_manifest("DONE")
-        update_status_log(status_path, f"{now_iso_seconds()} {unit_id} DONE {skill}")
-        _refresh_status_checkpoint(status_path, table)
-        finish_attempt(
+        resolved_failure_types = {
+            "exec_error",
+            "missing_outputs",
+            "missing_skill_adapter",
+            "script_failed",
+        }
+        if strict:
+            resolved_failure_types.add("quality_gate_failed")
+        completion = commit_unit_completion(
             workspace=workspace,
-            attempt_id=attempt_id,
+            repo_root=repo_root,
             unit_id=unit_id,
-            skill=skill,
-            status="SUCCEEDED",
+            attempt_id=attempt_id,
             exit_code=int(completed.returncode),
-            outputs=outputs,
             message="OK",
+            resolved_failure_types=resolved_failure_types,
         )
-        return RunResult(unit_id=unit_id, status="DONE", message="OK")
+        _refresh_status_checkpoint(status_path, UnitsTable.load(units_path))
+        return RunResult(unit_id=unit_id, status=completion.status, message=completion.message)
 
     row["status"] = "BLOCKED"
     table.save(units_path)
@@ -583,7 +402,7 @@ def run_one_unit(
             failure_type="missing_outputs",
             symptom=f"Required outputs were not produced: {', '.join(missing)}",
             causal_behavior="The skill process exited, but its declared artifact contract was incomplete.",
-            harness_mechanism="The executor verifies required `UNITS.csv` outputs before marking a unit DONE.",
+            harness_mechanism="The executor checks declared outputs before delegating success to the Completion Protocol.",
             repair_surface=[f".codex/skills/{skill}/scripts/run.py", "UNITS.csv"],
         )
         finish_attempt(
@@ -635,35 +454,6 @@ def run_one_unit(
         message=failure_message,
     )
     return RunResult(unit_id=unit_id, status="BLOCKED", message=failure_message + (f"; see {log_rel}" if log_path.exists() else ""))
-
-
-def recover_stale_doing_units(table: UnitsTable) -> list[str]:
-    """Move the first resumable stale `DOING` unit back into the runnable queue.
-
-    The runner is single-unit and single-process. A persisted `DOING` usually means
-    the previous harness process was interrupted after claiming the unit but before
-    it could write DONE/BLOCKED. Recover only one unit per invocation so reruns stay
-    auditable and downstream state is not rewritten speculatively.
-    """
-
-    status_ok = {"DONE", "SKIP"}
-    unit_by_id = {row.get("unit_id", ""): row for row in table.rows}
-    for row in table.rows:
-        if row.get("status", "").strip().upper() != "DOING":
-            continue
-        deps = parse_semicolon_list(row.get("depends_on"))
-        deps_done = True
-        for dep_id in deps:
-            dep = unit_by_id.get(dep_id)
-            if not dep or dep.get("status", "").strip().upper() not in status_ok:
-                deps_done = False
-                break
-        if not deps_done:
-            return []
-        row["status"] = "BLOCKED"
-        unit_id = row.get("unit_id", "").strip()
-        return [unit_id] if unit_id else []
-    return []
 
 
 def _find_first_runnable(table: UnitsTable) -> int | None:

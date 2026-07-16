@@ -30,7 +30,10 @@ Keep doctor reports as a paired human/machine artifact:
   `output/`.
 - `tooling.harness.validate_doctor_payload` is the lightweight compatibility
   check for the schema shape.
-- The doctor remains read-only by default. Writing these files requires
+- Doctor never executes a Unit or changes research content, but it first
+  reconciles supported machine-state interruptions. A dead process-owned
+  Attempt may therefore move from `DOING` to `BLOCKED`/`INTERRUPTED`; a
+  manually owned Attempt remains open. Writing report files still requires
   `--write`.
 
 ## Consequences

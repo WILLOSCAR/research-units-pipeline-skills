@@ -1,0 +1,74 @@
+schema: workflow-routing-cases/v1
+cases:
+  - id: survey-literature-en
+    prompt: Write a literature survey on retrieval-augmented generation.
+    expected_workflow: arxiv-survey
+  - id: survey-course-zh
+    prompt: 为我写一篇关于强化学习的课程论文。
+    expected_workflow: arxiv-survey
+  - id: survey-technical-zh
+    prompt: 写一份多模态智能体的技术调研报告。
+    expected_workflow: arxiv-survey
+  - id: survey-latex-course-en
+    prompt: Write an 8-10 page course paper on RAG evaluation with a final PDF.
+    expected_workflow: arxiv-survey-latex
+  - id: survey-latex-report-zh
+    prompt: 写一份可编译的机器人学习研讨课报告并生成 PDF。
+    expected_workflow: arxiv-survey-latex
+  - id: review-manuscript-en
+    prompt: Review this manuscript and produce a referee report.
+    expected_workflow: paper-review
+  - id: review-paper-zh
+    prompt: 审阅这篇论文并列出主要问题与修改建议。
+    expected_workflow: paper-review
+  - id: review-pdf-output-trap
+    prompt: Review this paper on PDF output fidelity and return Markdown.
+    expected_workflow: paper-review
+  - id: evidence-prisma-en
+    prompt: Conduct a PRISMA systematic review of clinical language models.
+    expected_workflow: evidence-review
+  - id: evidence-synthesis-zh
+    prompt: 做一份医疗大模型的证据综述。
+    expected_workflow: evidence-review
+  - id: evidence-pdf-topic-trap
+    prompt: Run a systematic review of PDF extraction methods.
+    expected_workflow: evidence-review
+  - id: brief-reading-path-en
+    prompt: Help me understand test-time adaptation and build a reading path.
+    expected_workflow: research-brief
+  - id: brief-reading-path-zh
+    prompt: 帮我理解扩散模型，并告诉我应该先读什么。
+    expected_workflow: research-brief
+  - id: brief-pdf-delivery-no-variant
+    prompt: Give me a topic overview of RAG and deliver a PDF.
+    expected_workflow: research-brief
+  - id: idea-brainstorm-en
+    prompt: Brainstorm research ideas for reliable tool-using agents.
+    expected_workflow: idea-brainstorm
+  - id: idea-direction-zh
+    prompt: 为多模态代理找方向，并筛选几个可讨论的选题。
+    expected_workflow: idea-brainstorm
+  - id: idea-latex-topic-trap
+    prompt: Brainstorm ideas for improving LaTeX repair agents.
+    expected_workflow: idea-brainstorm
+  - id: tutorial-sources-en
+    prompt: Turn these sources into a tutorial with exercises.
+    expected_workflow: source-tutorial
+  - id: tutorial-sources-zh
+    prompt: 把这组材料整理成教程和练习。
+    expected_workflow: source-tutorial
+  - id: tutorial-pdf-topic-trap
+    prompt: Build a tutorial about PDF parsing for new engineers.
+    expected_workflow: source-tutorial
+  - id: tutorial-course-notes-en
+    prompt: Turn this material into course notes for a graduate seminar.
+    expected_workflow: source-tutorial
+  - id: explicit-survey-latex
+    prompt: Use arxiv-survey-latex to write a report on RAG evaluation.
+    expected_workflow: arxiv-survey-latex
+  - id: pdf-lexical-default
+    prompt: Analyze PDF output fidelity in multimodal models.
+    expected_workflow: arxiv-survey
+  - id: default-research-goal
+    prompt: Investigate uncertainty calibration in language models.
+    expected_workflow: arxiv-survey

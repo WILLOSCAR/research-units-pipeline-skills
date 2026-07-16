@@ -1,2 +1,2 @@
 unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
-U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md,"workspace目录存在且模板文件齐全",C0,DONE,,CODEX
+U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md,"workspace目录存在且模板文件齐全",C0,TODO,,CODEX

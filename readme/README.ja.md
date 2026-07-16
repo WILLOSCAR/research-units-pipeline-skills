@@ -26,7 +26,7 @@
 
 | Path | Use it for | Status | Guide |
 |---|---|---|---|
-| 授業・ゼミ・文献ベースの技術レポート | `arxiv-survey` or `arxiv-survey-latex` | bounded report overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
+| 授業・ゼミ・文献ベースの技術レポート | `arxiv-survey` or `arxiv-survey-latex` | bounded-report use-case overlay selecting the `course_paper` delivery profile | [Guide EN](arxiv-survey.md) |
 | `graduate-paper` | 中国語 thesis 資料の再構成 | research-stage path, not executable | [Guide EN](graduate-paper.md) |
 
 ## 並列な 3 つの Research Judgment Path
@@ -38,8 +38,8 @@
 ## Current Reliability Note
 
 Seven workflows are executable and harness-backed, but semantic maturity differs
-by path. See [Pipeline Operability Audit](../docs/PIPELINE_OPERABILITY_AUDIT.md)
-for the latest workflow-by-workflow review.
+by path. See [Workflow Taxonomy](../docs/PIPELINE_TAXONOMY.md) and
+[Harness Readiness](../docs/HARNESS_READINESS.md) for current proof boundaries.
 
 全体説明は [../README.md](../README.md) を参照してください。
 このページからリンクされる詳細ガイドは現在主に英語です。

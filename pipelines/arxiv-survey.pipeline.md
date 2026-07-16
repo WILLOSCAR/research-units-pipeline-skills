@@ -332,7 +332,7 @@ Notes:
   - `survey`: >=10 paragraphs + >=12 unique cites
   - `deep`: >=11 paragraphs + >=14 unique cites
   Every profile retains comparison, evaluation anchoring, cross-paper synthesis, and an explicit limitation; density scales with the intended deliverable.
-- Profile semantics: `course_paper` is the bounded report overlay; `survey` is the default deliverable contract; `deep` is stricter and typically pairs with `evidence_mode: fulltext`.
+- Profile semantics: the bounded-report use-case overlay selects the `course_paper` delivery profile; `survey` is the default delivery profile; `deep` is stricter and typically pairs with `evidence_mode: fulltext`.
 - Coherence target (paper-like): for every H2 chapter with H3 subsections, write a short **chapter lead** block (`sections/S<sec_id>_lead.md`) that previews the comparison axes and how the H3s connect (no new headings; avoid generic glue).
 - Anti-template style contract (paper-like, not “outline narration”):
   - Avoid meta openers like “This subsection surveys/argues …” and slide-like navigation (“Next, we move from … / We now turn to …”).

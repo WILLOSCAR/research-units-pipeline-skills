@@ -1,82 +1,138 @@
 ---
 name: unit-executor
-description: |
-  Execute exactly one runnable unit from `UNITS.csv` (first TODO whose dependencies are DONE), then update unit status and artifacts.
-  **Trigger**: unit executor, run one unit, next unit, step-by-step pipeline, 逐条执行, UNITS.csv.
-  **Use when**: 需要严格“一次只做一个 unit”（可审计、可中断），并遵守 checkpoints/HUMAN 阻塞逻辑。
-  **Skip if**: 要端到端自动跑（用 `research-pipeline-runner`）或 workspace 不存在。
-  **Network**: none.
-  **Guardrail**: 只执行一个 unit；满足验收且输出存在才可标 `DONE`；遇到 HUMAN checkpoint 必须停下。
+description: Execute exactly one eligible Unit in an existing research Workspace; use for stepwise or manual semantic execution when status, Attempt, Artifact, Manifest, checkpoint, and acceptance evidence must remain synchronized.
 ---
 
-# Skill: unit-executor
+# Unit Executor
 
-## Goal
-
-- Execute **one** unit end-to-end and leave the workspace in a consistent state.
+The leading principle is **atomicity**: one invocation owns one Unit Attempt and
+either commits one accepted Completion or records one diagnosable block. It
+never starts a second Unit.
 
 ## Inputs
 
-- `UNITS.csv`
-- Unit inputs listed in the row (files)
+- `UNITS.csv` and the selected Unit row.
+- Files declared by that row's `inputs` field.
+- `DECISIONS.md` when the Unit is checkpoint-gated.
 
 ## Outputs
 
-- Unit outputs listed in the row (files)
-- Updated `UNITS.csv` status (`TODO → DOING → DONE/BLOCKED`)
-- Optional: `STATUS.md` updated
+- Files declared by the Unit's `outputs` field.
+- Updated `UNITS.csv`, Run Evidence, and optional `STATUS.md` projection.
+- `output/QUALITY_GATE.md` when strict quality checks block Completion.
 
-## Procedure (MUST FOLLOW)
+## Steps
 
-1. Load `UNITS.csv` and find the first unit with:
-   - `status=TODO`
-   - all `depends_on` units are `DONE`
-2. Set its status to `DOING` and persist `UNITS.csv`.
-3. Run the referenced skill (by following that skill’s `SKILL.md`).
-4. Check the unit’s `acceptance` against produced artifacts.
-5. If acceptance passes, set status to `DONE`; otherwise set to `BLOCKED` with a short note in `STATUS.md`.
-6. Stop after one unit (do not start the next unit automatically).
+### 1. Reconcile and select one Unit
 
-## Acceptance criteria (MUST CHECK)
+Inspect the Workspace through the Pipeline adapter. Select the requested Unit,
+or the first `TODO` Unit whose dependencies are `DONE`. Stop when a HUMAN
+checkpoint, unresolved Decision, open Attempt, or integrity failure prevents
+selection.
 
-- [ ] Exactly one unit changes from `TODO` to `DONE/BLOCKED` (via `DOING`).
-- [ ] Output files exist (or acceptance explicitly allows otherwise).
+Completion criterion: exactly one eligible Unit is selected, or one blocking
+condition is recorded with a concrete next action.
 
-## Side effects
+### 2. Open the Attempt
 
-- Allowed: edit workspace artifacts (`UNITS.csv`, `STATUS.md`, unit outputs).
-- Not allowed: modify `.codex/skills/` content.
+Start semantic work through the adapter, never by editing a status cell:
+
+```bash
+uv run python scripts/pipeline.py mark \
+  --workspace workspaces/<name> \
+  --unit-id <U###> \
+  --status DOING \
+  --note "starting semantic execution"
+```
+
+Completion criterion: the Unit is `DOING` and one matching open Attempt owns
+the execution.
+
+### 3. Execute the declared Skill
+
+Read the selected Unit's Skill and only the context pointers required by this
+branch. Produce the declared outputs without changing unrelated Workspace
+artifacts.
+
+Completion criterion: every required output exists or the failure is specific
+enough to commit as `BLOCKED`.
+
+### 4. Verify and commit Completion
+
+Evaluate the Unit acceptance rule and strict quality contract when requested.
+Commit through the adapter:
+
+```bash
+uv run python scripts/pipeline.py mark \
+  --workspace workspaces/<name> \
+  --unit-id <U###> \
+  --status DONE \
+  --note "acceptance checked"
+```
+
+Use `BLOCKED` with a concrete reason when acceptance fails. Do not directly
+edit `UNITS.csv`; the adapter aligns Attempt, Artifact, Manifest, Decision, and
+status projections.
+
+Completion criterion: Completion is `DONE` with acceptance and provenance
+evidence, or `BLOCKED` with a diagnosable Failure.
+
+### 5. Stop after one Unit
+
+Refresh the Workspace projection and report the completed or blocked Unit. Do
+not claim end-to-end completion and do not start the next eligible Unit.
+
+Completion criterion: exactly one Unit changed execution state during this
+invocation and the next operator can resume from Workspace files.
+
+## Context Pointers
+
+- The selected row in `UNITS.csv` owns dependencies, inputs, outputs,
+  acceptance, checkpoint, and Skill identity.
+- The selected Skill owns semantic behavior.
+- The locked Pipeline owns cross-Unit gates and target Artifacts.
+- Use `research-pipeline-runner` for automatic continuation across Units.
 
 ## Script
 
 ### Quick Start
 
-- `uv run python .codex/skills/unit-executor/scripts/run.py --help`
-- `uv run python .codex/skills/unit-executor/scripts/run.py --workspace <workspace>`
+```bash
+uv run python .codex/skills/unit-executor/scripts/run.py \
+  --workspace workspaces/<name>
+```
 
 ### All Options
 
-- `--strict`: enable quality gate (blocks on scaffolds; writes `output/QUALITY_GATE.md`)
+- `--workspace <path>`: existing Workspace.
+- `--unit-id <U###>`: execute a specific eligible Unit.
+- `--inputs`, `--outputs`, `--checkpoint`: Pipeline-runner compatibility
+  arguments.
+- `--strict`: block scaffold-like outputs and write the quality-gate report.
 
 ### Examples
 
-- Run exactly one unit (strict):
-  - `uv run python .codex/skills/unit-executor/scripts/run.py --workspace <workspace> --strict`
-- Equivalent repo wrapper:
-  - `uv run python scripts/pipeline.py run-one --workspace <workspace> --strict`
+Run exactly one strict Unit:
 
-### Notes
+```bash
+uv run python .codex/skills/unit-executor/scripts/run.py \
+  --workspace workspaces/<name> \
+  --strict
+```
 
-- Returns 0 on `DONE/IDLE`, 2 on `BLOCKED/ERROR` (useful for automation).
+Equivalent adapter command:
+
+```bash
+uv run python scripts/pipeline.py run-one \
+  --workspace workspaces/<name> \
+  --strict
+```
+
+The helper returns `0` for `DONE` or `IDLE`, and `2` for `BLOCKED` or `ERROR`.
 
 ## Troubleshooting
 
-### Issue: no runnable unit is found
-
-**Fix**:
-- Check `UNITS.csv` for unmet dependencies, missing outputs, or `owner=HUMAN` units waiting on approvals in `DECISIONS.md`.
-
-### Issue: a unit is marked `DONE` but outputs are missing
-
-**Fix**:
-- Fix the status to `TODO`/`BLOCKED` and re-run; only mark `DONE` when acceptance criteria and outputs are satisfied.
+- When no Unit is runnable, inspect dependencies, checkpoint approvals, and
+  open Attempts before changing status.
+- When a `DONE` Unit has missing outputs, reopen it through the adapter with an
+  explanatory note; never repair the CSV projection alone.

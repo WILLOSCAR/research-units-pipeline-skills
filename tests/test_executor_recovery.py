@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tooling.common import UnitsTable
-from tooling.executor import recover_stale_doing_units
+from tooling.run_state import recover_stale_doing_units
 
 
 def test_recover_stale_doing_units_resets_first_interrupted_unit_only() -> None:

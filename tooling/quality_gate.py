@@ -46,6 +46,19 @@ def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> li
     return checker(workspace, outputs) if checker is not None else []
 
 
+def check_completion_invariants(*, skill: str, workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    """Run mandatory Workflow-domain invariants that apply even outside strict quality mode."""
+
+    checker = _COMPLETION_INVARIANTS.get(skill)
+    return checker(workspace, outputs) if checker is not None else []
+
+
+def has_completion_invariant(skill: str) -> bool:
+    """Return whether Completion executed a registered mandatory invariant for this Skill."""
+
+    return skill in _COMPLETION_INVARIANTS
+
+
 def registered_quality_skills() -> frozenset[str]:
     """Return Skills with semantic checks beyond output existence."""
 
@@ -124,6 +137,21 @@ def _check_bias_assessor(workspace: Path, outputs: list[str]) -> list[QualityIss
 
 
 QualityCheck = Callable[[Path, list[str]], list[QualityIssue]]
+
+
+def _check_outline_cutover(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    if "outline/outline_state.jsonl" not in outputs:
+        return []
+    return survey_structure.section_first_cutover_issues(
+        workspace,
+        consumer="outline/outline_state.jsonl",
+        require_stable_h3=True,
+    )
+
+
+_COMPLETION_INVARIANTS: dict[str, QualityCheck] = {
+    "outline-refiner": _check_outline_cutover,
+}
 
 
 # This registry is the semantic validation boundary between executable Skills

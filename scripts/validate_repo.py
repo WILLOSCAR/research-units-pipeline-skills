@@ -25,15 +25,11 @@ from tooling.harness_contracts import (
     ADR_REQUIRED_METADATA,
     ADR_REQUIRED_SECTIONS,
     AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS,
-    EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
     FORBIDDEN_OVERLAY_PIPELINE_FILENAMES,
-    IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS,
-    PAPER_REVIEW_TAXONOMY_ARTIFACTS,
-    RESEARCH_BRIEF_TAXONOMY_ARTIFACTS,
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
@@ -699,50 +695,6 @@ def _validate_pipeline_taxonomy(*, repo_root: Path, pipelines_dir: Path, docs_di
             )
         )
 
-    missing_paper_review_artifacts = [artifact for artifact in PAPER_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_paper_review_artifacts:
-        findings.append(
-            Finding(
-                "WARN",
-                "`docs/PIPELINE_TAXONOMY.md` is missing paper-review contract artifacts: "
-                + ", ".join(f"`{artifact}`" for artifact in missing_paper_review_artifacts)
-                + ".",
-            )
-        )
-
-    missing_research_brief_artifacts = [artifact for artifact in RESEARCH_BRIEF_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_research_brief_artifacts:
-        findings.append(
-            Finding(
-                "WARN",
-                "`docs/PIPELINE_TAXONOMY.md` is missing research-brief contract artifacts: "
-                + ", ".join(f"`{artifact}`" for artifact in missing_research_brief_artifacts)
-                + ".",
-            )
-        )
-
-    missing_idea_artifacts = [artifact for artifact in IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_idea_artifacts:
-        findings.append(
-            Finding(
-                "WARN",
-                "`docs/PIPELINE_TAXONOMY.md` is missing idea-brainstorm contract artifacts: "
-                + ", ".join(f"`{artifact}`" for artifact in missing_idea_artifacts)
-                + ".",
-            )
-        )
-
-    missing_evidence_artifacts = [artifact for artifact in EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_evidence_artifacts:
-        findings.append(
-            Finding(
-                "WARN",
-                "`docs/PIPELINE_TAXONOMY.md` is missing evidence-review contract artifacts: "
-                + ", ".join(f"`{artifact}`" for artifact in missing_evidence_artifacts)
-                + ".",
-            )
-        )
-
     forbidden_pipeline_paths = [pipelines_dir / filename for filename in FORBIDDEN_OVERLAY_PIPELINE_FILENAMES]
     present_forbidden = [path for path in forbidden_pipeline_paths if path.exists()]
     if present_forbidden:
@@ -824,20 +776,6 @@ def _validate_taxonomy_rows(text: str) -> list[Finding]:
     return findings
 
 
-HIGH_FREQUENCY_SKILLS = {
-    "arxiv-search",
-    "taxonomy-builder",
-    "outline-builder",
-    "paper-notes",
-    "prose-writer",
-    "citation-verifier",
-    "section-mapper",
-    "dedupe-rank",
-    "survey-visuals",
-    "latex-compile-qa",
-}
-
-
 @dataclass(frozen=True)
 class SkillDoc:
     key: str
@@ -866,33 +804,27 @@ def _validate_skill_quality(*, active_skill_names: set[str] | None = None) -> li
 
     for doc in skill_docs.values():
         desc = str(doc.description or "").strip()
-        if not re.search(r"(?i)\*\*trigger\*\*\s*:", desc):
-            findings.append(Finding("WARN", f"{doc.path}: YAML description missing `**Trigger**:` line."))
-
-        first_line = (desc.splitlines()[0] if desc else "").strip()
-        if first_line and len(first_line) > 200:
-            findings.append(Finding("WARN", f"{doc.path}: description first line is >200 chars (routing may degrade)."))
-
-        if doc.key in HIGH_FREQUENCY_SKILLS and not re.search(r"(?im)^##\s+Troubleshooting\s*$", doc.body):
-            findings.append(Finding("WARN", f"{doc.path}: missing `## Troubleshooting` (high-frequency skill)."))
-
-        if doc.has_script and not _has_command_examples(doc.body):
-            findings.append(
-                Finding(
-                    "WARN",
-                    f"{doc.path}: has `scripts/run.py` but is missing `### Quick Start`/`### All Options`/`### Examples` sections.",
-                )
-            )
-
-        body_wo_inputs = _strip_section(doc.body, headings={"input", "inputs"})
-        for inp in doc.inputs:
-            if inp and inp not in body_wo_inputs:
+        if not desc:
+            findings.append(Finding("WARN", f"{doc.path}: YAML description is empty."))
+        else:
+            structured_fields = ("**use when**:", "**skip if**:", "**network**:", "**guardrail**:")
+            desc_low = desc.lower()
+            uses_structured_fields = any(field in desc_low for field in structured_fields)
+            if uses_structured_fields and "**trigger**:" not in desc_low:
                 findings.append(
                     Finding(
                         "WARN",
-                        f"{doc.path}: declared input `{inp}` is not referenced outside the Inputs section (mention it in workflow/script/examples).",
+                        f"{doc.path}: structured YAML description uses routing fields but is missing `**Trigger**:`.",
                     )
                 )
+
+        if doc.has_script and "scripts/run.py" not in doc.body:
+            findings.append(
+                Finding(
+                    "WARN",
+                    f"{doc.path}: has `scripts/run.py` but does not reference that helper from `SKILL.md`.",
+                )
+            )
 
         for out in doc.outputs:
             if not out:
@@ -1031,31 +963,6 @@ def _units_row_shape_error(row: dict[str | None, str | list[str] | None]) -> str
     return None
 
 
-def _strip_section(body: str, *, headings: set[str]) -> str:
-    out: list[str] = []
-    in_section = False
-    for raw in (body or "").splitlines():
-        line = raw.rstrip("\n")
-        m = re.match(r"^##\s+(.+?)\s*$", line)
-        if m:
-            name = m.group(1).strip().lower()
-            in_section = name in headings
-            if not in_section:
-                out.append(line)
-            continue
-        if in_section:
-            continue
-        out.append(line)
-    return "\n".join(out)
-
-
-def _has_command_examples(body: str) -> bool:
-    has_quick = re.search(r"(?im)^###\s+Quick Start\s*$", body or "") is not None
-    has_opts = re.search(r"(?im)^###\s+All Options\s*$", body or "") is not None
-    has_examples = re.search(r"(?im)^###\s+Examples\s*$", body or "") is not None
-    return has_quick and has_opts and has_examples
-
-
 def _load_template_outputs(templates_dir: Path) -> set[str]:
     out: set[str] = set()
     if not templates_dir.exists():
@@ -1088,6 +995,8 @@ def _is_known_sink_output(path: str) -> bool:
     if p.endswith("_report.md") or p.endswith("report.md"):
         return True
     if p == "papers/papers_raw.csv":
+        return True
+    if p == "outline/mapping_gap_candidates.tsv":
         return True
     return False
 

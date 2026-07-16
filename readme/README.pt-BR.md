@@ -26,7 +26,7 @@ Use diretamente os nomes atuais dos workflows. Os aliases antigos não fazem mai
 
 | Caminho | Uso principal | Status | Guia |
 |---|---|---|---|
-| trabalho ou relatorio de curso, seminario ou relatorio tecnico baseado em literatura | `arxiv-survey` or `arxiv-survey-latex` | bounded report overlay, not a separate workflow | [Guide EN](arxiv-survey.md) |
+| trabalho ou relatorio de curso, seminario ou relatorio tecnico baseado em literatura | `arxiv-survey` or `arxiv-survey-latex` | bounded-report use-case overlay selecting the `course_paper` delivery profile | [Guide EN](arxiv-survey.md) |
 | `graduate-paper` | reorganizar materiais de tese chinesa | research-stage path, not executable | [Guide EN](graduate-paper.md) |
 
 ## Três Caminhos de Julgamento de Pesquisa
@@ -38,8 +38,8 @@ Use diretamente os nomes atuais dos workflows. Os aliases antigos não fazem mai
 ## Current Reliability Note
 
 Seven workflows are executable and harness-backed, but semantic maturity differs
-by path. See [Pipeline Operability Audit](../docs/PIPELINE_OPERABILITY_AUDIT.md)
-for the latest workflow-by-workflow review.
+by path. See [Workflow Taxonomy](../docs/PIPELINE_TAXONOMY.md) and
+[Harness Readiness](../docs/HARNESS_READINESS.md) for current proof boundaries.
 
 Para a visão completa, consulte [../README.md](../README.md).
 As guias detalhadas vinculadas aqui estão atualmente principalmente em inglês.

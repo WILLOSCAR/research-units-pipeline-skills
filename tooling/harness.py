@@ -66,6 +66,23 @@ RUN_AUDIT_LEDGER_KEYS = (
     "CHECKPOINTS.md",
     "DECISIONS.md",
 )
+RUN_LEDGER_INSPECTION_PATHS = (
+    "PIPELINE.lock.md",
+    "GOAL.md",
+    "UNITS.csv",
+    "STATUS.md",
+    "CHECKPOINTS.md",
+    "DECISIONS.md",
+    ".harness/goal.json",
+    ".harness/run.json",
+    ".harness/harness.lock.json",
+    ".harness/events.jsonl",
+    ".harness/attempts.jsonl",
+    ".harness/decisions.jsonl",
+    ".harness/artifacts.jsonl",
+    ".harness/failures/ledger.jsonl",
+    ".harness/evaluations/ledger.jsonl",
+)
 RUN_STATE_PHASES = {"attention", "in_progress", "complete_candidate"}
 RUN_STATE_INTEGER_KEYS = (
     "units_total",
@@ -140,6 +157,7 @@ ARTIFACT_PACK_LEDGER_PATHS = (
     ".harness/events.jsonl",
     ".harness/attempts.jsonl",
     ".harness/artifacts.jsonl",
+    ".harness/decisions.jsonl",
     ".harness/failures/ledger.jsonl",
     ".harness/evaluations/ledger.jsonl",
     ".harness/plan/planned.json",
@@ -180,6 +198,41 @@ class HarnessIssue:
             object.__setattr__(self, "remediation_category", default_category)
         if not self.next_action:
             object.__setattr__(self, "next_action", default_action)
+
+
+@dataclass(frozen=True)
+class HarnessInspection:
+    doctor_exit_code: int
+    doctor: dict[str, Any]
+    audit_exit_code: int
+    audit: dict[str, Any]
+    improvement_exit_code: int
+    improvement: dict[str, Any]
+    artifact_pack_exit_code: int
+    artifact_pack: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _WorkspaceInspectionSnapshot:
+    generated_at: str
+    workspace: Path
+    repo_root: Path
+    pipeline_lock: str
+    pipeline_name: str
+    current_checkpoint: str
+    run_identity: dict[str, Any]
+    units_present: bool
+    unit_status: dict[str, int]
+    next_runnable: dict[str, str]
+    doctor_issues: tuple[HarnessIssue, ...]
+    audit_issues: tuple[HarnessIssue, ...]
+    run_ledger_files: dict[str, bool]
+    target_artifacts: tuple[dict[str, Any], ...]
+    manifests: tuple[dict[str, Any], ...]
+    declared_unit_output_paths: tuple[str, ...]
+    failure_ledger_entries: tuple[dict[str, Any], ...]
+    ledger_integrity: dict[str, Any]
+    recent_reports: tuple[dict[str, str], ...]
 
 
 ISSUE_REMEDIATION = {
@@ -226,6 +279,30 @@ ISSUE_REMEDIATION = {
     "missing_target_artifact": (
         "repair_run_artifacts",
         "Finish or rerun the producing unit for this target artifact before treating the workspace as complete.",
+    ),
+    "done_without_successful_attempt": (
+        "repair_completion_provenance",
+        "Reopen the Unit and complete it through `pipeline.py run` or `pipeline.py mark` so a successful Attempt is recorded.",
+    ),
+    "done_without_manifest": (
+        "repair_completion_provenance",
+        "Reopen the Unit and recommit completion so its DONE Manifest is tied to the successful Attempt.",
+    ),
+    "done_output_unregistered": (
+        "repair_completion_provenance",
+        "Reopen and recommit the Unit so each required output receives an Artifact record.",
+    ),
+    "artifact_hash_mismatch": (
+        "repair_completion_provenance",
+        "Reopen the earliest producing Unit and regenerate downstream outputs from the current Artifact content.",
+    ),
+    "doing_without_open_attempt": (
+        "repair_completion_provenance",
+        "Inspect the Unit, then use `pipeline.py mark` with an explicit note to reopen or block it.",
+    ),
+    "doing_with_multiple_open_attempts": (
+        "repair_completion_provenance",
+        "Inspect the Attempt ledger and explicitly interrupt the superseded Attempt before continuing.",
     ),
 }
 
@@ -274,46 +351,164 @@ def validate_units_table(table: UnitsTable) -> list[HarnessIssue]:
     return issues
 
 
-def build_doctor_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
-    from tooling.run_state import run_identity
+def _collect_workspace_inspection_snapshot(
+    *,
+    workspace: Path,
+    repo_root: Path,
+    include_deep_audit: bool = True,
+) -> _WorkspaceInspectionSnapshot:
+    """Read and reconcile facts shared by the requested inspection views.
 
+    Doctor needs contract and implementation-freshness checks but not the full
+    cross-ledger integrity pass. Audit, Improvement, and Artifact Pack share the
+    deeper snapshot so composed inspection does that work only once.
+    """
+
+    from tooling.run_state import (
+        ensure_run_state,
+        inspect_doing_attempt_integrity,
+        inspect_run_integrity,
+        run_identity,
+    )
+
+    workspace = workspace.resolve()
+    repo_root = repo_root.resolve()
+    if (workspace / ".harness" / "run.json").exists():
+        ensure_run_state(
+            workspace=workspace,
+            repo_root=repo_root,
+            recover_stale_doing=True,
+        )
+
+    generated_at = now_iso_seconds()
     units_path = workspace / "UNITS.csv"
     lock_summary = _pipeline_lock_summary(workspace / "PIPELINE.lock.md")
     checkpoint = _current_checkpoint(workspace / "STATUS.md")
-    issues: list[HarnessIssue] = []
+    manifests = tuple(_unit_manifest_records(workspace))
+    shared_issues: list[HarnessIssue] = []
+    implementation_issues: list[HarnessIssue] = []
+    doctor_projection_issues: list[HarnessIssue] = []
     unit_status: dict[str, int] = {}
     next_runnable: dict[str, str] = {}
+    declared_unit_output_paths: tuple[str, ...] = ()
     if not units_path.exists():
-        issues.append(HarnessIssue("ERROR", "missing_units", f"Missing `{units_path}`"))
+        shared_issues.append(HarnessIssue("ERROR", "missing_units", f"Missing `{units_path}`"))
     else:
         table = UnitsTable.load(units_path)
-        issues.extend(validate_units_table(table))
-        issues.extend(_workspace_artifact_issues(workspace=workspace, table=table))
-        issues.extend(_workspace_implementation_issues(workspace=workspace, table=table, repo_root=repo_root))
+        shared_issues.extend(validate_units_table(table))
+        shared_issues.extend(_workspace_artifact_issues(workspace=workspace, table=table))
+        doctor_projection_issues.extend(
+            HarnessIssue(
+                str(record.get("level") or "ERROR"),
+                str(record.get("code") or "doing_attempt_integrity_error"),
+                str(record.get("message") or "DOING Unit Attempt integrity failed."),
+            )
+            for record in inspect_doing_attempt_integrity(workspace, unit_rows=table.rows)
+        )
+        implementation_issues.extend(
+            _workspace_implementation_issues(
+                workspace=workspace,
+                table=table,
+                repo_root=repo_root,
+                manifests=manifests,
+            )
+        )
         counts = Counter(_status(row) or "<blank>" for row in table.rows)
         unit_status = {status: counts[status] for status in sorted(counts)}
+        if include_deep_audit:
+            declared_unit_output_paths = tuple(_declared_unit_output_paths_from_table(table))
         next_row = find_next_runnable(table)
         if next_row is not None:
             next_runnable = _next_runnable_record(next_row)
 
+    spec = _load_locked_pipeline_spec(workspace=workspace, repo_root=repo_root) if include_deep_audit else None
+    target_records: list[dict[str, Any]] = []
+    target_issues: list[HarnessIssue] = []
+    for relpath in tuple(spec.target_artifacts) if spec is not None else ():
+        exists = (workspace / relpath).exists()
+        target_records.append({"path": relpath, "exists": exists})
+        if not exists:
+            target_issues.append(
+                HarnessIssue("ERROR", "missing_target_artifact", f"Target artifact `{relpath}` is missing")
+            )
+
+    ledger_integrity = inspect_run_integrity(workspace) if include_deep_audit else {}
+    ledger_issues: list[HarnessIssue] = []
+    for record in ledger_integrity.get("issues") or []:
+        if not isinstance(record, dict):
+            continue
+        ledger_issues.append(
+            HarnessIssue(
+                str(record.get("level") or "ERROR"),
+                str(record.get("code") or "ledger_integrity_error"),
+                str(record.get("message") or "Run ledger integrity check failed."),
+                remediation_category="repair_completion_provenance",
+                next_action="Inspect the referenced Run ledger records, reopen the affected Unit, and recommit it through the Completion Protocol.",
+            )
+        )
+
+    return _WorkspaceInspectionSnapshot(
+        generated_at=generated_at,
+        workspace=workspace,
+        repo_root=repo_root,
+        pipeline_lock=lock_summary,
+        pipeline_name=spec.name if spec is not None else "",
+        current_checkpoint=checkpoint,
+        run_identity=run_identity(workspace),
+        units_present=units_path.exists(),
+        unit_status=unit_status,
+        next_runnable=next_runnable,
+        doctor_issues=tuple([*shared_issues, *implementation_issues, *doctor_projection_issues]),
+        audit_issues=tuple([*shared_issues, *target_issues, *ledger_issues]),
+        run_ledger_files=(
+            {relpath: (workspace / relpath).exists() for relpath in RUN_LEDGER_INSPECTION_PATHS}
+            if include_deep_audit
+            else {}
+        ),
+        target_artifacts=tuple(target_records),
+        manifests=manifests,
+        declared_unit_output_paths=declared_unit_output_paths,
+        failure_ledger_entries=(tuple(_failure_ledger_entries(workspace)) if include_deep_audit else ()),
+        ledger_integrity=ledger_integrity,
+        recent_reports=tuple(_recent_report_records(workspace)),
+    )
+
+
+def build_doctor_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
+    snapshot = _collect_workspace_inspection_snapshot(
+        workspace=workspace,
+        repo_root=repo_root,
+        include_deep_audit=False,
+    )
+    return _build_doctor_payload_from_snapshot(snapshot)
+
+
+def _build_doctor_payload_from_snapshot(
+    snapshot: _WorkspaceInspectionSnapshot,
+) -> tuple[int, dict[str, Any]]:
+    issues = list(snapshot.doctor_issues)
     exit_code = 2 if any(issue.level == "ERROR" for issue in issues) else 0
     verdict = "PASS" if exit_code == 0 else "ATTENTION"
     remediation_counts = Counter(issue.remediation_category for issue in issues)
     payload = {
         "schema": DOCTOR_REPORT_SCHEMA,
-        "generated_at": now_iso_seconds(),
-        "workspace": str(workspace),
-        "repo": str(repo_root),
-        "pipeline_lock": lock_summary,
-        "run_identity": run_identity(workspace),
-        "current_checkpoint": checkpoint,
-        "units_present": units_path.exists(),
-        "unit_status": unit_status,
-        "next_runnable": next_runnable,
-        "resume_hint": _doctor_resume_hint(workspace=workspace, next_runnable=next_runnable, issues=issues),
+        "generated_at": snapshot.generated_at,
+        "workspace": str(snapshot.workspace),
+        "repo": str(snapshot.repo_root),
+        "pipeline_lock": snapshot.pipeline_lock,
+        "run_identity": snapshot.run_identity,
+        "current_checkpoint": snapshot.current_checkpoint,
+        "units_present": snapshot.units_present,
+        "unit_status": snapshot.unit_status,
+        "next_runnable": snapshot.next_runnable,
+        "resume_hint": _doctor_resume_hint(
+            workspace=snapshot.workspace,
+            next_runnable=snapshot.next_runnable,
+            issues=issues,
+        ),
         "harness_issues": [_issue_record(issue) for issue in issues],
         "remediation_summary": {category: remediation_counts[category] for category in sorted(remediation_counts)},
-        "recent_reports": _recent_report_records(workspace),
+        "recent_reports": list(snapshot.recent_reports),
         "verdict": verdict,
         "exit_code": exit_code,
     }
@@ -515,6 +710,22 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
             for idx, record in enumerate(records):
                 if not isinstance(record, dict):
                     issues.append(f"`unit_output_manifests.records[{idx}]` must be an object")
+
+    integrity = payload.get("ledger_integrity")
+    if integrity is not None:
+        if not isinstance(integrity, dict):
+            issues.append("`ledger_integrity` must be an object")
+        else:
+            if not isinstance(integrity.get("enabled"), bool):
+                issues.append("`ledger_integrity.enabled` must be a boolean")
+            if not isinstance(integrity.get("run_id"), str):
+                issues.append("`ledger_integrity.run_id` must be a string")
+            if not isinstance(integrity.get("issue_count"), int):
+                issues.append("`ledger_integrity.issue_count` must be an integer")
+            if not isinstance(integrity.get("ledger_record_counts"), dict):
+                issues.append("`ledger_integrity.ledger_record_counts` must be an object")
+            if not isinstance(integrity.get("issues"), list):
+                issues.append("`ledger_integrity.issues` must be a list")
 
     _validate_issue_records(payload, issues=issues)
     _validate_recent_reports(payload, issues=issues)
@@ -813,73 +1024,37 @@ def _validate_run_state_record(record: dict[str, Any], *, field_path: str, issue
 
 
 def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
-    from tooling.run_state import run_identity
+    snapshot = _collect_workspace_inspection_snapshot(workspace=workspace, repo_root=repo_root)
+    return _build_run_audit_payload_from_snapshot(snapshot)
 
-    units_path = workspace / "UNITS.csv"
-    spec = _load_locked_pipeline_spec(workspace=workspace, repo_root=repo_root)
-    lock_summary = _pipeline_lock_summary(workspace / "PIPELINE.lock.md")
-    generated_at = now_iso_seconds()
-    checkpoint = _current_checkpoint(workspace / "STATUS.md")
-    ledger_files: dict[str, bool] = {}
-    for relpath in (
-        "PIPELINE.lock.md",
-        "GOAL.md",
-        "UNITS.csv",
-        "STATUS.md",
-        "CHECKPOINTS.md",
-        "DECISIONS.md",
-        ".harness/goal.json",
-        ".harness/run.json",
-        ".harness/harness.lock.json",
-        ".harness/events.jsonl",
-        ".harness/attempts.jsonl",
-        ".harness/artifacts.jsonl",
-        ".harness/failures/ledger.jsonl",
-        ".harness/evaluations/ledger.jsonl",
-    ):
-        ledger_files[relpath] = (workspace / relpath).exists()
 
-    issues: list[HarnessIssue] = []
-    unit_status: dict[str, int] = {}
-    if not units_path.exists():
-        issues.append(HarnessIssue("ERROR", "missing_units", f"Missing `{units_path}`"))
-    else:
-        table = UnitsTable.load(units_path)
-        issues.extend(validate_units_table(table))
-        issues.extend(_workspace_artifact_issues(workspace=workspace, table=table))
-        counts = Counter(_status(row) or "<blank>" for row in table.rows)
-        unit_status = {status: counts[status] for status in sorted(counts)}
-
-    target_artifacts = tuple(spec.target_artifacts) if spec is not None else ()
-    target_records: list[dict[str, Any]] = []
-    for relpath in target_artifacts:
-        exists = (workspace / relpath).exists()
-        target_records.append({"path": relpath, "exists": exists})
-        if not exists:
-            issues.append(HarnessIssue("ERROR", "missing_target_artifact", f"Target artifact `{relpath}` is missing"))
-
-    manifests = _unit_manifest_records(workspace)
+def _build_run_audit_payload_from_snapshot(
+    snapshot: _WorkspaceInspectionSnapshot,
+) -> tuple[int, dict[str, Any]]:
+    issues = list(snapshot.audit_issues)
+    manifests = list(snapshot.manifests)
+    target_records = list(snapshot.target_artifacts)
     exit_code = 2 if any(issue.level == "ERROR" for issue in issues) else 0
     verdict = "PASS" if exit_code == 0 else "ATTENTION"
     manifest_status_counts = Counter(str(item.get("status") or "<blank>") for item in manifests)
     remediation_counts = Counter(issue.remediation_category for issue in issues)
     payload = {
         "schema": RUN_AUDIT_SCHEMA,
-        "generated_at": generated_at,
-        "workspace": str(workspace),
-        "repo": str(repo_root),
-        "pipeline_lock": lock_summary,
-        "pipeline": spec.name if spec is not None else "",
-        "run_identity": run_identity(workspace),
-        "current_checkpoint": checkpoint,
-        "run_ledger_files": ledger_files,
+        "generated_at": snapshot.generated_at,
+        "workspace": str(snapshot.workspace),
+        "repo": str(snapshot.repo_root),
+        "pipeline_lock": snapshot.pipeline_lock,
+        "pipeline": snapshot.pipeline_name,
+        "run_identity": snapshot.run_identity,
+        "current_checkpoint": snapshot.current_checkpoint,
+        "run_ledger_files": snapshot.run_ledger_files,
         "run_state": _run_state_record(
-            unit_status=unit_status,
+            unit_status=snapshot.unit_status,
             target_artifacts=target_records,
             manifests=manifests,
             issues=issues,
         ),
-        "unit_status": unit_status,
+        "unit_status": snapshot.unit_status,
         "target_artifacts": target_records,
         "unit_output_manifests": {
             "count": len(manifests),
@@ -887,9 +1062,10 @@ def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, d
             "latest": _manifest_summary(manifests[-1]) if manifests else {},
             "records": [_manifest_summary(record) for record in manifests],
         },
+        "ledger_integrity": snapshot.ledger_integrity,
         "harness_issues": [_issue_record(issue) for issue in issues],
         "remediation_summary": {category: remediation_counts[category] for category in sorted(remediation_counts)},
-        "recent_reports": _recent_report_records(workspace),
+        "recent_reports": list(snapshot.recent_reports),
         "verdict": verdict,
         "exit_code": exit_code,
     }
@@ -985,6 +1161,16 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
             latest_skill = str(latest.get("skill") or "?")
             latest_status = str(latest.get("status") or "?")
             lines.append(f"- Latest: `{latest_path}` (`{latest_unit}` `{latest_skill}` {latest_status})")
+
+    integrity = payload.get("ledger_integrity") or {}
+    lines.extend(["", "## Ledger integrity"])
+    if not integrity.get("enabled"):
+        lines.append("- Legacy Workspace: machine-readable Run ledgers are not initialized")
+    else:
+        lines.append(f"- Run ID: `{integrity.get('run_id') or 'unknown'}`")
+        lines.append(f"- Integrity issues: {integrity.get('issue_count', 0)}")
+        for name, count in (integrity.get("ledger_record_counts") or {}).items():
+            lines.append(f"- {name}: {count}")
 
     lines.extend(["", "## Harness issues"])
     issues = payload.get("harness_issues") or []
@@ -1171,10 +1357,31 @@ def write_run_audit_diff_json(*, output_dir: Path, payload: dict[str, Any]) -> P
 
 
 def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
-    doctor_exit, doctor_payload = build_doctor_payload(workspace=workspace, repo_root=repo_root)
-    audit_exit, audit_payload = build_run_audit_payload(workspace=workspace, repo_root=repo_root)
-    failures = _failure_ledger_records(workspace)
-    repair_history = _failure_repair_history(workspace)
+    snapshot = _collect_workspace_inspection_snapshot(workspace=workspace, repo_root=repo_root)
+    doctor_exit, doctor_payload = _build_doctor_payload_from_snapshot(snapshot)
+    audit_exit, audit_payload = _build_run_audit_payload_from_snapshot(snapshot)
+    return _build_improvement_payload_from_sources(
+        workspace=workspace,
+        repo_root=repo_root,
+        doctor_result=(doctor_exit, doctor_payload),
+        audit_result=(audit_exit, audit_payload),
+        failure_ledger_entries=snapshot.failure_ledger_entries,
+    )
+
+
+def _build_improvement_payload_from_sources(
+    *,
+    workspace: Path,
+    repo_root: Path,
+    doctor_result: tuple[int, dict[str, Any]],
+    audit_result: tuple[int, dict[str, Any]],
+    failure_ledger_entries: tuple[dict[str, Any], ...] | None = None,
+) -> tuple[int, dict[str, Any]]:
+    doctor_exit, doctor_payload = doctor_result
+    audit_exit, audit_payload = audit_result
+    entries = list(failure_ledger_entries) if failure_ledger_entries is not None else _failure_ledger_entries(workspace)
+    failures = _failure_ledger_records(workspace, entries=entries)
+    repair_history = _failure_repair_history(workspace, entries=entries)
     suggestions = _improvement_suggestion_records(
         workspace=workspace,
         doctor_payload=doctor_payload,
@@ -1184,7 +1391,7 @@ def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int,
     exit_code = 2 if suggestions or doctor_exit or audit_exit else 0
     payload = {
         "schema": IMPROVEMENT_REPORT_SCHEMA,
-        "generated_at": now_iso_seconds(),
+        "generated_at": str(doctor_payload.get("generated_at") or now_iso_seconds()),
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
@@ -1293,20 +1500,66 @@ def write_improvement_json(*, workspace: Path, payload: dict[str, Any]) -> Path:
     return path
 
 
+def build_harness_inspection(*, workspace: Path, repo_root: Path) -> HarnessInspection:
+    snapshot = _collect_workspace_inspection_snapshot(workspace=workspace, repo_root=repo_root)
+    doctor_exit, doctor_payload = _build_doctor_payload_from_snapshot(snapshot)
+    audit_exit, audit_payload = _build_run_audit_payload_from_snapshot(snapshot)
+    improvement_exit, improvement_payload = _build_improvement_payload_from_sources(
+        workspace=workspace,
+        repo_root=repo_root,
+        doctor_result=(doctor_exit, doctor_payload),
+        audit_result=(audit_exit, audit_payload),
+        failure_ledger_entries=snapshot.failure_ledger_entries,
+    )
+    artifact_pack_exit, artifact_pack_payload = _build_artifact_pack_payload_from_sources(
+        workspace=workspace,
+        repo_root=repo_root,
+        doctor_result=(doctor_exit, doctor_payload),
+        audit_result=(audit_exit, audit_payload),
+        improvement_result=(improvement_exit, improvement_payload),
+        snapshot=snapshot,
+    )
+    return HarnessInspection(
+        doctor_exit_code=doctor_exit,
+        doctor=doctor_payload,
+        audit_exit_code=audit_exit,
+        audit=audit_payload,
+        improvement_exit_code=improvement_exit,
+        improvement=improvement_payload,
+        artifact_pack_exit_code=artifact_pack_exit,
+        artifact_pack=artifact_pack_payload,
+    )
+
+
 def build_artifact_pack_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
-    doctor_exit, doctor_payload = build_doctor_payload(workspace=workspace, repo_root=repo_root)
-    audit_exit, audit_payload = build_run_audit_payload(workspace=workspace, repo_root=repo_root)
-    improvement_exit, improvement_payload = build_improvement_payload(workspace=workspace, repo_root=repo_root)
+    inspection = build_harness_inspection(workspace=workspace, repo_root=repo_root)
+    return inspection.artifact_pack_exit_code, inspection.artifact_pack
+
+
+def _build_artifact_pack_payload_from_sources(
+    *,
+    workspace: Path,
+    repo_root: Path,
+    doctor_result: tuple[int, dict[str, Any]],
+    audit_result: tuple[int, dict[str, Any]],
+    improvement_result: tuple[int, dict[str, Any]],
+    snapshot: _WorkspaceInspectionSnapshot | None = None,
+) -> tuple[int, dict[str, Any]]:
+    doctor_exit, doctor_payload = doctor_result
+    audit_exit, audit_payload = audit_result
+    improvement_exit, improvement_payload = improvement_result
 
     artifacts = _artifact_pack_records(
         workspace=workspace,
         audit_payload=audit_payload,
+        declared_unit_output_paths=(snapshot.declared_unit_output_paths if snapshot is not None else None),
+        manifests=(snapshot.manifests if snapshot is not None else None),
     )
     summary = _artifact_pack_summary(artifacts)
     exit_code = 2 if doctor_exit or audit_exit or improvement_exit else 0
     payload = {
         "schema": ARTIFACT_PACK_SCHEMA,
-        "generated_at": now_iso_seconds(),
+        "generated_at": str(doctor_payload.get("generated_at") or now_iso_seconds()),
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
@@ -1526,59 +1779,61 @@ def _failure_suggestion_records(
     return records
 
 
-def _failure_ledger_records(workspace: Path) -> list[dict[str, Any]]:
+def _failure_ledger_entries(workspace: Path) -> list[dict[str, Any]]:
     path = workspace / ".harness" / "failures" / "ledger.jsonl"
     if not path.exists():
         return []
-    records: dict[str, dict[str, Any]] = {}
+    entries: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
-            line = line.strip()
-            if not line:
-                continue
             try:
                 payload = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if not isinstance(payload, dict):
-                continue
-            failure_id = str(payload.get("failure_id") or "")
-            if not failure_id:
-                continue
-            if payload.get("status") == "open":
-                records[failure_id] = payload
-            else:
-                records.pop(failure_id, None)
+            if isinstance(payload, dict):
+                entries.append(payload)
+    return entries
+
+
+def _failure_ledger_records(
+    workspace: Path,
+    *,
+    entries: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    for payload in entries if entries is not None else _failure_ledger_entries(workspace):
+        failure_id = str(payload.get("failure_id") or "")
+        if not failure_id:
+            continue
+        if payload.get("status") == "open":
+            records[failure_id] = payload
+        else:
+            records.pop(failure_id, None)
     return list(records.values())
 
 
-def _failure_repair_history(workspace: Path) -> dict[str, Any]:
-    path = workspace / ".harness" / "failures" / "ledger.jsonl"
+def _failure_repair_history(
+    workspace: Path,
+    *,
+    entries: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     failures: dict[str, dict[str, Any]] = {}
-    if path.exists():
-        with path.open("r", encoding="utf-8") as handle:
-            for line in handle:
-                try:
-                    payload = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(payload, dict):
-                    continue
-                failure_id = str(payload.get("failure_id") or "")
-                if not failure_id:
-                    continue
-                if payload.get("status") == "open":
-                    failures[failure_id] = {
-                        "failure_id": failure_id,
-                        "failure_type": str(payload.get("failure_type") or ""),
-                        "unit_id": str(payload.get("unit_id") or ""),
-                        "opened_attempt_id": str(payload.get("attempt_id") or ""),
-                        "resolved_by_attempt_id": "",
-                        "status": "open",
-                    }
-                elif failure_id in failures:
-                    failures[failure_id]["resolved_by_attempt_id"] = str(payload.get("resolved_by_attempt_id") or "")
-                    failures[failure_id]["status"] = "resolved"
+    for payload in entries if entries is not None else _failure_ledger_entries(workspace):
+        failure_id = str(payload.get("failure_id") or "")
+        if not failure_id:
+            continue
+        if payload.get("status") == "open":
+            failures[failure_id] = {
+                "failure_id": failure_id,
+                "failure_type": str(payload.get("failure_type") or ""),
+                "unit_id": str(payload.get("unit_id") or ""),
+                "opened_attempt_id": str(payload.get("attempt_id") or ""),
+                "resolved_by_attempt_id": "",
+                "status": "open",
+            }
+        elif failure_id in failures:
+            failures[failure_id]["resolved_by_attempt_id"] = str(payload.get("resolved_by_attempt_id") or "")
+            failures[failure_id]["status"] = "resolved"
     entries = list(failures.values())
     return {
         "opened_count": len(entries),
@@ -1755,9 +2010,15 @@ def write_unit_manifest(
     return manifest_path
 
 
-def _workspace_implementation_issues(*, workspace: Path, table: UnitsTable, repo_root: Path) -> list[HarnessIssue]:
+def _workspace_implementation_issues(
+    *,
+    workspace: Path,
+    table: UnitsTable,
+    repo_root: Path,
+    manifests: tuple[dict[str, Any], ...] | None = None,
+) -> list[HarnessIssue]:
     latest_by_unit: dict[str, dict[str, Any]] = {}
-    for manifest in _unit_manifest_records(workspace):
+    for manifest in manifests if manifests is not None else _unit_manifest_records(workspace):
         if str(manifest.get("status") or "").upper() != "DONE":
             continue
         unit_id = str(manifest.get("unit_id") or "").strip()
@@ -1892,7 +2153,13 @@ def _implementation_record(*, repo_root: Path, path: Path) -> dict[str, Any]:
     return record
 
 
-def _artifact_pack_records(*, workspace: Path, audit_payload: dict[str, Any]) -> list[dict[str, Any]]:
+def _artifact_pack_records(
+    *,
+    workspace: Path,
+    audit_payload: dict[str, Any],
+    declared_unit_output_paths: tuple[str, ...] | None = None,
+    manifests: tuple[dict[str, Any], ...] | None = None,
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
 
@@ -1912,7 +2179,12 @@ def _artifact_pack_records(*, workspace: Path, audit_payload: dict[str, Any]) ->
         if isinstance(item, dict):
             add("target_artifact", str(item.get("path") or ""))
 
-    for relpath in _declared_unit_output_paths(workspace):
+    output_paths = (
+        list(declared_unit_output_paths)
+        if declared_unit_output_paths is not None
+        else _declared_unit_output_paths(workspace)
+    )
+    for relpath in output_paths:
         add("unit_output", relpath)
 
     for relpath in ARTIFACT_PACK_LEDGER_PATHS:
@@ -1921,7 +2193,7 @@ def _artifact_pack_records(*, workspace: Path, audit_payload: dict[str, Any]) ->
     for relpath in ARTIFACT_PACK_HARNESS_REPORT_PATHS:
         add("harness_report", relpath)
 
-    for manifest in _unit_manifest_records(workspace):
+    for manifest in manifests if manifests is not None else _unit_manifest_records(workspace):
         add("unit_manifest", str(manifest.get("_relpath") or ""))
 
     return sorted(records, key=lambda item: (str(item.get("category") or ""), str(item.get("path") or "")))
@@ -1935,6 +2207,10 @@ def _declared_unit_output_paths(workspace: Path) -> list[str]:
         table = UnitsTable.load(units_path)
     except Exception:
         return []
+    return _declared_unit_output_paths_from_table(table)
+
+
+def _declared_unit_output_paths_from_table(table: UnitsTable) -> list[str]:
     relpaths: list[str] = []
     seen: set[str] = set()
     for row in table.rows:

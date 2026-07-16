@@ -16,8 +16,8 @@
    - `notes`: how to do it, edge cases, common mistakes
    - `guardrail`: what NOT to do (e.g., **NO PROSE** in C2-C4)
 
-2. **Decomposed Pipeline**: 6 checkpoints (C0→C5), ~40+ atomic units (varies by pipeline; LaTeX adds a few), dependencies explicit in `UNITS.csv`
-3. **Evidence-First**: C2-C4 enforce building evidence substrate first, C5 writes prose
+2. **Decomposed Pipeline**: each Workflow declares its own checkpoint and Unit graph in `UNITS.csv`; the long-form Survey family currently uses C0-C5 and roughly 40+ Units
+3. **Evidence-First**: each Workflow builds its traceable research substrate before the final reader-facing deliverable; Survey uses C2-C4 for substrate and C5 for prose
 
 **Design Goals**:
 - **Reusable**: Same skill works across pipelines—no rewriting logic
@@ -32,6 +32,12 @@ This repo is meant to work well across:
 - Anthropic Claude Code (Claude Code CLI)
 
 The goal is **LLM-first semantic work + deterministic helper scripts**, with a clear artifact contract (`UNITS.csv`) and explicit human checkpoints (`DECISIONS.md`).
+
+**Scope note**: the activation, bundle, script, Unit, and Completion rules in
+this document apply repository-wide. Sections 2a-2d, 5, and 6 retain
+Survey-family role, voice, refinement, and JSONL policy for compatibility; they
+are not requirements for every Workflow. Moving that policy into a
+Survey-family contract is tracked in `docs/HARNESS_ROADMAP.md`.
 
 ## 0) Activation contract (skills-first UX)
 
@@ -101,25 +107,91 @@ Authoring default:
 3. **`references/` + `assets/`**: domain examples, schemas, and reusable patterns.
 4. **Scripts/resources**: loaded only when the workflow calls for them.
 
-### Description field (routing-friendly)
+### Description as invocation pointer
 
-To make discovery reliable across tools, prefer a multi-line `description` with explicit triggers and guardrails:
+A model-invoked Skill's `description` is always present in the agent context. It
+is an invocation pointer, not a compressed copy of `SKILL.md`.
+
+Default shape:
 
 ```yaml
-description: |
-  <one-line summary>.
-  **Trigger**: <keywords (EN/中文), comma-separated>.
-  **Use when**: <when this skill is the right next step>.
-  **Skip if**: <when not to use>.
-  **Network**: <none|required|optional + offline fallback>.
-  **Guardrail**: <NO PROSE / checkpoints / invariants>.
+description: <leading action and distinct trigger branches in one short sentence>
 ```
+
+Authoring rules:
+
+- Front-load the action the model should associate with the Skill.
+- Keep one trigger for each genuinely different invocation branch; collapse
+  synonyms that describe the same branch.
+- Include a route boundary only when it prevents overlap with another Skill.
+- Keep inputs, outputs, network behavior, detailed guardrails, and examples in
+  the body unless one of them determines whether the Skill should be invoked.
+- Treat every description character as repository-wide context load. The Skill
+  Audit reports descriptions that cross the current informational budget.
+
+Structured `Trigger / Use when / Skip if / Network / Guardrail` descriptions
+remain compatible, but they are no longer the authoring default. Use that form
+only when the fields distinguish real invocation branches rather than repeat
+the body.
+
+### Predictability-first Skill bodies
+
+The root quality is **predictability**: repeated Runs should follow the same
+process even when semantic outputs differ.
+
+1. Put ordered actions in `SKILL.md`. End each step with a checkable completion
+   criterion that states what evidence must exist before moving on.
+2. Keep reference needed by every branch close to those steps.
+3. Move branch-only catalogs, examples, and rubrics behind explicit context
+   pointers in `references/`, `assets/`, or canonical repo documents.
+4. Keep each meaning in one authoritative place. A router points to the Workflow
+   taxonomy; it does not maintain a second routing catalog.
+5. Prune no-op guidance and stale sediment. Prefer a compact leading concept
+   such as `commitment`, `continuation`, or `stop line` over repeating the same
+   behavioral paragraph.
+
+This information hierarchy complements the existing reference-first policy:
+steps stay immediately visible, shared reference stays canonical, and branch
+reference is loaded only when its context pointer fires.
+
+### Invocation evaluation
+
+Static length findings are migration signals, not evidence that a model selects
+the right Skill. Before expanding a predictability-first cohort, run the stable
+invocation corpus through the candidate model and score its JSONL selections:
+
+```bash
+uv run python scripts/evaluate_skill_invocations.py \
+  --emit-candidate-pack workspaces/<name>/evaluation/skill-invocation.candidate-pack.json \
+  --emit-prediction-template workspaces/<name>/evaluation/skill-invocation.predictions.jsonl
+
+uv run python scripts/evaluate_skill_invocations.py \
+  --predictions workspaces/<name>/evaluation/skill-invocation.predictions.jsonl \
+  --format json \
+  --report workspaces/<name>/evaluation/skill-invocation.evaluation.json \
+  --strict
+```
+
+The evaluator counts exact repository-Skill selection, forbidden and unexpected
+invocations, catalog description characters, and selected body characters.
+Token and latency values remain empty unless the model runner reports them.
+External/global Skills are recorded separately so repository-maintenance tasks
+can correctly select no Skill from this project.
+
+For a scored run, present each case as a fresh user request with the model's
+normal Skill-discovery context. Do not expose `expected_primary`,
+`allowed_support`, or `forbidden` to the candidate model. Record ordered Skill
+choices before execution, plus the exact model label and observed usage fields.
+Golden expectations are scorer inputs, never candidate-model context.
 
 ## 2) Script policy (deterministic helpers only)
 
 Borrowing the best pattern from Anthropic’s `skills` repos:
 - Scripts are treated as **black-box helpers**.
 - Always run scripts with `--help` first (do not ingest source unless necessary).
+- If `scripts/run.py` exists, `SKILL.md` must name that helper and explain when
+  it is useful. A fixed `Quick Start / All Options / Examples` heading template
+  is not required; do not duplicate the script's own `--help` output.
 - Scripts should be used for:
   - scaffolding (create directories/files/templates)
   - validation (format/schema checks)
@@ -135,7 +207,7 @@ Authoring rule (skills-first):
 - The primary workflow must be readable and executable from `SKILL.md` alone (LLM-first). If a script exists, treat it as **optional validation/scaffolding**, not the main instruction path.
 - Avoid writing skills that *require* users to run `python .../run.py` as step 1; prefer “write/inspect artifacts” first, then offer scripts as an optional deterministic check.
 
-**Avoid** scripts that “replace” semantic work (taxonomy/outline/notes/writing). If a script exists for those, it must be clearly labeled **bootstrap only** and the workflow must still require LLM refinement before marking a unit `DONE`.
+**Avoid** scripts that “replace” semantic work (taxonomy/outline/notes/writing). If a script exists for those, it must be clearly labeled **bootstrap only** and the workflow must still require LLM refinement before committing a unit as `DONE` through the Pipeline adapter.
 
 ### Generic-skill prohibitions (forbidden in scripts and generated artifacts)
 
@@ -256,16 +328,19 @@ C2-C4 outputs must be **structured, non-narrative** to prevent "middle-state lea
 
 ## 2d) Refinement markers (`*.refined.ok`)
 
-Some semantic artifacts are often *bootstrapped* by helper scripts (or generated quickly on first pass). In strict runs, we treat these as **scaffolds** until an explicit refinement marker exists.
+Some Survey-family semantic artifacts are bootstrapped by helper scripts or
+generated quickly on a first pass. A refinement marker is an optional review and
+freeze signal, not a global strict-mode pass condition.
 
 Why:
-- Prevents “bootstrap outputs” from silently passing into downstream writing (a major source of hollow/templated prose).
-- Creates an auditable, low-friction signal that the artifact was actually reviewed/refined.
-- Also doubles as a freeze marker so scripts don’t overwrite refined work.
+- Records that an Artifact was reviewed or refined.
+- Freezes supported generators so they do not overwrite accepted work.
+- Keeps explicit human/model review separate from deterministic content gates.
 
 How:
 - After you manually refine an artifact and it passes the skill checklist, create an empty marker file next to it (same folder).
-- The strict quality gate blocks until the marker exists (when the pipeline profile is `arxiv-survey*`).
+- Strict mode checks content contracts such as placeholders, missing scope, and
+  blocking fields; marker presence alone neither passes nor fails those checks.
 
 Common markers for `arxiv-survey*`:
 - `outline/subsection_briefs.refined.ok`
@@ -315,7 +390,9 @@ Guardrail:
 
 For semantic units:
 - Follow the referenced skill’s `Procedure` and write the listed outputs directly.
-- Only mark `DONE` when acceptance criteria are satisfied and outputs exist.
+- Commit `DONE` through `scripts/pipeline.py mark` after acceptance criteria are
+  satisfied and outputs exist. The command records the Attempt, Manifest,
+  Artifacts, and declared scorecard; do not edit a `DONE` cell directly.
 - If you use helper scripts to scaffold, treat the outputs as **starting points**, not final.
 
 For deterministic units (retrieval/dedupe/compile/format checks):

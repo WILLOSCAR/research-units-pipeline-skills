@@ -11,17 +11,34 @@ runtime.
 | `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
 | `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
 | `harness-lock.v1` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | Git revision and hashes for Pipeline, Units, complete Skill implementation directories, and Kernel |
+| `workspace-invocation-lock.v1` | `.harness/invocation.lock` | `tooling.run_state.workspace_invocation_lock` | Diagnostic owner metadata for the process-scoped Workspace command lock |
 | `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
-| `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history |
-| `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt |
-| `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_human_decision` | Machine-readable human interventions |
+| `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history, including Completion prepare/commit/recovery stages |
+| `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt; process-owned starts also record execution mode, PID, and host for bounded crash recovery |
+| `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_decision` | Machine-readable human and Harness interventions; `record_human_decision` is the human wrapper |
 | `artifact-record.v1` | `.harness/artifacts.jsonl` | `tooling.run_state.register_artifacts` | Versioned Artifact provenance and hashes |
 | `failure-record.v1` | `.harness/failures/ledger.jsonl` | `tooling.run_state` | Append-only Failure opening and resolution records |
 | `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | `tooling.run_state.record_evaluation` | Append-only Workflow scorecards, repair surfaces, and optional efficiency metrics |
-| `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | `tooling.harness.write_unit_manifest` | Per-Attempt output contract, Artifact hashes, and the executed Skill implementation fingerprint |
+| `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | `tooling.harness.write_unit_manifest` | Per-Attempt output contract, Artifact hashes, Completion phase (`PREPARED` or final status), and the executed Skill implementation fingerprint |
 
 The JSONL ledgers are append-only. `run.json` and `effective.json` are current
 projections and may be replaced atomically.
+
+`invocation.lock` is not a historical ledger and its presence does not mean a
+command is active. The operating-system `flock`, not the retained JSON metadata,
+is authoritative.
+
+Attempt ownership is separate from command locking. `process` Attempts may be
+recovered when their recorded local PID is gone; `manual`, legacy, and
+unknown-host Attempts remain open until an explicit transition. A `DOING` Unit
+without a unique open Attempt is an integrity error, not evidence that the
+Harness may synthesize an owner.
+
+`UNITS.csv`, `STATUS.md`, checkpoint/decision views, and generated diagnostic
+reports are also mutable projections or sinks. Their historical Artifact
+records remain useful, but current-hash equality is enforced only for immutable
+Unit outputs. A Unit is trusted as DONE when its successful Attempt, final DONE
+Manifest, required Artifact records, and any declared Evaluation agree.
 
 ## Harness Reports
 
@@ -37,6 +54,28 @@ projections and may be replaced atomically.
 `artifact-pack.v1` is an Artifact index and review manifest. It records paths,
 presence, hashes, and excerpts; it is not a portable archive containing every
 referenced file.
+
+`run-audit.v1` includes additive `ledger_integrity` counts and issues. These
+checks join Run identity, Event sequence, Attempt pairs, Manifests, Artifacts,
+Decisions, Failures, Evaluations, and current DONE projections; they do not
+replace Workflow-local semantic scorecards.
+
+## Repository Skill Invocation Evaluation
+
+The tracked corpus is repository validation input. Model predictions and
+evaluation reports are generated development evidence and should normally stay
+under a gitignored `workspaces/<name>/evaluation/` directory.
+
+| Schema | Path or producer | Purpose |
+|---|---|---|
+| `skill-invocation-cases.v1` | `tests/fixtures/skill_invocation_cases.yaml` | Stable prompts, expected primary repository Skill, allowed support Skills, and forbidden confusions |
+| `skill-invocation-candidate-pack.v1` | `scripts/evaluate_skill_invocations.py --emit-candidate-pack` | Gold-label-free model input containing repository Skill descriptions and case prompts only |
+| `skill-invocation-prediction.v1` | One JSONL record per case, supplied by Codex, GPT Pro, or another model runner | Ordered selected Skills plus optional observed model, token, and latency fields |
+| `skill-invocation-evaluation.v1` | `scripts/evaluate_skill_invocations.py` | Accuracy, forbidden/unexpected selection, repository versus external Skill choice, and reproducible Skill-context character load |
+
+The evaluator does not infer tokens from characters. An unscored corpus report
+is a context baseline, not model-selection evidence. A scored `PASS` applies
+only to the supplied model predictions and corpus version.
 
 ## Published Run Evidence
 

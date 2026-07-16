@@ -712,6 +712,10 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
     if not query_defaults and not allowed_fields:
         return
 
+    evidence_mode = requested_evidence_mode(topic)
+    if evidence_mode and "evidence_mode" in allowed_fields:
+        query_defaults = {**query_defaults, "evidence_mode": evidence_mode}
+
     raw_tlow = topic.lower()
     use_bounded_report_profile = profile == "arxiv-survey" and bounded_survey_profile_requested(topic)
     if use_bounded_report_profile:
@@ -1126,7 +1130,34 @@ def goal_constraints_from_request(request: str) -> dict[str, Any]:
     formats = requested_delivery_formats(text)
     if formats:
         constraints["deliverable_formats"] = formats
+    evidence_mode = requested_evidence_mode(text)
+    if evidence_mode:
+        constraints["evidence_mode"] = evidence_mode
     return constraints
+
+
+def requested_evidence_mode(request: str) -> str:
+    """Return an explicitly requested research-evidence mode, if present."""
+
+    text = re.sub(r"\s+", " ", str(request or "").strip())
+    if not text:
+        return ""
+    if re.search(r"(?i)\bevidence[_ -]?mode\s*[:=]\s*fulltext\b", text):
+        return "fulltext"
+    if re.search(
+        r"(?i)\b(?:use|using|require|requiring|with|ground|grounded|grounding)\b"
+        r"[^.!?\n]{0,40}\bfull[- ]?text\b(?:\s+(?:evidence|sources?|access|grounding))?",
+        text,
+    ) or re.search(r"(?:使用|要求|基于|采用|需要)[^。！？\n]{0,24}(?:全文证据|论文全文|全文来源|逐篇全文)", text):
+        return "fulltext"
+    if re.search(r"(?i)\bevidence[_ -]?mode\s*[:=]\s*abstract\b", text):
+        return "abstract"
+    if re.search(
+        r"(?i)\b(?:use|using|with|limit(?:ed)?\s+to)\b[^.!?\n]{0,32}\babstract[- ]?(?:only|backed)?\s+evidence\b",
+        text,
+    ) or re.search(r"(?:仅使用|基于|采用)[^。！？\n]{0,20}(?:摘要证据|论文摘要)", text):
+        return "abstract"
+    return ""
 
 
 def requested_delivery_formats(request: str) -> list[str]:

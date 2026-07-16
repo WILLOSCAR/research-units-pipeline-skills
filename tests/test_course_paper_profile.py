@@ -23,6 +23,7 @@ from tooling.common import (
     load_yaml,
     normalize_title_for_dedupe,
     reader_request_leakage,
+    requested_evidence_mode,
     requested_delivery_formats,
     refinement_marker_is_current,
     research_subject_from_request,
@@ -133,20 +134,43 @@ def test_delivery_format_detection_requires_delivery_context() -> None:
     assert goal_constraints_from_request("Analyze PDF output fidelity in multimodal models") == {}
 
 
-def test_auto_router_selects_research_intent_before_delivery_variant() -> None:
-    cases = {
-        "Write an 8-10 page course paper on RAG evaluation, with a final PDF.": "arxiv-survey-latex",
-        "Write a seminar report on robot learning": "arxiv-survey",
-        "Review this paper on RAG evaluation and return Markdown": "paper-review",
-        "Help me understand test-time adaptation and build a reading path": "research-brief",
-        "Run a systematic review with PRISMA and produce a PDF": "evidence-review",
-        "Turn these sources into a tutorial with a PDF and slides": "source-tutorial",
-        "Analyze PDF output fidelity in multimodal models": "arxiv-survey",
-        "Use arxiv-survey-latex to write a report on RAG evaluation": "arxiv-survey-latex",
-    }
+def test_fulltext_evidence_request_is_a_goal_constraint_and_query_control() -> None:
+    request = "Write a course paper on RAG evaluation using full-text evidence."
 
-    for request, expected in cases.items():
-        assert _auto_pick_pipeline(request) == expected
+    assert requested_evidence_mode(request) == "fulltext"
+    assert requested_evidence_mode("研究 full-text search 的索引方法") == ""
+    assert goal_constraints_from_request(request)["evidence_mode"] == "fulltext"
+
+    with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+        queries = _kickoff(
+            workspace=Path(tmp),
+            topic=request,
+            pipeline="arxiv-survey",
+        )
+    assert '- evidence_mode: "fulltext"' in queries
+
+
+def test_auto_router_selects_research_intent_before_delivery_variant() -> None:
+    payload = load_yaml(REPO_ROOT / "tests" / "fixtures" / "workflow_routing_cases.yaml")
+    assert payload["schema"] == "workflow-routing-cases/v1"
+    cases = payload["cases"]
+    assert len({case["id"] for case in cases}) == len(cases)
+
+    observed_workflows = set()
+    for case in cases:
+        expected = case["expected_workflow"]
+        observed_workflows.add(expected)
+        assert _auto_pick_pipeline(case["prompt"]) == expected, case["id"]
+
+    assert observed_workflows == {
+        "arxiv-survey",
+        "arxiv-survey-latex",
+        "evidence-review",
+        "idea-brainstorm",
+        "paper-review",
+        "research-brief",
+        "source-tutorial",
+    }
 
 
 def test_latex_gate_enforces_goal_page_range_not_only_a_minimum(monkeypatch) -> None:

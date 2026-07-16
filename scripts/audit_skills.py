@@ -8,6 +8,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+import yaml
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SKILLS_DIR = REPO_ROOT / ".codex" / "skills"
@@ -24,6 +26,8 @@ TEXT_SUFFIXES = {
 }
 SEVERITY_ORDER = {"INFO": 10, "WARN": 20, "ERROR": 30}
 SKILL_AUDIT_REPORT_SCHEMA = "skill-audit-report.v1"
+DESCRIPTION_CONTEXT_LOAD_LIMIT = 420
+SKILL_BODY_SPRAWL_LIMIT = 180
 
 GENERIC_DOMAIN_PATTERNS = (
     re.compile(r"\bLLM agents\b", re.IGNORECASE),
@@ -91,6 +95,14 @@ RULE_GUIDANCE = {
     "script_heavy_without_references": (
         "script_reference_surface",
         "Mention the substantial helper scripts from `SKILL.md` so future agents can find the deterministic surface.",
+    ),
+    "description_context_load": (
+        "invocation_context_load",
+        "Keep the description as a compact invocation pointer; move execution contract and examples into the Skill body.",
+    ),
+    "skill_body_sprawl": (
+        "information_hierarchy",
+        "Keep common steps visible and move branch-only reference behind explicit context pointers.",
     ),
 }
 
@@ -214,6 +226,7 @@ def audit_skills(skills_dir: Path) -> tuple[list[Finding], ScanStats]:
         for path in text_files:
             findings.extend(_audit_text_file(skill_dir.name, path, skills_dir))
         findings.extend(_audit_script_heavy_without_references(skill_dir, skills_dir))
+        findings.extend(_audit_skill_information_hierarchy(skill_dir))
 
     findings.sort(key=lambda item: (-SEVERITY_ORDER[item.severity], item.path, item.line, item.rule_id))
     stats = ScanStats(skills_scanned=len(skill_dirs), files_scanned=files_scanned)
@@ -372,6 +385,75 @@ def _audit_script_heavy_without_references(skill_dir: Path, skills_dir: Path) ->
             excerpt=_excerpt(_first_nonempty_line(script_files[0])),
         )
     ]
+
+
+def _audit_skill_information_hierarchy(skill_dir: Path) -> list[Finding]:
+    skill_md = skill_dir / "SKILL.md"
+    if not skill_md.exists():
+        return []
+    try:
+        text = skill_md.read_text(encoding="utf-8", errors="ignore")
+        frontmatter, body = _split_skill_frontmatter(text)
+    except Exception:
+        return []
+
+    findings: list[Finding] = []
+    rel_path = skill_md.relative_to(REPO_ROOT).as_posix()
+    description = " ".join(str(frontmatter.get("description") or "").split())
+    if len(description) > DESCRIPTION_CONTEXT_LOAD_LIMIT:
+        findings.append(
+            Finding(
+                severity="INFO",
+                rule_id="description_context_load",
+                skill=skill_dir.name,
+                path=rel_path,
+                line=_frontmatter_field_line(text, "description"),
+                message=(
+                    f"Description uses {len(description)} characters; the informational context-load budget is "
+                    f"{DESCRIPTION_CONTEXT_LOAD_LIMIT}."
+                ),
+                excerpt=_excerpt(description),
+            )
+        )
+
+    body_nonempty_lines = sum(1 for line in body.splitlines() if line.strip())
+    if body_nonempty_lines > SKILL_BODY_SPRAWL_LIMIT:
+        findings.append(
+            Finding(
+                severity="INFO",
+                rule_id="skill_body_sprawl",
+                skill=skill_dir.name,
+                path=rel_path,
+                line=1,
+                message=(
+                    f"Skill body has {body_nonempty_lines} non-empty lines; the informational sprawl budget is "
+                    f"{SKILL_BODY_SPRAWL_LIMIT}."
+                ),
+                excerpt=_excerpt(_first_nonempty_line(skill_md)),
+            )
+        )
+    return findings
+
+
+def _split_skill_frontmatter(text: str) -> tuple[dict[str, Any], str]:
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("SKILL.md must start with YAML front matter")
+    end_idx = next((idx for idx, line in enumerate(lines[1:], start=1) if line.strip() == "---"), None)
+    if end_idx is None:
+        raise ValueError("SKILL.md has unterminated YAML front matter")
+    payload = yaml.safe_load("\n".join(lines[1:end_idx])) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("SKILL.md front matter must be a mapping")
+    return payload, "\n".join(lines[end_idx + 1 :])
+
+
+def _frontmatter_field_line(text: str, field: str) -> int:
+    pattern = re.compile(rf"^{re.escape(field)}\s*:")
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if pattern.match(line):
+            return line_number
+    return 1
 
 
 def _ellipsis_match(line: str, *, is_script: bool) -> str | None:

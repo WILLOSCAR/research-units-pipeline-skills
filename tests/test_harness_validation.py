@@ -82,17 +82,9 @@ def _valid_taxonomy_text() -> str:
         + "\n\n"
         "`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`.\n\n"
         "## Survey Delivery Profiles\n\n"
-        "Course reports use the bounded report overlay in survey workflows.\n\n"
+        "Course reports use the bounded-report use-case overlay in survey workflows.\n\n"
         "## Current Priority\n\n"
         "`paper-review`\n\n"
-        + "\n".join(validate_repo.PAPER_REVIEW_TAXONOMY_ARTIFACTS)
-        + "\n"
-        + "\n".join(validate_repo.RESEARCH_BRIEF_TAXONOMY_ARTIFACTS)
-        + "\n"
-        + "\n".join(validate_repo.IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS)
-        + "\n"
-        + "\n".join(validate_repo.EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS)
-        + "\n"
     )
 
 
@@ -230,7 +222,7 @@ def test_harness_docs_validation_reports_missing_local_harness_check(tmp_path: P
         (
             "WARN",
             "`docs/HARNESS_READINESS.md` should list local harness checks: "
-            "`uv run python scripts/validate_repo.py --no-check-quality --strict`, "
+            "`uv run python scripts/validate_repo.py --strict`, "
             "`uv run python scripts/readiness_audit.py --strict`, "
             "`uv run python scripts/audit_skills.py --fail-on WARN`, "
             "`uv run --extra test python -m pytest -q`.",
@@ -509,6 +501,103 @@ def test_skill_audit_report_can_focus_review_category_and_limit(tmp_path: Path, 
     assert "- Displayed findings: 1 of 2" in report
     assert "- Filters: review_category=reference_example_phrase, limit=1" in report
     assert report.count("[INFO] reader_facing_ellipsis") == 1
+
+
+def test_skill_audit_reports_invocation_load_and_body_sprawl(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(audit_skills, "REPO_ROOT", tmp_path)
+    skills_dir = tmp_path / ".codex" / "skills"
+    skill_path = skills_dir / "demo" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True)
+    description = "route " + ("distinct research branch " * 25)
+    body = "\n".join(f"Rule {index}" for index in range(audit_skills.SKILL_BODY_SPRAWL_LIMIT + 1))
+    skill_path.write_text(
+        f"---\nname: demo\ndescription: {description}\n---\n\n{body}\n",
+        encoding="utf-8",
+    )
+
+    findings, _ = audit_skills.audit_skills(skills_dir)
+    by_rule = {finding.rule_id: finding for finding in findings}
+
+    assert by_rule["description_context_load"].severity == "INFO"
+    assert by_rule["description_context_load"].review_category == "invocation_context_load"
+    assert by_rule["skill_body_sprawl"].severity == "INFO"
+    assert by_rule["skill_body_sprawl"].review_category == "information_hierarchy"
+
+
+def test_harness_lifecycle_skills_stay_within_load_budgets() -> None:
+    expected_completion_criteria = {
+        "artifact-contract-auditor": 5,
+        "human-checkpoint": 4,
+        "pipeline-router": 5,
+        "research-pipeline-runner": 5,
+        "unit-executor": 5,
+        "workspace-init": 4,
+    }
+    for skill_name, minimum_criteria in expected_completion_criteria.items():
+        skill_dir = audit_skills.REPO_ROOT / ".codex" / "skills" / skill_name
+        findings = audit_skills._audit_skill_information_hierarchy(skill_dir)
+        text = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+
+        assert findings == []
+        assert text.count("Completion criterion:") >= minimum_criteria
+
+
+def test_skill_quality_accepts_compact_invocation_description(tmp_path: Path, monkeypatch) -> None:
+    skills_dir = tmp_path / ".codex" / "skills"
+    compact = skills_dir / "compact" / "SKILL.md"
+    incomplete = skills_dir / "incomplete" / "SKILL.md"
+    compact.parent.mkdir(parents=True)
+    incomplete.parent.mkdir(parents=True)
+    compact.write_text(
+        "---\n"
+        "name: compact\n"
+        "description: Route an unbound research goal to one workflow and stop when a decision is required.\n"
+        "---\n\n"
+        "# Compact\n",
+        encoding="utf-8",
+    )
+    incomplete.write_text(
+        "---\n"
+        "name: incomplete\n"
+        "description: |\n"
+        "  Select a workflow.\n"
+        "  **Use when**: the workflow is unknown.\n"
+        "---\n\n"
+        "# Incomplete\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(validate_repo, "SKILLS_DIR", skills_dir)
+
+    compact_findings = validate_repo._validate_skill_quality(active_skill_names={"compact"})
+    incomplete_findings = validate_repo._validate_skill_quality(active_skill_names={"incomplete"})
+
+    assert not [item for item in compact_findings if "description" in item.message.lower()]
+    assert any("structured YAML description" in item.message for item in incomplete_findings)
+
+
+def test_skill_quality_requires_script_pointer_not_boilerplate_headings(tmp_path: Path, monkeypatch) -> None:
+    skills_dir = tmp_path / ".codex" / "skills"
+    visible = skills_dir / "visible"
+    hidden = skills_dir / "hidden"
+    for skill_dir in (visible, hidden):
+        (skill_dir / "scripts").mkdir(parents=True)
+        (skill_dir / "scripts" / "run.py").write_text("print('ok')\n", encoding="utf-8")
+    (visible / "SKILL.md").write_text(
+        "---\nname: visible\ndescription: Validate one artifact.\n---\n\n"
+        "# Visible\n\n## Run\n\nUse `scripts/run.py --help` before validation.\n",
+        encoding="utf-8",
+    )
+    (hidden / "SKILL.md").write_text(
+        "---\nname: hidden\ndescription: Validate one artifact.\n---\n\n# Hidden\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(validate_repo, "SKILLS_DIR", skills_dir)
+
+    visible_findings = validate_repo._validate_skill_quality(active_skill_names={"visible"})
+    hidden_findings = validate_repo._validate_skill_quality(active_skill_names={"hidden"})
+
+    assert not [item for item in visible_findings if "scripts/run.py" in item.message]
+    assert any("does not reference that helper" in item.message for item in hidden_findings)
 
 
 def test_skill_audit_json_payload_has_schema_and_validates(tmp_path: Path, monkeypatch) -> None:

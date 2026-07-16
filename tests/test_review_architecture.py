@@ -149,7 +149,7 @@ class ReviewArchitectureTests(unittest.TestCase):
                 text=True,
             )
             subprocess.run(
-                [sys.executable, "scripts/pipeline.py", "mark", "--workspace", str(workspace), "--unit-id", "U010", "--status", "DONE"],
+                [sys.executable, "scripts/pipeline.py", "mark", "--workspace", str(workspace), "--unit-id", "U010", "--status", "DONE", "--note", "fixture acceptance checked"],
                 cwd=REPO_ROOT,
                 check=True,
                 capture_output=True,
@@ -376,13 +376,14 @@ class ReviewArchitectureTests(unittest.TestCase):
                 ["improve", "--write"],
                 ["pack", "--write", "--write-excerpt"],
             ):
-                subprocess.run(
+                completed = subprocess.run(
                     [sys.executable, "scripts/pipeline.py", *command, "--workspace", str(workspace)],
                     cwd=REPO_ROOT,
-                    check=True,
+                    check=False,
                     capture_output=True,
                     text=True,
                 )
+                self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
 
             improvement = json.loads((workspace / "output" / "IMPROVEMENT_REPORT.json").read_text(encoding="utf-8"))
             artifact_pack = json.loads((workspace / "output" / "ARTIFACT_PACK.json").read_text(encoding="utf-8"))
@@ -440,7 +441,7 @@ class ReviewArchitectureTests(unittest.TestCase):
                 encoding="utf-8",
             )
             subprocess.run(
-                [sys.executable, "scripts/pipeline.py", "mark", "--workspace", str(workspace), "--unit-id", "U025", "--status", "DONE"],
+                [sys.executable, "scripts/pipeline.py", "mark", "--workspace", str(workspace), "--unit-id", "U025", "--status", "DONE", "--note", "fixture acceptance checked"],
                 cwd=REPO_ROOT,
                 check=True,
                 capture_output=True,

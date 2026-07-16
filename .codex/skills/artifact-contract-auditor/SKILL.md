@@ -1,76 +1,111 @@
 ---
 name: artifact-contract-auditor
-description: |
-  Audit the workspace against the pipeline artifact contract (DONE outputs + pipeline target_artifacts).
-  Writes `output/CONTRACT_REPORT.md`.
-  **Trigger**: contract audit, artifact contract, missing artifacts, target_artifacts, CONTRACT_REPORT.
-  **Use when**: you want an auditable PASS/FAIL view of whether a workspace is complete and self-contained (end of run or before sharing).
-  **Skip if**: you are still intentionally mid-run and don’t care about completeness yet (but it’s still useful as a snapshot).
-  **Network**: none.
-  **Guardrail**: analysis-only; do not edit content artifacts; only write the report.
+description: Audit one research Workspace for declared Unit outputs and Pipeline target Artifacts, writing `output/CONTRACT_REPORT.md`; use for mid-Run coverage snapshots or final delivery completeness, not deep provenance integrity.
 ---
 
 # Artifact Contract Auditor
 
-Purpose: make each workspace auditable and shareable.
-
-This skill checks two contracts:
-
-1) Units contract: if a unit is marked `DONE`, its required outputs must exist.
-2) Pipeline contract: the pipeline’s `target_artifacts` (from the pipeline spec referenced by `PIPELINE.lock.md`) should exist for a complete run.
-
-It always writes a report so workspaces can serve as regression baselines.
+This Skill measures **coverage**: whether files promised by Units and the locked
+Pipeline exist at the point they are required. It does not replace the deeper
+Attempt, Manifest, Artifact-hash, and ledger checks in `pipeline.py audit`.
 
 ## Inputs
 
-- `UNITS.csv`
-- `PIPELINE.lock.md`
-- Pipeline spec referenced by `PIPELINE.lock.md` (under `pipelines/*.pipeline.md`; reads YAML `target_artifacts`)
+- `UNITS.csv`.
+- `PIPELINE.lock.md`.
+- The locked `pipelines/*.pipeline.md` target-Artifact contract.
 
 ## Outputs
 
-- `output/CONTRACT_REPORT.md`
+- `output/CONTRACT_REPORT.md`.
 
-## Workflow (analysis-only)
+## Steps
 
-1) Read `UNITS.csv` and validate DONE outputs
-- For every unit with `status=DONE`, verify each **required** output exists.
-- Outputs prefixed with `?` are treated as optional and do not fail the contract.
+### 1. Resolve the active contracts
 
-2) Read `PIPELINE.lock.md` and validate pipeline target artifacts
-- Resolve the pipeline spec under `pipelines/*.pipeline.md` and load `target_artifacts` from its YAML front matter.
-- Resolve the pipeline spec path and load `target_artifacts` from its YAML front matter.
-- If the pipeline is complete (all units are `DONE/SKIP`), verify each **required** `target_artifacts` file exists.
+Read `PIPELINE.lock.md`, resolve the Pipeline inside this repository, and parse
+`UNITS.csv`. Treat an invalid lock or malformed Unit table as a reportable
+contract failure rather than guessing another Workflow.
 
-3) Write `output/CONTRACT_REPORT.md` (always)
-- Include missing DONE outputs (unit-level drift) and missing pipeline targets (pipeline-level completeness drift).
+Completion criterion: one Pipeline contract and one readable Unit table are
+bound to the audit.
 
-## Status semantics
+### 2. Check completed Unit outputs
 
-- `PASS`: pipeline complete (all units `DONE/SKIP`) AND all required target artifacts exist AND no DONE unit is missing required outputs.
-- `OK`: pipeline incomplete (still running) BUT DONE unit outputs are consistent; missing targets are expected.
-- `FAIL`: at least one DONE unit is missing required outputs OR pipeline is complete but required target artifacts are missing.
+For every `DONE` Unit, verify each required output exists. Outputs prefixed with
+`?` are optional. A missing required output is Unit-level contract drift even
+when the Pipeline is still running.
 
-## How to use this report (self-loop routing)
+Completion criterion: every `DONE` Unit is classified as output-complete or is
+listed with each missing required path.
 
-- If DONE outputs are missing: fix the contract drift (regenerate the missing artifacts, or revert the unit status to TODO/BLOCKED).
-- If the pipeline is complete but target artifacts are missing: find which unit/skill owns each missing artifact and rerun that unit.
+### 3. Check final Pipeline targets when applicable
+
+Determine whether all Units are terminal (`DONE` or `SKIP`). Only then require
+every non-optional target Artifact declared by the Pipeline. During a partial
+Run, report missing final targets as expected rather than failures.
+
+Completion criterion: final-target completeness is evaluated against the
+actual Run phase, not merely file absence.
+
+### 4. Write the report
+
+Always write `output/CONTRACT_REPORT.md` with one status:
+
+- `PASS`: terminal Run, complete Unit outputs, complete Pipeline targets.
+- `OK`: partial Run, consistent completed Unit outputs.
+- `FAIL`: missing output from a `DONE` Unit, or missing final target from a
+  terminal Run.
+
+Completion criterion: the report names the evaluated Pipeline, Run phase,
+status, and every blocking missing path.
+
+### 5. Route the next action
+
+For missing Unit outputs, reopen or rerun the owning Unit through the Pipeline
+adapter. For missing final targets, identify the owning Unit or Skill. When
+file coverage passes, use `scripts/pipeline.py audit` for provenance integrity.
+
+Completion criterion: every `FAIL` item has an owner and repair route; a `PASS`
+claim is explicitly limited to declared file coverage.
+
+## Context Pointers
+
+- The locked Pipeline front matter is the only source for target Artifacts.
+- `UNITS.csv` is the only source for Unit output obligations.
+- Use the deep Run Audit for Attempt pairing, Manifest identity, hashes,
+  Decisions, Failures, and Evaluation consistency.
 
 ## Script
 
 ### Quick Start
 
-- `uv run python .codex/skills/artifact-contract-auditor/scripts/run.py --workspace <workspace>`
+```bash
+uv run python .codex/skills/artifact-contract-auditor/scripts/run.py \
+  --workspace workspaces/<name>
+```
 
 ### All Options
 
-- `--workspace <dir>`
-- `--unit-id <U###>` (optional)
-- `--inputs <semicolon-separated>` (unused; runner compatibility)
-- `--outputs <semicolon-separated>` (unused; runner compatibility)
-- `--checkpoint <C#>` (optional)
+- `--workspace <path>`: Workspace to audit.
+- `--unit-id <U###>`, `--inputs`, `--outputs`, `--checkpoint`: optional
+  Pipeline-runner compatibility arguments.
 
 ### Examples
 
-- End-of-run audit (recommended before sharing a workspace):
-  - `uv run python .codex/skills/artifact-contract-auditor/scripts/run.py --workspace <workspace>`
+Inspect the interface:
+
+```bash
+uv run python .codex/skills/artifact-contract-auditor/scripts/run.py --help
+```
+
+Run the deeper provenance audit after coverage passes:
+
+```bash
+uv run python scripts/pipeline.py audit --workspace workspaces/<name>
+```
+
+## Side Effects
+
+The audit may create or replace `output/CONTRACT_REPORT.md`. It must not edit
+research content, Unit statuses, checkpoint approvals, or source Artifacts.

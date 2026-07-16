@@ -22,7 +22,8 @@ Add a hidden `.harness/` ledger to each initialized Workspace.
 - `events.jsonl`, `attempts.jsonl`, `artifacts.jsonl`, and `failures/ledger.jsonl` preserve append-only history.
 - `plan/planned.json` preserves the initial Unit plan; `plan/effective.json` records accepted operator changes.
 - `GOAL.md`, `UNITS.csv`, `STATUS.md`, and `DECISIONS.md` remain human-readable views and compatibility surfaces.
-- Retries receive new Attempt IDs, and stale `DOING` recovery records an interrupted Attempt.
+- Retries receive new Attempt IDs, and a dead process-owned `DOING` recovery
+  records an interrupted Attempt; manual Attempts remain explicit.
 
 The current implementation remains local and single-process. Worker leases,
 distributed scheduling, external evaluation, and candidate promotion are not

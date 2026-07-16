@@ -59,7 +59,7 @@ class EvidenceReviewVerticalTests(unittest.TestCase):
         )
 
     def _mark(self, workspace: Path, unit_id: str, status: str) -> None:
-        self._run(
+        args = [
             str(PIPELINE_CLI),
             "mark",
             "--workspace",
@@ -68,7 +68,9 @@ class EvidenceReviewVerticalTests(unittest.TestCase):
             unit_id,
             "--status",
             status,
-        )
+        ]
+        args.extend(["--note", "fixture acceptance checked" if status == "DONE" else "fixture repair override"])
+        self._run(*args)
 
     def test_fixture_assisted_run_records_fail_then_pass_evaluation(self) -> None:
         workspaces = REPO_ROOT / "workspaces"

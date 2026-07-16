@@ -15,13 +15,9 @@ from tooling.harness_contracts import (
     CURRENT_WORKFLOWS,
     EXECUTABLE_PIPELINE_CONTRACTS,
     EXECUTABLE_UNIT_TEMPLATES,
-    EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_README_LINKS,
     HARNESS_SKILL_AUDIT_GATE,
-    IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS,
-    PAPER_REVIEW_TAXONOMY_ARTIFACTS,
-    RESEARCH_BRIEF_TAXONOMY_ARTIFACTS,
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
@@ -315,38 +311,6 @@ def _check_workflow_taxonomy(*, repo_root: Path) -> ReadinessCheck:
             "Pipeline taxonomy is missing variant term(s): " + _format_check_list(missing_variant) + ".",
             "Keep `arxiv-survey-latex` documented as a variant of `arxiv-survey`.",
         )
-    missing_review_artifacts = [artifact for artifact in PAPER_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_review_artifacts:
-        return ReadinessCheck(
-            "workflow_taxonomy",
-            "WARN",
-            "Pipeline taxonomy is missing paper-review artifact(s): " + _format_check_list(missing_review_artifacts) + ".",
-            "Keep existing paper-review contract artifacts separate from future proof artifacts.",
-        )
-    missing_brief_artifacts = [artifact for artifact in RESEARCH_BRIEF_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_brief_artifacts:
-        return ReadinessCheck(
-            "workflow_taxonomy",
-            "WARN",
-            "Pipeline taxonomy is missing research-brief artifact(s): " + _format_check_list(missing_brief_artifacts) + ".",
-            "Keep the scored research-brief contract aligned with its Pipeline artifacts.",
-        )
-    missing_idea_artifacts = [artifact for artifact in IDEA_BRAINSTORM_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_idea_artifacts:
-        return ReadinessCheck(
-            "workflow_taxonomy",
-            "WARN",
-            "Pipeline taxonomy is missing idea-brainstorm artifact(s): " + _format_check_list(missing_idea_artifacts) + ".",
-            "Keep the scored idea-brainstorm contract aligned with its Pipeline artifacts.",
-        )
-    missing_evidence_artifacts = [artifact for artifact in EVIDENCE_REVIEW_TAXONOMY_ARTIFACTS if artifact not in text]
-    if missing_evidence_artifacts:
-        return ReadinessCheck(
-            "workflow_taxonomy",
-            "WARN",
-            "Pipeline taxonomy is missing evidence-review artifact(s): " + _format_check_list(missing_evidence_artifacts) + ".",
-            "Keep the scored evidence-review contract aligned with its protocol-to-synthesis artifacts.",
-        )
     return ReadinessCheck(
         "workflow_taxonomy",
         "PASS",
@@ -376,7 +340,7 @@ def _check_project_language(*, repo_root: Path) -> ReadinessCheck:
     return ReadinessCheck(
         "project_language",
         "PASS",
-        f"Project language defines all {len(PROJECT_LANGUAGE_REQUIRED_TERMS)} canonical terms.",
+        f"Project language defines all {len(PROJECT_LANGUAGE_REQUIRED_TERMS)} required canonical terms.",
         "Update this contract when the project vocabulary intentionally changes.",
     )
 

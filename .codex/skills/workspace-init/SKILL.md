@@ -1,74 +1,104 @@
 ---
 name: workspace-init
-description: |
-  Initialize a new workspace by copying the standard artifact template (STATUS.md, CHECKPOINTS.md, UNITS.csv, DECISIONS.md + folders).
-  **Trigger**: workspace init, initialize workspace, workspace template, 初始化 workspace.
-  **Use when**: 启动任何 pipeline run（必须先有 workspace 工件与目录骨架）。
-  **Skip if**: workspace 已初始化且不希望覆盖既有文件（除非显式 `--overwrite`）。
-  **Network**: none.
-  **Guardrail**: 不要修改 `.codex/skills/workspace-init/assets/` 模板；默认不覆盖已有文件。
+description: Initialize a missing research Workspace from the repository template without overwriting existing Run state; use before Pipeline binding when the target under `workspaces/` has no valid core artifacts.
 ---
 
 # Workspace Init
 
-Create an artifact-first workspace using the standard template under `assets/workspace-template/`.
+Initialization is a **boundary**: it creates Workspace-owned state and leaves
+existing state untouched unless overwrite is an explicit operator decision.
+It does not select a Workflow or execute a Unit.
 
-This skill is intentionally simple and deterministic.
+## Inputs
 
-## Input
-
-- Target workspace directory (usually the current working directory for the run).
+- Target directory under `workspaces/<name>/`.
+- Optional explicit overwrite decision.
 
 ## Outputs
 
-- `STATUS.md`, `CHECKPOINTS.md`, `UNITS.csv`, `DECISIONS.md`
-- `GOAL.md`
-- `queries.md`
-- `papers/`, `outline/`, `citations/`, `output/` (with placeholder files)
+- `STATUS.md`, `CHECKPOINTS.md`, `UNITS.csv`, and `DECISIONS.md`.
+- `GOAL.md` and `queries.md`.
+- `papers/`, `outline/`, `citations/`, and `output/` directories.
 
-## Workflow
+## Steps
 
-1. Create the target workspace directory if it does not exist.
-2. Copy the contents of `assets/workspace-template/` into the workspace.
-3. Do not overwrite existing files unless explicitly requested; prefer merge/append when safe.
-4. Ensure the four core files exist: `STATUS.md`, `UNITS.csv`, `CHECKPOINTS.md`, `DECISIONS.md`.
+### 1. Validate the destination
 
-## Quality checklist
+Resolve the target path and reject the repository root. Inspect existing files
+before deciding whether initialization is missing, partial, or already
+complete. Never infer overwrite permission from a partial Workspace.
 
-- [ ] Workspace contains the template files and folders.
-- [ ] `UNITS.csv` is valid CSV with the required header.
+Completion criterion: the destination is a Workspace path and every existing
+file that could be replaced is known.
 
-## Side effects
+### 2. Materialize the base template
 
-- Allowed: create missing workspace files/directories.
-- Not allowed: modify the template under `.codex/skills/workspace-init/assets/`.
+Copy the repository-owned template into the target. Default to create-missing;
+use `--overwrite` only after an explicit replacement decision.
+
+Completion criterion: all missing base files and directories are materialized,
+and no pre-existing file was replaced without explicit permission.
+
+### 3. Verify the core contract
+
+Confirm that `STATUS.md`, `UNITS.csv`, `CHECKPOINTS.md`, and `DECISIONS.md`
+exist. Parse the `UNITS.csv` header and reject malformed CSV rather than
+leaving a superficially initialized Workspace.
+
+Completion criterion: the four core files exist and `UNITS.csv` has the
+required schema.
+
+### 4. Hand off to Workflow binding
+
+Leave Workflow selection and Pipeline-specific Unit materialization to
+`pipeline-router` or the Pipeline adapter. The generic template is not evidence
+that a Goal has been routed.
+
+Completion criterion: the Workspace can be passed to the router without
+requiring any state from chat history.
+
+## Context Pointers
+
+- Read `assets/workspace-template/` only when inspecting or changing the base
+  template contract.
+- Read the selected `pipelines/*.pipeline.md` only after Workflow binding.
+- Use `research-pipeline-runner` when the user asked to continue beyond
+  initialization.
 
 ## Script
 
 ### Quick Start
 
-- `uv run python .codex/skills/workspace-init/scripts/run.py --help`
-- `uv run python .codex/skills/workspace-init/scripts/run.py --workspace <workspace>`
+```bash
+uv run python .codex/skills/workspace-init/scripts/run.py \
+  --workspace workspaces/<name>
+```
 
 ### All Options
 
-- `--overwrite`: allow overwriting existing files in the target workspace
+- `--workspace <path>`: target Workspace.
+- `--overwrite`: replace existing template-owned files after explicit approval.
+- `--unit-id`, `--inputs`, `--outputs`, `--checkpoint`: Pipeline-runner
+  compatibility arguments.
 
 ### Examples
 
-- Create a new workspace:
-  - `uv run python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run`
-- Re-init and overwrite template files (be careful):
-  - `uv run python .codex/skills/workspace-init/scripts/run.py --workspace workspaces/my-run --overwrite`
+Inspect the interface before use:
+
+```bash
+uv run python .codex/skills/workspace-init/scripts/run.py --help
+```
+
+Replace template files only after an explicit reset decision:
+
+```bash
+uv run python .codex/skills/workspace-init/scripts/run.py \
+  --workspace workspaces/<name> \
+  --overwrite
+```
 
 ## Troubleshooting
 
-### Issue: workspace already exists and files were not overwritten
-
-**Fix**:
-- This is the default behavior. Re-run with `--overwrite` only if you want to replace template files.
-
-### Issue: you accidentally tried to use the repo root as a workspace
-
-**Fix**:
-- Always use `workspaces/<name>/` (the runner refuses to use the repo root).
+- Existing files remain unchanged by default. This is the expected idempotent
+  behavior, not an initialization failure.
+- Never point the script at the repository root; use `workspaces/<name>/`.

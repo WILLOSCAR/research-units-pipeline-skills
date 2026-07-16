@@ -1,113 +1,105 @@
 ---
 name: research-pipeline-runner
-description: |
-  Run this repo’s Units+Checkpoints research pipelines end-to-end (survey/brief/paper-review/evidence-review/idea/tutorial/graduate-paper), with workspaces + checkpoints.
-  **Trigger**: run pipeline, kickoff, 继续执行, 自动跑, 写一篇, survey/brief/review/调研/教程/系统综述/审稿.
-  **Use when**: 用户希望端到端跑流程（创建 `workspaces/<name>/`、生成/执行 `UNITS.csv`、遇到 HUMAN checkpoint 停下等待）。
-  **Skip if**: 用户明确要手工逐条执行（用 `unit-executor`），或你不应自动推进到 prose 阶段。
-  **Network**: depends on selected pipeline (arXiv/PDF/citation verification may need network; offline import supported where available).
-  **Guardrail**: 必须尊重 checkpoints（无 Approve 不写 prose）；遇到 HUMAN 单元必须停下等待；禁止在 repo root 创建 workspace 工件。
+description: Run a research Workflow end to end when the user requests a survey, brief, review, tutorial, or idea exploration; route an unbound goal, execute one eligible Unit at a time, and stop at checkpoints or diagnosed failures.
 ---
 
 # Research Pipeline Runner
 
-Goal: let a user trigger a full pipeline with one natural-language request, while keeping the run auditable (Units + artifacts + checkpoints).
-
-This skill is **coordination**:
-- semantic work is done by the relevant skills’ `SKILL.md`
-- scripts are deterministic helpers (scaffold/validate/compile), not the author
+The runner turns one requested outcome into an auditable Workspace. Its leading
+word is **continuation**: every action must leave enough durable state for the
+next command or agent to continue without reconstructing the Run from chat.
 
 ## Inputs
 
-- User goal (one sentence is enough), e.g.:
-  - “给我写一个 agent 的 arxiv-survey-latex”
-- Optional:
-  - explicit pipeline path (e.g., `pipelines/arxiv-survey-latex.pipeline.md`)
-  - constraints (time window, language: EN/中文, evidence_mode: abstract/fulltext)
+- The user Goal, including the target deliverable and constraints.
+- An existing Workspace, or a path under `workspaces/<name>/` for a new one.
+- The selected Pipeline when already recorded in `PIPELINE.lock.md`.
 
 ## Outputs
 
-- A workspace under `workspaces/<name>/` containing:
-  - `STATUS.md`, `GOAL.md`, `PIPELINE.lock.md`, `UNITS.csv`, `CHECKPOINTS.md`, `DECISIONS.md`
-  - pipeline-specific artifacts (papers/outline/sections/output/latex)
+- A Workspace containing `GOAL.md`, `PIPELINE.lock.md`, `UNITS.csv`,
+  `STATUS.md`, `CHECKPOINTS.md`, and `DECISIONS.md`.
+- Pipeline-declared intermediate and target Artifacts.
+- Run Evidence under `.harness/` and `output/`.
 
-## Non-negotiables
+## Steps
 
-- Use `UNITS.csv` as the execution contract; one unit at a time.
-- Respect checkpoints (`CHECKPOINTS.md`): **no long prose** until required approvals are recorded in `DECISIONS.md` (survey default: `C2`).
-- Stop at HUMAN checkpoints and wait for explicit sign-off.
-- Never create workspace artifacts in the repo root; always use `workspaces/<name>/`.
+### 1. Bind the Goal to one Workflow
 
-## Decision tree: pick a pipeline
+Read the Goal and existing Workspace state. When no valid Pipeline lock exists,
+use `pipeline-router`; load `docs/PIPELINE_TAXONOMY.md` only for that routing
+branch. Preserve an existing valid lock.
 
-User goal → choose:
-- Survey/综述/调研 + Markdown draft → `pipelines/arxiv-survey.pipeline.md`
-- Survey/综述/调研 + PDF output → `pipelines/arxiv-survey-latex.pipeline.md`
-- Research brief / rapid review / 速览 → `pipelines/research-brief.pipeline.md`
-- Paper review / paper critique / 审稿 → `pipelines/paper-review.pipeline.md`
-- Evidence review / systematic review / 系统综述 → `pipelines/evidence-review.pipeline.md`
-- Idea finding / 选题 / 点子 / 找方向 → `pipelines/idea-brainstorm.pipeline.md`
-- Tutorial/教程 → `pipelines/source-tutorial.pipeline.md`
+Completion criterion: `PIPELINE.lock.md` names exactly one Pipeline and its
+Unit template, and `UNITS.csv` belongs to that contract.
 
-## Recommended run loop (skills-first)
+### 2. Reconcile before execution
 
-1) Initialize workspace (C0):
-- create `workspaces/<name>/`
-- write `GOAL.md`, lock pipeline (`PIPELINE.lock.md`), seed `queries.md`
+Run the Workspace Doctor or the equivalent Harness inspection. Resolve
+recoverable projections first. Route integrity errors to an explicit repair;
+retain all earlier Attempts and Decisions.
 
-2) Execute units sequentially:
-- follow each unit’s `SKILL.md` to produce the declared outputs
-- only mark `DONE` when acceptance criteria are satisfied and outputs exist
+Completion criterion: the Workspace has either one eligible next Unit or one
+specific blocking condition with a recorded next action.
 
-3) Stop at HUMAN checkpoints:
-- default survey checkpoint is `C2` (scope + outline)
-- write a concise approval request in `DECISIONS.md` and wait
+### 3. Execute one Unit
 
-4) Writing-stage self-loop (when drafts look thin/template-y):
-- prefer local fixes over rewriting everything:
-  - `writer-context-pack` (C4→C5 bridge) makes packs debuggable
-  - `subsection-writer` writes per-file units
-  - `writer-selfloop` fixes only failing `sections/*.md`
-  - `style-harmonizer` / `opener-variator` apply the targeted style queue
-  - `section-logic-polisher` checks thesis and flow; `paragraph-curator` then compacts adjacent paragraph boundaries without deleting prose
-  - `evaluation-anchor-checker` is the last section rewrite; `argument-selfloop` then snapshots moves and section hashes before merge
-  - `draft-polisher` removes generator voice without changing citation keys
+For the next eligible Unit:
 
-## Strict-mode behavior (by design)
+1. read its owner, dependencies, inputs, outputs, acceptance rule, and Skill;
+2. open the Attempt through the Pipeline adapter;
+3. follow that Skill's `SKILL.md` and selectively load its context pointers;
+4. verify every required output and acceptance condition;
+5. commit Completion through the Pipeline adapter.
 
-In `--strict` runs, several semantic C3/C4 artifacts are treated as *scaffolds* until explicitly marked refined.
-This is intentional: it prevents bootstrap JSONL from silently passing into C5 writing (a major source of hollow/templated prose).
+Completion criterion: the Unit is committed as `DONE` with matching Attempt,
+Manifest, and Artifact evidence, or it is `BLOCKED` with a diagnosable Failure.
 
-Create these markers only after you have manually refined/spot-checked the artifacts:
-- `outline/subsection_briefs.refined.ok`
-- `outline/chapter_briefs.refined.ok`
-- `outline/evidence_bindings.refined.ok`
-- `outline/evidence_drafts.refined.ok`
-- `outline/anchor_sheet.refined.ok`
-- `outline/writer_context_packs.refined.ok`
+### 4. Respect the stop line
 
-The runner may BLOCK even if the JSONL exists; add the marker after refinement, then rerun/resume the unit.
+The **stop line** is the first HUMAN checkpoint, unresolved Decision, failed
+quality contract, missing required Artifact, or terminal execution error.
+Summarize what exists, name the evidence to inspect, and leave one concrete
+resume command or question.
 
-5) Finish:
-- merge → audit → (optional) LaTeX scaffold/compile
+Completion criterion: the Run never advances beyond a stop line, and another
+operator can identify the blocker from Workspace files without chat history.
 
-## Optional CLI helpers (debug only)
+### 5. Continue to the declared outcome
 
-- Kickoff + run (optional; convenient, not required): `uv run python scripts/pipeline.py kickoff --topic "<topic>" --pipeline <pipeline-name> --run --strict`
-- Resume: `uv run python scripts/pipeline.py run --workspace <workspace> --strict`
-- Approve checkpoint: `uv run python scripts/pipeline.py approve --workspace <workspace> --checkpoint C2`
-- Mark refined unit: `uv run python scripts/pipeline.py mark --workspace <workspace> --unit-id <U###> --status DONE --note "LLM refined"`
+Repeat reconciliation and single-Unit execution while an eligible Unit exists.
+After the final Unit, run Audit and Artifact Pack generation.
 
-## Handling common blocks
+Completion criterion: target Artifacts exist, required Evaluations pass, Audit
+contains no blocking issue, and the Artifact Pack indexes the delivery and Run
+Evidence.
 
-- **HUMAN approval required**: summarize produced artifacts, ask for approval, then record it and resume.
-- **Quality gate blocked** (`output/QUALITY_GATE.md` exists): treat current outputs as scaffolding; refine per the unit’s `SKILL.md`; mark `DONE`; resume.
-- **No network**: use offline imports (`papers/imports/` or `arxiv-search --input`).
-- **Weak coverage**: broaden queries or reduce/merge subsections (`outline-budgeter`) before writing.
+## Branch Pointers
 
-## Quality checklist
+- **Workflow selection:** read `docs/PIPELINE_TAXONOMY.md`, then the chosen
+  `pipelines/*.pipeline.md`. The taxonomy owns the routing catalog; this Skill
+  does not duplicate it.
+- **Survey strict mode:** read the locked Survey Pipeline's quality contract and
+  the active delivery profile before writing. Branch-specific markers and gates
+  live there.
+- **Offline retrieval:** use the selected retrieval Skill's documented import
+  path and preserve source provenance.
+- **Manual Unit execution:** use `unit-executor` while retaining the same
+  Completion Protocol.
 
-- [ ] `UNITS.csv` statuses reflect actual outputs (no `DONE` without outputs).
-- [ ] No prose is written unless `DECISIONS.md` explicitly approves it.
-- [ ] The run stops at HUMAN checkpoints with clear next questions.
-- [ ] In strict mode, scaffold/stub outputs do not get marked `DONE` without refinement.
+## Operator Commands
+
+Use the outcome-first CLI for normal operation:
+
+```bash
+uv run rh goal create --topic "<topic>" --workflow <workflow> --workspace workspaces/<name>
+uv run rh run start --workspace workspaces/<name>
+uv run rh run resume --workspace workspaces/<name>
+uv run rh run status --workspace workspaces/<name>
+uv run rh evidence inspect --workspace workspaces/<name>
+uv run rh improve diagnose --workspace workspaces/<name>
+```
+
+Use `scripts/pipeline.py` for maintainer debugging, explicit approvals, and
+manual status transitions. The Pipeline adapter remains the only supported path
+for changing Unit state.

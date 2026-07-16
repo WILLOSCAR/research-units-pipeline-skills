@@ -121,6 +121,8 @@ the failed attempt and creates a new passing attempt.
                 "U010",
                 "--status",
                 "TODO",
+                "--note",
+                "repair source manifest fixture",
             )
 
             awaiting_approval = self._run(
