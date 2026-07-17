@@ -52,7 +52,8 @@ def test_research_brief_harness_proof_is_complete_and_hash_consistent() -> None:
     assert summary["source_mode"] == "deterministic_synthetic_fixture"
     assert summary["run_state"] == "COMPLETED"
     assert summary["completion_protocol"] == "recoverable-provenance.v1"
-    assert summary["repository"]["dirty"] is True
+    assert summary["repository"]["dirty"] is False
+    assert len(summary["repository"]["revision"]) == 40
     assert summary["repository"]["locked_kernel_files"] > 0
     assert summary["repository"]["locked_skills"] > 0
     assert summary["units"] == {"total": 11, "done": 11, "active": 0}

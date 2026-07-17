@@ -1,14 +1,14 @@
 {
   "schema": "completed-run-evidence.v1",
-  "captured_at": "2026-07-18T00:09:17+08:00",
+  "captured_at": "2026-07-18T00:15:40+08:00",
   "workflow": "research-brief",
   "goal": "Produce a compact, traceable research brief on reliable adaptation of embodied agents under distribution shift, with a bounded reading path and explicit open risks.",
   "source_mode": "deterministic_synthetic_fixture",
   "run_state": "COMPLETED",
   "completion_protocol": "recoverable-provenance.v1",
   "repository": {
-    "revision": "b3f77a696c1d4694f3d9d4942986681951d510d0",
-    "dirty": true,
+    "revision": "2493bc00d397dd27d582edd7a92ca74343228e26",
+    "dirty": false,
     "locked_kernel_files": 29,
     "locked_skills": 10
   },
@@ -29,7 +29,7 @@
       "process": 10
     },
     "measured_scripted_attempts": 9,
-    "total_adapter_elapsed_ms": 404.706
+    "total_adapter_elapsed_ms": 405.411
   },
   "artifact_audit": {
     "verdict": "PASS",
@@ -81,7 +81,7 @@
       "sha256": "928b54a5452b59b4e2e14c9ae8791b04f6f3c40b39dc0fbdc2475c6f3d32d22e"
     },
     "BRIEF_SCORECARD.json": {
-      "sha256": "f1af9ae8e4521f0eb4fb07a6ceebf16ba0095aa42a8241dcb2a839fe40d3ed25"
+      "sha256": "cdf22569fb6cc1f2fd95aa6fb87fcd79c66a0f96342d34e9e9c5e3fb31acbecb"
     },
     "AUDIT_COMPARISON.md": {
       "sha256": "e9272ae5f6c9b64f9669d2c3ac38410bc5b1a5f9a8d68e1927e08868bf2002a0"
@@ -94,7 +94,6 @@
     "no held-out evaluator or expert quality comparison",
     "scorecard validates structure and pointer traceability, not scientific truth",
     "adapter runtime is not model Token, provider latency, or cost telemetry",
-    "the Run was created from a dirty local checkout; exact Kernel and Skill hashes remain only in the complete ignored Workspace",
     "not a reproducible archive of the complete local Workspace"
   ]
 }

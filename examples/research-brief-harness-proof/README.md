@@ -21,7 +21,7 @@ review quality has been validated.
 |---|---|
 | Workflow | `research-brief` |
 | Completion Protocol | `recoverable-provenance.v1` |
-| Repository lock | `b3f77a6`, dirty checkout with Kernel and Skill hashes retained locally |
+| Repository lock | `2493bc0`, clean checkout with Kernel and Skill hashes retained locally |
 | Run state | `COMPLETED` |
 | Units | 11 `DONE`, 0 active |
 | Attempts | 11 started, 11 succeeded, 0 retries |
@@ -67,7 +67,6 @@ This snapshot proves that one bounded Research Brief fixture completed through
 the current local single-writer Harness with internally consistent Run
 evidence. It does not prove retrieval completeness, source authenticity,
 scientific correctness, expert agreement, cross-topic stability, model Token
-efficiency, clean-commit reproducibility, or distributed execution. The
-complete ignored Workspace retains the Events, Attempts, Artifacts, Manifests,
-Decisions, Evaluation, generated reports, and exact Kernel and Skill hashes
-needed for local diagnosis.
+efficiency, or distributed execution. The complete ignored Workspace retains
+the Events, Attempts, Artifacts, Manifests, Decisions, Evaluation, generated
+reports, and exact Kernel and Skill hashes needed for local diagnosis.
