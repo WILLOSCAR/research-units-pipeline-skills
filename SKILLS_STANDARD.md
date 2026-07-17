@@ -173,16 +173,19 @@ uv run python scripts/evaluate_skill_invocations.py \
 ```
 
 The evaluator counts exact repository-Skill selection, forbidden and unexpected
-invocations, catalog description characters, and selected body characters.
-Token and latency values remain empty unless the model runner reports them.
-External/global Skills are recorded separately so repository-maintenance tasks
-can correctly select no Skill from this project.
+invocations, catalog description characters, and selected body characters. It
+also reports scorer-only `split` and `tag` slices so aggregate success cannot
+hide a challenge-family regression. Token and latency values remain empty
+unless the model runner reports them. External/global Skills are recorded
+separately so repository-maintenance tasks can correctly select no Skill from
+this project.
 
 For a scored run, present each case as a fresh user request with the model's
 normal Skill-discovery context. Do not expose `expected_primary`,
-`allowed_support`, or `forbidden` to the candidate model. Record ordered Skill
-choices before execution, plus the exact model label and observed usage fields.
-Golden expectations are scorer inputs, never candidate-model context.
+`allowed_support`, `forbidden`, `split`, or `tags` to the candidate model.
+Record ordered Skill choices before execution, plus the exact model label and
+observed usage fields. Golden expectations and diagnostic groupings are scorer
+inputs, never candidate-model context.
 
 ## 2) Script policy (deterministic helpers only)
 

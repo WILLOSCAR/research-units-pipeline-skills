@@ -48,6 +48,11 @@ held-out evaluation.
 `arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`. It inherits
 the research lifecycle and adds TeX/PDF delivery Units and Artifacts.
 
+The `research-brief` proof state is backed by a
+[curated versioned Harness snapshot](../examples/research-brief-harness-proof/README.md).
+Its deterministic synthetic sources make the completion, scorecard, and Audit
+Diff inspectable without implying online retrieval quality.
+
 ## Survey Delivery Profiles
 
 Survey deliverables vary in density and format without changing their research

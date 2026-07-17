@@ -39,6 +39,7 @@ and environment contract rather than silently expanding this format.
 ## Related Files
 
 - `examples/course-paper-pilot/`
+- `examples/research-brief-harness-proof/`
 - `tests/test_completed_run_evidence.py`
 - `docs/SCHEMAS.md`
 - `.gitignore`

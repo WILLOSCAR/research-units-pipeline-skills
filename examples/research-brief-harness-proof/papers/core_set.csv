@@ -1,0 +1,13 @@
+paper_id,title,year,url,arxiv_id,primary_category,categories,pdf_url,topic,reason
+P0001,Robust Policy Adaptation Under Visual Distribution Shift,2025,https://example.org/papers/robust-policy-adaptation,,,,,,ranked_by=relevance;score=7
+P0002,Failure-Aware Evaluation Protocols for Embodied Adaptation,2025,https://example.org/papers/failure-aware-evaluation,,,,,,ranked_by=relevance;score=3
+P0003,Parameter-Efficient Adaptation of Vision-Language-Action Models,2025,https://example.org/papers/peft-vla,,,,,,ranked_by=relevance;score=3
+P0004,Benchmarking Embodied Agents Across Domain Shifts,2023,https://example.org/papers/embodied-domain-shift-benchmark,,,,,,ranked_by=relevance;score=3
+P0005,Memory-Guided Adaptation in Long-Horizon Household Tasks,2025,https://example.org/papers/memory-guided-adaptation,,,,,,ranked_by=relevance;score=2
+P0006,World Models for Rapid Embodied Adaptation,2025,https://example.org/papers/world-model-adaptation,,,,,,ranked_by=relevance;score=2
+P0007,Causal Diagnostics for Embodied Policy Failures,2024,https://example.org/papers/causal-policy-diagnostics,,,,,,ranked_by=relevance;score=2
+P0008,Continual Embodied Learning Without Catastrophic Forgetting,2024,https://example.org/papers/continual-embodied-learning,,,,,,ranked_by=relevance;score=2
+P0009,Detecting Distribution Shift Before Robot Policy Failure,2024,https://example.org/papers/shift-detection-robot-policy,,,,,,ranked_by=relevance;score=2
+P0010,Multi-Environment Validation of Adaptive Robot Policies,2024,https://example.org/papers/multi-environment-validation,,,,,,ranked_by=relevance;score=2
+P0011,Offline-to-Online Adaptation With Conservative Updates,2024,https://example.org/papers/offline-online-conservative,,,,,,ranked_by=relevance;score=2
+P0012,Compositional Generalization in Embodied Task Planning,2023,https://example.org/papers/compositional-embodied-planning,,,,,,ranked_by=relevance;score=2

@@ -33,10 +33,12 @@ Status: first hardened local single-writer implementation landed.
 - a predictability-first Skill-authoring cohort across six Harness lifecycle
   Skills, with informational context-load/sprawl audit and a 24-request
   bilingual Workflow-routing regression corpus;
-- a model-neutral 21-case Skill invocation corpus, prediction JSONL contract,
-  repository/external Skill distinction, and context-load scorer;
-- one blinded GPT-5.6 Pro invocation run with 21/21 correct primary selections
-  and no forbidden or unexpected repository Skills;
+- a model-neutral 33-case Skill invocation corpus, prediction JSONL contract,
+  repository/external Skill distinction, aggregate and split/tag diagnostics,
+  and context-load scorer;
+- one fresh blinded GPT-5.6 Pro invocation run with 21/21 baseline and 12/12
+  challenge selections correct, including lexical traps and non-repository
+  maintenance requests, with no forbidden or unexpected repository Skills;
 - outcome-first `rh` command over the existing Pipeline adapter.
 
 Regression tests now confirm that:
@@ -59,25 +61,50 @@ Regression tests now confirm that:
   partial Workspace;
 - one composed inspection collects its shared Workspace facts once and gives all
   four report payloads the same generation timestamp.
+- scripted Attempt finishes record measured adapter runtime, captured
+  stdout/stderr size, and log location; Run Audit projects execution mode,
+  terminal status, retries, and measured runtime without inferring model Tokens;
+- Run Audit Diff compares Attempt, retry, and measured adapter-runtime changes
+  when both inputs expose that evidence, while preserving older audit payloads;
+- new Run locks identify the Completion Protocol, and unversioned historical
+  Runs retain their errors with an explicit compatibility interpretation.
 
 These tests cover key single-process interruption paths, not every ADR 0014
 boundary. Historical completed Runs add Artifact and delivery evidence, but the
 new Completion Protocol still needs fault injection at every write boundary and
 exercise against a newly completed realistic Workspace.
 
+The unversioned Research Brief evaluation Run has also been re-audited under
+the current Harness. Its 19 target Artifacts remain present, while eight
+cross-ledger errors remain visible and six compatibility-sensitive issue types
+are identified as historical evidence gaps. This is compatibility
+classification, not retrospective certification.
+
+A [current versioned Research Brief proof](../examples/research-brief-harness-proof/README.md)
+now completes the same 11-Unit shape with 11 successful Attempts, 11 final
+Manifests, 19/19 target Artifacts, no integrity issues, and a passing
+before/after Audit Diff. Its retrieval input is synthetic, so the next pressure
+remains a real-source Run rather than another fixture-only success.
+
 Next pressure:
 
 - inject process termination at each Completion stage and verify deterministic
   recovery across real Workspaces;
-- repeat cross-ledger Audit over completed Runs created before and after ADR 0014;
-- repeat the six-Skill invocation corpus with Codex, another provider, and
-  held-out paraphrases; capture actual token and per-case latency fields when
-  available, and inspect failures before selecting a third cohort; use the
-  remaining audit findings rather than bulk-shortening every Skill;
+- repeat the versioned Research Brief proof with real retrieved sources, then
+  compare its Audit and scorecard with the synthetic proof and audited
+  unversioned historical Run;
+- repeat the six-Skill invocation corpus with Codex and another provider;
+  capture actual token and per-case latency fields when available, and inspect
+  failures before selecting a third cohort; the current challenge pass is a
+  reason to preserve the tested descriptions, not permission to bulk-shorten
+  every remaining Skill;
 - decide whether `RUN_ERRORS.md` becomes a generated Failure-ledger projection
   or remains an explicitly documented compatibility sink;
 - measure the residual deep-integrity and Artifact-hashing passes after shared
   snapshot consolidation before attempting further scan reduction;
+- collect adapter-runtime distributions from newly completed realistic Runs,
+  while keeping model Token, cost, and latency measurement as a separate runtime
+  integration problem;
 - move Survey-only voice, refinement, and JSONL policy out of the repository-wide
   Skills standard;
 - make planned/effective/actual plan differences inspectable.
@@ -111,7 +138,10 @@ with a passing Artifact audit and a 10-page PDF.
 
 - keep Workflow-specific scorecards behind a common Run evaluation record;
 - preserve score, dimensions, verdict, Attempts, and repair surfaces in `.harness/evaluations/ledger.jsonl`;
-- use compact `research-brief` defaults as the first concrete token-budget reduction;
+- use compact `research-brief` defaults as the first concrete token-budget
+  reduction and keep its
+  [versioned Harness proof](../examples/research-brief-harness-proof/README.md)
+  explicit about synthetic retrieval;
 - keep the Evidence Review protocol, screening, extraction, synthesis, and scorecard chain covered by its realistic fixture;
 - keep the `course_paper` delivery profile bounded at 320 retrieval results, 48 core papers,
   6 mappings per subsection, 6 H3s, and a 24-citation hard floor;

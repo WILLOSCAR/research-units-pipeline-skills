@@ -42,6 +42,13 @@ hash equality is required for immutable outputs. Compatibility projections and
 diagnostic sinks that are intentionally rewritten across Units retain
 historical Artifact records but are excluded from that current-hash rule.
 
+New Run locks declare
+`protocols.completion = recoverable-provenance.v1`. Existing locks are not
+backfilled: an unversioned historical Run cannot truthfully inherit guarantees
+that were not recorded at creation. Audit classifies that Run as
+`legacy_unversioned` and identifies compatibility-sensitive evidence gaps, but
+does not downgrade or suppress the corresponding integrity errors.
+
 ## Consequences
 
 `DONE` is now a derived compatibility projection backed by durable evidence,
@@ -55,6 +62,19 @@ distributed transactions or worker leases. Reconciliation can reconstruct a
 missing prepared Event from a valid PREPARED Manifest, matching latest started Attempt,
 declared outputs, and current hashes; it does not accept an orphaned or
 inconsistent Manifest as completion evidence.
+
+Scripted Attempt finishes may additionally preserve measured adapter telemetry
+inside the existing Attempt record. This keeps execution diagnosis attached to
+the provenance boundary without creating a second runtime ledger. The fields
+are optional so manual and legacy Attempts remain valid, and they must not be
+interpreted as model Token or provider-cost measurements. The terminal Event
+copies the normalized telemetry; recovery restores that copy after an
+interrupted Event append, and integrity checks reject divergence between the
+Attempt and Event records.
+
+`run-audit-diff.v1` may compare these Attempt summaries across two audits. The
+comparison is explicitly unavailable when either audit predates the summary,
+and runtime deltas remain diagnostic rather than verdict-bearing.
 
 ## Related Files
 

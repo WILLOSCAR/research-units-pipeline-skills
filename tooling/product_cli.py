@@ -212,7 +212,21 @@ def _inspect_evidence(workspace: Path, *, write_excerpt: bool) -> int:
         "Targets: "
         f"{run_state.get('target_artifacts_present', 0)}/{run_state.get('target_artifacts_total', 0)}"
     )
-    print(f"Artifacts: {summary.get('present', 0)}/{summary.get('total', 0)}")
+    print(f"Artifact index: {summary.get('present', 0)}/{summary.get('total', 0)} present")
+    required_missing, optional_diagnostics = _artifact_pack_missing_paths(pack)
+    if required_missing:
+        print(f"Required evidence missing: {len(required_missing)}")
+    else:
+        print("Required evidence: complete")
+    if optional_diagnostics:
+        print(f"Optional diagnostics absent: {len(optional_diagnostics)}")
+    attempts = audit.get("attempts") or {}
+    if attempts.get("started"):
+        print(
+            "Attempts: "
+            f"{attempts.get('finished', 0)}/{attempts.get('started', 0)} finished, "
+            f"{attempts.get('extra_attempts', 0)} retries"
+        )
     from tooling.run_state import latest_evaluation
 
     evaluation = latest_evaluation(workspace)
@@ -236,6 +250,38 @@ def _inspect_evidence(workspace: Path, *, write_excerpt: bool) -> int:
                 )
     print(f"Inspect: {workspace / 'output' / 'ARTIFACT_PACK.md'}")
     return max(int(audit_code), int(pack_code))
+
+
+def _artifact_pack_missing_paths(pack: dict[str, object]) -> tuple[set[str], set[str]]:
+    artifacts = pack.get("artifacts")
+    if not isinstance(artifacts, list):
+        return set(), set()
+
+    required_categories = {"target_artifact", "unit_output", "run_ledger", "unit_manifest"}
+    required_paths = {
+        str(record.get("path") or "")
+        for record in artifacts
+        if isinstance(record, dict)
+        and str(record.get("category") or "") in required_categories
+    }
+    required_missing = {
+        str(record.get("path") or "")
+        for record in artifacts
+        if isinstance(record, dict)
+        and not record.get("exists")
+        and str(record.get("category") or "") in required_categories
+        and str(record.get("path") or "")
+    }
+    optional_diagnostics = {
+        str(record.get("path") or "")
+        for record in artifacts
+        if isinstance(record, dict)
+        and not record.get("exists")
+        and str(record.get("category") or "") == "harness_report"
+        and str(record.get("path") or "")
+        and str(record.get("path") or "") not in required_paths
+    }
+    return required_missing, optional_diagnostics
 
 
 def _diagnose_improvement(workspace: Path) -> int:

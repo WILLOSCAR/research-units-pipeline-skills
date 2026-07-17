@@ -10,11 +10,11 @@ runtime.
 |---|---|---|---|
 | `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
 | `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
-| `harness-lock.v1` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | Git revision and hashes for Pipeline, Units, complete Skill implementation directories, and Kernel |
+| `harness-lock.v1` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | Git revision, Completion Protocol identity, and hashes for Pipeline, Units, complete Skill implementation directories, and Kernel |
 | `workspace-invocation-lock.v1` | `.harness/invocation.lock` | `tooling.run_state.workspace_invocation_lock` | Diagnostic owner metadata for the process-scoped Workspace command lock |
 | `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
 | `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history, including Completion prepare/commit/recovery stages |
-| `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt; process-owned starts also record execution mode, PID, and host for bounded crash recovery |
+| `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt; process-owned starts record execution mode, PID, and host, while scripted finishes may add measured adapter runtime, output character counts, and log path |
 | `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_decision` | Machine-readable human and Harness interventions; `record_human_decision` is the human wrapper |
 | `artifact-record.v1` | `.harness/artifacts.jsonl` | `tooling.run_state.register_artifacts` | Versioned Artifact provenance and hashes |
 | `failure-record.v1` | `.harness/failures/ledger.jsonl` | `tooling.run_state` | Append-only Failure opening and resolution records |
@@ -40,6 +40,12 @@ records remain useful, but current-hash equality is enforced only for immutable
 Unit outputs. A Unit is trusted as DONE when its successful Attempt, final DONE
 Manifest, required Artifact records, and any declared Evaluation agree.
 
+New locks declare `protocols.completion = recoverable-provenance.v1`.
+Unversioned historical locks are not silently upgraded because doing so would
+claim guarantees that were not recorded when the Run was created. Run Audit
+labels them `legacy_unversioned`, identifies compatibility-sensitive evidence
+gaps, and keeps those gaps as audit errors.
+
 ## Harness Reports
 
 | Schema | JSON output | Producer | Validator | ADR |
@@ -58,7 +64,18 @@ referenced file.
 `run-audit.v1` includes additive `ledger_integrity` counts and issues. These
 checks join Run identity, Event sequence, Attempt pairs, Manifests, Artifacts,
 Decisions, Failures, Evaluations, and current DONE projections; they do not
-replace Workflow-local semantic scorecards.
+replace Workflow-local semantic scorecards. New reports also project an
+additive Attempt summary with terminal status, execution mode, retry counts,
+and measured adapter runtime when the local executor supplied it. Legacy and
+manual Attempts remain valid with runtime fields unavailable. When telemetry is
+present, the terminal Event carries the same normalized record; reconciliation
+preserves it and Run Audit reports malformed or divergent copies.
+
+New `run-audit-diff.v1` payloads add an optional `attempt_comparison` object.
+When both source audits contain Attempt summaries, it reports Attempt, retry,
+measured adapter-runtime, and captured-output deltas. When either source
+predates those summaries, the comparison is explicitly unavailable. These
+deltas are diagnostic evidence and do not change the diff verdict.
 
 ## Repository Skill Invocation Evaluation
 
@@ -68,10 +85,10 @@ under a gitignored `workspaces/<name>/evaluation/` directory.
 
 | Schema | Path or producer | Purpose |
 |---|---|---|
-| `skill-invocation-cases.v1` | `tests/fixtures/skill_invocation_cases.yaml` | Stable prompts, expected primary repository Skill, allowed support Skills, and forbidden confusions |
+| `skill-invocation-cases.v1` | `tests/fixtures/skill_invocation_cases.yaml` | Stable prompts, expected primary repository Skill, allowed support Skills, forbidden confusions, and scorer-only split/tag diagnostics |
 | `skill-invocation-candidate-pack.v1` | `scripts/evaluate_skill_invocations.py --emit-candidate-pack` | Gold-label-free model input containing repository Skill descriptions and case prompts only |
 | `skill-invocation-prediction.v1` | One JSONL record per case, supplied by Codex, GPT Pro, or another model runner | Ordered selected Skills plus optional observed model, token, and latency fields |
-| `skill-invocation-evaluation.v1` | `scripts/evaluate_skill_invocations.py` | Accuracy, forbidden/unexpected selection, repository versus external Skill choice, and reproducible Skill-context character load |
+| `skill-invocation-evaluation.v1` | `scripts/evaluate_skill_invocations.py` | Aggregate and split/tag accuracy, forbidden/unexpected selection, repository versus external Skill choice, and reproducible Skill-context character load |
 
 The evaluator does not infer tokens from characters. An unscored corpus report
 is a context baseline, not model-selection evidence. A scored `PASS` applies

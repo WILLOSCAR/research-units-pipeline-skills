@@ -98,6 +98,11 @@ Goal 中明确要求“使用全文证据”，同时接受更高的运行时间
 49 个 Units 全部完成、Artifact Audit 通过，并针对 8-10 页 Goal 生成了 10 页 PDF。它证明
 一条端到端交付路径，不代表所有主题或报告类型都已稳定达到相同质量。
 
+[Research Brief Harness 证据快照](examples/research-brief-harness-proof/README.md)
+提供了一条更小的执行样例：采用版本化 Completion Protocol 的 11-Unit Run、19/19 个目标
+Artifacts、100/100 Workflow Scorecard，以及与历史 Run 的 Audit Diff。其 Sources 为合成
+fixture，因此证明的是 Harness 行为，而非检索覆盖率或科学结论质量。
+
 ## 一个产品循环
 
 | 阶段 | 用户的问题 | 持久记录 |

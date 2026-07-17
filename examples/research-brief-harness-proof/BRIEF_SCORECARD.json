@@ -1,0 +1,112 @@
+{
+  "schema": "research-brief-scorecard.v1",
+  "generated_at": "2026-07-18T00:04:54",
+  "workflow": "research-brief",
+  "verdict": "PASS",
+  "score": 100,
+  "pass_score": 80,
+  "critical_dimensions": [
+    "brief_specificity",
+    "deliverable_structure",
+    "source_traceability"
+  ],
+  "failed_critical_dimensions": [],
+  "counts": {
+    "core_papers": 12,
+    "unique_pointers": 6,
+    "reading_path_pointers": 6,
+    "words": 496
+  },
+  "dimensions": [
+    {
+      "id": "artifact_completeness",
+      "label": "Artifact completeness",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "Snapshot and core set are present.",
+      "repair_surface": [
+        "pipelines/research-brief.pipeline.md"
+      ]
+    },
+    {
+      "id": "deliverable_structure",
+      "label": "Deliverable structure",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "All four briefing sections contain content.",
+      "repair_surface": [
+        ".codex/skills/snapshot-writer/SKILL.md",
+        "output/SNAPSHOT.md"
+      ]
+    },
+    {
+      "id": "brief_specificity",
+      "label": "Brief specificity",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "No survey scaffold language leaked into the brief.",
+      "repair_surface": [
+        ".codex/skills/snapshot-writer/SKILL.md",
+        "tooling/review_render.py",
+        "output/SNAPSHOT.md"
+      ]
+    },
+    {
+      "id": "source_traceability",
+      "label": "Source traceability",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "Valid pointers=6; invalid pointers=none.",
+      "repair_surface": [
+        ".codex/skills/snapshot-writer/SKILL.md",
+        "papers/core_set.csv",
+        "output/SNAPSHOT.md"
+      ]
+    },
+    {
+      "id": "reading_path",
+      "label": "Reading path",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "The reading path contains 6 unique valid paper pointers.",
+      "repair_surface": [
+        ".codex/skills/snapshot-writer/SKILL.md",
+        "output/SNAPSHOT.md"
+      ]
+    },
+    {
+      "id": "theme_grounding",
+      "label": "Theme grounding",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "Scope and key themes cite 6 unique core-set papers.",
+      "repair_surface": [
+        ".codex/skills/snapshot-writer/SKILL.md",
+        "output/SNAPSHOT.md"
+      ]
+    },
+    {
+      "id": "compactness",
+      "label": "Compactness",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "Word count=496; expected 100-1200 words.",
+      "repair_surface": [
+        ".codex/skills/snapshot-writer/SKILL.md",
+        "output/SNAPSHOT.md"
+      ]
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "This scorecard validates structure, compactness, and pointer traceability; it does not judge whether the selected literature is complete or scientifically correct.",
+    "Reading-path quality is bounded by the papers already present in the Workspace core set."
+  ]
+}

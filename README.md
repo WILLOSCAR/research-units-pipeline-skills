@@ -108,6 +108,12 @@ is a course-paper instance: one completed 49-Unit Run, a passing Artifact audit,
 and a 10-page PDF for an 8-10 page Goal. It proves one delivery path, not stable
 quality across every topic or report genre.
 
+The [Research Brief Harness proof](examples/research-brief-harness-proof/README.md)
+is a smaller execution example: one versioned 11-Unit Run, 19/19 target
+Artifacts, a 100/100 Workflow scorecard, and a historical Audit Diff. Its
+sources are synthetic fixtures, so it proves Harness behavior rather than
+retrieval or scientific quality.
+
 ## One Product Loop
 
 | Stage | User question | Durable record |

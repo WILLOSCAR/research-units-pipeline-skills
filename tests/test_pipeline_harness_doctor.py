@@ -9,6 +9,8 @@ from pathlib import Path
 from tooling.executor import run_one_unit
 from tooling.harness import (
     build_doctor_payload,
+    build_run_audit_diff_payload,
+    render_run_audit_diff_report,
     validate_artifact_pack_payload,
     validate_doctor_payload,
     validate_improvement_payload,
@@ -61,8 +63,9 @@ def run_audit_payload(
     manifest_count: int,
     issues: list[dict[str, str]],
     verdict: str,
+    attempts: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "schema": "run-audit.v1",
         "generated_at": "2026-05-30T00:00:00",
         "workspace": workspace,
@@ -104,6 +107,9 @@ def run_audit_payload(
         "verdict": verdict,
         "exit_code": 0 if verdict == "PASS" else 2,
     }
+    if attempts is not None:
+        payload["attempts"] = attempts
+    return payload
 
 
 def test_doctor_reports_next_runnable_unit(tmp_path: Path) -> None:
@@ -577,6 +583,37 @@ def test_run_audit_payload_validator_reports_schema_drift() -> None:
         "unit_status": {"DONE": "1"},
         "target_artifacts": [{"path": "output/SNAPSHOT.md", "exists": True}],
         "unit_output_manifests": {"count": 0, "by_status": {}, "latest": {}, "records": []},
+        "attempts": {
+            "started": "1",
+            "finished": 0,
+            "open": 0,
+            "retry_units": 0,
+            "extra_attempts": 0,
+            "by_status": {},
+            "by_execution_mode": {},
+            "process_metrics": {
+                "measured_attempts": 0,
+                "total_elapsed_ms": "unknown",
+                "mean_elapsed_ms": None,
+                "max_elapsed_ms": None,
+                "stdout_chars": 0,
+                "stderr_chars": 0,
+            },
+        },
+        "ledger_integrity": {
+            "enabled": True,
+            "run_id": "run_test",
+            "issue_count": 0,
+            "ledger_record_counts": {},
+            "issues": [],
+            "compatibility": {
+                "mode": 1,
+                "recorded_completion_protocol": "unversioned",
+                "current_completion_protocol": "recoverable-provenance.v1",
+                "legacy_evidence_gap_codes": ["done_without_manifest", 2],
+                "interpretation": "historical",
+            },
+        },
         "harness_issues": [],
         "remediation_summary": {},
         "recent_reports": [],
@@ -593,6 +630,10 @@ def test_run_audit_payload_validator_reports_schema_drift() -> None:
     assert "`run_state.units_total` must be an integer" in issues
     assert "`run_state.active_units` must be an integer" in issues
     assert "`unit_status.DONE` must be an integer" in issues
+    assert "`attempts.started` must be an integer" in issues
+    assert "`attempts.process_metrics.total_elapsed_ms` must be a number" in issues
+    assert "`ledger_integrity.compatibility.mode` must be a string" in issues
+    assert "`ledger_integrity.compatibility.legacy_evidence_gap_codes[1]` must be a string" in issues
 
 
 def test_audit_reports_missing_target_artifacts(tmp_path: Path) -> None:
@@ -865,6 +906,23 @@ def test_audit_diff_reports_improved_target_artifact_coverage(tmp_path: Path) ->
             }
         ],
         verdict="ATTENTION",
+        attempts={
+            "started": 2,
+            "finished": 2,
+            "open": 0,
+            "retry_units": 1,
+            "extra_attempts": 1,
+            "by_status": {"failed": 1, "succeeded": 1},
+            "by_execution_mode": {"script": 2},
+            "process_metrics": {
+                "measured_attempts": 2,
+                "total_elapsed_ms": 120.0,
+                "mean_elapsed_ms": 60.0,
+                "max_elapsed_ms": 80.0,
+                "stdout_chars": 200,
+                "stderr_chars": 20,
+            },
+        },
     )
     after_payload = run_audit_payload(
         workspace="/tmp/ws",
@@ -876,6 +934,23 @@ def test_audit_diff_reports_improved_target_artifact_coverage(tmp_path: Path) ->
         manifest_count=1,
         issues=[],
         verdict="PASS",
+        attempts={
+            "started": 3,
+            "finished": 3,
+            "open": 0,
+            "retry_units": 0,
+            "extra_attempts": 0,
+            "by_status": {"succeeded": 3},
+            "by_execution_mode": {"script": 3},
+            "process_metrics": {
+                "measured_attempts": 3,
+                "total_elapsed_ms": 150.0,
+                "mean_elapsed_ms": 50.0,
+                "max_elapsed_ms": 70.0,
+                "stdout_chars": 240,
+                "stderr_chars": 0,
+            },
+        },
     )
     before_path.write_text(json.dumps(before_payload), encoding="utf-8")
     after_path.write_text(json.dumps(after_payload), encoding="utf-8")
@@ -896,12 +971,17 @@ def test_audit_diff_reports_improved_target_artifact_coverage(tmp_path: Path) ->
     assert "`output/CONTRACT_REPORT.md`: became_present" in result.stdout
     assert "TODO: -1" in result.stdout
     assert "DONE: +1" in result.stdout
+    assert "Extra Attempts: 1 -> 0 (-1)" in result.stdout
+    assert "Mean adapter elapsed ms: 60.0 -> 50.0 (-10.0)" in result.stdout
     assert "No comparison issues" in result.stdout
     assert diff_json_path.exists()
     diff_payload = json.loads(diff_json_path.read_text(encoding="utf-8"))
     assert diff_payload["schema"] == "run-audit-diff.v1"
     assert diff_payload["verdict"] == "PASS"
     assert diff_payload["manifest_counts"] == {"before": 0, "after": 1, "delta": 1}
+    assert diff_payload["attempt_comparison"]["available"] is True
+    assert diff_payload["attempt_comparison"]["counters"]["extra_attempts"]["delta"] == -1
+    assert diff_payload["attempt_comparison"]["process_metrics"]["mean_elapsed_ms"]["delta"] == -10.0
     assert validate_run_audit_diff_payload(diff_payload) == []
 
 
@@ -954,6 +1034,59 @@ def test_audit_diff_flags_after_regression(tmp_path: Path) -> None:
     assert "ATTENTION" in result.stdout
 
 
+def test_audit_diff_keeps_legacy_payloads_without_attempt_summaries_comparable(tmp_path: Path) -> None:
+    before_payload = run_audit_payload(
+        workspace="/tmp/old",
+        unit_status={"DONE": 1},
+        target_artifacts=[{"path": "output/SNAPSHOT.md", "exists": True}],
+        manifest_count=0,
+        issues=[],
+        verdict="PASS",
+    )
+    after_payload = run_audit_payload(
+        workspace="/tmp/new",
+        unit_status={"DONE": 1},
+        target_artifacts=[{"path": "output/SNAPSHOT.md", "exists": True}],
+        manifest_count=1,
+        issues=[],
+        verdict="PASS",
+        attempts={
+            "started": 1,
+            "finished": 1,
+            "open": 0,
+            "retry_units": 0,
+            "extra_attempts": 0,
+            "by_status": {"succeeded": 1},
+            "by_execution_mode": {"script": 1},
+            "process_metrics": {
+                "measured_attempts": 1,
+                "total_elapsed_ms": 40.0,
+                "mean_elapsed_ms": 40.0,
+                "max_elapsed_ms": 40.0,
+                "stdout_chars": 20,
+                "stderr_chars": 0,
+            },
+        },
+    )
+
+    exit_code, payload = build_run_audit_diff_payload(
+        before_path=tmp_path / "before.json",
+        before_payload=before_payload,
+        after_path=tmp_path / "after.json",
+        after_payload=after_payload,
+    )
+
+    assert exit_code == 0
+    assert payload["attempt_comparison"] == {
+        "available": False,
+        "counters": {},
+        "process_metrics": {},
+        "note": "One or both audits predate Attempt summaries.",
+    }
+    assert validate_run_audit_diff_payload(payload) == []
+    assert "Unavailable: One or both audits predate Attempt summaries." in render_run_audit_diff_report(payload)
+
+
 def test_run_audit_diff_payload_validator_reports_schema_drift() -> None:
     payload = {
         "schema": "run-audit-diff.v2",
@@ -972,6 +1105,17 @@ def test_run_audit_diff_payload_validator_reports_schema_drift() -> None:
         "target_artifact_changes": [{"path": "output/a.md", "before_exists": "no", "after_exists": True}],
         "manifest_counts": {"before": 0, "after": 1, "delta": "1"},
         "harness_issue_counts": {"before": 1, "after": 0, "delta": -1},
+        "attempt_comparison": {
+            "available": "yes",
+            "note": 123,
+            "counters": {
+                "extra_attempts": {"before": 1, "after": 0, "delta": "-1"},
+                "unsupported": {"before": 0, "after": 0, "delta": 0},
+            },
+            "process_metrics": {
+                "mean_elapsed_ms": {"before": 10.0, "after": False, "delta": None},
+            },
+        },
         "comparison_issues": [123],
         "verdict": "PASS",
         "exit_code": 0,
@@ -983,6 +1127,11 @@ def test_run_audit_diff_payload_validator_reports_schema_drift() -> None:
     assert "`unit_status_delta.DONE` must be an integer" in issues
     assert "`target_artifact_changes[0].before_exists` must be a boolean or null" in issues
     assert "`manifest_counts.delta` must be an integer" in issues
+    assert "`attempt_comparison.available` must be a boolean" in issues
+    assert "`attempt_comparison.note` must be a string" in issues
+    assert "`attempt_comparison.counters.extra_attempts.delta` must be an integer or null" in issues
+    assert "`attempt_comparison.counters.unsupported` is not a supported counter" in issues
+    assert "`attempt_comparison.process_metrics.mean_elapsed_ms.after` must be a number or null" in issues
     assert "`comparison_issues[0]` must be a string" in issues
 
 

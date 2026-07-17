@@ -1,0 +1,100 @@
+{
+  "schema": "completed-run-evidence.v1",
+  "captured_at": "2026-07-18T00:09:17+08:00",
+  "workflow": "research-brief",
+  "goal": "Produce a compact, traceable research brief on reliable adaptation of embodied agents under distribution shift, with a bounded reading path and explicit open risks.",
+  "source_mode": "deterministic_synthetic_fixture",
+  "run_state": "COMPLETED",
+  "completion_protocol": "recoverable-provenance.v1",
+  "repository": {
+    "revision": "b3f77a696c1d4694f3d9d4942986681951d510d0",
+    "dirty": true,
+    "locked_kernel_files": 29,
+    "locked_skills": 10
+  },
+  "units": {
+    "total": 11,
+    "done": 11,
+    "active": 0
+  },
+  "attempts": {
+    "started": 11,
+    "finished": 11,
+    "succeeded": 11,
+    "open": 0,
+    "retry_units": 0,
+    "extra_attempts": 0,
+    "by_execution_mode": {
+      "manual": 1,
+      "process": 10
+    },
+    "measured_scripted_attempts": 9,
+    "total_adapter_elapsed_ms": 404.706
+  },
+  "artifact_audit": {
+    "verdict": "PASS",
+    "target_artifacts_present": 19,
+    "target_artifacts_missing": 0,
+    "unit_manifests": 11,
+    "harness_errors": 0,
+    "harness_warnings": 0,
+    "ledger_integrity_issues": 0,
+    "evidence_mode": "current"
+  },
+  "evaluation": {
+    "schema": "research-brief-scorecard.v1",
+    "verdict": "PASS",
+    "score": 100,
+    "pass_score": 80,
+    "core_papers": 12,
+    "unique_pointers": 6
+  },
+  "product_loop": {
+    "evidence_verdict": "PASS",
+    "artifact_index_present": 77,
+    "artifact_index_total": 77,
+    "required_evidence": "complete",
+    "improve_verdict": "PASS",
+    "open_repairs": 0
+  },
+  "historical_comparison": {
+    "schema": "run-audit-diff.v1",
+    "verdict": "PASS",
+    "before_completion_protocol": "unversioned",
+    "after_completion_protocol": "recoverable-provenance.v1",
+    "manifest_delta": 1,
+    "harness_issue_delta": -8,
+    "retry_unit_delta": -1,
+    "extra_attempt_delta": -1
+  },
+  "files": {
+    "GOAL.md": {
+      "sha256": "de42c87b90657c69cef886092af95e5b80bc100ac16a09cd08fca67e40498075"
+    },
+    "UNITS.csv": {
+      "sha256": "ecb824f11a5bc83ba9648e1d76421563f77e812b16fe12a82aea2b6e15f9e83a"
+    },
+    "papers/core_set.csv": {
+      "sha256": "1248d90263ee746b487bf1a3d3e909dd609a02732c2eb5d413c54e30b6c17913"
+    },
+    "SNAPSHOT.md": {
+      "sha256": "928b54a5452b59b4e2e14c9ae8791b04f6f3c40b39dc0fbdc2475c6f3d32d22e"
+    },
+    "BRIEF_SCORECARD.json": {
+      "sha256": "f1af9ae8e4521f0eb4fb07a6ceebf16ba0095aa42a8241dcb2a839fe40d3ed25"
+    },
+    "AUDIT_COMPARISON.md": {
+      "sha256": "e9272ae5f6c9b64f9669d2c3ac38410bc5b1a5f9a8d68e1927e08868bf2002a0"
+    }
+  },
+  "limitations": [
+    "synthetic source metadata and example.org links",
+    "retrieval was supplied as a deterministic fixture rather than executed online",
+    "single topic and single completed Run",
+    "no held-out evaluator or expert quality comparison",
+    "scorecard validates structure and pointer traceability, not scientific truth",
+    "adapter runtime is not model Token, provider latency, or cost telemetry",
+    "the Run was created from a dirty local checkout; exact Kernel and Skill hashes remain only in the complete ignored Workspace",
+    "not a reproducible archive of the complete local Workspace"
+  ]
+}

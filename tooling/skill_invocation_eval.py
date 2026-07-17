@@ -34,6 +34,8 @@ class InvocationCase:
     expected_primary: str
     allowed_support: tuple[str, ...]
     forbidden: tuple[str, ...]
+    split: str = "baseline"
+    tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -102,6 +104,8 @@ def load_invocation_corpus(path: Path, *, catalog: dict[str, SkillProfile]) -> t
         expected = str(raw_case.get("expected_primary") or "").strip()
         allowed = _string_tuple(raw_case.get("allowed_support"), field=f"cases[{index}].allowed_support", issues=issues)
         forbidden = _string_tuple(raw_case.get("forbidden"), field=f"cases[{index}].forbidden", issues=issues)
+        split = str(raw_case.get("split") or "baseline").strip()
+        tags = _string_tuple(raw_case.get("tags"), field=f"cases[{index}].tags", issues=issues)
 
         if not case_id:
             issues.append(f"cases[{index}].id must be non-empty")
@@ -110,6 +114,8 @@ def load_invocation_corpus(path: Path, *, catalog: dict[str, SkillProfile]) -> t
         seen_ids.add(case_id)
         if not prompt:
             issues.append(f"case `{case_id or index}` has an empty prompt")
+        if not split:
+            issues.append(f"case `{case_id or index}` has an empty split")
         if expected != NO_REPO_SKILL and expected not in catalog:
             issues.append(f"case `{case_id or index}` references unknown expected Skill `{expected}`")
         for skill in (*allowed, *forbidden):
@@ -130,6 +136,8 @@ def load_invocation_corpus(path: Path, *, catalog: dict[str, SkillProfile]) -> t
                 expected_primary=expected,
                 allowed_support=allowed,
                 forbidden=forbidden,
+                split=split,
+                tags=tags,
             )
         )
 
@@ -219,6 +227,8 @@ def build_invocation_evaluation(
         case_results.append(
             {
                 "case_id": case.id,
+                "split": case.split,
+                "tags": list(case.tags),
                 "expected_primary": case.expected_primary,
                 "observed_primary": observed_primary if prediction else "missing",
                 "selected_skills": list(selected),
@@ -237,47 +247,23 @@ def build_invocation_evaluation(
             }
         )
 
-    predicted_results = [item for item in case_results if item["observed_primary"] != "missing"]
-    total_cases = len(cases)
-    predictions_received = len(predicted_results)
-    primary_correct = sum(1 for item in case_results if item["primary_correct"])
-    forbidden_cases = sum(1 for item in case_results if item["forbidden_hits"])
-    unexpected_cases = sum(1 for item in case_results if item["unexpected_repo_skills"])
-    measured_input_tokens = [item["input_tokens"] for item in predicted_results if item["input_tokens"] is not None]
-    measured_output_tokens = [item["output_tokens"] for item in predicted_results if item["output_tokens"] is not None]
-    measured_latency = [item["latency_ms"] for item in predicted_results if item["latency_ms"] is not None]
-
-    if predictions_received == 0:
-        verdict = "UNSCORED"
-    elif predictions_received == total_cases and primary_correct == total_cases and forbidden_cases == 0 and unexpected_cases == 0:
-        verdict = "PASS"
-    else:
-        verdict = "ATTENTION"
+    summary = _summarize_case_results(case_results)
+    verdict = summary.pop("verdict")
+    splits = {
+        split: _summarize_case_results([item for item in case_results if item["split"] == split])
+        for split in sorted({item["split"] for item in case_results})
+    }
+    tags = {
+        tag: _summarize_case_results([item for item in case_results if tag in item["tags"]])
+        for tag in sorted({tag for item in case_results for tag in item["tags"]})
+    }
 
     return {
         "schema": EVALUATION_SCHEMA,
         "scope": scope,
         "verdict": verdict,
-        "summary": {
-            "corpus_cases": total_cases,
-            "predictions_received": predictions_received,
-            "coverage": _ratio(predictions_received, total_cases),
-            "primary_correct": primary_correct,
-            "primary_accuracy": _ratio(primary_correct, total_cases),
-            "forbidden_selection_cases": forbidden_cases,
-            "forbidden_selection_rate": _ratio(forbidden_cases, total_cases),
-            "unexpected_selection_cases": unexpected_cases,
-            "unexpected_selection_rate": _ratio(unexpected_cases, total_cases),
-            "mean_repo_selected_skills": _mean([len(item["repo_selected_skills"]) for item in predicted_results]),
-            "mean_selected_body_chars": _mean([item["selected_body_chars"] for item in predicted_results]),
-            "mean_skill_context_chars": _mean([item["skill_context_chars"] for item in predicted_results]),
-            "measured_input_token_cases": len(measured_input_tokens),
-            "mean_input_tokens": _mean(measured_input_tokens),
-            "measured_output_token_cases": len(measured_output_tokens),
-            "mean_output_tokens": _mean(measured_output_tokens),
-            "measured_latency_cases": len(measured_latency),
-            "mean_latency_ms": _mean(measured_latency),
-        },
+        "summary": summary,
+        "slices": {"splits": splits, "tags": tags},
         "catalog": {
             "repo_skills": len(catalog),
             "description_chars": catalog_description_chars,
@@ -320,11 +306,36 @@ def render_invocation_markdown(payload: dict[str, Any]) -> str:
         "",
         payload["measurement_note"],
         "",
-        "## Cases",
-        "",
-        "| Case | Expected | Observed | Correct | Forbidden | Unexpected | Skill context chars |",
-        "|---|---|---|---:|---|---|---:|",
     ]
+    slices = payload.get("slices") or {}
+    split_rows = slices.get("splits") or {}
+    tag_rows = slices.get("tags") or {}
+    if split_rows or tag_rows:
+        lines.extend(
+            [
+                "## Evaluation Slices",
+                "",
+                "| Kind | Slice | Cases | Predictions | Primary accuracy | Forbidden | Unexpected | Verdict |",
+                "|---|---|---:|---:|---:|---:|---:|---|",
+            ]
+        )
+        for kind, rows in (("split", split_rows), ("tag", tag_rows)):
+            for name, item in rows.items():
+                lines.append(
+                    f"| {kind} | {_escape_table(name)} | {item['corpus_cases']} | "
+                    f"{item['predictions_received']} | {_percent(item['primary_accuracy'])} | "
+                    f"{item['forbidden_selection_cases']} | {item['unexpected_selection_cases']} | "
+                    f"{item['verdict']} |"
+                )
+        lines.extend(["", "## Cases", ""])
+    else:
+        lines.extend(["## Cases", ""])
+    lines.extend(
+        [
+            "| Case | Expected | Observed | Correct | Forbidden | Unexpected | Skill context chars |",
+            "|---|---|---|---:|---|---|---:|",
+        ]
+    )
     for item in payload["cases"]:
         lines.append(
             "| "
@@ -411,6 +422,8 @@ def validate_invocation_evaluation(payload: dict[str, Any]) -> list[str]:
         issues.append("`summary` must be an object.")
     if not isinstance(payload.get("catalog"), dict):
         issues.append("`catalog` must be an object.")
+    if "slices" in payload and not isinstance(payload["slices"], dict):
+        issues.append("`slices` must be an object.")
     if not isinstance(payload.get("cases"), list):
         issues.append("`cases` must be an array.")
     return issues
@@ -461,6 +474,47 @@ def _optional_nonnegative_number(value: Any, field: str, line: int, issues: list
 
 def _ratio(numerator: int, denominator: int) -> float:
     return round(numerator / denominator, 6) if denominator else 0.0
+
+
+def _summarize_case_results(case_results: list[dict[str, Any]]) -> dict[str, Any]:
+    predicted = [item for item in case_results if item["observed_primary"] != "missing"]
+    total_cases = len(case_results)
+    predictions_received = len(predicted)
+    primary_correct = sum(1 for item in case_results if item["primary_correct"])
+    forbidden_cases = sum(1 for item in case_results if item["forbidden_hits"])
+    unexpected_cases = sum(1 for item in case_results if item["unexpected_repo_skills"])
+    measured_input_tokens = [item["input_tokens"] for item in predicted if item["input_tokens"] is not None]
+    measured_output_tokens = [item["output_tokens"] for item in predicted if item["output_tokens"] is not None]
+    measured_latency = [item["latency_ms"] for item in predicted if item["latency_ms"] is not None]
+
+    if predictions_received == 0:
+        verdict = "UNSCORED"
+    elif predictions_received == total_cases and primary_correct == total_cases and forbidden_cases == 0 and unexpected_cases == 0:
+        verdict = "PASS"
+    else:
+        verdict = "ATTENTION"
+
+    return {
+        "verdict": verdict,
+        "corpus_cases": total_cases,
+        "predictions_received": predictions_received,
+        "coverage": _ratio(predictions_received, total_cases),
+        "primary_correct": primary_correct,
+        "primary_accuracy": _ratio(primary_correct, total_cases),
+        "forbidden_selection_cases": forbidden_cases,
+        "forbidden_selection_rate": _ratio(forbidden_cases, total_cases),
+        "unexpected_selection_cases": unexpected_cases,
+        "unexpected_selection_rate": _ratio(unexpected_cases, total_cases),
+        "mean_repo_selected_skills": _mean([len(item["repo_selected_skills"]) for item in predicted]),
+        "mean_selected_body_chars": _mean([item["selected_body_chars"] for item in predicted]),
+        "mean_skill_context_chars": _mean([item["skill_context_chars"] for item in predicted]),
+        "measured_input_token_cases": len(measured_input_tokens),
+        "mean_input_tokens": _mean(measured_input_tokens),
+        "measured_output_token_cases": len(measured_output_tokens),
+        "mean_output_tokens": _mean(measured_output_tokens),
+        "measured_latency_cases": len(measured_latency),
+        "mean_latency_ms": _mean(measured_latency),
+    }
 
 
 def _mean(values: Iterable[int | float]) -> float | None:

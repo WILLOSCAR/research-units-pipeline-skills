@@ -1,0 +1,12 @@
+unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner
+U001,Initialize workspace and copy templates,META,workspace-init,,STATUS.md;CHECKPOINTS.md;UNITS.csv;DECISIONS.md;GOAL.md;PIPELINE.lock.md;output/QUALITY_GATE.md;output/RUN_ERRORS.md,workspace模板文件齐全（含 error sinks: QUALITY_GATE/RUN_ERRORS）,C0,DONE,,CODEX
+U002,Draft kickoff questions + seed queries,META,pipeline-router,GOAL.md,DECISIONS.md;queries.md,DECISIONS含C0问题块；queries.md 含非空关键词,C0,DONE,U001,CODEX
+U010,Run focused retrieval and save raw papers,RETRIEVE,arxiv-search,queries.md,papers/papers_raw.jsonl,papers_raw.jsonl 有足够覆盖（默认目标>=15条）,C1,DONE,U002,CODEX
+U020,Dedupe+rank and produce compact core set,CURATE,dedupe-rank,papers/papers_raw.jsonl,papers/papers_dedup.jsonl;papers/core_set.csv,core_set 默认5-15篇且重复率<2%,C1,DONE,U010,CODEX
+U030,Build taxonomy (2-level minimum),STRUCTURE,taxonomy-builder,papers/core_set.csv,outline/taxonomy.yml,taxonomy至少2层且节点带解释,C2,DONE,U020,CODEX
+U040,Build outline bullets (NO PROSE),STRUCTURE,outline-builder,outline/taxonomy.yml,outline/outline.yml,每小节≥3个bullet，且无长 prose,C2,DONE,U030,CODEX
+U042,Draft C2 review summary (scope+outline),META,pipeline-router,outline/taxonomy.yml;outline/outline.yml,DECISIONS.md,DECISIONS含C2 review摘要,C2,DONE,U040,CODEX
+U045,HUMAN approve C2 (scope+outline),META,human-checkpoint,DECISIONS.md,DECISIONS.md,勾选 DECISIONS.md 的 Approve C2,C2,DONE,U042,HUMAN
+U050,Write 1-page snapshot (bullet-first),WRITE,snapshot-writer,outline/outline.yml;papers/core_set.csv;DECISIONS.md,output/SNAPSHOT.md,1页以内；bullets-first；每个非平凡观点附 1-2 个 paper pointers；避免模板旁白句式,C3,DONE,U045,CODEX
+U055,Score and self-loop snapshot to PASS (fix-on-fail),QA,deliverable-selfloop,output/SNAPSHOT.md;outline/outline.yml;papers/core_set.csv,output/SNAPSHOT.md;output/BRIEF_SCORECARD.md;output/BRIEF_SCORECARD.json;output/DELIVERABLE_SELFLOOP_TODO.md,BRIEF_SCORECARD 为 PASS；snapshot 四段完整且所有 paper pointers 可解析,C3,DONE,U050,CODEX
+U060,Contract audit (artifact contract + target_artifacts),QA,artifact-contract-auditor,UNITS.csv;PIPELINE.lock.md,output/CONTRACT_REPORT.md,CONTRACT_REPORT.md 状态为 PASS（且无 DONE 输出缺失；target_artifacts 缺失=0）,C3,DONE,U055,CODEX

@@ -711,6 +711,9 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
                 if not isinstance(record, dict):
                     issues.append(f"`unit_output_manifests.records[{idx}]` must be an object")
 
+    if "attempts" in payload:
+        _validate_attempt_summary(payload.get("attempts"), issues=issues)
+
     integrity = payload.get("ledger_integrity")
     if integrity is not None:
         if not isinstance(integrity, dict):
@@ -726,6 +729,8 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
                 issues.append("`ledger_integrity.ledger_record_counts` must be an object")
             if not isinstance(integrity.get("issues"), list):
                 issues.append("`ledger_integrity.issues` must be a list")
+            if "compatibility" in integrity:
+                _validate_ledger_compatibility(integrity.get("compatibility"), issues=issues)
 
     _validate_issue_records(payload, issues=issues)
     _validate_recent_reports(payload, issues=issues)
@@ -760,6 +765,8 @@ def validate_run_audit_diff_payload(payload: dict[str, Any]) -> list[str]:
     _validate_int_mapping(payload, key="unit_status_delta", issues=issues)
     _validate_count_delta(payload, key="manifest_counts", issues=issues)
     _validate_count_delta(payload, key="harness_issue_counts", issues=issues)
+    if "attempt_comparison" in payload:
+        _validate_attempt_comparison(payload.get("attempt_comparison"), issues=issues)
 
     changes = _validate_list_field(payload, key="target_artifact_changes", issues=issues)
     if changes is not None:
@@ -1023,6 +1030,130 @@ def _validate_run_state_record(record: dict[str, Any], *, field_path: str, issue
             issues.append(f"`{field_path}.{key}` must be an integer")
 
 
+def _validate_attempt_summary(value: Any, *, issues: list[str]) -> None:
+    if not isinstance(value, dict):
+        issues.append("`attempts` must be an object")
+        return
+    for key in ("started", "finished", "open", "retry_units", "extra_attempts"):
+        if not isinstance(value.get(key), int):
+            issues.append(f"`attempts.{key}` must be an integer")
+    for key in ("by_status", "by_execution_mode"):
+        mapping = value.get(key)
+        if not isinstance(mapping, dict):
+            issues.append(f"`attempts.{key}` must be an object")
+            continue
+        for item_key, item_value in mapping.items():
+            if not isinstance(item_key, str):
+                issues.append(f"`attempts.{key}` keys must be strings")
+            if not isinstance(item_value, int):
+                issues.append(f"`attempts.{key}.{item_key}` must be an integer")
+
+    metrics = value.get("process_metrics")
+    if not isinstance(metrics, dict):
+        issues.append("`attempts.process_metrics` must be an object")
+        return
+    for key in ("measured_attempts", "stdout_chars", "stderr_chars"):
+        if not isinstance(metrics.get(key), int):
+            issues.append(f"`attempts.process_metrics.{key}` must be an integer")
+    total = metrics.get("total_elapsed_ms")
+    if not isinstance(total, (int, float)) or isinstance(total, bool):
+        issues.append("`attempts.process_metrics.total_elapsed_ms` must be a number")
+    for key in ("mean_elapsed_ms", "max_elapsed_ms"):
+        item = metrics.get(key)
+        if item is not None and (
+            not isinstance(item, (int, float))
+            or isinstance(item, bool)
+        ):
+            issues.append(f"`attempts.process_metrics.{key}` must be a number or null")
+
+
+def _validate_attempt_comparison(value: Any, *, issues: list[str]) -> None:
+    if not isinstance(value, dict):
+        issues.append("`attempt_comparison` must be an object")
+        return
+    if not isinstance(value.get("available"), bool):
+        issues.append("`attempt_comparison.available` must be a boolean")
+    if not isinstance(value.get("note"), str):
+        issues.append("`attempt_comparison.note` must be a string")
+
+    counters = value.get("counters")
+    if not isinstance(counters, dict):
+        issues.append("`attempt_comparison.counters` must be an object")
+    else:
+        for key, record in counters.items():
+            if key not in {"started", "finished", "open", "retry_units", "extra_attempts"}:
+                issues.append(f"`attempt_comparison.counters.{key}` is not a supported counter")
+                continue
+            _validate_numeric_delta(
+                record,
+                field_path=f"attempt_comparison.counters.{key}",
+                issues=issues,
+                integer_only=True,
+            )
+
+    metrics = value.get("process_metrics")
+    if not isinstance(metrics, dict):
+        issues.append("`attempt_comparison.process_metrics` must be an object")
+    else:
+        integer_metrics = {"measured_attempts", "stdout_chars", "stderr_chars"}
+        number_metrics = {"total_elapsed_ms", "mean_elapsed_ms", "max_elapsed_ms"}
+        for key, record in metrics.items():
+            if key not in integer_metrics | number_metrics:
+                issues.append(f"`attempt_comparison.process_metrics.{key}` is not a supported metric")
+                continue
+            _validate_numeric_delta(
+                record,
+                field_path=f"attempt_comparison.process_metrics.{key}",
+                issues=issues,
+                integer_only=key in integer_metrics,
+            )
+
+
+def _validate_ledger_compatibility(value: Any, *, issues: list[str]) -> None:
+    if not isinstance(value, dict):
+        issues.append("`ledger_integrity.compatibility` must be an object")
+        return
+    for key in (
+        "mode",
+        "recorded_completion_protocol",
+        "current_completion_protocol",
+        "interpretation",
+    ):
+        if not isinstance(value.get(key), str):
+            issues.append(f"`ledger_integrity.compatibility.{key}` must be a string")
+    codes = value.get("legacy_evidence_gap_codes")
+    if not isinstance(codes, list):
+        issues.append("`ledger_integrity.compatibility.legacy_evidence_gap_codes` must be a list")
+    else:
+        for idx, code in enumerate(codes):
+            if not isinstance(code, str):
+                issues.append(
+                    f"`ledger_integrity.compatibility.legacy_evidence_gap_codes[{idx}]` must be a string"
+                )
+
+
+def _validate_numeric_delta(
+    value: Any,
+    *,
+    field_path: str,
+    issues: list[str],
+    integer_only: bool,
+) -> None:
+    if not isinstance(value, dict):
+        issues.append(f"`{field_path}` must be an object")
+        return
+    for key in ("before", "after", "delta"):
+        item = value.get(key)
+        if item is None:
+            continue
+        valid = isinstance(item, int) and not isinstance(item, bool)
+        if not integer_only:
+            valid = isinstance(item, (int, float)) and not isinstance(item, bool)
+        if not valid:
+            expected = "an integer or null" if integer_only else "a number or null"
+            issues.append(f"`{field_path}.{key}` must be {expected}")
+
+
 def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
     snapshot = _collect_workspace_inspection_snapshot(workspace=workspace, repo_root=repo_root)
     return _build_run_audit_payload_from_snapshot(snapshot)
@@ -1062,6 +1193,7 @@ def _build_run_audit_payload_from_snapshot(
             "latest": _manifest_summary(manifests[-1]) if manifests else {},
             "records": [_manifest_summary(record) for record in manifests],
         },
+        "attempts": dict(snapshot.ledger_integrity.get("attempt_summary") or {}),
         "ledger_integrity": snapshot.ledger_integrity,
         "harness_issues": [_issue_record(issue) for issue in issues],
         "remediation_summary": {category: remediation_counts[category] for category in sorted(remediation_counts)},
@@ -1098,6 +1230,7 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
                 f"- Goal ID: `{identity.get('goal_id')}`",
                 f"- Durable state: `{identity.get('state') or 'unknown'}`",
                 f"- Harness revision: `{identity.get('harness_revision') or 'unavailable'}`",
+                f"- Completion protocol: `{identity.get('completion_protocol') or 'unversioned'}`",
             ]
         )
 
@@ -1124,6 +1257,42 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
         )
     else:
         lines.append("- Run state unavailable")
+
+    attempts = payload.get("attempts") or {}
+    lines.extend(["", "## Attempt execution"])
+    if not attempts or not attempts.get("started"):
+        lines.append("- No Attempts recorded")
+    else:
+        lines.append(f"- Started: {attempts.get('started', 0)}")
+        lines.append(f"- Finished: {attempts.get('finished', 0)}")
+        lines.append(f"- Open: {attempts.get('open', 0)}")
+        lines.append(
+            f"- Retries: {attempts.get('extra_attempts', 0)} extra Attempts "
+            f"across {attempts.get('retry_units', 0)} Units"
+        )
+        status_text = ", ".join(
+            f"{status}={count}" for status, count in (attempts.get("by_status") or {}).items()
+        )
+        mode_text = ", ".join(
+            f"{mode}={count}" for mode, count in (attempts.get("by_execution_mode") or {}).items()
+        )
+        lines.append(f"- Terminal status: {status_text or 'none'}")
+        lines.append(f"- Execution mode: {mode_text or 'unknown'}")
+        metrics = attempts.get("process_metrics") or {}
+        measured = int(metrics.get("measured_attempts") or 0)
+        if measured:
+            lines.append(
+                "- Measured adapter runtime: "
+                f"{measured} Attempts, {metrics.get('total_elapsed_ms')} ms total, "
+                f"{metrics.get('mean_elapsed_ms')} ms mean, {metrics.get('max_elapsed_ms')} ms max"
+            )
+            lines.append(
+                "- Captured process output: "
+                f"{metrics.get('stdout_chars', 0)} stdout chars, "
+                f"{metrics.get('stderr_chars', 0)} stderr chars"
+            )
+        else:
+            lines.append("- Measured adapter runtime: unavailable for legacy or manual Attempts")
 
     lines.extend(["", "## Unit status"])
     unit_status = payload.get("unit_status") or {}
@@ -1171,6 +1340,18 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
         lines.append(f"- Integrity issues: {integrity.get('issue_count', 0)}")
         for name, count in (integrity.get("ledger_record_counts") or {}).items():
             lines.append(f"- {name}: {count}")
+        compatibility = integrity.get("compatibility") or {}
+        if compatibility:
+            lines.append(f"- Evidence mode: `{compatibility.get('mode') or 'unknown'}`")
+            lines.append(
+                "- Recorded completion protocol: "
+                f"`{compatibility.get('recorded_completion_protocol') or 'unversioned'}`"
+            )
+            legacy_codes = compatibility.get("legacy_evidence_gap_codes") or []
+            if legacy_codes:
+                formatted_codes = ", ".join(f"`{code}`" for code in legacy_codes)
+                lines.append(f"- Compatibility-sensitive evidence gaps: {formatted_codes}")
+            lines.append(f"- Interpretation: {compatibility.get('interpretation')}")
 
     lines.extend(["", "## Harness issues"])
     issues = payload.get("harness_issues") or []
@@ -1240,6 +1421,7 @@ def build_run_audit_diff_payload(
     after_manifest_count = _manifest_count(after_payload)
     before_issue_count = len(before_payload.get("harness_issues") or [])
     after_issue_count = len(after_payload.get("harness_issues") or [])
+    attempt_comparison = _attempt_comparison(before_payload, after_payload)
 
     comparison_issues: list[str] = []
     if before_payload.get("pipeline") != after_payload.get("pipeline"):
@@ -1283,6 +1465,7 @@ def build_run_audit_diff_payload(
             "after": after_issue_count,
             "delta": after_issue_count - before_issue_count,
         },
+        "attempt_comparison": attempt_comparison,
         "comparison_issues": comparison_issues,
         "verdict": verdict,
         "exit_code": exit_code,
@@ -1331,6 +1514,39 @@ def render_run_audit_diff_report(payload: dict[str, Any]) -> str:
             _format_count_delta("Harness issues", issue_counts),
         ]
     )
+
+    lines.extend(["", "## Attempt changes"])
+    attempt_comparison = payload.get("attempt_comparison")
+    if not isinstance(attempt_comparison, dict) or not attempt_comparison.get("available"):
+        note = (
+            attempt_comparison.get("note")
+            if isinstance(attempt_comparison, dict)
+            else "One or both audits predate Attempt summaries."
+        )
+        lines.append(f"- Unavailable: {note}")
+    else:
+        counters = attempt_comparison.get("counters") or {}
+        metrics = attempt_comparison.get("process_metrics") or {}
+        for key, label in (
+            ("started", "Started Attempts"),
+            ("finished", "Finished Attempts"),
+            ("open", "Open Attempts"),
+            ("retry_units", "Units with retries"),
+            ("extra_attempts", "Extra Attempts"),
+        ):
+            if key in counters:
+                lines.append(_format_numeric_delta(label, counters[key]))
+        for key, label in (
+            ("measured_attempts", "Measured scripted Attempts"),
+            ("total_elapsed_ms", "Total adapter elapsed ms"),
+            ("mean_elapsed_ms", "Mean adapter elapsed ms"),
+            ("max_elapsed_ms", "Max adapter elapsed ms"),
+            ("stdout_chars", "Captured stdout characters"),
+            ("stderr_chars", "Captured stderr characters"),
+        ):
+            if key in metrics:
+                lines.append(_format_numeric_delta(label, metrics[key]))
+        lines.append(f"- Interpretation: {attempt_comparison.get('note')}")
 
     lines.extend(["", "## Comparison issues"])
     comparison_issues = payload.get("comparison_issues") or []
@@ -2369,10 +2585,93 @@ def _manifest_count(payload: dict[str, Any]) -> int:
     return count if isinstance(count, int) else 0
 
 
+def _attempt_comparison(
+    before_payload: dict[str, Any],
+    after_payload: dict[str, Any],
+) -> dict[str, Any]:
+    before = before_payload.get("attempts")
+    after = after_payload.get("attempts")
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return {
+            "available": False,
+            "counters": {},
+            "process_metrics": {},
+            "note": "One or both audits predate Attempt summaries.",
+        }
+
+    counter_keys = ("started", "finished", "open", "retry_units", "extra_attempts")
+    before_metrics = before.get("process_metrics")
+    after_metrics = after.get("process_metrics")
+    if not isinstance(before_metrics, dict) or not isinstance(after_metrics, dict):
+        return {
+            "available": False,
+            "counters": {},
+            "process_metrics": {},
+            "note": "One or both audits lack process metrics.",
+        }
+
+    counters = {
+        key: _numeric_delta(before.get(key), after.get(key), integer_only=True)
+        for key in counter_keys
+    }
+    metric_keys = (
+        "measured_attempts",
+        "total_elapsed_ms",
+        "mean_elapsed_ms",
+        "max_elapsed_ms",
+        "stdout_chars",
+        "stderr_chars",
+    )
+    process_metrics = {
+        key: _numeric_delta(
+            before_metrics.get(key),
+            after_metrics.get(key),
+            integer_only=key in {"measured_attempts", "stdout_chars", "stderr_chars"},
+        )
+        for key in metric_keys
+    }
+    return {
+        "available": True,
+        "counters": counters,
+        "process_metrics": process_metrics,
+        "note": "Descriptive evidence only; Attempt and runtime deltas do not affect the diff verdict.",
+    }
+
+
+def _numeric_delta(before: Any, after: Any, *, integer_only: bool) -> dict[str, int | float | None]:
+    def normalize(value: Any) -> int | float | None:
+        if isinstance(value, bool):
+            return None
+        if integer_only:
+            return value if isinstance(value, int) else None
+        return value if isinstance(value, (int, float)) else None
+
+    before_value = normalize(before)
+    after_value = normalize(after)
+    delta = None
+    if before_value is not None and after_value is not None:
+        delta = after_value - before_value
+    return {
+        "before": before_value,
+        "after": after_value,
+        "delta": delta,
+    }
+
+
 def _format_count_delta(label: str, counts: dict[str, Any]) -> str:
     before = int(counts.get("before") or 0)
     after = int(counts.get("after") or 0)
     delta = int(counts.get("delta") or 0)
+    sign = "+" if delta > 0 else ""
+    return f"- {label}: {before} -> {after} ({sign}{delta})"
+
+
+def _format_numeric_delta(label: str, values: dict[str, Any]) -> str:
+    before = values.get("before")
+    after = values.get("after")
+    delta = values.get("delta")
+    if before is None or after is None or delta is None:
+        return f"- {label}: unavailable"
     sign = "+" if delta > 0 else ""
     return f"- {label}: {before} -> {after} ({sign}{delta})"
 

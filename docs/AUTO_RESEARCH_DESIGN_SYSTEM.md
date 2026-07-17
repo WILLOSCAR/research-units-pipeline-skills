@@ -262,6 +262,14 @@ Manual Attempts are not treated as stale merely because the command that opened
 them has exited. Earlier Attempts are preserved rather than overwritten by a
 later result.
 
+Finished scripted Attempts may carry an additive `execution` record containing
+the adapter path, measured subprocess time, captured stdout/stderr character
+counts, and the durable log path when one exists. Run Audit aggregates these
+records with retry, terminal-status, and execution-mode counts. This is local
+adapter telemetry, not a model Token estimate: manual and legacy Attempts remain
+valid without it, and model/provider metrics stay nullable until measured by an
+appropriate runtime.
+
 Completion is a recoverable provenance transaction rather than a status-cell
 update. The Harness first validates outputs, mandatory Workflow invariants, and
 any declared scorecard. It then writes a `PREPARED` Manifest, records the
@@ -273,6 +281,13 @@ process stops after writing the PREPARED Manifest but before appending its
 prepared Event, reconciliation first reconstructs that Event only when Run,
 Unit, latest Attempt, Skill, declared outputs, and hashes all agree. An older
 Attempt's prepared evidence cannot finalize over a newer Attempt.
+
+The Run lock records this contract as
+`protocols.completion = recoverable-provenance.v1`. An older lock without that
+marker is audited as `legacy_unversioned`: compatibility-sensitive gaps are
+identified for interpretation, but remain errors. Run Audit Diff can compare
+retry and measured adapter-runtime summaries when both audits expose them; it
+does not use those descriptive deltas as a quality verdict.
 
 ## 8. Evidence And Artifact Provenance
 
@@ -416,7 +431,7 @@ candidate system must enforce it through process and filesystem permissions.
 |---|---|---|
 | Workflow contracts | Seven executable pipelines and Unit templates | High structural maturity |
 | Project Skills | Broad research, review, tutorial, writing, and control capability | Uneven by Workflow |
-| Completion integrity | Shared two-phase Completion Protocol for scripted, manual, and approved Units | First local implementation; key paths tested |
+| Completion integrity | Shared, lock-versioned two-phase Completion Protocol for scripted, manual, and approved Units | First local implementation; key paths tested |
 | Run recovery | Durable IDs, Events, Attempts, prepared-transaction recovery, and stale-state interruption records | First local implementation; key crash windows tested |
 | Workspace serialization | Non-blocking process-scoped lock across all local Workspace commands; owner-crash release tested | First local implementation; distributed leases absent |
 | Inspection composition | Standalone Doctor uses a shallow snapshot; composed Doctor, Audit, Improvement, and Artifact index share one deep snapshot | Landed; Artifact hashing retains a distinct pass |
@@ -426,7 +441,7 @@ candidate system must enforce it through process and filesystem permissions.
 | Mechanical failure diagnosis | Doctor, errors, failure ledger, repair map | Medium-high |
 | Semantic evaluation | Auto Review, Research Brief, Research Idea, and Evidence Review scorecards feed one Evaluation ledger; no diverse scored corpus | Medium |
 | Auto Review proof | Realistic fixture completes scorecard failure, repair, rerun, audit, and pack | First fixture proof; real-manuscript/expert comparison open |
-| Research Brief proof | Realistic fixture covers compact defaults plus pointer failure, repair, and rerun | Second fixture proof |
+| Research Brief proof | [Versioned 11-Unit Harness snapshot](../examples/research-brief-harness-proof/README.md) plus pointer failure, repair, and rerun coverage | Second fixture proof; real-source repetition open |
 | Research Idea proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | Third fixture proof |
 | Evidence Review proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | Fourth fixture proof |
 | Source Tutorial delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | Compiled fixture proof |

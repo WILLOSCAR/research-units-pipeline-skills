@@ -3,91 +3,109 @@ scope: harness-lifecycle
 cases:
   - id: route-unbound-goal
     prompt: I know the deliverable I want, but no Workflow has been selected. Choose one and record the decision without running it.
+    tags: [lifecycle, routing]
     expected_primary: pipeline-router
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: route-review-vs-survey
     prompt: Decide whether this request belongs to paper-review or arxiv-survey, then stop after creating the Pipeline lock.
+    tags: [lifecycle, routing]
     expected_primary: pipeline-router
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: route-missing-format
     prompt: The research Goal is clear, but the requested final format could change the Workflow. Ask the minimum routing question and wait.
+    tags: [lifecycle, routing]
     expected_primary: pipeline-router
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: initialize-only
     prompt: Create the missing files for workspaces/rag-notes, but do not choose a Workflow or execute any Unit.
+    tags: [lifecycle, workspace]
     expected_primary: workspace-init
     allowed_support: []
     forbidden: [pipeline-router, research-pipeline-runner]
   - id: initialize-preserve-existing
     prompt: Initialize an empty research Workspace and preserve every file that already exists.
+    tags: [lifecycle, workspace]
     expected_primary: workspace-init
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: run-end-to-end-survey
     prompt: Start an end-to-end literature survey from this Goal and continue until a checkpoint or diagnosed failure stops the Run.
+    tags: [lifecycle, orchestration]
     expected_primary: research-pipeline-runner
     allowed_support: [pipeline-router, workspace-init]
     forbidden: []
   - id: resume-existing-run
     prompt: Continue the existing Workspace from its durable state and keep executing eligible Units until the next stop line.
+    tags: [lifecycle, orchestration]
     expected_primary: research-pipeline-runner
     allowed_support: []
     forbidden: [workspace-init]
   - id: run-paper-review
     prompt: Run the complete paper-review Workflow for this manuscript, including its scorecard and final Artifact audit.
+    tags: [lifecycle, orchestration]
     expected_primary: research-pipeline-runner
     allowed_support: [pipeline-router, workspace-init]
     forbidden: []
   - id: execute-next-unit-only
     prompt: Execute exactly the next eligible TODO Unit in this Workspace and stop before starting another one.
+    tags: [lifecycle, unit]
     expected_primary: unit-executor
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: execute-named-unit
     prompt: Run U042 only, verify its acceptance rule, commit its Attempt, and then stop.
+    tags: [lifecycle, unit]
     expected_primary: unit-executor
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: execute-manual-repair
     prompt: Re-run one reopened Unit after I repaired its inputs; preserve the earlier Attempt history.
+    tags: [lifecycle, unit]
     expected_primary: unit-executor
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: approve-checkpoint
     prompt: I reviewed the C2 artifacts. Record my approval and do not execute downstream semantic work.
+    tags: [lifecycle, human]
     expected_primary: human-checkpoint
     allowed_support: []
     forbidden: [research-pipeline-runner, unit-executor]
   - id: approve-with-constraints
     prompt: Approve C1 after recording the scope constraints I supplied, keeping the human Decision auditable.
+    tags: [lifecycle, human]
     expected_primary: human-checkpoint
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: audit-final-file-coverage
     prompt: Before sharing this Workspace, check whether every DONE Unit output and every final Pipeline target file exists.
+    tags: [lifecycle, artifact]
     expected_primary: artifact-contract-auditor
     allowed_support: []
     forbidden: [pipeline-auditor]
   - id: audit-midrun-file-coverage
     prompt: Produce a mid-Run snapshot of missing declared files without treating unfinished final targets as failures.
+    tags: [lifecycle, artifact]
     expected_primary: artifact-contract-auditor
     allowed_support: []
     forbidden: [pipeline-auditor]
   - id: audit-contract-report
     prompt: Regenerate output/CONTRACT_REPORT.md from the locked Pipeline and current UNITS.csv.
+    tags: [lifecycle, artifact]
     expected_primary: artifact-contract-auditor
     allowed_support: []
     forbidden: [pipeline-auditor]
   - id: deep-provenance-audit
     prompt: Verify Attempt pairs, Manifest identity, Artifact hashes, Decisions, Failures, and Evaluation ledger consistency.
+    tags: [boundary, non-repository]
     expected_primary: none
     allowed_support: []
     forbidden: [artifact-contract-auditor]
   - id: repository-architecture-refactor
     prompt: Refactor the architecture of this repository and redesign its Python module boundaries.
+    tags: [boundary, non-repository]
     expected_primary: none
     allowed_support: []
     forbidden:
@@ -99,16 +117,104 @@ cases:
       - workspace-init
   - id: semantic-arxiv-search
     prompt: Search arXiv for retrieval-augmented generation papers and write papers/papers_raw.jsonl only.
+    tags: [semantic, retrieval]
     expected_primary: arxiv-search
     allowed_support: []
     forbidden: [research-pipeline-runner]
   - id: semantic-subsection-writing
     prompt: Write one approved H3 subsection from its evidence pack without advancing any other Unit.
+    tags: [semantic, writing]
     expected_primary: subsection-writer
     allowed_support: []
     forbidden: [research-pipeline-runner, unit-executor]
   - id: semantic-survey-audit
     prompt: Audit the completed survey draft for citation health, section coverage, placeholders, and repeated template language.
+    tags: [semantic, quality]
     expected_primary: pipeline-auditor
     allowed_support: []
     forbidden: [artifact-contract-auditor]
+
+  - id: challenge-router-before-execution
+    split: challenge
+    tags: [lifecycle, routing, ambiguity]
+    prompt: Do not start research yet. I have not decided between a source tutorial and a research brief; choose the Workflow, record it, and stop.
+    expected_primary: pipeline-router
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: challenge-router-lexical-conflict
+    split: challenge
+    tags: [lifecycle, routing, lexical-trap]
+    prompt: My notes repeatedly say paper review, but the deliverable I actually want is a literature survey. Resolve only that Workflow choice.
+    expected_primary: pipeline-router
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: challenge-initialize-with-run-word
+    split: challenge
+    tags: [lifecycle, workspace, lexical-trap]
+    prompt: Set up workspaces/fresh-run from the repository templates. Do not select a Workflow, retrieve sources, or execute anything.
+    expected_primary: workspace-init
+    allowed_support: []
+    forbidden: [pipeline-router, research-pipeline-runner]
+  - id: challenge-casual-resume
+    split: challenge
+    tags: [lifecycle, orchestration, colloquial]
+    prompt: Pick up the existing research run where it left off and keep going until it needs me or hits a real failure.
+    expected_primary: research-pipeline-runner
+    allowed_support: []
+    forbidden: [workspace-init]
+  - id: challenge-single-unit-casual
+    split: challenge
+    tags: [lifecycle, unit, colloquial]
+    prompt: Just do U017 and stop. Do not continue the rest of the Workflow even if that Unit succeeds.
+    expected_primary: unit-executor
+    allowed_support: []
+    forbidden: [research-pipeline-runner]
+  - id: challenge-approval-not-execution
+    split: challenge
+    tags: [lifecycle, human, colloquial]
+    prompt: C1 looks good. Log my approval with the constraint that blogs stay out of scope, then wait for me.
+    expected_primary: human-checkpoint
+    allowed_support: []
+    forbidden: [research-pipeline-runner, unit-executor]
+  - id: challenge-artifact-not-prose-audit
+    split: challenge
+    tags: [lifecycle, artifact, ambiguity]
+    prompt: I do not want a prose-quality review. Only report which declared outputs are missing from DONE Units and final Pipeline targets.
+    expected_primary: artifact-contract-auditor
+    allowed_support: []
+    forbidden: [pipeline-auditor]
+  - id: challenge-prose-not-artifact-audit
+    split: challenge
+    tags: [semantic, quality, ambiguity]
+    prompt: All declared files exist. Now inspect the survey for weak citation coverage, empty sections, placeholders, and repetitive writing.
+    expected_primary: pipeline-auditor
+    allowed_support: []
+    forbidden: [artifact-contract-auditor]
+  - id: challenge-arxiv-only-colloquial
+    split: challenge
+    tags: [semantic, retrieval, colloquial]
+    prompt: Give me raw arXiv search JSONL for human-in-the-loop RAG. No outline, no survey draft, and no end-to-end run.
+    expected_primary: arxiv-search
+    allowed_support: []
+    forbidden: [pipeline-router, research-pipeline-runner]
+  - id: challenge-subsection-only-colloquial
+    split: challenge
+    tags: [semantic, writing, colloquial]
+    prompt: Draft only approved section 3.2 from its context pack. Do not advance run state or execute another Unit.
+    expected_primary: subsection-writer
+    allowed_support: []
+    forbidden: [research-pipeline-runner, unit-executor]
+  - id: challenge-code-refactor-name-trap
+    split: challenge
+    tags: [boundary, non-repository, lexical-trap]
+    prompt: The pipeline router Python module is hard to maintain. Refactor its architecture and tests as ordinary codebase work.
+    expected_primary: none
+    allowed_support: []
+    forbidden: [pipeline-router, research-pipeline-runner]
+  - id: challenge-deep-audit-contract-trap
+    split: challenge
+    tags: [boundary, non-repository, lexical-trap]
+    prompt: Audit ledger consistency, Attempt pairs, Event ordering, Manifests, and hashes; do not regenerate CONTRACT_REPORT.md.
+    expected_primary: none
+    allowed_support: []
+    forbidden: [artifact-contract-auditor, pipeline-auditor]

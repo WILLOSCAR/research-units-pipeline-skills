@@ -61,7 +61,10 @@ def test_invocation_corpus_covers_lifecycle_and_semantic_boundaries() -> None:
 
     assert scope == "harness-lifecycle"
     assert len(catalog) == 108
-    assert len(cases) == 21
+    assert len(cases) == 33
+    assert sum(case.split == "baseline" for case in cases) == 21
+    assert sum(case.split == "challenge" for case in cases) == 12
+    assert all(case.tags for case in cases)
     assert {case.expected_primary for case in cases} >= {
         "artifact-contract-auditor",
         "human-checkpoint",
@@ -97,9 +100,15 @@ def test_perfect_predictions_pass_and_preserve_measured_context(tmp_path: Path) 
     assert payload["summary"]["measured_input_token_cases"] == len(cases)
     assert payload["summary"]["measured_output_token_cases"] == len(cases)
     assert payload["summary"]["measured_latency_cases"] == len(cases)
+    assert payload["slices"]["splits"]["baseline"]["verdict"] == "PASS"
+    assert payload["slices"]["splits"]["challenge"]["verdict"] == "PASS"
+    assert payload["slices"]["tags"]["lexical-trap"]["primary_accuracy"] == 1.0
     assert payload["catalog"]["description_chars"] > 0
     assert payload["catalog"]["over_budget_descriptions"] > 0
     assert validate_invocation_evaluation(payload) == []
+    legacy_payload = dict(payload)
+    legacy_payload.pop("slices")
+    assert validate_invocation_evaluation(legacy_payload) == []
     assert "external-codebase-skill" in {
         skill for item in payload["cases"] for skill in item["external_selected_skills"]
     }
@@ -134,6 +143,30 @@ def test_forbidden_lifecycle_confusions_are_scored(tmp_path: Path) -> None:
     assert "artifact-contract-auditor" in markdown
 
 
+def test_slice_scores_isolate_challenge_failure(tmp_path: Path) -> None:
+    catalog, scope, cases = _catalog_and_cases()
+    predictions_path = tmp_path / "predictions.jsonl"
+    _write_predictions(
+        predictions_path,
+        cases,
+        replacements={"challenge-code-refactor-name-trap": ["pipeline-router"]},
+    )
+    predictions = load_invocation_predictions(predictions_path, case_ids={case.id for case in cases})
+
+    payload = build_invocation_evaluation(
+        scope=scope,
+        cases=cases,
+        predictions=predictions,
+        catalog=catalog,
+    )
+
+    assert payload["verdict"] == "ATTENTION"
+    assert payload["slices"]["splits"]["baseline"]["verdict"] == "PASS"
+    assert payload["slices"]["splits"]["challenge"]["verdict"] == "ATTENTION"
+    assert payload["slices"]["tags"]["lexical-trap"]["forbidden_selection_cases"] == 1
+    assert "| split | challenge |" in render_invocation_markdown(payload)
+
+
 def test_prediction_template_is_model_neutral_jsonl() -> None:
     _, _, cases = _catalog_and_cases()
     records = [json.loads(line) for line in render_prediction_template(cases).splitlines()]
@@ -156,6 +189,8 @@ def test_candidate_pack_withholds_gold_labels() -> None:
     assert "expected_primary" not in serialized
     assert "allowed_support" not in serialized
     assert "forbidden" not in serialized
+    assert '"split"' not in serialized
+    assert '"tags"' not in serialized
 
 
 def test_corpus_rejects_unknown_repository_skill(tmp_path: Path) -> None:

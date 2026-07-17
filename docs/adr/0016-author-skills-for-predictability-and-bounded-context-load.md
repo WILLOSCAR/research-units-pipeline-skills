@@ -60,13 +60,16 @@ repository quality validator accepts compact invocation pointers and checks
 helper discoverability instead of requiring boilerplate CLI headings or
 repeated input paths.
 
-The invocation evaluator provides a 21-case lifecycle and semantic-boundary
-corpus plus a reproducible 108-Skill description-load baseline. A blinded
-GPT-5.6 Pro run on 2026-07-16 scored `PASS`: 21/21 primary selections, no
-forbidden selections, and no unexpected repository Skills. The run is evidence
-for this corpus and model session, not proof across models or unseen prompts.
-Token usage remains unmeasured because the browser run did not expose it; the
-evaluator does not convert characters into estimated tokens.
+The invocation evaluator provides a 33-case corpus plus a reproducible
+108-Skill description-load baseline. It separates a 21-case baseline from a
+12-case challenge split covering colloquial requests, adjacent-Skill ambiguity,
+and lexical traps; diagnostic splits and tags are withheld from the candidate
+pack. A fresh blinded GPT-5.6 Pro run on 2026-07-17 scored `PASS` on both
+splits: 33/33 primary selections, no forbidden selections, and no unexpected
+repository Skills. The result is evidence for this corpus and model session,
+not proof across models or unseen prompts. Token usage remains unmeasured
+because the browser run did not expose it; the evaluator does not convert
+characters into estimated tokens.
 
 The rest of the Skill catalog is not automatically rewritten. Each candidate
 still needs a behavior-preserving review because a short Skill can be

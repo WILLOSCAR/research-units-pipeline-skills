@@ -9,7 +9,13 @@ from pathlib import Path
 import pytest
 
 from tooling.executor import run_one_unit
-from tooling.harness import build_improvement_payload, build_run_audit_payload, validate_improvement_payload
+from tooling.harness import (
+    build_improvement_payload,
+    build_run_audit_payload,
+    render_run_audit_report,
+    validate_improvement_payload,
+    validate_run_audit_payload,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -113,6 +119,7 @@ def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None
     assert goal["constraints"] == {}
     assert goal["success_criteria"]["required_artifacts"] == goal["target_artifacts"]
     assert lock["schema"] == "harness-lock.v1"
+    assert lock["protocols"]["completion"] == "recoverable-provenance.v1"
     assert len(lock["repository"]["revision"]) == 40
     assert lock["pipeline"]["sha256"]
     assert lock["units_template"]["sha256"]
@@ -220,6 +227,80 @@ def test_retries_preserve_attempt_and_failure_history(tmp_path: Path) -> None:
     assert len(failure_suggestions) == 1
     assert "missing_skill_adapter" in failure_suggestions[0]["evidence"]
     assert validate_improvement_payload(improvement) == []
+
+
+def test_scripted_retries_record_execution_metrics_and_audit_summary(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    workspace = tmp_path / "run"
+    skill = "measured-skill"
+    _write_units(workspace / "UNITS.csv", skill=skill)
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+
+    script = repo_root / ".codex" / "skills" / skill / "scripts" / "run.py"
+    script.parent.mkdir(parents=True)
+    script.write_text(
+        "\n".join(
+            [
+                "import argparse",
+                "import sys",
+                "from pathlib import Path",
+                "parser = argparse.ArgumentParser()",
+                "parser.add_argument('--workspace', required=True)",
+                "parser.add_argument('--unit-id')",
+                "parser.add_argument('--inputs')",
+                "parser.add_argument('--outputs', required=True)",
+                "parser.add_argument('--checkpoint')",
+                "args = parser.parse_args()",
+                "path = Path(args.workspace) / args.outputs.split(';')[0]",
+                "path.parent.mkdir(parents=True, exist_ok=True)",
+                "path.write_text('measured artifact\\n', encoding='utf-8')",
+                "print('adapter stdout')",
+                "print('adapter stderr', file=sys.stderr)",
+                "marker = Path(args.workspace) / '.first-attempt-failed'",
+                "if not marker.exists():",
+                "    marker.write_text('failed once\\n', encoding='utf-8')",
+                "    raise SystemExit(1)",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    first = run_one_unit(workspace=workspace, repo_root=repo_root)
+    second = run_one_unit(workspace=workspace, repo_root=repo_root)
+
+    assert first.status == "BLOCKED"
+    assert second.status == "DONE"
+    attempts = _jsonl(workspace / ".harness" / "attempts.jsonl")
+    finishes = [record for record in attempts if record["record_type"] == "finished"]
+    assert len(finishes) == 2
+    for record in finishes:
+        execution = record["execution"]
+        assert execution["adapter"] == f".codex/skills/{skill}/scripts/run.py"
+        assert execution["elapsed_ms"] >= 0
+        assert execution["stdout_chars"] == len("adapter stdout\n")
+        assert execution["stderr_chars"] == len("adapter stderr\n")
+        assert execution["log_path"].startswith("output/unit_logs/")
+
+    exit_code, audit = build_run_audit_payload(workspace=workspace, repo_root=repo_root)
+
+    assert exit_code == 0
+    assert validate_run_audit_payload(audit) == []
+    summary = audit["attempts"]
+    assert summary["started"] == 2
+    assert summary["finished"] == 2
+    assert summary["open"] == 0
+    assert summary["retry_units"] == 1
+    assert summary["extra_attempts"] == 1
+    assert summary["by_status"] == {"FAILED_RETRYABLE": 1, "SUCCEEDED": 1}
+    assert summary["by_execution_mode"] == {"process": 2}
+    assert summary["process_metrics"]["measured_attempts"] == 2
+    assert summary["process_metrics"]["total_elapsed_ms"] >= 0
+    assert summary["process_metrics"]["stdout_chars"] == 2 * len("adapter stdout\n")
+    assert summary["process_metrics"]["stderr_chars"] == 2 * len("adapter stderr\n")
+    report = render_run_audit_report(audit)
+    assert "Retries: 1 extra Attempts across 1 Units" in report
+    assert "Measured adapter runtime: 2 Attempts" in report
 
 
 def test_stale_doing_recovery_records_interrupted_attempt(tmp_path: Path) -> None:
@@ -1210,6 +1291,12 @@ def test_reconciliation_repairs_finished_attempt_before_terminal_event(
             workspace=workspace,
             repo_root=REPO_ROOT,
             unit_id="U010",
+            attempt_execution={
+                "adapter": ".codex/skills/skill-without-script/scripts/run.py",
+                "elapsed_ms": 12.5,
+                "stdout_chars": 4,
+                "stderr_chars": 0,
+            },
         )
     monkeypatch.setattr(run_state, "_append_event", original_append_event)
 
@@ -1222,9 +1309,50 @@ def test_reconciliation_repairs_finished_attempt_before_terminal_event(
     assert any(
         event.get("type") == "unit.attempt.succeeded"
         and event.get("payload", {}).get("recovered") is True
+        and event.get("payload", {}).get("execution", {}).get("elapsed_ms") == 12.5
         for event in events
     )
     assert run_state.inspect_run_integrity(workspace)["issue_count"] == 0
+
+
+def test_integrity_rejects_terminal_event_execution_drift(tmp_path: Path) -> None:
+    from tooling.completion import commit_unit_completion
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    output = workspace / "output" / "result.md"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("measured result\n", encoding="utf-8")
+
+    completion = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        attempt_execution={
+            "adapter": ".codex/skills/skill-without-script/scripts/run.py",
+            "elapsed_ms": 8.25,
+            "stdout_chars": 3,
+            "stderr_chars": 0,
+        },
+    )
+    assert completion.status == "DONE"
+    assert inspect_run_integrity(workspace)["issue_count"] == 0
+
+    events_path = workspace / ".harness" / "events.jsonl"
+    events = _jsonl(events_path)
+    terminal = next(event for event in events if event.get("type") == "unit.attempt.succeeded")
+    terminal["payload"]["execution"]["elapsed_ms"] = "corrupted"
+    events_path.write_text(
+        "".join(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n" for event in events),
+        encoding="utf-8",
+    )
+
+    integrity = inspect_run_integrity(workspace)
+    codes = {issue["code"] for issue in integrity["issues"]}
+    assert "attempt_event_execution_invalid" in codes
+    assert "attempt_execution_event_mismatch" in codes
 
 
 def test_reconciliation_does_not_restore_done_without_artifact_ledger(tmp_path: Path) -> None:
@@ -1363,6 +1491,53 @@ def test_run_audit_rejects_done_unit_without_attempt_or_manifest(tmp_path: Path)
     codes = {issue["code"] for issue in audit["harness_issues"]}
     assert exit_code == 2
     assert {"done_without_successful_attempt", "done_without_manifest"}.issubset(codes)
+    assert audit["ledger_integrity"]["compatibility"] == {
+        "mode": "current",
+        "recorded_completion_protocol": "recoverable-provenance.v1",
+        "current_completion_protocol": "recoverable-provenance.v1",
+        "legacy_evidence_gap_codes": [],
+        "interpretation": (
+            "The Run declares the current Completion Protocol; integrity issues are current-protocol violations."
+        ),
+    }
+
+
+def test_run_audit_classifies_unversioned_completion_evidence_without_hiding_errors(tmp_path: Path) -> None:
+    from tooling.run_state import initialize_run_state
+
+    workspace = tmp_path / "legacy-run"
+    _write_units(workspace / "UNITS.csv", status="DONE")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    output = workspace / "output" / "result.md"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("historical result\n", encoding="utf-8")
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock.pop("protocols")
+    lock_path.write_text(json.dumps(lock), encoding="utf-8")
+
+    exit_code, audit = build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+
+    compatibility = audit["ledger_integrity"]["compatibility"]
+    assert exit_code == 2
+    assert audit["verdict"] == "ATTENTION"
+    assert compatibility["mode"] == "legacy_unversioned"
+    assert compatibility["recorded_completion_protocol"] == "unversioned"
+    assert compatibility["legacy_evidence_gap_codes"] == [
+        "done_output_unregistered",
+        "done_without_manifest",
+        "done_without_successful_attempt",
+    ]
+    assert "remain audit errors" in compatibility["interpretation"]
+    report = render_run_audit_report(audit)
+    assert "Evidence mode: `legacy_unversioned`" in report
+    assert "Compatibility-sensitive evidence gaps:" in report
 
 
 def test_auto_approval_records_machine_decision(tmp_path: Path) -> None:
@@ -1670,11 +1845,43 @@ def test_product_evidence_and_improve_commands_return_compact_summaries(tmp_path
     assert "Run evidence: ATTENTION" in evidence.stdout
     assert "Research evidence: indexed as Workflow-local Artifacts" in evidence.stdout
     assert "Targets:" in evidence.stdout
+    assert "Artifact index:" in evidence.stdout
+    assert "Required evidence missing:" in evidence.stdout
+    assert "Optional diagnostics absent:" in evidence.stdout
     assert "# Run audit" not in evidence.stdout
     assert improve.returncode == 2
     assert "Improve: ATTENTION" in improve.stdout
     assert "Open repairs:" in improve.stdout
     assert "# Improvement report" not in improve.stdout
+
+
+def test_product_artifact_summary_separates_required_evidence_from_optional_diagnostics() -> None:
+    from tooling.product_cli import _artifact_pack_missing_paths
+
+    required, optional = _artifact_pack_missing_paths(
+        {
+            "artifacts": [
+                {
+                    "category": "target_artifact",
+                    "path": "output/DELIVERABLE.md",
+                    "exists": False,
+                },
+                {
+                    "category": "harness_report",
+                    "path": "output/DELIVERABLE.md",
+                    "exists": False,
+                },
+                {
+                    "category": "harness_report",
+                    "path": "output/RUN_AUDIT_DIFF.md",
+                    "exists": False,
+                },
+            ]
+        }
+    )
+
+    assert required == {"output/DELIVERABLE.md"}
+    assert optional == {"output/RUN_AUDIT_DIFF.md"}
 
 
 def test_product_evidence_uses_latest_generic_evaluation(tmp_path: Path) -> None:

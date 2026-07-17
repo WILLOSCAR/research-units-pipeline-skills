@@ -122,6 +122,7 @@ def commit_unit_completion(
     exit_code: int = 0,
     message: str = "OK",
     resolved_failure_types: Iterable[str] = ("missing_outputs",),
+    attempt_execution: dict[str, Any] | None = None,
 ) -> CompletionResult:
     """Commit one verified Unit completion across Attempt, Artifact, Manifest, and UNITS projections."""
 
@@ -184,6 +185,7 @@ def commit_unit_completion(
             causal_behavior="The Unit was submitted for completion before its declared Artifact contract existed.",
             harness_mechanism="The Completion Protocol validates required outputs before committing DONE.",
             repair_surface=missing,
+            attempt_execution=attempt_execution,
         )
 
     from tooling.quality_gate import check_completion_invariants, has_completion_invariant
@@ -204,6 +206,7 @@ def commit_unit_completion(
             causal_behavior="A Workflow-mandatory completion invariant did not pass.",
             harness_mechanism="The Completion Protocol routes mandatory checks through the Workflow-domain quality registry.",
             repair_surface=["output/REROUTE_STATE.json", f".codex/skills/{skill}/SKILL.md"],
+            attempt_execution=attempt_execution,
         )
 
     verified_failure_types = {
@@ -243,6 +246,7 @@ def commit_unit_completion(
                 harness_mechanism="The Completion Protocol evaluates declared scorecards before committing DONE.",
                 repair_surface=list(semantic_failure["repair_surface"]),
                 severity=str(semantic_failure["severity"]),
+                attempt_execution=attempt_execution,
             )
         verified_failure_types.add("semantic_quality_gate_failed")
 
@@ -274,6 +278,7 @@ def commit_unit_completion(
             repair_surface=["output/unit_logs", "tooling/completion.py"],
             severity="high",
             write_manifest=False,
+            attempt_execution=attempt_execution,
         )
 
     manifest_relpath = str(manifest_path.relative_to(workspace))
@@ -295,6 +300,7 @@ def commit_unit_completion(
         outputs=outputs,
         message=message,
         resolved_failure_types=verified_failure_types,
+        execution=attempt_execution,
     )
     write_unit_manifest(
         workspace=workspace,
@@ -336,6 +342,7 @@ def _reject_completion(
     repair_surface: list[str],
     severity: str = "medium",
     write_manifest: bool = True,
+    attempt_execution: dict[str, Any] | None = None,
 ) -> CompletionResult:
     _set_unit_status(workspace=workspace, unit_id=unit_id, status="BLOCKED")
     manifest_relpath = ""
@@ -371,6 +378,7 @@ def _reject_completion(
         exit_code=exit_code,
         outputs=outputs,
         message=symptom,
+        execution=attempt_execution,
     )
     update_status_log(workspace / "STATUS.md", f"{now_iso_seconds()} {unit_id} BLOCKED ({symptom})")
     reconcile_run_state(workspace=workspace)

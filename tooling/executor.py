@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -217,9 +218,12 @@ def run_one_unit(
 
     log_rel = f"output/unit_logs/{unit_id}.{skill}.{attempt_id}.log"
     log_path = workspace / log_rel
+    adapter_rel = str(script_path.relative_to(repo_root))
+    process_started = time.perf_counter()
 
     try:
         completed = subprocess.run(cmd, check=False, capture_output=True, text=True)
+        elapsed_ms = (time.perf_counter() - process_started) * 1000
         if completed.stdout or completed.stderr or completed.returncode != 0:
             ensure_dir(log_path.parent)
             body = [
@@ -235,6 +239,7 @@ def run_one_unit(
             ]
             atomic_write_text(log_path, "".join(body))
     except Exception as exc:  # pragma: no cover
+        elapsed_ms = (time.perf_counter() - process_started) * 1000
         row["status"] = "BLOCKED"
         table.save(units_path)
         update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED (exec error)")
@@ -266,8 +271,20 @@ def run_one_unit(
             status="FAILED_TERMINAL",
             exit_code=None,
             message=str(exc),
+            execution={
+                "adapter": adapter_rel,
+                "elapsed_ms": elapsed_ms,
+            },
         )
         return RunResult(unit_id=unit_id, status="BLOCKED", message=str(exc))
+
+    execution = {
+        "adapter": adapter_rel,
+        "elapsed_ms": elapsed_ms,
+        "stdout_chars": len(completed.stdout or ""),
+        "stderr_chars": len(completed.stderr or ""),
+        "log_path": log_rel if log_path.exists() else "",
+    }
 
     def record_manifest(status: str) -> None:
         try:
@@ -353,6 +370,7 @@ def run_one_unit(
                     exit_code=int(completed.returncode),
                     outputs=outputs,
                     message=f"Quality gate failed; see {rel_report}",
+                    execution=execution,
                 )
                 reroute_hint = _reroute_hint(workspace)
                 return RunResult(
@@ -377,6 +395,7 @@ def run_one_unit(
             exit_code=int(completed.returncode),
             message="OK",
             resolved_failure_types=resolved_failure_types,
+            attempt_execution=execution,
         )
         _refresh_status_checkpoint(status_path, UnitsTable.load(units_path))
         return RunResult(unit_id=unit_id, status=completion.status, message=completion.message)
@@ -414,6 +433,7 @@ def run_one_unit(
             exit_code=int(completed.returncode),
             outputs=outputs,
             message=f"Missing outputs: {', '.join(missing)}",
+            execution=execution,
         )
         return RunResult(unit_id=unit_id, status="BLOCKED", message=f"Missing outputs: {', '.join(missing)}" + (f"; see {log_rel}" if log_path.exists() else ""))
     failure_label = "semantic scorecard failed" if scorecard_failure else "script failed"
@@ -452,6 +472,7 @@ def run_one_unit(
         exit_code=int(completed.returncode),
         outputs=outputs,
         message=failure_message,
+        execution=execution,
     )
     return RunResult(unit_id=unit_id, status="BLOCKED", message=failure_message + (f"; see {log_rel}" if log_path.exists() else ""))
 

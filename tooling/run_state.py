@@ -49,6 +49,19 @@ ARTIFACT_SCHEMA = "artifact-record.v1"
 FAILURE_SCHEMA = "failure-record.v1"
 EVALUATION_SCHEMA = "run-evaluation.v1"
 INVOCATION_LOCK_SCHEMA = "workspace-invocation-lock.v1"
+COMPLETION_PROTOCOL = "recoverable-provenance.v1"
+LEGACY_COMPLETION_EVIDENCE_CODES = {
+    "attempt_artifact_missing",
+    "attempt_start_event_missing",
+    "attempt_terminal_event_missing",
+    "done_output_unregistered",
+    "done_without_manifest",
+    "done_without_successful_attempt",
+    "failure_resolution_type_mismatch",
+    "failure_resolution_unverified",
+    "manifest_artifact_hash_mismatch",
+    "manifest_artifact_missing",
+}
 MUTABLE_PROJECTION_PATHS = {
     "STATUS.md",
     "UNITS.csv",
@@ -398,6 +411,7 @@ def finish_attempt(
     outputs: Iterable[str] = (),
     message: str = "",
     resolved_failure_types: Iterable[str] = (),
+    execution: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     attempt_records = _read_jsonl(workspace / HARNESS_DIR / "attempts.jsonl")
     started = [
@@ -461,8 +475,14 @@ def finish_attempt(
         "artifact_ids": [item["artifact_id"] for item in artifacts],
         "message": message,
     }
+    execution_record = _normalize_attempt_execution(execution)
+    if execution_record:
+        record["execution"] = execution_record
     _append_jsonl(workspace / HARNESS_DIR / "attempts.jsonl", record)
     event_type = _attempt_terminal_event_type(status)
+    event_payload = {"status": status, "exit_code": exit_code, "message": message}
+    if execution_record:
+        event_payload["execution"] = execution_record
     _append_event(
         workspace=workspace,
         run_id=run_id,
@@ -470,7 +490,7 @@ def finish_attempt(
         actor={"kind": "harness", "id": "unit-executor"},
         unit_id=unit_id,
         attempt_id=attempt_id,
-        payload={"status": status, "exit_code": exit_code, "message": message},
+        payload=event_payload,
     )
     verified_failure_types = {
         str(item or "").strip() for item in resolved_failure_types if str(item or "").strip()
@@ -500,6 +520,59 @@ def finish_attempt(
         )
         _update_run_snapshot(workspace=workspace, state="COMPLETED")
     return artifacts
+
+
+def _normalize_attempt_execution(value: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+
+    record: dict[str, Any] = {}
+    for key in ("adapter", "log_path"):
+        text = str(value.get(key) or "").strip()
+        if text:
+            record[key] = text
+
+    elapsed_ms = value.get("elapsed_ms")
+    if (
+        isinstance(elapsed_ms, (int, float))
+        and not isinstance(elapsed_ms, bool)
+        and elapsed_ms >= 0
+    ):
+        record["elapsed_ms"] = round(float(elapsed_ms), 3)
+
+    for key in ("stdout_chars", "stderr_chars"):
+        count = value.get(key)
+        if isinstance(count, int) and not isinstance(count, bool) and count >= 0:
+            record[key] = count
+    return record
+
+
+def _attempt_execution_validation_messages(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, dict):
+        return ["must be an object"]
+
+    issues: list[str] = []
+    for field in ("adapter", "log_path"):
+        if field in value and not isinstance(value.get(field), str):
+            issues.append(f"`{field}` must be a string")
+    elapsed_ms = value.get("elapsed_ms")
+    if elapsed_ms is not None and (
+        not isinstance(elapsed_ms, (int, float))
+        or isinstance(elapsed_ms, bool)
+        or elapsed_ms < 0
+    ):
+        issues.append("`elapsed_ms` must be a non-negative number")
+    for field in ("stdout_chars", "stderr_chars"):
+        count = value.get(field)
+        if count is not None and (
+            not isinstance(count, int)
+            or isinstance(count, bool)
+            or count < 0
+        ):
+            issues.append(f"`{field}` must be a non-negative integer")
+    return issues
 
 
 def _attempt_terminal_event_type(status: str) -> str:
@@ -979,6 +1052,11 @@ def _ensure_attempt_events(*, workspace: Path, run_id: str) -> None:
                 "message": str(record.get("message") or ""),
                 "recovered": True,
             }
+            execution = _normalize_attempt_execution(
+                record.get("execution") if isinstance(record.get("execution"), dict) else None
+            )
+            if execution:
+                payload["execution"] = execution
         else:
             continue
         if (attempt_id, event_type) in observed:
@@ -1316,12 +1394,14 @@ def run_identity(workspace: Path) -> dict[str, Any]:
     run = _read_json_object(workspace / HARNESS_DIR / "run.json")
     lock = _read_json_object(workspace / HARNESS_DIR / "harness.lock.json")
     repository = lock.get("repository") if isinstance(lock.get("repository"), dict) else {}
+    protocols = lock.get("protocols") if isinstance(lock.get("protocols"), dict) else {}
     return {
         "run_id": str(run.get("run_id") or ""),
         "goal_id": str(run.get("goal_id") or ""),
         "state": str(run.get("state") or ""),
         "workflow": str(run.get("workflow") or ""),
         "harness_revision": str(repository.get("revision") or ""),
+        "completion_protocol": str(protocols.get("completion") or "unversioned"),
     }
 
 
@@ -1389,11 +1469,14 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
 
     harness_dir = workspace / HARNESS_DIR
     run = _read_json_object(harness_dir / "run.json")
+    lock = _read_json_object(harness_dir / "harness.lock.json")
     if not run:
         return {
             "enabled": False,
             "run_id": "",
             "ledger_record_counts": {},
+            "attempt_summary": _summarize_attempt_records(()),
+            "compatibility": _completion_protocol_compatibility(lock=lock, issue_codes=()),
             "issue_count": 0,
             "issues": [],
         }
@@ -1473,12 +1556,19 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
                         "attempt_identity_mismatch",
                         f"Attempt `{attempt_id}` start and finish records disagree on `{field}`.",
                     )
+            for message in _attempt_execution_validation_messages(finished.get("execution")):
+                add(
+                    "ERROR",
+                    "attempt_execution_invalid",
+                    f"Attempt `{attempt_id}` execution {message}.",
+                )
 
-    observed_attempt_events = {
-        (str(record.get("attempt_id") or ""), str(record.get("type") or ""))
+    attempt_events = {
+        (str(record.get("attempt_id") or ""), str(record.get("type") or "")): record
         for record in ledgers["events"]
         if str(record.get("attempt_id") or "")
     }
+    observed_attempt_events = set(attempt_events)
     for attempt_id in starts:
         if (attempt_id, "unit.attempt.started") not in observed_attempt_events:
             add("ERROR", "attempt_start_event_missing", f"Attempt `{attempt_id}` has no started Event.")
@@ -1486,6 +1576,29 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         event_type = _attempt_terminal_event_type(str(records[-1].get("status") or ""))
         if (attempt_id, event_type) not in observed_attempt_events:
             add("ERROR", "attempt_terminal_event_missing", f"Attempt `{attempt_id}` has no `{event_type}` Event.")
+            continue
+        event = attempt_events[(attempt_id, event_type)]
+        event_payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        event_execution = event_payload.get("execution")
+        for message in _attempt_execution_validation_messages(event_execution):
+            add(
+                "ERROR",
+                "attempt_event_execution_invalid",
+                f"Attempt `{attempt_id}` terminal Event execution {message}.",
+            )
+        attempt_execution = records[-1].get("execution")
+        normalized_attempt = _normalize_attempt_execution(
+            attempt_execution if isinstance(attempt_execution, dict) else None
+        )
+        normalized_event = _normalize_attempt_execution(
+            event_execution if isinstance(event_execution, dict) else None
+        )
+        if normalized_attempt != normalized_event:
+            add(
+                "ERROR",
+                "attempt_execution_event_mismatch",
+                f"Attempt `{attempt_id}` and its `{event_type}` Event disagree on execution telemetry.",
+            )
 
     units = {str(row.get("unit_id") or "").strip(): row for row in _load_units(workspace)}
     for record in inspect_doing_attempt_integrity(
@@ -1665,12 +1778,74 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         if str(verification.get("failure_type") or "") != str(opened.get("failure_type") or ""):
             add("ERROR", "failure_resolution_type_mismatch", f"Failure resolution `{failure_id}` did not verify its opened failure type.")
 
+    compatibility = _completion_protocol_compatibility(
+        lock=lock,
+        issue_codes=(str(issue.get("code") or "") for issue in issues),
+    )
     return {
         "enabled": True,
         "run_id": run_id,
         "ledger_record_counts": {name: len(records) for name, records in ledgers.items()},
+        "attempt_summary": _summarize_attempt_records(ledgers["attempts"]),
+        "compatibility": compatibility,
         "issue_count": len(issues),
         "issues": issues,
+    }
+
+
+def _summarize_attempt_records(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    items = list(records)
+    starts = [record for record in items if record.get("record_type") == "started"]
+    finishes = [record for record in items if record.get("record_type") == "finished"]
+    finished_ids = {str(record.get("attempt_id") or "") for record in finishes}
+    starts_by_unit = Counter(str(record.get("unit_id") or "") for record in starts)
+    retry_counts = [count for unit_id, count in starts_by_unit.items() if unit_id and count > 1]
+
+    statuses = Counter(str(record.get("status") or "UNKNOWN") for record in finishes)
+    modes = Counter(str(record.get("execution_mode") or "legacy") for record in starts)
+    measured: list[dict[str, Any]] = []
+    for record in finishes:
+        execution = record.get("execution")
+        if not isinstance(execution, dict):
+            continue
+        elapsed_ms = execution.get("elapsed_ms")
+        if (
+            isinstance(elapsed_ms, (int, float))
+            and not isinstance(elapsed_ms, bool)
+            and elapsed_ms >= 0
+        ):
+            measured.append(execution)
+
+    elapsed_values = [float(record["elapsed_ms"]) for record in measured]
+
+    def measured_chars(record: dict[str, Any], key: str) -> int:
+        value = record.get(key)
+        return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+    return {
+        "started": len(starts),
+        "finished": len(finishes),
+        "open": sum(
+            1
+            for record in starts
+            if str(record.get("attempt_id") or "") not in finished_ids
+        ),
+        "retry_units": len(retry_counts),
+        "extra_attempts": sum(count - 1 for count in retry_counts),
+        "by_status": {status: statuses[status] for status in sorted(statuses)},
+        "by_execution_mode": {mode: modes[mode] for mode in sorted(modes)},
+        "process_metrics": {
+            "measured_attempts": len(measured),
+            "total_elapsed_ms": round(sum(elapsed_values), 3),
+            "mean_elapsed_ms": (
+                round(sum(elapsed_values) / len(elapsed_values), 3)
+                if elapsed_values
+                else None
+            ),
+            "max_elapsed_ms": round(max(elapsed_values), 3) if elapsed_values else None,
+            "stdout_chars": sum(measured_chars(record, "stdout_chars") for record in measured),
+            "stderr_chars": sum(measured_chars(record, "stderr_chars") for record in measured),
+        },
     }
 
 
@@ -1833,6 +2008,7 @@ def _build_harness_lock(
         "schema": LOCK_SCHEMA,
         "run_id": run_id,
         "created_at": now_iso_seconds(),
+        "protocols": {"completion": COMPLETION_PROTOCOL},
         "repository": {"revision": revision or "unavailable", "dirty": dirty},
         "pipeline": {
             "path": _relative_or_absolute(pipeline_path, repo_root) if pipeline_path else "",
@@ -1846,6 +2022,48 @@ def _build_harness_lock(
         "kernel": kernel,
         "model": {"status": "not_captured_by_local_cli"},
         "governance": {"status": "external_promotion_not_implemented"},
+    }
+
+
+def _completion_protocol_compatibility(
+    *,
+    lock: dict[str, Any],
+    issue_codes: Iterable[str],
+) -> dict[str, Any]:
+    protocols = lock.get("protocols") if isinstance(lock.get("protocols"), dict) else {}
+    recorded = str(protocols.get("completion") or "unversioned")
+    codes = {str(code) for code in issue_codes if str(code)}
+    if recorded == COMPLETION_PROTOCOL:
+        return {
+            "mode": "current",
+            "recorded_completion_protocol": recorded,
+            "current_completion_protocol": COMPLETION_PROTOCOL,
+            "legacy_evidence_gap_codes": [],
+            "interpretation": (
+                "The Run declares the current Completion Protocol; integrity issues are current-protocol violations."
+            ),
+        }
+    if recorded == "unversioned":
+        legacy_codes = sorted(codes.intersection(LEGACY_COMPLETION_EVIDENCE_CODES))
+        return {
+            "mode": "legacy_unversioned",
+            "recorded_completion_protocol": recorded,
+            "current_completion_protocol": COMPLETION_PROTOCOL,
+            "legacy_evidence_gap_codes": legacy_codes,
+            "interpretation": (
+                "The Run predates an explicit Completion Protocol marker. Listed legacy evidence gaps may reflect "
+                "an older evidence shape, but they remain audit errors and are not treated as PASS."
+            ),
+        }
+    return {
+        "mode": "unknown_protocol",
+        "recorded_completion_protocol": recorded,
+        "current_completion_protocol": COMPLETION_PROTOCOL,
+        "legacy_evidence_gap_codes": [],
+        "interpretation": (
+            "The Run declares a Completion Protocol this Harness does not recognize; integrity results require "
+            "protocol-aware review."
+        ),
     }
 
 

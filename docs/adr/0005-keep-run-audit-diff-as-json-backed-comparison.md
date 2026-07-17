@@ -29,8 +29,12 @@ The command consumes two valid `run-audit.v1` payloads and writes:
 
 The JSON sidecar uses schema `run-audit-diff.v1`. It compares unit status
 deltas, target artifact presence changes, unit manifest counts, harness issue
-counts, source verdicts, and diff-level comparison issues. It does not run
-units, mutate workspaces, or claim semantic output quality.
+counts, source verdicts, and diff-level comparison issues. When both source
+audits expose Attempt summaries, an additive `attempt_comparison` also reports
+Attempt counts, retries, measured adapter runtime, and captured process-output
+size. If either source predates that evidence, the field says the comparison is
+unavailable instead of substituting zero. It does not run units, mutate
+workspaces, or claim semantic output quality.
 
 ## Consequences
 
@@ -42,6 +46,10 @@ The command is intentionally smaller than a benchmark dashboard. If future
 work needs cross-workspace search, trend charts, provider choice, or semantic
 evaluation, those should build on `RUN_AUDIT.json` and `RUN_AUDIT_DIFF.json`
 rather than replacing them prematurely.
+
+Attempt and runtime deltas are descriptive. They do not affect the verdict
+because retry count is not itself quality, local adapter duration is noisy, and
+the current runtime does not measure model Tokens, provider latency, or cost.
 
 Schema changes should be deliberate. A breaking change to
 `run-audit-diff.v1` should preserve backward compatibility, introduce a new
