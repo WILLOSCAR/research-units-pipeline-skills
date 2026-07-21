@@ -54,6 +54,24 @@ def main(argv: list[str] | None = None) -> int:
         help="Reconcile recoverable run state, then inspect it without executing units",
     )
     run_status.add_argument("--workspace", required=True)
+    run_approve = run_actions.add_parser(
+        "approve",
+        help="Record a human checkpoint decision before resuming the Run",
+    )
+    run_approve.add_argument("--workspace", required=True)
+    run_approve.add_argument("--checkpoint", required=True, help="Checkpoint ID shown by run status, such as C2")
+    run_approve.add_argument(
+        "--focus-cluster",
+        action="append",
+        default=[],
+        help="Idea-brainstorm C2 focus cluster; repeat for multiple selections",
+    )
+    run_approve.add_argument(
+        "--hard-exclusion",
+        action="append",
+        default=[],
+        help="Idea-brainstorm C2 exclusion; repeat for multiple exclusions",
+    )
 
     evidence = stages.add_parser("evidence", help="Inspect Run evidence and index Workflow-local research artifacts")
     evidence_actions = evidence.add_subparsers(dest="action", required=True)
@@ -106,6 +124,22 @@ def _dispatch(args: argparse.Namespace) -> int:
         workspace = Path(args.workspace).resolve()
         with workspace_invocation_lock(workspace=workspace, operation="rh.run.status"):
             return _run_status(workspace)
+
+    if (args.stage, args.action) == ("run", "approve"):
+        if not _workspace_exists(args.workspace):
+            return 2
+        command = [
+            "approve",
+            "--workspace",
+            args.workspace,
+            "--checkpoint",
+            args.checkpoint,
+        ]
+        for item in args.focus_cluster:
+            command.extend(["--focus-cluster", item])
+        for item in args.hard_exclusion:
+            command.extend(["--hard-exclusion", item])
+        return _run_pipeline(*command)
 
     if (args.stage, args.action) == ("evidence", "inspect"):
         if not _workspace_exists(args.workspace):
@@ -166,6 +200,11 @@ def _run_status(workspace: Path) -> int:
             f"{next_unit.get('unit_id')} {next_unit.get('title')} "
             f"[{next_unit.get('status') or 'unknown'}]"
         )
+        if next_unit.get("owner") == "HUMAN" and next_unit.get("checkpoint"):
+            print(
+                "Approve: uv run rh run approve "
+                f"--workspace {workspace} --checkpoint {next_unit.get('checkpoint')}"
+            )
     else:
         print("Next: no runnable Unit")
     print(f"Issues: {len(issues)}")

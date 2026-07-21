@@ -957,17 +957,18 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                     fieldnames=["schema", "claim_id", "claim", "related_work", "overlap", "delta", "evidence"],
                 )
                 writer.writeheader()
-                writer.writerow(
-                    {
-                        "schema": "review-novelty-row.v1",
-                        "claim_id": "C01",
-                        "claim": "RoboAdapt introduces an adaptation controller.",
-                        "related_work": "Prior Work A",
-                        "overlap": "robot adaptation",
-                        "delta": "controller design",
-                        "evidence": "method and related-work sections",
-                    }
-                )
+                for suffix in ("A", "B", "C", "D", "E"):
+                    writer.writerow(
+                        {
+                            "schema": "review-novelty-row.v1",
+                            "claim_id": "C01",
+                            "claim": "RoboAdapt introduces an adaptation controller.",
+                            "related_work": f"Prior Work {suffix}",
+                            "overlap": "robot adaptation",
+                            "delta": "controller design",
+                            "evidence": "method and related-work sections",
+                        }
+                    )
             proc = subprocess.run(
                 [sys.executable, str(script), "--workspace", str(workspace)],
                 capture_output=True,

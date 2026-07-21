@@ -46,11 +46,16 @@ uv run rh goal create \
 
 uv run rh run start --workspace workspaces/robot-adaptation
 uv run rh run status --workspace workspaces/robot-adaptation
+uv run rh run approve --workspace workspaces/robot-adaptation --checkpoint C2
+uv run rh run resume --workspace workspaces/robot-adaptation
 uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-Run 会产生人类可读的 Brief、机器可读的 Scorecard，以及带 Hash 与 provenance 的
-Artifact Index。如果 Contract 失败，可以运行：
+`run start` 会推进到下一个尚未满足的前置条件。对于 `research-brief`，先检查 C2 的
+候选文献与阅读计划 Artifacts，再批准 C2；`run resume` 会从持久化的 Unit ledger
+继续执行。完成后的 Run 包含人类可读的 Brief 与机器可读的 Scorecard；随后
+`evidence inspect` 才会写出带 Hash 与 provenance 的 Artifact Index。如果 Contract
+失败，可以运行：
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
@@ -71,15 +76,17 @@ uv run rh improve diagnose --workspace workspaces/robot-adaptation
 
 ```mermaid
 flowchart LR
-    G["Goal"] --> W["Workflow contract"]
-    W --> R["Recoverable Run"]
+    G["Goal"] --> W["Workflow choice"]
+    W --> P["Pipeline contract"]
+    P --> R["Recoverable Run"]
     R --> U["Units"]
     U --> S["Research and control Skills"]
     S --> A["Artifacts and deliverable"]
     A --> C["Completion and scorecards"]
     C --> E["Evidence"]
     E --> I["Improve diagnosis"]
-    I -. "bounded repair" .-> R
+    I --> O["Human or agent applies bounded repair"]
+    O -. "rerun affected Units" .-> R
 
     H["Harness kernel"] --- R
     H --- C
@@ -87,7 +94,9 @@ flowchart LR
 
 每一层的职责不同：
 
-- **Workflow Contract**：定义阶段、必需 Skills、目标 Artifacts、Checkpoints 与强制验收。
+- **Workflow**：用户为目标选择的研究路径。
+- **Pipeline Contract**：用阶段、必需 Skills、目标 Artifacts、Checkpoints 与强制验收
+  实现该 Workflow。
 - **Workspace**：保存一次 Run 的人类可读文件与机器 Ledger。
 - **Unit**：定义一个步骤的依赖、输入、输出、Owner 与 Acceptance。
 - **Skill**：执行一个有边界的研究或控制能力。
@@ -95,9 +104,15 @@ flowchart LR
 - **Harness Kernel**：管理 Run 身份、调度、Attempts、Completion、恢复、provenance、
   reconciliation、Audit 与失败定位。
 
+新 Run 启动时，`harness-lock.v2` 会把选中的 Pipeline Contract 及其本地 Variant
+依赖复制到 Workspace 并记录 Hash。仓库之后的改动不会静默重定义旧 Run；合同快照
+缺失或被修改时，执行与 Audit 会显式阻断。
+
 脚本 Unit、人工语义 Unit 与已批准 Checkpoint 都要通过同一套 Completion Protocol，
 才能成为 `DONE`。普通执行会强制运行 Workflow 声明的最低验收；`--strict` 只追加
 尚未被 Workflow 提升为强制项的诊断，它不是“是否检查”的总开关。
+每项强制验收结果都会随 Completion 证据持久化，因此 Run Audit 可以直接展示已验证、
+待执行、阻塞、跳过与旧版未验证的覆盖状态，不需要从 prose log 反推整次运行。
 
 ## 证据与质量
 
@@ -130,11 +145,16 @@ Survey 家族既能交付完整文献综述，也能交付有边界、以文献�
 ## 当前证据边界
 
 - `paper-review`、`research-brief`、`idea-brainstorm` 与 `evidence-review` 已有 Workflow-local
-  Scorecard 与 Failure -> Repair -> Rerun 测试。
+  Scorecard 与 Failure -> Repair -> Rerun 测试；关键 Join 会拒绝过浅的 Novelty Surface、
+  不完整阅读路径、未进入执行的 Focus Decision，以及候选池到 Extraction 的覆盖缺口。
 - `research-brief` 除可重复的 Harness 证明外，还有一条完成的真实 arXiv 来源 pilot。
 - `source-tutorial` 已通过从本地 Source 到 Article PDF 与 Slides PDF 的严格交付测试。
 - Survey 家族已有一条完成的有界报告 pilot，包含已审计的 10 页 PDF。
 - 跨 topic 稳定性、专家对比、真实 model-token benchmark 与 Harness candidate 自动晋升尚未完成。
+
+已公开的 `research-brief` 快照运行于 `recoverable-provenance.v1`。它们仍是有效的交付物
+与历史 Run 证据，但不冒充 v2 的跨 ledger acceptance 证明；重新发布一条 v2 Run 已进入
+Roadmap。
 
 公开证据快照保持有边界：
 

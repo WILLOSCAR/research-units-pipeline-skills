@@ -325,6 +325,8 @@ class SourceTutorialPipelineTests(unittest.TestCase):
                 self.assertTrue(exercise.get("verification_steps"))
 
     def test_module_source_coverage_script_records_one_row_per_module(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_module_source_coverage
+
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)
             self._scaffold_source_tutorial_workspace(workspace)
@@ -337,8 +339,24 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             self.assertEqual(len(coverage_records), len(plan.get("modules") or []))
             self.assertTrue(all(record.get("module_id") for record in coverage_records))
             self.assertTrue(all(("source_ids" in record) or ("gaps" in record) for record in coverage_records))
+            self.assertEqual(
+                check_module_source_coverage(workspace, ["outline/source_coverage.jsonl"]),
+                [],
+            )
+
+            self._write_jsonl(
+                workspace / "outline" / "source_coverage.jsonl",
+                coverage_records[:-1],
+            )
+            issues = check_module_source_coverage(
+                workspace,
+                ["outline/source_coverage.jsonl"],
+            )
+            self.assertIn("source_coverage_module_mismatch", {issue.code for issue in issues})
 
     def test_tutorial_context_pack_script_builds_module_packs(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_tutorial_context_packs
+
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)
             self._scaffold_source_tutorial_workspace(workspace)
@@ -350,6 +368,13 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             self.assertTrue(all(record.get("module_id") for record in packs))
             self.assertTrue(all(record.get("objective") for record in packs))
             self.assertTrue(all(record.get("source_snippets") for record in packs))
+            self.assertEqual(
+                check_tutorial_context_packs(
+                    workspace,
+                    ["outline/tutorial_context_packs.jsonl"],
+                ),
+                [],
+            )
 
     def test_source_tutorial_writer_requires_c2_approval(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -579,6 +604,28 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             self.assertTrue(report.exists())
             self.assertIn("- Status: FAIL", report.read_text(encoding="utf-8"))
 
+    def test_tutorial_selfloop_checker_revalidates_current_tutorial(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_tutorial_selfloop_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            (workspace / "output").mkdir(parents=True)
+            (workspace / "output" / "TUTORIAL.md").write_text(
+                "# Thin Tutorial\n\n## Module 1\nOnly one paragraph.\n",
+                encoding="utf-8",
+            )
+            (workspace / "output" / "TUTORIAL_SELFLOOP_TODO.md").write_text(
+                "# Tutorial self-loop\n\n- Status: PASS\n",
+                encoding="utf-8",
+            )
+
+            issues = check_tutorial_selfloop_report(
+                workspace,
+                ["output/TUTORIAL_SELFLOOP_TODO.md"],
+            )
+
+            self.assertEqual([issue.code for issue in issues], ["tutorial_selfloop_stale_or_invalid"])
+
     def test_source_ingest_repo_reads_readme_docs(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"
         self.assertTrue(script.exists(), f"missing script: {script}")
@@ -617,6 +664,104 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             index_text = (workspace / "sources" / "index.jsonl").read_text(encoding="utf-8")
             self.assertIn('"status": "success"', index_text)
             self.assertTrue((workspace / "sources" / "normalized" / "repo-demo" / "README.md").exists())
+
+    def test_source_ingest_fails_when_any_required_source_fails(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_source_ingest
+
+        script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            source = workspace / "available.md"
+            source.write_text("# Available source\n\nGrounded content.\n", encoding="utf-8")
+            missing = workspace / "missing.md"
+            (workspace / "sources").mkdir(parents=True, exist_ok=True)
+            (workspace / "sources" / "manifest.yml").write_text(
+                textwrap.dedent(
+                    f"""\
+                    sources:
+                      - source_id: available
+                        kind: markdown
+                        locator: {source}
+                        label: Available
+                        required: true
+                      - source_id: missing
+                        kind: markdown
+                        locator: {missing}
+                        label: Missing
+                        required: true
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            proc = subprocess.run(
+                [sys.executable, str(script), "--workspace", str(workspace)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("Required sources failed ingestion: missing", proc.stderr)
+            issues = check_source_ingest(
+                workspace,
+                ["sources/index.jsonl", "sources/provenance.jsonl"],
+            )
+            failure = next(issue for issue in issues if issue.code == "required_source_ingest_failed")
+            self.assertIn("missing", failure.message)
+
+    def test_source_ingest_checker_joins_manifest_index_and_provenance(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_source_ingest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            normalized = workspace / "sources" / "normalized"
+            normalized.mkdir(parents=True)
+            (normalized / "unexpected.md").write_text("# Unexpected\n", encoding="utf-8")
+            (workspace / "sources" / "manifest.yml").write_text(
+                textwrap.dedent(
+                    """\
+                    sources:
+                      - source_id: required-source
+                        kind: markdown
+                        locator: required.md
+                        label: Required
+                        required: true
+                    """
+                ),
+                encoding="utf-8",
+            )
+            (workspace / "sources" / "index.jsonl").write_text(
+                json.dumps(
+                    {
+                        "source_id": "unexpected-source",
+                        "kind": "markdown",
+                        "status": "success",
+                        "local_path": "sources/normalized/unexpected.md",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "sources" / "provenance.jsonl").write_text(
+                json.dumps(
+                    {
+                        "source_id": "unexpected-source",
+                        "pointer": "sources/normalized/unexpected.md",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            issues = check_source_ingest(
+                workspace,
+                ["sources/index.jsonl", "sources/provenance.jsonl"],
+            )
+            codes = {issue.code for issue in issues}
+
+            self.assertIn("source_index_manifest_mismatch", codes)
+            self.assertIn("required_source_ingest_failed", codes)
 
     def test_source_ingest_pdf_local_file_succeeds(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"

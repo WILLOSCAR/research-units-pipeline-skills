@@ -1,6 +1,6 @@
 ---
 name: idea-brainstorm
-version: 4.0
+version: 4.1
 profile: idea-brainstorm
 routing_hints: [idea, ideation, brainstorm, 点子, 选题, 找方向, 找 idea]
 routing_priority: 30
@@ -66,6 +66,11 @@ overridable_query_fields:
 quality_contract:
   completion_policy:
     required_checks: [idea-brief, literature-engineer, dedupe-rank, taxonomy-builder, paper-notes, idea-signal-mapper, idea-direction-generator, idea-screener, idea-shortlist-curator, idea-memo-writer, deliverable-selfloop, artifact-contract-auditor]
+  retrieval_policy:
+    minimum_records: 15
+  candidate_pool_policy:
+    core_size_min: 12
+    core_size_max: 36
   memo_bundle:
     required_outputs: [output/REPORT.md, output/APPENDIX.md, output/REPORT.json]
   signal_policy:

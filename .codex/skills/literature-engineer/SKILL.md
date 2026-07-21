@@ -3,7 +3,7 @@ name: literature-engineer
 description: |
   Multi-route literature expansion + metadata normalization for evidence-first surveys.
   **Trigger**: evidence collector, literature engineer, 文献扩充, 多路召回, snowballing, cited by, references, 元信息增强, provenance.
-  **Use when**: 需要把候选文献扩充到 ≥1200 篇并补齐可追溯 meta（survey pipeline 的 Stage C1，写作前置 evidence）。
+  **Use when**: Workflow 需要按锁定的 retrieval policy 扩充候选文献并补齐可追溯 metadata。
 ---
 
 # Literature Engineer (evidence collector)
@@ -64,7 +64,7 @@ Do not treat `run.py` as the place for:
 
 ## Quality checklist
 
-- [ ] Candidate pool size target met (A150++: ≥1200) **without fabrication**.
+- [ ] Candidate pool meets the active Workflow's declared retrieval floor **without fabrication**. For Workflows with `retrieval_policy.minimum_records`, use that value; survey profiles may instead derive a stricter pool target from `core_size`.
 - [ ] Each record has a stable identifier (`arxiv_id` or `doi`, plus `url`).
 - [ ] Each record has provenance: which route/file/API produced it.
 
@@ -105,10 +105,10 @@ Do not treat `run.py` as the place for:
 
 ## Troubleshooting
 
-### Issue: can't reach ≥1200 papers
+### Issue: cannot reach the active Workflow's candidate-pool target
 
 **Symptom**:
-- `papers/papers_raw.jsonl` size is far below target; later stages will fail mapping/bindings and citation density.
+- `papers/papers_raw.jsonl` is below the explicit or profile-derived minimum declared by the locked Workflow.
 
 **Causes**:
 - Only a small offline export was provided.

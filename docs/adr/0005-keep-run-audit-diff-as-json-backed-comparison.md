@@ -22,7 +22,8 @@ Add a narrow repo-local comparison command:
 uv run python scripts/pipeline.py audit-diff --before <RUN_AUDIT.json> --after <RUN_AUDIT.json> --write
 ```
 
-The command consumes two valid `run-audit.v1` payloads and writes:
+The command consumes two valid Run Audit payloads (`run-audit.v1` historical or
+`run-audit.v2` current) and writes:
 
 - `RUN_AUDIT_DIFF.md` for human inspection
 - `RUN_AUDIT_DIFF.json` for machine-readable follow-up tooling

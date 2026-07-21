@@ -19,9 +19,9 @@ their history, and output defects are described without locating their cause.
 
 The system addresses those failures through four design invariants:
 
-1. Every meaningful Run has a durable identity, an initial Harness revision
-   lock, serialized local Workspace commands, and per-Attempt implementation
-   fingerprints.
+1. Every meaningful Run has a durable identity, a Workspace-local Pipeline
+   contract snapshot, an initial Harness revision lock, serialized local
+   Workspace commands, and per-Attempt implementation fingerprints.
 2. Every Unit transition that claims progress leaves addressable Artifacts,
    an explicit Decision, or durable Attempt/Failure evidence.
 3. Human-readable files are operator projections; machine-readable ledgers
@@ -149,7 +149,7 @@ retrieval, or expert-level judgment.
 | Product CLI | `rh goal/run/evidence/improve` | Maps user stages to existing pipeline operations |
 | Pipeline adapter | `scripts/pipeline.py` commands | Workspace setup, execution commands, audit commands, human transitions |
 | Run State | `tooling/run_state.py` functions | Run identity, initial revision lock, Workspace invocation lock, append-only ledgers, reconciliation, and cross-ledger integrity |
-| Completion Protocol | `commit_unit_completion(...)` | Required outputs, Workflow-mandatory acceptance checks, scorecard checks, two-phase Manifest, successful Attempt, Artifact registration, and DONE projection |
+| Completion Protocol | `commit_unit_completion(...)` | Required outputs, Workflow-mandatory acceptance checks, recomputed scorecard consistency, acceptance evidence, two-phase Manifest, successful Attempt, Artifact registration, and DONE projection |
 | Executor | `run_one_unit(...)` | Unit selection, Skill process dispatch, pre-completion failures, and delegation to the Completion Protocol |
 | Harness reports | `tooling/harness.py` builders | Standalone Doctor uses a shallow reconciled snapshot; Audit, diagnosis, and Artifact-index views share the deeper snapshot |
 | Quality registry | `tooling/quality_gate.py` | Stable Skill-to-check dispatch, Workflow-mandatory completion checks, and additional strict diagnostics |
@@ -196,6 +196,7 @@ workspaces/<run>/
     ├── goal.json
     ├── run.json
     ├── harness.lock.json
+    ├── contracts/pipelines/       immutable Pipeline snapshot bundle
     ├── invocation.lock
     ├── events.jsonl
     ├── attempts.jsonl
@@ -213,6 +214,9 @@ The current compatibility rule is:
 - `UNITS.csv` remains the scheduler plan and compatibility projection. Use the
   Pipeline adapter for status transitions; a hand-edited `DONE` value is not
   Completion evidence.
+- `PIPELINE.lock.md` remains the human Workflow projection; under
+  `harness-lock.v2` it must resolve to the same source contract as the pinned
+  machine lock or execution fails closed.
 - `STATUS.md` remains a concise human projection.
 - `.harness/events.jsonl` and `.harness/attempts.jsonl` preserve history that must not be overwritten.
 - `.harness/run.json` is the current machine snapshot.
@@ -236,6 +240,10 @@ If a legacy or hand-edited `DOING` projection has no unique open Attempt, the
 Harness reports an integrity error and leaves it unchanged. Recovery never
 invents ownership evidence merely to make the scheduler move again.
 
+A human Checkpoint is authorized only when its readable checkbox and matching
+append-only Decision record agree. Editing `DECISIONS.md` alone cannot authorize
+Completion; revocation records make the latest durable approval state explicit.
+
 This first implementation remains single-process. The invocation lock prevents
 local command interleaving; it is not a worker lease or multi-host coordination
 protocol. Heartbeats and distributed scheduling remain deferred until there is
@@ -251,11 +259,16 @@ Each new workspace receives:
 - `artifact_id`: identity of each registered output version;
 - `failure_id`: identity of each durable failure record.
 
-`harness.lock.json` records the Git revision and dirty state, pipeline hash,
+`harness-lock.v2` records the Git revision and dirty state, source Pipeline
+hash, Workspace-local Pipeline snapshot and inheritance-bundle hashes,
 unit-template hash, each referenced Skill's complete implementation-directory
 hash (including scripts, assets, and references), and deterministic Kernel
-hashes. The local CLI does not know the model/provider parameters, so it records
-that they were not captured instead of inventing them.
+hashes. Runtime policy is loaded from the pinned snapshot. Missing or modified
+snapshot files fail closed instead of silently switching an old Run to the
+current checkout's contract. Historical v1 locks remain readable but do not
+claim this snapshot guarantee. The local CLI does not know the model/provider
+parameters, so it records that they were not captured instead of inventing
+them.
 
 Each successful Unit manifest additionally fingerprints the Skill directory
 that executed that Attempt. If the implementation later changes, `doctor`
@@ -312,11 +325,19 @@ Unit, latest Attempt, Skill, declared outputs, and hashes all agree. An older
 Attempt's prepared evidence cannot finalize over a newer Attempt.
 
 The Run lock records this contract as
-`protocols.completion = recoverable-provenance.v1`. An older lock without that
-marker is audited as `legacy_unversioned`: compatibility-sensitive gaps are
-identified for interpretation, but remain errors. Run Audit Diff can compare
+`protocols.completion = recoverable-provenance.v2`. A recognized v1 PREPARED
+transaction can migrate only after current Workflow acceptance passes again;
+failed reconstruction becomes a durable Failure and a BLOCKED Unit. A lock
+without any protocol marker is audited as `legacy_unversioned`:
+compatibility-sensitive gaps are identified for interpretation, but remain
+errors. Run Audit Diff can compare
 retry and measured adapter-runtime summaries when both audits expose them; it
 does not use those descriptive deltas as a quality verdict.
+
+`run-audit.v2` requires cross-ledger Workflow acceptance coverage and uses
+distinct `PASS`, `IN_PROGRESS`, `INCOMPLETE`, and `ATTENTION` verdicts. Only
+`PASS` exits zero, so Improvement and Artifact Pack cannot promote an unfinished
+Run into a success signal. Historical v1 reports remain readable.
 
 ## 8. Evidence And Artifact Provenance
 
@@ -333,7 +354,9 @@ Workflow-specific evidence remains heterogeneous. Survey and tutorial paths
 already contain structured source and citation records. `paper-review` now has
 a local machine-joinable chain across `CLAIMS.jsonl`,
 `EVIDENCE_AUDIT.jsonl`, `NOVELTY_MATRIX.tsv`, the final review, and its
-scorecard. This is a Workflow-local contract, not yet a global evidence graph.
+scorecard. Claim and Gap IDs must be unique, and novelty Completion requires at
+least five unique related works. This is a Workflow-local contract, not yet a
+global evidence graph.
 
 Accordingly, `rh evidence inspect` currently audits Run Evidence and indexes
 Workflow-local research Artifacts. A normalized cross-Workflow research-evidence
@@ -353,11 +376,14 @@ to another Workflow.
 structure, compactness, reading-path quality, and whether every paper pointer
 resolves to `papers/core_set.csv`. `idea-brainstorm` provides the third: it
 checks the signal-to-shortlist trace, lead-direction actionability and
-diversity, and whether literature anchors resolve to the core set.
+diversity, whether literature anchors resolve to the core set, and whether C2
+focus and hard-exclusion Decisions actually constrain direction generation.
 `evidence-review` provides the fourth: it checks protocol operability,
-clause-linked screening, extraction coverage, bias fields, and synthesis
-pointers. All four evaluators append `run-evaluation.v1` records to the same
-Run ledger while keeping their semantic schemas local.
+one decision per candidate, unique extraction coverage, bias fields, and
+synthesis pointers. `source-tutorial` joins manifest, index, provenance, local
+source paths, module coverage, and the current tutorial body at Completion. All
+four scorecard evaluators append `run-evaluation.v1` records to the same Run
+ledger while keeping their semantic schemas local.
 Optional model, token, cost, and latency fields remain empty until a runtime
 adapter can measure them reliably.
 
@@ -423,6 +449,7 @@ mechanisms that judge it:
 ```text
 scripts/pipeline.py
 tooling/common.py
+tooling/checkpoint_brief.py
 tooling/completion.py
 tooling/executor.py
 tooling/harness.py
@@ -464,13 +491,14 @@ scale.
 | Area | Current evidence | Interpretation |
 |---|---|---|
 | Workflow contracts | Seven executable pipelines and Unit templates | High structural maturity |
+| Pipeline reproducibility | `harness-lock.v2` snapshots the selected Pipeline plus local variant dependencies and fails closed on hash drift | First local implementation; historical v1 Runs remain compatibility evidence |
 | Project Skills | Broad research, review, tutorial, writing, and control capability | Uneven by Workflow |
-| Completion integrity | Shared, lock-versioned two-phase Completion Protocol plus mandatory Workflow checks for scripted, manual, default, and strict completion | First local implementation; key paths tested |
-| Run recovery | Durable IDs, Events, Attempts, prepared-transaction recovery, and stale-state interruption records | First local implementation; key crash windows tested |
+| Completion integrity | Shared v2 two-phase Completion Protocol, cross-ledger acceptance evidence, recomputed scorecard consistency, and mandatory Workflow checks for scripted, manual, default, and strict completion | First local implementation; key paths tested |
+| Run recovery | Durable IDs, Events, Attempts, acceptance-aware prepared-transaction recovery, v1 PREPARED migration, and stale-state interruption records | First local implementation; key crash windows tested |
 | Workspace serialization | Non-blocking process-scoped lock across all local Workspace commands; owner-crash release tested | First local implementation; distributed leases absent |
 | Inspection composition | Standalone Doctor uses a shallow snapshot; composed Doctor, Audit, Improvement, and Artifact index share one deep snapshot | Landed; Artifact hashing retains a distinct pass |
 | Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Medium-high |
-| Ledger integrity | Run Audit checks cross-ledger identities, references, completion evidence, and hashes | First local implementation; targeted tests |
+| Ledger integrity | `run-audit.v2` checks cross-ledger identities, references, completion evidence, acceptance coverage, and hashes; only a complete verified Run can PASS | First local implementation; targeted tests |
 | Implementation freshness | per-Attempt Skill fingerprints and stale-DONE diagnosis | First implementation |
 | Mechanical failure diagnosis | Doctor, errors, Failure ledger, blocking repair map, and non-blocking scorecard headroom | Medium-high |
 | Contract evaluation | `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review` scorecards feed one Evaluation ledger; no diverse expert-scored corpus | Implementation landed; external research-quality evidence open |

@@ -52,11 +52,17 @@ uv run rh goal create \
 
 uv run rh run start --workspace workspaces/robot-adaptation
 uv run rh run status --workspace workspaces/robot-adaptation
+uv run rh run approve --workspace workspaces/robot-adaptation --checkpoint C2
+uv run rh run resume --workspace workspaces/robot-adaptation
 uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-The Run produces a readable brief, a structured scorecard, and an Artifact
-index with hashes and provenance. A failed contract can be diagnosed with:
+`run start` advances until the next unmet prerequisite. For `research-brief`,
+inspect the C2 shortlist and reading-plan Artifacts before approving C2; `run
+resume` then continues from the persisted Unit ledger. The completed Run
+contains a readable brief and structured scorecard. `evidence inspect` then
+writes the Artifact index with hashes and provenance. A failed contract can be
+diagnosed with:
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
@@ -78,15 +84,17 @@ Use arxiv-survey-latex to write an 8-10 page course paper on RAG evaluation and 
 
 ```mermaid
 flowchart LR
-    G["Goal"] --> W["Workflow contract"]
-    W --> R["Recoverable Run"]
+    G["Goal"] --> W["Workflow choice"]
+    W --> P["Pipeline contract"]
+    P --> R["Recoverable Run"]
     R --> U["Units"]
     U --> S["Research and control Skills"]
     S --> A["Artifacts and deliverable"]
     A --> C["Completion and scorecards"]
     C --> E["Evidence"]
     E --> I["Improve diagnosis"]
-    I -. "bounded repair" .-> R
+    I --> O["Human or agent applies bounded repair"]
+    O -. "rerun affected Units" .-> R
 
     H["Harness kernel"] --- R
     H --- C
@@ -94,8 +102,9 @@ flowchart LR
 
 The layers have distinct responsibilities:
 
-- **Workflow contract:** defines the stages, required Skills, target Artifacts,
-  checkpoints, and mandatory acceptance checks for one user outcome.
+- **Workflow:** the user-selectable research path for one outcome.
+- **Pipeline contract:** implements that Workflow through stages, required
+  Skills, target Artifacts, checkpoints, and mandatory acceptance checks.
 - **Workspace:** stores one Run as human-readable files plus a machine ledger.
 - **Unit:** declares one step, its dependencies, inputs, outputs, owner, and
   acceptance rule.
@@ -105,10 +114,18 @@ The layers have distinct responsibilities:
 - **Harness kernel:** owns Run identity, scheduling, Attempts, Completion,
   recovery, provenance, reconciliation, Audit, and failure attribution.
 
+When a new Run starts, `harness-lock.v2` copies the selected Pipeline contract
+and its local variant dependencies into the Workspace and hashes that snapshot.
+A later repository change therefore cannot silently redefine an existing Run;
+missing or altered contract evidence blocks execution and Audit.
+
 Every scripted Unit, manual semantic Unit, and approved checkpoint passes
 through the same Completion Protocol before it becomes `DONE`. Normal execution
 enforces the Workflow's mandatory checks. `--strict` adds diagnostics that the
 Workflow has not made mandatory; it is not the only checked mode.
+Each mandatory result is retained with Completion evidence, so Run Audit can
+show verified, pending, blocked, skipped, and legacy-unverified acceptance
+coverage without reconstructing the Run from prose logs.
 
 ## Evidence And Quality
 
@@ -148,7 +165,9 @@ comparing, synthesizing, and citing multiple papers. See the
 ## Current Proof Boundary
 
 - `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review`
-  have Workflow-local scorecards and failure, repair, and rerun tests.
+  have Workflow-local scorecards and failure, repair, and rerun tests. Their
+  critical joins now reject shallow novelty surfaces, incomplete reading paths,
+  ignored focus decisions, and candidate-to-extraction coverage gaps.
 - `research-brief` has a completed real-source arXiv pilot in addition to a
   deterministic Harness proof.
 - `source-tutorial` has a strict local-source delivery test through article and
@@ -157,6 +176,11 @@ comparing, synthesizing, and citing multiple papers. See the
   10-page PDF.
 - cross-topic stability, expert comparison, measured model-token benchmarks,
   and automatic Harness candidate promotion remain open.
+
+The published `research-brief` snapshots were captured under
+`recoverable-provenance.v1`. They remain outcome and historical Run evidence,
+but they are not presented as v2 cross-ledger acceptance proofs; refreshing one
+v2 public Run is an explicit Roadmap item.
 
 Published snapshots are deliberately narrow:
 

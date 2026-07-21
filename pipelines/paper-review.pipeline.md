@@ -1,6 +1,6 @@
 ---
 name: paper-review
-version: 1.2
+version: 1.5
 profile: paper-review
 routing_hints: [paper review, manuscript review, paper critique, critique this paper, review this paper, review this manuscript, assess this paper, assess manuscript, referee report, peer review, 审稿, 论文评估, 评审这篇论文, 审阅这篇论文]
 routing_priority: 33
@@ -34,7 +34,7 @@ quality_contract:
   deliverable_kind: paper_review
   evidence_mode: manuscript_traceable
   completion_policy:
-    required_checks: [deliverable-selfloop, artifact-contract-auditor]
+    required_checks: [claims-extractor, evidence-auditor, novelty-matrix, rubric-writer, deliverable-selfloop, artifact-contract-auditor]
   candidate_pool_policy:
     keep_full_deduped_pool: false
   review_policy:
@@ -44,7 +44,7 @@ quality_contract:
   semantic_rubric:
     schema: paper-review-scorecard.v1
     pass_score: 80
-    critical_dimensions: [claim_traceability, evidence_coverage, review_traceability]
+    critical_dimensions: [claim_traceability, evidence_coverage, novelty_positioning, review_traceability]
 stages:
   C0:
     title: Init

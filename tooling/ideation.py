@@ -444,6 +444,60 @@ def _validate_diversity_axes(value: Any, *, field_name: str) -> list[str]:
     return axes
 
 
+def parse_idea_focus_decision(path: Path) -> dict[str, list[str]]:
+    text = path.read_text(encoding="utf-8", errors="ignore") if path.exists() else ""
+    match = re.search(
+        r"<!-- BEGIN CHECKPOINT:C2 -->(.*?)<!-- END CHECKPOINT:C2 -->",
+        text,
+        flags=re.DOTALL,
+    )
+    block = match.group(1) if match else ""
+
+    def values(label: str) -> list[str]:
+        selected = re.search(rf"(?im)^-\s*{re.escape(label)}:\s*(.*)$", block)
+        if selected is None:
+            return []
+        raw = selected.group(1).strip()
+        if not raw or raw.startswith("("):
+            return []
+        return [item.strip() for item in raw.split(";") if item.strip()]
+
+    return {
+        "focus_clusters": values("Focus clusters"),
+        "hard_exclusions": values("Hard exclusions"),
+    }
+
+
+def write_idea_focus_decision(
+    path: Path,
+    *,
+    focus_clusters: Iterable[str],
+    hard_exclusions: Iterable[str] = (),
+) -> None:
+    text = path.read_text(encoding="utf-8", errors="ignore") if path.exists() else ""
+    begin = "<!-- BEGIN CHECKPOINT:C2 -->"
+    end = "<!-- END CHECKPOINT:C2 -->"
+    if begin not in text or end not in text:
+        raise ValueError("C2 review block is missing; run checkpoint-brief before approval.")
+    focus = [str(item or "").strip() for item in focus_clusters if str(item or "").strip()]
+    exclusions = [str(item or "").strip() for item in hard_exclusions if str(item or "").strip()]
+    if not focus:
+        raise ValueError("At least one C2 focus cluster is required.")
+
+    prefix, remainder = text.split(begin, 1)
+    block, suffix = remainder.split(end, 1)
+    replacements = {
+        "Focus clusters": "; ".join(focus),
+        "Hard exclusions": "; ".join(exclusions) if exclusions else "(none recorded)",
+    }
+    for label, value in replacements.items():
+        pattern = re.compile(rf"(?im)^-\s*{re.escape(label)}:\s*.*$")
+        if not pattern.search(block):
+            raise ValueError(f"C2 review block is missing `{label}`.")
+        block = pattern.sub(f"- {label}: {value}", block, count=1)
+    atomic_write_text(path, prefix + begin + block + end + suffix)
+
+
 def resolve_idea_contract(workspace: Path) -> dict[str, Any]:
     spec = load_workspace_pipeline_spec(workspace)
     if spec is None:
@@ -464,7 +518,9 @@ def resolve_idea_contract(workspace: Path) -> dict[str, Any]:
     direction_policy = quality_contract.get("direction_policy") or {}
     screening_policy = quality_contract.get("screening_policy") or {}
     brief = parse_idea_brief(workspace / "output" / "trace" / "IDEA_BRIEF.md")
-    focus_clusters = [str(x).strip() for x in (brief.get("focus_clusters") or []) if str(x).strip()]
+    focus_decision = parse_idea_focus_decision(workspace / "DECISIONS.md")
+    selected_focus = focus_decision.get("focus_clusters") or brief.get("focus_clusters") or []
+    focus_clusters = [str(x).strip() for x in selected_focus if str(x).strip()]
     direction_pool_min_default = _require_positive_int(query_defaults.get("direction_pool_min"), field_name="query_defaults.direction_pool_min")
     direction_pool_max_default = _require_positive_int(query_defaults.get("direction_pool_max"), field_name="query_defaults.direction_pool_max")
     shortlist_size_default = _require_positive_int(query_defaults.get("idea_shortlist_size"), field_name="query_defaults.idea_shortlist_size")
@@ -508,6 +564,7 @@ def resolve_idea_contract(workspace: Path) -> dict[str, Any]:
         raise ValueError(f"Invalid ideation contract: idea_screen_top_n ({idea_screen_top_n}) exceeds direction_pool_max ({direction_pool_max}).")
     return {
         "focus_clusters": focus_clusters,
+        "hard_exclusions": list(focus_decision.get("hard_exclusions") or []),
         "direction_pool_min": direction_pool_min,
         "direction_pool_max": direction_pool_max,
         "idea_screen_top_n": idea_screen_top_n,
@@ -893,10 +950,44 @@ def _cluster_matches_focus(cluster: str, focus: set[str]) -> bool:
     return value in focus or any(value.startswith(f"{item} /") for item in focus)
 
 
-def signals_to_direction_cards(signals: list[IdeaSignal], *, note_index: dict[str, dict[str, Any]], focus_clusters: list[str], pool_min: int, pool_max: int) -> list[DirectionCard]:
+def _signal_matches_hard_exclusion(signal: IdeaSignal, exclusions: Iterable[str]) -> bool:
+    haystack = " ".join(
+        (
+            signal.cluster,
+            signal.direction_type,
+            signal.theme,
+            signal.claim_or_observation,
+            signal.tension,
+            signal.missing_piece,
+            signal.possible_axis,
+            signal.academic_value,
+        )
+    ).casefold()
+    normalized_haystack = " ".join(haystack.split())
+    return any(
+        " ".join(str(exclusion or "").casefold().split()) in normalized_haystack
+        for exclusion in exclusions
+        if str(exclusion or "").strip()
+    )
+
+
+def signals_to_direction_cards(
+    signals: list[IdeaSignal],
+    *,
+    note_index: dict[str, dict[str, Any]],
+    focus_clusters: list[str],
+    pool_min: int,
+    pool_max: int,
+    hard_exclusions: list[str] | None = None,
+) -> list[DirectionCard]:
     focus = {x.strip() for x in focus_clusters if str(x).strip()}
+    eligible_signals = [
+        signal
+        for signal in signals
+        if not _signal_matches_hard_exclusion(signal, hard_exclusions or [])
+    ]
     cards: list[DirectionCard] = []
-    for idx, signal in enumerate(signals, start=1):
+    for idx, signal in enumerate(eligible_signals, start=1):
         profile = _axis_profile(signal.possible_axis, signal.cluster)
         anchors = _anchor_notes(note_index, signal.paper_ids)
         task_phrase = _task_phrase(anchors)

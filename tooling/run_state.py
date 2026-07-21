@@ -42,14 +42,15 @@ from tooling.harness_contracts import HARNESS_KERNEL_PATHS
 HARNESS_DIR = ".harness"
 GOAL_SCHEMA = "goal-spec.v2"
 RUN_SCHEMA = "run-state.v1"
-LOCK_SCHEMA = "harness-lock.v1"
+LOCK_SCHEMA = "harness-lock.v2"
 EVENT_SCHEMA = "run-event.v1"
 ATTEMPT_SCHEMA = "unit-attempt.v1"
 ARTIFACT_SCHEMA = "artifact-record.v1"
 FAILURE_SCHEMA = "failure-record.v1"
 EVALUATION_SCHEMA = "run-evaluation.v1"
 INVOCATION_LOCK_SCHEMA = "workspace-invocation-lock.v1"
-COMPLETION_PROTOCOL = "recoverable-provenance.v1"
+COMPLETION_PROTOCOL = "recoverable-provenance.v2"
+MIGRATABLE_COMPLETION_PROTOCOLS = {"recoverable-provenance.v1"}
 LEGACY_COMPLETION_EVIDENCE_CODES = {
     "attempt_artifact_missing",
     "attempt_start_event_missing",
@@ -222,6 +223,11 @@ def initialize_run_state(
     _write_json(harness_dir / "goal.json", goal_payload)
 
     if not (harness_dir / "harness.lock.json").exists():
+        pipeline_snapshot = _materialize_pipeline_contract_snapshot(
+            workspace=workspace,
+            repo_root=repo_root,
+            pipeline_path=pipeline_path,
+        )
         _write_json(
             harness_dir / "harness.lock.json",
             _build_harness_lock(
@@ -230,6 +236,7 @@ def initialize_run_state(
                 repo_root=repo_root,
                 pipeline_path=pipeline_path,
                 units_template=units_template,
+                pipeline_snapshot=pipeline_snapshot,
             ),
         )
 
@@ -745,6 +752,25 @@ def record_human_decision(
     )
 
 
+def checkpoint_approval_recorded(*, workspace: Path, checkpoint: str) -> bool:
+    """Return the latest durable approval state for one Checkpoint."""
+
+    checkpoint = str(checkpoint or "").strip()
+    if not checkpoint:
+        return False
+    approved = False
+    for record in _read_jsonl(workspace / HARNESS_DIR / "decisions.jsonl"):
+        if str(record.get("subject") or "").strip() != checkpoint:
+            continue
+        action = str(record.get("action") or "").strip()
+        decision = str(record.get("decision") or "").strip().lower()
+        if action in {"checkpoint.approved", "checkpoint.auto_approved"}:
+            approved = decision == "approved"
+        elif action == "checkpoint.approval.revoked":
+            approved = False
+    return approved
+
+
 def record_completion_stage(
     *,
     workspace: Path,
@@ -754,10 +780,18 @@ def record_completion_stage(
     manifest_path: str,
     outputs: Iterable[str],
     recovered: bool = False,
+    acceptance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if stage not in {"prepared", "committed"}:
         raise ValueError(f"Unsupported completion stage: {stage}")
     snapshot = _read_json_object(workspace / HARNESS_DIR / "run.json")
+    payload: dict[str, Any] = {
+        "manifest_path": manifest_path,
+        "outputs": list(outputs),
+        "recovered": recovered,
+    }
+    if isinstance(acceptance, dict):
+        payload["acceptance"] = dict(acceptance)
     return _append_event(
         workspace=workspace,
         run_id=str(snapshot.get("run_id") or ""),
@@ -765,11 +799,7 @@ def record_completion_stage(
         actor={"kind": "harness", "id": "completion-protocol"},
         unit_id=unit_id,
         attempt_id=attempt_id,
-        payload={
-            "manifest_path": manifest_path,
-            "outputs": list(outputs),
-            "recovered": recovered,
-        },
+        payload=payload,
     )
 
 
@@ -888,6 +918,22 @@ def _recover_unannounced_prepared_manifests(*, workspace: Path, run_id: str) -> 
             for item in manifest.get("outputs") or []
             if isinstance(item, dict) and str(item.get("path") or "")
         ]
+        recovery_issues = _completion_recovery_acceptance_issues(
+            workspace=workspace,
+            row=row,
+            manifest=manifest,
+            manifest_path=path,
+            outputs=outputs,
+        )
+        if recovery_issues:
+            _block_recovery_acceptance_failure(
+                workspace=workspace,
+                row=row,
+                attempt_id=attempt_id,
+                manifest_path=str(path.relative_to(workspace)),
+                issues=recovery_issues,
+            )
+            continue
         record_completion_stage(
             workspace=workspace,
             unit_id=unit_id,
@@ -896,6 +942,11 @@ def _recover_unannounced_prepared_manifests(*, workspace: Path, run_id: str) -> 
             manifest_path=str(path.relative_to(workspace)),
             outputs=outputs,
             recovered=True,
+            acceptance=(
+                manifest.get("acceptance")
+                if isinstance(manifest.get("acceptance"), dict)
+                else None
+            ),
         )
         announced_attempt_ids.add(attempt_id)
         recovered.append(attempt_id)
@@ -944,6 +995,7 @@ def _recover_prepared_completions(*, workspace: Path, run_id: str) -> list[str]:
         started = starts.get(attempt_id)
         if (
             not attempt_id
+            or attempt_id in committed_attempt_ids
             or row is None
             or started is None
             or latest_started_by_unit.get(unit_id) != attempt_id
@@ -981,6 +1033,28 @@ def _recover_prepared_completions(*, workspace: Path, run_id: str) -> list[str]:
             for item in manifest.get("outputs") or []
             if isinstance(item, dict) and str(item.get("path") or "")
         ]
+        recovery_acceptance_issues = _completion_recovery_acceptance_issues(
+            workspace=workspace,
+            row=row,
+            manifest=manifest,
+            manifest_path=manifest_path,
+            outputs=outputs,
+            event_acceptance=(
+                payload.get("acceptance")
+                if isinstance(payload.get("acceptance"), dict)
+                else None
+            ),
+            require_event_match=True,
+        )
+        if recovery_acceptance_issues:
+            _block_recovery_acceptance_failure(
+                workspace=workspace,
+                row=row,
+                attempt_id=attempt_id,
+                manifest_path=manifest_relpath,
+                issues=recovery_acceptance_issues,
+            )
+            continue
         if finished is None:
             finish_attempt(
                 workspace=workspace,
@@ -1021,6 +1095,11 @@ def _recover_prepared_completions(*, workspace: Path, run_id: str) -> list[str]:
                 manifest_path=manifest_relpath,
                 outputs=outputs,
                 recovered=True,
+                acceptance=(
+                    payload.get("acceptance")
+                    if isinstance(payload.get("acceptance"), dict)
+                    else None
+                ),
             )
             committed_attempt_ids.add(attempt_id)
         recovered.append(attempt_id)
@@ -1275,7 +1354,7 @@ def _recover_successful_doing_units(*, workspace: Path, run_id: str) -> list[str
         if attempt_id and str(payload.get("status") or "").upper() == "DONE":
             manifests[attempt_id] = (payload, str(path.relative_to(workspace)))
 
-    recovered: list[tuple[str, str, str, list[str]]] = []
+    recovered: list[tuple[str, str, str, list[str], dict[str, Any] | None]] = []
     for row in table.rows:
         if str(row.get("status") or "").strip().upper() != "DOING":
             continue
@@ -1299,6 +1378,26 @@ def _recover_successful_doing_units(*, workspace: Path, run_id: str) -> list[str
             manifest=manifest,
         ):
             continue
+        recovery_issues = _completion_recovery_acceptance_issues(
+            workspace=workspace,
+            row=row,
+            manifest=manifest,
+            manifest_path=workspace / manifest_relpath,
+            outputs=[
+                str(item.get("path") or "")
+                for item in manifest.get("outputs") or []
+                if isinstance(item, dict) and str(item.get("path") or "")
+            ],
+        )
+        if recovery_issues:
+            _block_recovery_acceptance_failure(
+                workspace=workspace,
+                row=row,
+                attempt_id=attempt_id,
+                manifest_path=manifest_relpath,
+                issues=recovery_issues,
+            )
+            continue
         row["status"] = "DONE"
         recovered.append(
             (
@@ -1306,13 +1405,18 @@ def _recover_successful_doing_units(*, workspace: Path, run_id: str) -> list[str
                 attempt_id,
                 manifest_relpath,
                 [str(item.get("path") or "") for item in manifest.get("outputs") or [] if isinstance(item, dict)],
+                (
+                    dict(manifest["acceptance"])
+                    if isinstance(manifest.get("acceptance"), dict)
+                    else None
+                ),
             )
         )
 
     if not recovered:
         return []
     table.save(units_path)
-    for unit_id, attempt_id, manifest_relpath, outputs in recovered:
+    for unit_id, attempt_id, manifest_relpath, outputs, acceptance in recovered:
         _append_event(
             workspace=workspace,
             run_id=run_id,
@@ -1330,12 +1434,160 @@ def _recover_successful_doing_units(*, workspace: Path, run_id: str) -> list[str
             manifest_path=manifest_relpath,
             outputs=outputs,
             recovered=True,
+            acceptance=acceptance,
         )
         update_status_log(
             workspace / "STATUS.md",
             f"{now_iso_seconds()} {unit_id} DONE (recovered successful completion {attempt_id})",
         )
-    return [unit_id for unit_id, _, _, _ in recovered]
+    return [unit_id for unit_id, _, _, _, _ in recovered]
+
+
+def _completion_recovery_acceptance_issues(
+    *,
+    workspace: Path,
+    row: dict[str, Any],
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    outputs: list[str],
+    event_acceptance: dict[str, Any] | None = None,
+    require_event_match: bool = False,
+) -> list[str]:
+    """Fail closed when recovery cannot re-establish mandatory acceptance."""
+
+    from tooling.quality_gate import (
+        check_completion_acceptance,
+        completion_check_required,
+        write_quality_report,
+    )
+
+    skill = str(row.get("skill") or "").strip()
+    if not completion_check_required(skill=skill, workspace=workspace):
+        return []
+    checker_issues = check_completion_acceptance(
+        skill=skill,
+        workspace=workspace,
+        outputs=outputs,
+    )
+    recorded_protocol = _recorded_completion_protocol(workspace)
+    manifest_acceptance = manifest.get("acceptance")
+    issues: list[str] = []
+    if (
+        not isinstance(manifest_acceptance, dict)
+        and recorded_protocol in MIGRATABLE_COMPLETION_PROTOCOLS
+        and not checker_issues
+    ):
+        try:
+            report_path = write_quality_report(
+                workspace=workspace,
+                unit_id=str(row.get("unit_id") or ""),
+                skill=skill,
+                issues=[],
+            )
+        except Exception as exc:
+            issues.append(
+                "Legacy acceptance evidence could not be migrated because the quality "
+                f"report failed: {type(exc).__name__}: {exc}"
+            )
+        else:
+            manifest_acceptance = {
+                "required": True,
+                "skill": skill,
+                "status": "PASS",
+                "report_path": str(report_path.relative_to(workspace)),
+                "issue_codes": [],
+                "migrated_from": recorded_protocol,
+            }
+            manifest["acceptance"] = manifest_acceptance
+            _write_json(manifest_path, manifest)
+    if not isinstance(manifest_acceptance, dict):
+        issues.append("DONE recovery requires acceptance evidence in the prepared Manifest.")
+    else:
+        if manifest_acceptance.get("required") is not True:
+            issues.append("Prepared Manifest does not mark Workflow acceptance as required.")
+        if str(manifest_acceptance.get("status") or "").strip().upper() != "PASS":
+            issues.append("Prepared Manifest does not record a PASS acceptance result.")
+        if str(manifest_acceptance.get("skill") or "").strip() != skill:
+            issues.append("Prepared Manifest acceptance evidence names a different Skill.")
+    legacy_event_without_acceptance = (
+        recorded_protocol in MIGRATABLE_COMPLETION_PROTOCOLS
+        and event_acceptance is None
+    )
+    if (
+        require_event_match
+        and manifest_acceptance != event_acceptance
+        and not legacy_event_without_acceptance
+    ):
+        issues.append("Prepared Manifest and Completion Event acceptance evidence disagree.")
+    if checker_issues:
+        try:
+            write_quality_report(
+                workspace=workspace,
+                unit_id=str(row.get("unit_id") or ""),
+                skill=skill,
+                issues=checker_issues,
+            )
+        except Exception as exc:
+            issues.append(
+                f"Recovery quality report failed: {type(exc).__name__}: {exc}"
+            )
+    issues.extend(f"{issue.code}: {issue.message}" for issue in checker_issues)
+    return issues
+
+
+def _recorded_completion_protocol(workspace: Path) -> str:
+    lock = _read_json_object(workspace / HARNESS_DIR / "harness.lock.json")
+    protocols = lock.get("protocols") if isinstance(lock.get("protocols"), dict) else {}
+    return str(protocols.get("completion") or "unversioned")
+
+
+def _block_recovery_acceptance_failure(
+    *,
+    workspace: Path,
+    row: dict[str, Any],
+    attempt_id: str,
+    manifest_path: str,
+    issues: list[str],
+) -> None:
+    """Turn an unrecoverable Completion proof gap into durable repair evidence."""
+
+    unit_id = str(row.get("unit_id") or "").strip()
+    skill = str(row.get("skill") or "").strip()
+    symptom = "; ".join(issues[:3]) or "Completion acceptance could not be recovered."
+    record_failure(
+        workspace=workspace,
+        unit_id=unit_id,
+        attempt_id=attempt_id,
+        failure_type="acceptance_recovery_failed",
+        symptom=symptom,
+        causal_behavior="Recovery could not re-establish the Workflow acceptance proof required for DONE.",
+        harness_mechanism="Completion recovery fails closed and preserves a bounded repair surface.",
+        repair_surface=[manifest_path, "output/QUALITY_GATE.md", f".codex/skills/{skill}/SKILL.md"],
+        severity="high",
+    )
+    row["status"] = "BLOCKED"
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    for candidate in table.rows:
+        if str(candidate.get("unit_id") or "").strip() == unit_id:
+            candidate["status"] = "BLOCKED"
+            break
+    table.save(workspace / "UNITS.csv")
+    open_attempt = open_attempt_for_unit(workspace=workspace, unit_id=unit_id)
+    if open_attempt and str(open_attempt.get("attempt_id") or "") == attempt_id:
+        finish_attempt(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            status="FAILED_RETRYABLE",
+            exit_code=2,
+            outputs=(),
+            message=symptom,
+        )
+    update_status_log(
+        workspace / "STATUS.md",
+        f"{now_iso_seconds()} {unit_id} BLOCKED (acceptance recovery failed)",
+    )
 
 
 def _manifest_matches_workspace(*, workspace: Path, row: dict[str, str], manifest: dict[str, Any]) -> bool:
@@ -1476,6 +1728,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
             "run_id": "",
             "ledger_record_counts": {},
             "attempt_summary": _summarize_attempt_records(()),
+            "completion_acceptance_by_attempt": {},
             "compatibility": _completion_protocol_compatibility(lock=lock, issue_codes=()),
             "issue_count": 0,
             "issues": [],
@@ -1520,6 +1773,48 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         payload_run_id = str(payload.get("run_id") or "")
         if payload and payload_run_id != run_id:
             add("ERROR", "run_id_mismatch", f"`.harness/{relpath}` belongs to `{payload_run_id}`, expected `{run_id}`.")
+
+    if str(lock.get("schema") or "") == LOCK_SCHEMA:
+        pipeline_lock = lock.get("pipeline") if isinstance(lock.get("pipeline"), dict) else {}
+        snapshot_value = str(pipeline_lock.get("snapshot_path") or "").strip()
+        source_value = str(pipeline_lock.get("path") or "").strip()
+        declared_value = ""
+        pipeline_projection = workspace / "PIPELINE.lock.md"
+        if pipeline_projection.exists():
+            for raw_line in pipeline_projection.read_text(encoding="utf-8", errors="ignore").splitlines():
+                if raw_line.strip().startswith("pipeline:"):
+                    declared_value = raw_line.split(":", 1)[1].strip()
+                    break
+        if source_value and declared_value != source_value:
+            add(
+                "ERROR",
+                "pipeline_lock_projection_mismatch",
+                f"`PIPELINE.lock.md` declares `{declared_value or '<missing>'}`, but the Harness lock binds `{source_value}`.",
+            )
+        if source_value and not snapshot_value:
+            add("ERROR", "pipeline_snapshot_missing", "The v2 Harness lock binds a Pipeline but has no contract snapshot.")
+        elif snapshot_value:
+            candidate = Path(snapshot_value)
+            snapshot_path = (workspace / candidate).resolve() if not candidate.is_absolute() else candidate
+            expected_sha = str(pipeline_lock.get("snapshot_sha256") or "").strip()
+            if candidate.is_absolute() or not snapshot_path.is_relative_to(workspace.resolve()):
+                add("ERROR", "pipeline_snapshot_path_invalid", "The Pipeline snapshot path escapes the Workspace.")
+            elif not snapshot_path.is_file():
+                add("ERROR", "pipeline_snapshot_missing", f"Pinned Pipeline snapshot `{snapshot_value}` is missing.")
+            elif not expected_sha or _file_sha256(snapshot_path) != expected_sha:
+                add("ERROR", "pipeline_snapshot_hash_mismatch", f"Pinned Pipeline snapshot `{snapshot_value}` does not match its lock hash.")
+
+            snapshot_files = pipeline_lock.get("snapshot_files")
+            if not isinstance(snapshot_files, dict) or not snapshot_files:
+                add("ERROR", "pipeline_snapshot_bundle_missing", "The v2 Pipeline snapshot has no inheritance bundle manifest.")
+            else:
+                snapshot_dir = snapshot_path.parent
+                for filename, digest in sorted(snapshot_files.items()):
+                    dependency = (snapshot_dir / str(filename)).resolve()
+                    if not dependency.is_relative_to(snapshot_dir.resolve()) or not dependency.is_file():
+                        add("ERROR", "pipeline_snapshot_dependency_missing", f"Pinned Pipeline dependency `{filename}` is missing.")
+                    elif _file_sha256(dependency) != str(digest or ""):
+                        add("ERROR", "pipeline_snapshot_dependency_hash_mismatch", f"Pinned Pipeline dependency `{filename}` does not match its lock hash.")
 
     event_sequences = [record.get("seq") for record in ledgers["events"]]
     if event_sequences and event_sequences != list(range(1, len(event_sequences) + 1)):
@@ -1567,6 +1862,12 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         (str(record.get("attempt_id") or ""), str(record.get("type") or "")): record
         for record in ledgers["events"]
         if str(record.get("attempt_id") or "")
+    }
+    committed_completion_events = {
+        str(record.get("attempt_id") or ""): record
+        for record in ledgers["events"]
+        if record.get("type") == "unit.completion.committed"
+        and str(record.get("attempt_id") or "")
     }
     observed_attempt_events = set(attempt_events)
     for attempt_id in starts:
@@ -1664,6 +1965,21 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         manifest_status = str(payload.get("status") or "").upper()
         if manifest_status == "DONE" and str(finished.get("status") or "") != "SUCCEEDED":
             add("ERROR", "manifest_status_mismatch", f"DONE Manifest `{path.relative_to(workspace)}` points to non-successful Attempt `{attempt_id}`.")
+        if manifest_status == "DONE":
+            event = committed_completion_events.get(attempt_id, {})
+            event_payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+            manifest_acceptance = payload.get("acceptance")
+            event_acceptance = event_payload.get("acceptance")
+            if isinstance(manifest_acceptance, dict) != isinstance(event_acceptance, dict) or (
+                isinstance(manifest_acceptance, dict)
+                and isinstance(event_acceptance, dict)
+                and manifest_acceptance != event_acceptance
+            ):
+                add(
+                    "ERROR",
+                    "completion_acceptance_mismatch",
+                    f"DONE Manifest `{path.relative_to(workspace)}` and its committed Completion Event disagree on Workflow acceptance evidence.",
+                )
         for output in payload.get("outputs") or []:
             if not isinstance(output, dict) or output.get("exists") is False:
                 continue
@@ -1787,6 +2103,12 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         "run_id": run_id,
         "ledger_record_counts": {name: len(records) for name, records in ledgers.items()},
         "attempt_summary": _summarize_attempt_records(ledgers["attempts"]),
+        "completion_acceptance_by_attempt": {
+            attempt_id: dict(acceptance)
+            for attempt_id, event in committed_completion_events.items()
+            if isinstance(event.get("payload"), dict)
+            and isinstance((acceptance := event["payload"].get("acceptance")), dict)
+        },
         "compatibility": compatibility,
         "issue_count": len(issues),
         "issues": issues,
@@ -1986,6 +2308,7 @@ def _build_harness_lock(
     repo_root: Path,
     pipeline_path: Path | None,
     units_template: str,
+    pipeline_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     units_path = repo_root / units_template if units_template else workspace / "UNITS.csv"
     skills: dict[str, dict[str, str]] = {}
@@ -2023,6 +2346,7 @@ def _build_harness_lock(
         "pipeline": {
             "path": _relative_or_absolute(pipeline_path, repo_root) if pipeline_path else "",
             "sha256": _file_sha256(pipeline_path) if pipeline_path and pipeline_path.exists() else "",
+            **dict(pipeline_snapshot or {}),
         },
         "units_template": {
             "path": _relative_or_absolute(units_path, repo_root),
@@ -2032,6 +2356,53 @@ def _build_harness_lock(
         "kernel": kernel,
         "model": {"status": "not_captured_by_local_cli"},
         "governance": {"status": "external_promotion_not_implemented"},
+    }
+
+
+def _materialize_pipeline_contract_snapshot(
+    *,
+    workspace: Path,
+    repo_root: Path,
+    pipeline_path: Path | None,
+) -> dict[str, Any]:
+    """Freeze the selected Pipeline and local inheritance surface inside the Run."""
+
+    if pipeline_path is None or not pipeline_path.exists():
+        return {}
+
+    snapshot_dir = workspace / HARNESS_DIR / "contracts" / "pipelines"
+    ensure_dir(snapshot_dir)
+    snapshot_files: dict[str, str] = {}
+    sources: list[Path] = []
+    current = pipeline_path.resolve()
+    seen: set[Path] = set()
+    while current not in seen:
+        seen.add(current)
+        sources.append(current)
+        from tooling.common import resolve_pipeline_spec_path
+        from tooling.pipeline_spec import PipelineSpec
+
+        spec = PipelineSpec.load(current)
+        if not spec.variant_of:
+            break
+        parent = resolve_pipeline_spec_path(repo_root=repo_root, pipeline_value=spec.variant_of)
+        if parent is None:
+            raise ValueError(f"Could not snapshot Pipeline parent `{spec.variant_of}` for {current}.")
+        current = parent
+
+    for source in sorted(sources):
+        target = snapshot_dir / source.name
+        atomic_write_text(target, source.read_text(encoding="utf-8"))
+        snapshot_files[source.name] = _file_sha256(target)
+
+    selected = snapshot_dir / pipeline_path.name
+    if not selected.exists():
+        atomic_write_text(selected, pipeline_path.read_text(encoding="utf-8"))
+        snapshot_files[selected.name] = _file_sha256(selected)
+    return {
+        "snapshot_path": _relative_or_absolute(selected, workspace),
+        "snapshot_sha256": _file_sha256(selected),
+        "snapshot_files": snapshot_files,
     }
 
 
@@ -2063,6 +2434,18 @@ def _completion_protocol_compatibility(
             "interpretation": (
                 "The Run predates an explicit Completion Protocol marker. Listed legacy evidence gaps may reflect "
                 "an older evidence shape, but they remain audit errors and are not treated as PASS."
+            ),
+        }
+    if recorded in MIGRATABLE_COMPLETION_PROTOCOLS:
+        return {
+            "mode": "legacy_versioned",
+            "recorded_completion_protocol": recorded,
+            "current_completion_protocol": COMPLETION_PROTOCOL,
+            "legacy_evidence_gap_codes": [],
+            "interpretation": (
+                "The Run uses a recognized earlier Completion Protocol. PREPARED transactions may be "
+                "migrated only by re-running current Workflow acceptance checks; historical DONE evidence "
+                "remains explicit rather than inferred."
             ),
         }
     return {

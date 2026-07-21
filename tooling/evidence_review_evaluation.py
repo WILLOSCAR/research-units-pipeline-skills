@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from tooling.review_artifacts import load_candidate_records, stable_paper_id
 from tooling.review_protocol import parse_protocol
 from tooling.scorecards import (
     build_dimension as _dimension,
@@ -51,6 +52,11 @@ def evaluate_evidence_review(workspace: Path) -> dict[str, Any]:
     extraction = _read_csv(workspace / "papers" / "extraction_table.csv")
     synthesis_path = workspace / "output" / "SYNTHESIS.md"
     synthesis = synthesis_path.read_text(encoding="utf-8", errors="ignore") if synthesis_path.exists() else ""
+    candidates = load_candidate_records(workspace)
+    candidate_ids = {
+        stable_paper_id(record, index=index)
+        for index, record in enumerate(candidates, start=1)
+    }
     included_ids = {
         str(row.get("paper_id") or "").strip()
         for row in screening
@@ -63,7 +69,7 @@ def evaluate_evidence_review(workspace: Path) -> dict[str, Any]:
     dimensions = [
         _artifact_dimension(workspace),
         _protocol_dimension(protocol_text, protocol),
-        _screening_dimension(screening, protocol),
+        _screening_dimension(screening, protocol, candidate_ids),
         _extraction_dimension(extraction, included_ids),
         _bias_dimension(extraction),
         _structure_dimension(synthesis),
@@ -78,6 +84,7 @@ def evaluate_evidence_review(workspace: Path) -> dict[str, Any]:
         critical_dimensions=critical_dimensions,
         counts={
             "screened_records": len(screening),
+            "candidate_records": len(candidate_ids),
             "included_records": len(included_ids),
             "extracted_records": len(extraction_ids),
             "synthesis_pointers": len(synthesis_ids),
@@ -165,14 +172,22 @@ def _protocol_dimension(text: str, protocol: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _screening_dimension(rows: list[dict[str, str]], protocol: dict[str, Any]) -> dict[str, Any]:
+def _screening_dimension(
+    rows: list[dict[str, str]],
+    protocol: dict[str, Any],
+    candidate_ids: set[str],
+) -> dict[str, Any]:
     valid_codes = {code for code, _ in (protocol.get("inclusion") or []) + (protocol.get("exclusion") or [])}
     invalid_rows = 0
     include_count = 0
+    row_ids: list[str] = []
     for row in rows:
         decision = str(row.get("decision") or "").strip().lower()
         if decision == "include":
             include_count += 1
+        paper_id = str(row.get("paper_id") or "").strip()
+        if paper_id:
+            row_ids.append(paper_id)
         codes = {value.strip() for value in re.split(r"[;,\s]+", str(row.get("reason_codes") or "")) if value.strip()}
         if (
             decision not in {"include", "exclude"}
@@ -182,19 +197,37 @@ def _screening_dimension(rows: list[dict[str, str]], protocol: dict[str, Any]) -
             or not codes.issubset(valid_codes)
         ):
             invalid_rows += 1
-    passed = bool(rows) and include_count > 0 and invalid_rows == 0
+    screened_ids = set(row_ids)
+    duplicate_ids = len(row_ids) - len(screened_ids)
+    missing_ids = candidate_ids - screened_ids
+    unexpected_ids = screened_ids - candidate_ids
+    passed = (
+        bool(rows)
+        and bool(candidate_ids)
+        and include_count > 0
+        and invalid_rows == 0
+        and duplicate_ids == 0
+        and not missing_ids
+        and not unexpected_ids
+    )
     return _dimension(
         "screening_traceability",
         "Screening traceability",
         passed=passed,
         partial=bool(rows) and invalid_rows < len(rows),
-        evidence=f"Rows={len(rows)}; included={include_count}; invalid clause-linked rows={invalid_rows}.",
+        evidence=(
+            f"Rows={len(rows)}/{len(candidate_ids)} candidates; included={include_count}; "
+            f"invalid clause-linked rows={invalid_rows}; duplicate IDs={duplicate_ids}; "
+            f"missing IDs={len(missing_ids)}; unexpected IDs={len(unexpected_ids)}."
+        ),
         repair_surface=[".codex/skills/screening-manager/SKILL.md", "papers/screening_log.csv", "output/PROTOCOL.md"],
     )
 
 
 def _extraction_dimension(rows: list[dict[str, str]], included_ids: set[str]) -> dict[str, Any]:
-    extraction_ids = {str(row.get("paper_id") or "").strip() for row in rows if str(row.get("paper_id") or "").strip()}
+    extraction_id_list = [str(row.get("paper_id") or "").strip() for row in rows if str(row.get("paper_id") or "").strip()]
+    extraction_ids = set(extraction_id_list)
+    duplicate_ids = len(extraction_id_list) - len(extraction_ids)
     missing_ids = sorted(included_ids - extraction_ids)
     substantive = 0
     total = len(rows) * len(CANONICAL_EXTRACTION_FIELDS)
@@ -205,13 +238,23 @@ def _extraction_dimension(rows: list[dict[str, str]], included_ids: set[str]) ->
         if not _is_substantive(row.get("evidence_pointer")) or not _is_substantive(row.get("result_summary")):
             rows_missing_pointer += 1
     ratio = substantive / total if total else 0.0
-    passed = bool(rows) and not missing_ids and extraction_ids == included_ids and ratio >= 0.9 and rows_missing_pointer == 0
+    passed = (
+        bool(rows)
+        and duplicate_ids == 0
+        and not missing_ids
+        and extraction_ids == included_ids
+        and ratio >= 0.9
+        and rows_missing_pointer == 0
+    )
     return _dimension(
         "extraction_coverage",
         "Extraction coverage",
         passed=passed,
         partial=bool(rows) and not missing_ids and ratio >= 0.5,
-        evidence=f"Extracted={len(extraction_ids)}/{len(included_ids)} included IDs; substantive cells={substantive}/{total}; rows missing result/pointer={rows_missing_pointer}.",
+        evidence=(
+            f"Extracted={len(extraction_ids)}/{len(included_ids)} included IDs; duplicate IDs={duplicate_ids}; "
+            f"substantive cells={substantive}/{total}; rows missing result/pointer={rows_missing_pointer}."
+        ),
         repair_surface=[".codex/skills/extraction-form/SKILL.md", "papers/extraction_table.csv"],
     )
 

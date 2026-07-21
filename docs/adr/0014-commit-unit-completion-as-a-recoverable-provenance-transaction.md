@@ -45,11 +45,10 @@ diagnostic sinks that are intentionally rewritten across Units retain
 historical Artifact records but are excluded from that current-hash rule.
 
 New Run locks declare
-`protocols.completion = recoverable-provenance.v1`. Existing locks are not
-backfilled: an unversioned historical Run cannot truthfully inherit guarantees
-that were not recorded at creation. Audit classifies that Run as
-`legacy_unversioned` and identifies compatibility-sensitive evidence gaps, but
-does not downgrade or suppress the corresponding integrity errors.
+`protocols.completion = recoverable-provenance.v2`; ADR 0017 records the
+acceptance-evidence and Run-Audit version boundary. A recognized v1 PREPARED
+transaction may migrate only after current acceptance checks pass again.
+Unversioned historical Runs cannot inherit guarantees that were never recorded.
 
 ## Consequences
 

@@ -53,6 +53,9 @@ The `research-brief` proof state is backed by a
 and a separate [real-source arXiv snapshot](../examples/research-brief-real-source-proof/README.md).
 The first keeps completion evidence deterministic; the second pressures the
 same contract with online retrieval. Neither implies expert scientific review.
+Both published snapshots were captured under `recoverable-provenance.v1`.
+Their proof labels describe the observed deliverable and historical Run, not a
+current v2 acceptance proof; a refreshed v2 public Run remains open.
 
 ## Survey Delivery Profiles
 
@@ -99,10 +102,10 @@ inventories; this catalog only names the semantic join each proof exercises.
 
 | Workflow | Semantic join exercised | Scorecard boundary |
 |---|---|---|
-| `paper-review` | manuscript -> Claims -> evidence gaps -> novelty rows -> review concerns | Traceability and recommendation consistency, not scientific truth |
+| `paper-review` | manuscript -> unique Claims -> unique evidence gaps -> at least five related works -> review concerns | Traceability and recommendation consistency, not scientific truth |
 | `research-brief` | core-set paper -> briefing pointer -> reading path | Structure, compactness, and pointer integrity, not broad topic completeness |
-| `idea-brainstorm` | literature signal -> direction -> screening -> shortlist -> memo | Traceability, actionability, diversity, and kill criteria, not novelty proof |
-| `evidence-review` | protocol clause -> screening decision -> extraction row -> synthesis pointer | Protocol operability and pointer integrity, not exhaustive retrieval or causal validity |
+| `idea-brainstorm` | C2 focus/exclusion Decision -> literature signal -> filtered direction -> screening -> shortlist -> memo | Traceability, actionability, diversity, and kill criteria, not novelty proof |
+| `evidence-review` | candidate ID -> protocol clause -> screening decision -> unique extraction row -> synthesis pointer | Complete candidate coverage and pointer integrity, not exhaustive retrieval or causal validity |
 
 ## Evidence Gaps
 

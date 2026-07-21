@@ -544,7 +544,7 @@ def test_audit_writes_compact_run_ledger_when_artifacts_are_present(tmp_path: Pa
 
     audit_path = workspace / "output" / "RUN_AUDIT.md"
     audit_json_path = workspace / "output" / "RUN_AUDIT.json"
-    assert result.returncode == 0, result.stdout
+    assert result.returncode == 2, result.stdout
     assert audit_path.exists()
     assert audit_json_path.exists()
     assert "Wrote " in result.stdout
@@ -556,11 +556,11 @@ def test_audit_writes_compact_run_ledger_when_artifacts_are_present(tmp_path: Pa
     assert "DONE: 1" in result.stdout
     assert "Manifests: 1" in result.stdout
     assert "No harness issues" in result.stdout
-    assert "PASS" in audit_path.read_text(encoding="utf-8")
+    assert "INCOMPLETE" in audit_path.read_text(encoding="utf-8")
     audit_payload = json.loads(audit_json_path.read_text(encoding="utf-8"))
-    assert audit_payload["schema"] == "run-audit.v1"
+    assert audit_payload["schema"] == "run-audit.v2"
     assert audit_payload["pipeline"] == "research-brief"
-    assert audit_payload["verdict"] == "PASS"
+    assert audit_payload["verdict"] == "INCOMPLETE"
     assert audit_payload["run_state"]["phase"] == "complete_candidate"
     assert audit_payload["run_state"]["target_artifacts_missing"] == 0
     assert audit_payload["run_state"]["unit_output_manifest_count"] == 1
@@ -569,9 +569,146 @@ def test_audit_writes_compact_run_ledger_when_artifacts_are_present(tmp_path: Pa
     assert validate_run_audit_payload(audit_payload) == []
 
 
+def test_run_audit_fails_closed_without_pipeline_lock(tmp_path: Path) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U001",
+                "title": "Unbound result",
+                "skill": "snapshot-writer",
+                "owner": "CODEX",
+                "outputs": "output/SNAPSHOT.md",
+                "status": "TODO",
+            }
+        ],
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+
+    result = run_command("scripts/pipeline.py", "audit", "--workspace", str(workspace), "--write")
+
+    assert result.returncode == 2
+    payload = json.loads((workspace / "output" / "RUN_AUDIT.json").read_text(encoding="utf-8"))
+    assert payload["verdict"] == "ATTENTION"
+    assert payload["pipeline"] == ""
+    assert "missing_pipeline_lock" in {issue["code"] for issue in payload["harness_issues"]}
+
+
+def test_in_progress_audit_cannot_be_promoted_by_composed_reports(tmp_path: Path) -> None:
+    import tooling.harness as harness
+
+    workspace = tmp_path / "ws"
+    spec = PipelineSpec.load(REPO_ROOT / "pipelines" / "research-brief.pipeline.md")
+    required_skills = spec.quality_contract["completion_policy"]["required_checks"]
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": f"U{index:03d}",
+                "title": f"Pending {skill}",
+                "skill": skill,
+                "owner": "CODEX",
+                "outputs": f"output/{skill}.md",
+                "status": "TODO",
+            }
+            for index, skill in enumerate(required_skills, start=1)
+        ],
+    )
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/research-brief.pipeline.md\n"
+        "units_template: templates/UNITS.research-brief.csv\n",
+        encoding="utf-8",
+    )
+    for relpath in spec.target_artifacts:
+        path = workspace / relpath
+        if path.exists():
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{relpath}\n", encoding="utf-8")
+
+    inspection = harness.build_harness_inspection(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+    )
+
+    assert inspection.audit_exit_code == 2
+    assert inspection.audit["verdict"] == "IN_PROGRESS"
+    assert inspection.improvement_exit_code == 2
+    assert inspection.improvement["verdict"] == "ATTENTION"
+    assert inspection.artifact_pack_exit_code == 2
+    assert inspection.artifact_pack["verdict"] == "ATTENTION"
+
+
+def test_run_audit_summarizes_verified_workflow_acceptance(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from tooling import quality_gate
+    from tooling.completion import commit_unit_completion
+
+    workspace = tmp_path / "ws"
+    spec = PipelineSpec.load(REPO_ROOT / "pipelines" / "research-brief.pipeline.md")
+    required_skills = sorted(spec.quality_contract["completion_policy"]["required_checks"])
+    rows: list[dict[str, str]] = []
+    for index, skill in enumerate(required_skills, start=1):
+        unit_id = f"U{index:03d}"
+        output_relpath = f"output/{skill}.md"
+        rows.append(
+            {
+                "unit_id": unit_id,
+                "title": f"Verify {skill}",
+                "skill": skill,
+                "owner": "CODEX",
+                "outputs": output_relpath,
+                "status": "TODO",
+            }
+        )
+        output = workspace / output_relpath
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(f"{skill} accepted\n", encoding="utf-8")
+    write_units(workspace / "UNITS.csv", rows)
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/research-brief.pipeline.md\n"
+        "units_template: templates/UNITS.research-brief.csv\n"
+        "locked_at: 2026-07-22\n",
+        encoding="utf-8",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    monkeypatch.setattr(quality_gate, "check_completion_acceptance", lambda **_: [])
+    for row in rows:
+        result = commit_unit_completion(
+            workspace=workspace,
+            repo_root=REPO_ROOT,
+            unit_id=row["unit_id"],
+            message="Workflow acceptance passed",
+        )
+        assert result.status == "DONE"
+    for relpath in spec.target_artifacts:
+        path = workspace / relpath
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(f"{relpath}\n", encoding="utf-8")
+
+    result = run_command("scripts/pipeline.py", "audit", "--workspace", str(workspace), "--write")
+
+    assert result.returncode == 0, result.stdout
+    payload = json.loads((workspace / "output" / "RUN_AUDIT.json").read_text(encoding="utf-8"))
+    acceptance = payload["workflow_acceptance"]
+    assert acceptance["status"] == "PASS"
+    assert acceptance["required_skill_count"] == len(required_skills)
+    assert acceptance["required_unit_count"] == len(required_skills)
+    assert acceptance["verified_unit_count"] == len(required_skills)
+    assert acceptance["unverified_done_unit_count"] == 0
+    assert acceptance["uncovered_required_skills"] == []
+    assert "## Workflow acceptance" in result.stdout
+    assert "Coverage status: `PASS`" in result.stdout
+    assert validate_run_audit_payload(payload) == []
+
+
 def test_run_audit_payload_validator_reports_schema_drift() -> None:
     payload = {
-        "schema": "run-audit.v2",
+        "schema": "run-audit.v3",
         "generated_at": "2026-05-29T00:00:00",
         "workspace": "/tmp/ws",
         "repo": "/tmp/repo",
@@ -609,7 +746,7 @@ def test_run_audit_payload_validator_reports_schema_drift() -> None:
             "compatibility": {
                 "mode": 1,
                 "recorded_completion_protocol": "unversioned",
-                "current_completion_protocol": "recoverable-provenance.v1",
+                "current_completion_protocol": "recoverable-provenance.v2",
                 "legacy_evidence_gap_codes": ["done_without_manifest", 2],
                 "interpretation": "historical",
             },
@@ -623,7 +760,8 @@ def test_run_audit_payload_validator_reports_schema_drift() -> None:
 
     issues = validate_run_audit_payload(payload)
 
-    assert "`schema` must be `run-audit.v1`" in issues
+    assert "`schema` must be `run-audit.v2`" in issues
+    assert "`schema` must be one of: run-audit.v1, run-audit.v2" in issues
     assert "`run_ledger_files.PIPELINE.lock.md` is missing" in issues
     assert "`run_ledger_files.UNITS.csv` must be a boolean" in issues
     assert "`run_state.phase` must be a string" in issues
@@ -783,7 +921,7 @@ def test_pack_writes_reviewable_artifact_manifest(tmp_path: Path) -> None:
     json_path = workspace / "output" / "ARTIFACT_PACK.json"
     excerpt_md_path = workspace / "output" / "ARTIFACT_PACK_EXCERPT.md"
     excerpt_tsv_path = workspace / "output" / "ARTIFACT_PACK_EXCERPT.tsv"
-    assert result.returncode == 0, result.stdout
+    assert result.returncode == 2, result.stdout
     assert report_path.exists()
     assert json_path.exists()
     assert excerpt_md_path.exists()
@@ -799,8 +937,9 @@ def test_pack_writes_reviewable_artifact_manifest(tmp_path: Path) -> None:
     assert "ARTIFACT_PACK_EXCERPT.md" in result.stdout
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["schema"] == "artifact-pack.v1"
-    assert payload["verdict"] == "PASS"
-    assert payload["source_reports"]["run_audit"]["schema"] == "run-audit.v1"
+    assert payload["verdict"] == "ATTENTION"
+    assert payload["source_reports"]["run_audit"]["schema"] == "run-audit.v2"
+    assert payload["source_reports"]["run_audit"]["verdict"] == "INCOMPLETE"
     assert payload["source_reports"]["run_audit"]["run_state"]["phase"] == "complete_candidate"
     assert payload["source_reports"]["run_audit"]["run_state"]["target_artifacts_missing"] == 0
     assert payload["summary"]["by_category"]["target_artifact"]["missing"] == 0
@@ -838,7 +977,7 @@ def test_harness_inspection_uses_one_shared_workspace_snapshot(monkeypatch, tmp_
 
     assert calls == {"snapshot": 1}
     assert inspection.doctor["schema"] == "doctor-report.v1"
-    assert inspection.audit["schema"] == "run-audit.v1"
+    assert inspection.audit["schema"] == "run-audit.v2"
     assert inspection.improvement["schema"] == "improvement-report.v1"
     assert inspection.artifact_pack["schema"] == "artifact-pack.v1"
     assert {

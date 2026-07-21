@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-05-29
+- Amended: 2026-07-22
 
 ## Context
 
@@ -13,7 +14,7 @@ That command writes:
 - `output/RUN_AUDIT.md` for human inspection
 - `output/RUN_AUDIT.json` for machine-readable follow-up tooling
 
-The JSON sidecar currently uses schema `run-audit.v1` and is produced by
+The JSON sidecar originally used schema `run-audit.v1` and is produced by
 `tooling.harness.build_run_audit_payload`. It summarizes the selected pipeline,
 pipeline lock, current checkpoint, run ledger files, unit status counts, target
 artifact coverage, unit output manifests, harness issues, remediation summary,
@@ -48,6 +49,9 @@ Schema changes should be deliberate. A breaking change to `run-audit.v1` should
 either preserve backward compatibility in the reader, introduce a new schema
 version, or add an ADR/update explaining why migration is acceptable. The
 compatibility check should be updated in the same change.
+
+ADR 0017 follows that rule: current reports use `run-audit.v2`, while the
+validator and diff tooling remain read-compatible with historical v1 payloads.
 
 Keeping the artifacts workspace-local preserves the current file-first harness
 model. It avoids adding a service, database, or external workflow runtime before

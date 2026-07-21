@@ -23,13 +23,23 @@ Landed foundation:
 - retain `--strict` for additional diagnostics rather than as the only checked
   path;
 - record rejected checks as durable `acceptance_contract_failed` evidence and
-  route them through Improvement diagnosis.
+  route them through Improvement diagnosis;
+- persist each successful mandatory check result in the Unit Manifest and
+  Completion Event; retain failed checks as BLOCKED Manifests, Failures, and
+  terminal Attempts; then summarize declared, verified, pending, blocked,
+  skipped, and legacy-unverified coverage in Run Audit;
+- publish `recoverable-provenance.v2` and `run-audit.v2`, fail closed on
+  acceptance-incomplete recovery, and prevent composed reports from promoting
+  a non-PASS Audit.
+- publish `harness-lock.v2`, load runtime policy from a Workspace-local Pipeline
+  snapshot bundle, and fail closed when that contract evidence drifts.
 
 Remaining work:
 
-- fault-inject each Completion write boundary and verify deterministic recovery;
-- add a compact per-Workflow acceptance summary to Run Audit so reviewers can
-  see declared-check coverage without reconstructing every Unit Attempt.
+- fault-inject the remaining Completion write boundaries and verify
+  deterministic recovery;
+- refresh one public completed Run under v2 so the curated proof shows the new
+  cross-ledger acceptance record rather than only historical v1 evidence.
 
 Exit evidence:
 

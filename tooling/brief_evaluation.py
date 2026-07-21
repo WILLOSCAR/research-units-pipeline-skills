@@ -20,6 +20,7 @@ DEFAULT_PASS_SCORE = 80
 DEFAULT_CRITICAL_DIMENSIONS = {
     "brief_specificity",
     "deliverable_structure",
+    "reading_path",
     "source_traceability",
 }
 REQUIRED_SECTIONS = (

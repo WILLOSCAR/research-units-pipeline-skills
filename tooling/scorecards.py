@@ -147,6 +147,7 @@ def validate_scorecard(payload: Mapping[str, Any], *, schema: str) -> list[str]:
         for index, failure in enumerate(failures):
             if not _valid_failure(failure):
                 errors.append(f"failures[{index}] must match the scorecard failure contract")
+    errors.extend(_scorecard_consistency_errors(payload))
     return errors
 
 
@@ -257,6 +258,82 @@ def _valid_failure(value: object) -> bool:
     if any(not isinstance(value.get(key), str) or not str(value.get(key) or "").strip() for key in required_text):
         return False
     return _is_string_list(value.get("repair_surface"))
+
+
+def _scorecard_consistency_errors(payload: Mapping[str, Any]) -> list[str]:
+    """Recompute derived fields after the envelope has passed shape checks."""
+
+    dimensions = payload.get("dimensions")
+    critical_values = payload.get("critical_dimensions")
+    failed_values = payload.get("failed_critical_dimensions")
+    failures = payload.get("failures")
+    pass_score = payload.get("pass_score")
+    score = payload.get("score")
+    verdict = payload.get("verdict")
+    if (
+        not isinstance(dimensions, list)
+        or not dimensions
+        or any(not _valid_dimension(item) for item in dimensions)
+        or not _is_string_list(critical_values)
+        or not _is_string_list(failed_values)
+        or not isinstance(failures, list)
+        or any(not _valid_failure(item) for item in failures)
+        or not _is_score(pass_score)
+        or not _is_score(score)
+        or verdict not in {"PASS", "FAIL"}
+    ):
+        return []
+
+    records = [dict(item) for item in dimensions]
+    errors: list[str] = []
+    dimension_ids = [str(item["id"]) for item in records]
+    if len(set(dimension_ids)) != len(dimension_ids):
+        errors.append("dimension ids must be unique")
+
+    critical = _normalized_values(critical_values)
+    unknown_critical = sorted(critical - _normalized_values(dimension_ids))
+    if unknown_critical:
+        errors.append(
+            "critical_dimensions reference unknown dimensions: "
+            + ", ".join(unknown_critical)
+        )
+
+    for index, item in enumerate(records):
+        expected_status = "PASS" if item["score"] == item["max_score"] else "FAIL"
+        if item["status"] != expected_status:
+            errors.append(
+                f"dimensions[{index}].status must be {expected_status} for "
+                f"score {item['score']}/{item['max_score']}"
+            )
+
+    max_score = sum(int(item["max_score"]) for item in records)
+    earned_score = sum(int(item["score"]) for item in records)
+    expected_score = round((earned_score / max_score) * 100) if max_score else 0
+    if score != expected_score:
+        errors.append(f"score must equal the recomputed dimension score {expected_score}")
+
+    expected_failed = [
+        str(item["id"])
+        for item in records
+        if str(item["id"]).strip().lower() in critical and item["status"] != "PASS"
+    ]
+    if failed_values != expected_failed:
+        errors.append("failed_critical_dimensions must match failed critical dimensions")
+
+    expected_verdict = (
+        "PASS" if expected_score >= pass_score and not expected_failed else "FAIL"
+    )
+    if verdict != expected_verdict:
+        errors.append(f"verdict must be {expected_verdict} for the recomputed score and critical failures")
+
+    expected_failures = [
+        _dimension_failure(item, critical_dimensions=critical)
+        for item in records
+        if item["status"] != "PASS"
+    ]
+    if failures != expected_failures:
+        errors.append("failures must match failed dimensions")
+    return errors
 
 
 def _escape_table(value: str) -> str:

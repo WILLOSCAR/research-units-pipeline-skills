@@ -52,6 +52,7 @@ def main() -> int:
         signals,
         note_index=note_index,
         focus_clusters=contract.get('focus_clusters') or [],
+        hard_exclusions=contract.get('hard_exclusions') or [],
         pool_min=int(contract['direction_pool_min']),
         pool_max=int(contract['direction_pool_max']),
     )

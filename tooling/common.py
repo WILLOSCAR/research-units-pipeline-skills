@@ -1363,7 +1363,51 @@ def load_workspace_pipeline_spec(workspace: Path):
     if not pipeline_name:
         return None
 
-    spec_path = resolve_pipeline_spec_path(repo_root=repo_root, pipeline_value=pipeline_name)
+    spec_path: Path | None = None
+    harness_lock_path = workspace / ".harness" / "harness.lock.json"
+    if harness_lock_path.exists():
+        try:
+            harness_lock = json.loads(harness_lock_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        if isinstance(harness_lock, dict) and harness_lock.get("schema") == "harness-lock.v2":
+            pipeline_lock = harness_lock.get("pipeline")
+            if not isinstance(pipeline_lock, dict):
+                return None
+            locked_source_value = str(pipeline_lock.get("path") or "").strip()
+            declared_source = resolve_pipeline_spec_path(
+                repo_root=repo_root,
+                pipeline_value=pipeline_name,
+            )
+            locked_source = resolve_pipeline_spec_path(
+                repo_root=repo_root,
+                pipeline_value=locked_source_value,
+            )
+            if (
+                not locked_source_value
+                or declared_source is None
+                or locked_source is None
+                or declared_source != locked_source
+            ):
+                return None
+            snapshot_value = str(pipeline_lock.get("snapshot_path") or "").strip()
+            expected_sha = str(pipeline_lock.get("snapshot_sha256") or "").strip()
+            if not snapshot_value or not expected_sha:
+                return None
+            candidate = Path(snapshot_value)
+            if candidate.is_absolute():
+                return None
+            workspace_root = workspace.resolve()
+            snapshot_path = (workspace_root / candidate).resolve()
+            if not snapshot_path.is_relative_to(workspace_root) or not snapshot_path.is_file():
+                return None
+            actual_sha = hashlib.sha256(snapshot_path.read_bytes()).hexdigest()
+            if actual_sha != expected_sha:
+                return None
+            spec_path = snapshot_path
+
+    if spec_path is None:
+        spec_path = resolve_pipeline_spec_path(repo_root=repo_root, pipeline_value=pipeline_name)
     if spec_path is None:
         return None
 

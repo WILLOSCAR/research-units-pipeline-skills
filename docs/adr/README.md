@@ -27,6 +27,8 @@ the decision should guide future contributors and agents across runs.
 | [0014](0014-commit-unit-completion-as-a-recoverable-provenance-transaction.md) | Commit Unit completion as a recoverable provenance transaction | accepted |
 | [0015](0015-serialize-workspace-commands-with-a-process-scoped-lock.md) | Serialize Workspace commands with a process-scoped lock | accepted |
 | [0016](0016-author-skills-for-predictability-and-bounded-context-load.md) | Author Skills for predictability and bounded context load | accepted |
+| [0017](0017-bind-completion-acceptance-to-recovery-and-audit.md) | Bind Completion acceptance to recovery and Audit | accepted |
+| [0018](0018-snapshot-pipeline-contracts-inside-each-run.md) | Snapshot Pipeline contracts inside each Run | accepted |
 
 ## ADR Format Contract
 

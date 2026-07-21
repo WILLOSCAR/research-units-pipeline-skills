@@ -89,6 +89,81 @@ class IdeaBrainstormVerticalTests(unittest.TestCase):
         args.extend(["--note", "fixture acceptance checked" if status == "DONE" else "fixture repair override"])
         self._run(*args)
 
+    def test_retrieval_floor_and_hard_exclusions_are_executable_contracts(self) -> None:
+        from tooling.ideation import IdeaSignal, signals_to_direction_cards
+        from tooling.quality_checks.survey_retrieval import check_literature_engineer
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            (workspace / "papers").mkdir(parents=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/idea-brainstorm.pipeline.md\n",
+                encoding="utf-8",
+            )
+            records = [
+                {
+                    "title": f"Bounded paper {index}",
+                    "year": 2025,
+                    "url": f"https://example.org/{index}",
+                    "arxiv_id": f"2501.{index:05d}",
+                    "authors": ["Researcher"],
+                    "abstract": "A complete bounded fixture.",
+                    "provenance": [{"source": "fixture"}],
+                }
+                for index in range(14)
+            ]
+            (workspace / "papers" / "papers_raw.jsonl").write_text(
+                "\n".join(json.dumps(record) for record in records) + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "papers" / "retrieval_report.md").write_text(
+                "# Retrieval report\n\n- bounded fixture\n",
+                encoding="utf-8",
+            )
+            issues = check_literature_engineer(
+                workspace,
+                ["papers/papers_raw.jsonl", "papers/retrieval_report.md"],
+            )
+            self.assertIn("raw_pool_too_small", {issue.code for issue in issues})
+
+        signals = [
+            IdeaSignal(
+                signal_id="SIG-001",
+                cluster="Memory and retrieval (RAG)",
+                direction_type="mechanism",
+                theme="generic benchmark wrappers",
+                claim_or_observation="A benchmark wrapper is proposed.",
+                tension="Scores obscure mechanism.",
+                missing_piece="Controlled analysis.",
+                possible_axis="retrieval policy",
+                academic_value="mechanism evidence",
+                evidence_confidence="medium",
+                paper_ids=["P0001"],
+            ),
+            IdeaSignal(
+                signal_id="SIG-002",
+                cluster="Memory and retrieval (RAG)",
+                direction_type="mechanism",
+                theme="retrieval trigger controls",
+                claim_or_observation="Trigger timing changes behavior.",
+                tension="Memory size and trigger policy are confounded.",
+                missing_piece="A single-variable control.",
+                possible_axis="retrieval policy",
+                academic_value="causal mechanism evidence",
+                evidence_confidence="high",
+                paper_ids=["P0002"],
+            ),
+        ]
+        cards = signals_to_direction_cards(
+            signals,
+            note_index={},
+            focus_clusters=["Memory and retrieval (RAG)"],
+            hard_exclusions=["generic benchmark wrappers"],
+            pool_min=1,
+            pool_max=4,
+        )
+        self.assertEqual([card.signal_ids for card in cards], [["SIG-002"]])
+
     def test_fixture_assisted_run_records_fail_then_pass_evaluation(self) -> None:
         workspaces = REPO_ROOT / "workspaces"
         workspaces.mkdir(parents=True, exist_ok=True)
@@ -115,16 +190,28 @@ class IdeaBrainstormVerticalTests(unittest.TestCase):
             self._mark(workspace, "U020", "DONE")
             self._run_skill("taxonomy-builder", workspace)
             self._mark(workspace, "U030", "DONE")
+            self._run_skill("checkpoint-brief", workspace)
             self._mark(workspace, "U042", "DONE")
 
-            brief_path = workspace / "output" / "trace" / "IDEA_BRIEF.md"
-            brief = brief_path.read_text(encoding="utf-8")
-            brief = brief.replace(
-                "- Focus clusters: (to be filled after C2 approval)",
-                "- Focus clusters: Tool interfaces and orchestration; Memory and retrieval (RAG); Benchmarks and evaluation protocols",
+            self._run(
+                str(PIPELINE_CLI),
+                "approve",
+                "--workspace",
+                str(workspace),
+                "--checkpoint",
+                "C2",
+                "--focus-cluster",
+                "Tool interfaces and orchestration",
+                "--focus-cluster",
+                "Memory and retrieval (RAG)",
+                "--hard-exclusion",
+                "Generic agent surveys",
             )
-            brief_path.write_text(brief, encoding="utf-8")
-            self._run(str(PIPELINE_CLI), "approve", "--workspace", str(workspace), "--checkpoint", "C2")
+            decisions = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn(
+                "- Focus clusters: Tool interfaces and orchestration; Memory and retrieval (RAG)",
+                decisions,
+            )
             self._run(str(PIPELINE_CLI), "run-one", "--workspace", str(workspace))
 
             for skill in (

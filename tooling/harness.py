@@ -38,7 +38,8 @@ DOCTOR_REPORT_REQUIRED_KEYS = (
     "verdict",
     "exit_code",
 )
-RUN_AUDIT_SCHEMA = "run-audit.v1"
+RUN_AUDIT_SCHEMA = "run-audit.v2"
+LEGACY_RUN_AUDIT_SCHEMAS = {"run-audit.v1"}
 RUN_AUDIT_REQUIRED_KEYS = (
     "schema",
     "generated_at",
@@ -222,6 +223,7 @@ class _WorkspaceInspectionSnapshot:
     current_checkpoint: str
     run_identity: dict[str, Any]
     units_present: bool
+    unit_records: tuple[dict[str, str], ...]
     unit_status: dict[str, int]
     next_runnable: dict[str, str]
     doctor_issues: tuple[HarnessIssue, ...]
@@ -229,6 +231,7 @@ class _WorkspaceInspectionSnapshot:
     run_ledger_files: dict[str, bool]
     target_artifacts: tuple[dict[str, Any], ...]
     manifests: tuple[dict[str, Any], ...]
+    required_completion_checks: tuple[str, ...]
     declared_unit_output_paths: tuple[str, ...]
     failure_ledger_entries: tuple[dict[str, Any], ...]
     ledger_integrity: dict[str, Any]
@@ -351,6 +354,23 @@ def validate_units_table(table: UnitsTable) -> list[HarnessIssue]:
     return issues
 
 
+def _required_completion_checks_from_spec(spec: Any) -> tuple[str, ...]:
+    if spec is None:
+        return ()
+    quality_contract = getattr(spec, "quality_contract", {})
+    if not isinstance(quality_contract, dict):
+        return ()
+    completion_policy = quality_contract.get("completion_policy", {})
+    if not isinstance(completion_policy, dict):
+        return ()
+    raw_checks = completion_policy.get("required_checks", [])
+    if not isinstance(raw_checks, list):
+        return ()
+    return tuple(
+        sorted({str(item or "").strip() for item in raw_checks if str(item or "").strip()})
+    )
+
+
 def _collect_workspace_inspection_snapshot(
     *,
     workspace: Path,
@@ -389,12 +409,14 @@ def _collect_workspace_inspection_snapshot(
     implementation_issues: list[HarnessIssue] = []
     doctor_projection_issues: list[HarnessIssue] = []
     unit_status: dict[str, int] = {}
+    unit_records: tuple[dict[str, str], ...] = ()
     next_runnable: dict[str, str] = {}
     declared_unit_output_paths: tuple[str, ...] = ()
     if not units_path.exists():
         shared_issues.append(HarnessIssue("ERROR", "missing_units", f"Missing `{units_path}`"))
     else:
         table = UnitsTable.load(units_path)
+        unit_records = tuple(dict(row) for row in table.rows)
         shared_issues.extend(validate_units_table(table))
         shared_issues.extend(_workspace_artifact_issues(workspace=workspace, table=table))
         doctor_projection_issues.extend(
@@ -422,8 +444,26 @@ def _collect_workspace_inspection_snapshot(
             next_runnable = _next_runnable_record(next_row)
 
     spec = _load_locked_pipeline_spec(workspace=workspace, repo_root=repo_root) if include_deep_audit else None
+    required_completion_checks = _required_completion_checks_from_spec(spec)
     target_records: list[dict[str, Any]] = []
     target_issues: list[HarnessIssue] = []
+    if include_deep_audit and spec is None:
+        lock_path = workspace / "PIPELINE.lock.md"
+        code = "missing_pipeline_lock" if not lock_path.exists() else "unloadable_pipeline_lock"
+        message = (
+            "`PIPELINE.lock.md` is missing; Workflow targets and acceptance policy cannot be audited."
+            if not lock_path.exists()
+            else "`PIPELINE.lock.md` does not resolve to a loadable Workflow contract."
+        )
+        target_issues.append(
+            HarnessIssue(
+                "ERROR",
+                code,
+                message,
+                remediation_category="restore_workspace_contract",
+                next_action="Restore or migrate the Pipeline lock before trusting this Run.",
+            )
+        )
     for relpath in tuple(spec.target_artifacts) if spec is not None else ():
         exists = (workspace / relpath).exists()
         target_records.append({"path": relpath, "exists": exists})
@@ -456,6 +496,7 @@ def _collect_workspace_inspection_snapshot(
         current_checkpoint=checkpoint,
         run_identity=run_identity(workspace),
         units_present=units_path.exists(),
+        unit_records=unit_records,
         unit_status=unit_status,
         next_runnable=next_runnable,
         doctor_issues=tuple([*shared_issues, *implementation_issues, *doctor_projection_issues]),
@@ -467,6 +508,7 @@ def _collect_workspace_inspection_snapshot(
         ),
         target_artifacts=tuple(target_records),
         manifests=manifests,
+        required_completion_checks=required_completion_checks,
         declared_unit_output_paths=declared_unit_output_paths,
         failure_ledger_entries=(tuple(_failure_ledger_entries(workspace)) if include_deep_audit else ()),
         ledger_integrity=ledger_integrity,
@@ -643,10 +685,13 @@ def validate_doctor_payload(payload: dict[str, Any]) -> list[str]:
 
 
 def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
-    """Validate the stable shape future tooling can rely on for run-audit.v1."""
+    """Validate current Run Audits while retaining historical v1 readability."""
+    schema = payload.get("schema") if isinstance(payload, dict) else None
+    accepted_schemas = {RUN_AUDIT_SCHEMA, *LEGACY_RUN_AUDIT_SCHEMAS}
+    expected_schema = str(schema) if schema in accepted_schemas else RUN_AUDIT_SCHEMA
     issues = _validate_payload_header(
         payload,
-        expected_schema=RUN_AUDIT_SCHEMA,
+        expected_schema=expected_schema,
         required_keys=RUN_AUDIT_REQUIRED_KEYS,
         string_keys=(
             "generated_at",
@@ -661,6 +706,26 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
     )
     if not isinstance(payload, dict):
         return issues
+
+    if schema not in accepted_schemas:
+        issues.append(
+            f"`schema` must be one of: {', '.join(sorted(accepted_schemas))}"
+        )
+    valid_verdicts = (
+        {"PASS", "ATTENTION"}
+        if schema in LEGACY_RUN_AUDIT_SCHEMAS
+        else {"PASS", "ATTENTION", "INCOMPLETE", "IN_PROGRESS"}
+    )
+    verdict = payload.get("verdict")
+    if verdict not in valid_verdicts:
+        issues.append(
+            f"`verdict` must be one of: {', '.join(sorted(valid_verdicts))}"
+        )
+    expected_exit = 0 if verdict == "PASS" else 2
+    if isinstance(payload.get("exit_code"), int) and payload.get("exit_code") != expected_exit:
+        issues.append(f"`exit_code` must be {expected_exit} when verdict is `{verdict}`")
+    if schema == RUN_AUDIT_SCHEMA and "workflow_acceptance" not in payload:
+        issues.append("`workflow_acceptance` is missing")
 
     run_ledger_files = _validate_object_field(payload, key="run_ledger_files", issues=issues)
     if run_ledger_files is not None:
@@ -713,6 +778,8 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
 
     if "attempts" in payload:
         _validate_attempt_summary(payload.get("attempts"), issues=issues)
+    if "workflow_acceptance" in payload:
+        _validate_workflow_acceptance_summary(payload.get("workflow_acceptance"), issues=issues)
 
     integrity = payload.get("ledger_integrity")
     if integrity is not None:
@@ -1085,6 +1152,70 @@ def _validate_attempt_summary(value: Any, *, issues: list[str]) -> None:
             issues.append(f"`attempts.process_metrics.{key}` must be a number or null")
 
 
+def _validate_workflow_acceptance_summary(value: Any, *, issues: list[str]) -> None:
+    if not isinstance(value, dict):
+        issues.append("`workflow_acceptance` must be an object")
+        return
+    status = value.get("status")
+    valid_statuses = {
+        "NOT_DECLARED",
+        "INCOMPLETE",
+        "UNVERIFIED",
+        "BLOCKED",
+        "IN_PROGRESS",
+        "PASS",
+    }
+    if not isinstance(status, str):
+        issues.append("`workflow_acceptance.status` must be a string")
+    elif status not in valid_statuses:
+        issues.append("`workflow_acceptance.status` is not recognized")
+    if not isinstance(value.get("evidence_basis"), str):
+        issues.append("`workflow_acceptance.evidence_basis` must be a string")
+    for key in (
+        "required_skill_count",
+        "covered_skill_count",
+        "required_unit_count",
+        "verified_unit_count",
+        "unverified_done_unit_count",
+        "pending_unit_count",
+        "blocked_unit_count",
+        "skipped_unit_count",
+    ):
+        if not isinstance(value.get(key), int):
+            issues.append(f"`workflow_acceptance.{key}` must be an integer")
+    for key in ("required_skills", "uncovered_required_skills"):
+        items = value.get(key)
+        if not isinstance(items, list):
+            issues.append(f"`workflow_acceptance.{key}` must be a list")
+        elif any(not isinstance(item, str) for item in items):
+            issues.append(f"`workflow_acceptance.{key}` items must be strings")
+
+    records = value.get("by_skill")
+    if not isinstance(records, list):
+        issues.append("`workflow_acceptance.by_skill` must be a list")
+        return
+    for idx, record in enumerate(records):
+        prefix = f"workflow_acceptance.by_skill[{idx}]"
+        if not isinstance(record, dict):
+            issues.append(f"`{prefix}` must be an object")
+            continue
+        if not isinstance(record.get("skill"), str):
+            issues.append(f"`{prefix}.skill` must be a string")
+        unit_ids = record.get("unit_ids")
+        if not isinstance(unit_ids, list):
+            issues.append(f"`{prefix}.unit_ids` must be a list")
+        elif any(not isinstance(item, str) for item in unit_ids):
+            issues.append(f"`{prefix}.unit_ids` items must be strings")
+        for key in ("unit_count", "verified_unit_count", "unverified_done_unit_count"):
+            if not isinstance(record.get(key), int):
+                issues.append(f"`{prefix}.{key}` must be an integer")
+        counts = record.get("status_counts")
+        if not isinstance(counts, dict):
+            issues.append(f"`{prefix}.status_counts` must be an object")
+        elif any(not isinstance(key, str) or not isinstance(count, int) for key, count in counts.items()):
+            issues.append(f"`{prefix}.status_counts` must map strings to integers")
+
+
 def _validate_attempt_comparison(value: Any, *, issues: list[str]) -> None:
     if not isinstance(value, dict):
         issues.append("`attempt_comparison` must be an object")
@@ -1177,14 +1308,146 @@ def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, d
     return _build_run_audit_payload_from_snapshot(snapshot)
 
 
+def _workflow_acceptance_summary(snapshot: _WorkspaceInspectionSnapshot) -> dict[str, Any]:
+    required_skills = tuple(snapshot.required_completion_checks)
+    event_acceptance_by_attempt = snapshot.ledger_integrity.get(
+        "completion_acceptance_by_attempt", {}
+    )
+    if not isinstance(event_acceptance_by_attempt, dict):
+        event_acceptance_by_attempt = {}
+    latest_done_manifest_by_unit: dict[str, dict[str, Any]] = {}
+    for manifest in snapshot.manifests:
+        if str(manifest.get("status") or "").strip().upper() != "DONE":
+            continue
+        unit_id = str(manifest.get("unit_id") or "").strip()
+        if unit_id:
+            latest_done_manifest_by_unit[unit_id] = manifest
+
+    rows_by_skill: dict[str, list[dict[str, str]]] = {skill: [] for skill in required_skills}
+    for row in snapshot.unit_records:
+        skill = str(row.get("skill") or "").strip()
+        if skill in rows_by_skill:
+            rows_by_skill[skill].append(row)
+
+    verified_units = 0
+    unverified_done_units = 0
+    pending_units = 0
+    blocked_units = 0
+    skipped_units = 0
+    by_skill: list[dict[str, Any]] = []
+    for skill in required_skills:
+        rows = rows_by_skill[skill]
+        status_counts = Counter(_status(row) or "<blank>" for row in rows)
+        skill_verified = 0
+        skill_unverified_done = 0
+        for row in rows:
+            status = _status(row)
+            if status == "BLOCKED":
+                blocked_units += 1
+            elif status == "SKIP":
+                skipped_units += 1
+            elif status != "DONE":
+                pending_units += 1
+            if status != "DONE":
+                continue
+
+            unit_id = _unit_id(row)
+            manifest = latest_done_manifest_by_unit.get(unit_id, {})
+            acceptance = manifest.get("acceptance") if isinstance(manifest, dict) else None
+            attempt_id = str(manifest.get("attempt_id") or "") if isinstance(manifest, dict) else ""
+            event_acceptance = event_acceptance_by_attempt.get(attempt_id)
+            is_verified = (
+                isinstance(acceptance, dict)
+                and isinstance(event_acceptance, dict)
+                and acceptance == event_acceptance
+                and acceptance.get("required") is True
+                and str(acceptance.get("status") or "").strip().upper() == "PASS"
+                and str(acceptance.get("skill") or "").strip() == skill
+            )
+            if is_verified:
+                verified_units += 1
+                skill_verified += 1
+            else:
+                unverified_done_units += 1
+                skill_unverified_done += 1
+
+        by_skill.append(
+            {
+                "skill": skill,
+                "unit_ids": [_unit_id(row) for row in rows],
+                "unit_count": len(rows),
+                "status_counts": {
+                    status: status_counts[status] for status in sorted(status_counts)
+                },
+                "verified_unit_count": skill_verified,
+                "unverified_done_unit_count": skill_unverified_done,
+            }
+        )
+
+    uncovered = sorted(skill for skill, rows in rows_by_skill.items() if not rows)
+    required_unit_count = sum(len(rows) for rows in rows_by_skill.values())
+    if not required_skills:
+        status = "NOT_DECLARED"
+    elif uncovered or skipped_units:
+        status = "INCOMPLETE"
+    elif unverified_done_units:
+        status = "UNVERIFIED"
+    elif blocked_units:
+        status = "BLOCKED"
+    elif pending_units:
+        status = "IN_PROGRESS"
+    elif required_unit_count and verified_units == required_unit_count:
+        status = "PASS"
+    else:
+        status = "INCOMPLETE"
+
+    return {
+        "status": status,
+        "evidence_basis": "DONE Manifest + committed Completion Event acceptance",
+        "required_skills": list(required_skills),
+        "required_skill_count": len(required_skills),
+        "covered_skill_count": len(required_skills) - len(uncovered),
+        "required_unit_count": required_unit_count,
+        "verified_unit_count": verified_units,
+        "unverified_done_unit_count": unverified_done_units,
+        "pending_unit_count": pending_units,
+        "blocked_unit_count": blocked_units,
+        "skipped_unit_count": skipped_units,
+        "uncovered_required_skills": uncovered,
+        "by_skill": by_skill,
+    }
+
+
 def _build_run_audit_payload_from_snapshot(
     snapshot: _WorkspaceInspectionSnapshot,
 ) -> tuple[int, dict[str, Any]]:
     issues = list(snapshot.audit_issues)
     manifests = list(snapshot.manifests)
     target_records = list(snapshot.target_artifacts)
-    exit_code = 2 if any(issue.level == "ERROR" for issue in issues) else 0
-    verdict = "PASS" if exit_code == 0 else "ATTENTION"
+    workflow_acceptance = _workflow_acceptance_summary(snapshot)
+    run_state = _run_state_record(
+        unit_status=snapshot.unit_status,
+        target_artifacts=target_records,
+        manifests=manifests,
+        issues=issues,
+    )
+    has_errors = any(issue.level == "ERROR" for issue in issues)
+    acceptance_status = str(workflow_acceptance.get("status") or "NOT_DECLARED")
+    if has_errors or acceptance_status in {"BLOCKED", "UNVERIFIED", "NOT_DECLARED"}:
+        exit_code = 2
+        verdict = "ATTENTION"
+    elif acceptance_status == "INCOMPLETE":
+        exit_code = 2
+        verdict = "INCOMPLETE"
+    elif run_state.get("phase") != "complete_candidate" or acceptance_status == "IN_PROGRESS":
+        exit_code = 2
+        verdict = "IN_PROGRESS"
+    elif acceptance_status == "PASS":
+        exit_code = 0
+        verdict = "PASS"
+    else:
+        exit_code = 2
+        verdict = "INCOMPLETE"
     manifest_status_counts = Counter(str(item.get("status") or "<blank>") for item in manifests)
     remediation_counts = Counter(issue.remediation_category for issue in issues)
     payload = {
@@ -1197,13 +1460,9 @@ def _build_run_audit_payload_from_snapshot(
         "run_identity": snapshot.run_identity,
         "current_checkpoint": snapshot.current_checkpoint,
         "run_ledger_files": snapshot.run_ledger_files,
-        "run_state": _run_state_record(
-            unit_status=snapshot.unit_status,
-            target_artifacts=target_records,
-            manifests=manifests,
-            issues=issues,
-        ),
+        "run_state": run_state,
         "unit_status": snapshot.unit_status,
+        "workflow_acceptance": workflow_acceptance,
         "target_artifacts": target_records,
         "unit_output_manifests": {
             "count": len(manifests),
@@ -1275,6 +1534,30 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
         )
     else:
         lines.append("- Run state unavailable")
+
+    acceptance = payload.get("workflow_acceptance") or {}
+    lines.extend(["", "## Workflow acceptance"])
+    if not acceptance:
+        lines.append("- Acceptance coverage unavailable in this audit version")
+    else:
+        lines.append(f"- Coverage status: `{acceptance.get('status') or 'unknown'}`")
+        lines.append(
+            "- Declared checks: "
+            f"{acceptance.get('covered_skill_count', 0)} / "
+            f"{acceptance.get('required_skill_count', 0)} Skills represented in UNITS"
+        )
+        lines.append(
+            "- Required Units: "
+            f"{acceptance.get('verified_unit_count', 0)} verified, "
+            f"{acceptance.get('unverified_done_unit_count', 0)} DONE without acceptance evidence, "
+            f"{acceptance.get('pending_unit_count', 0)} pending, "
+            f"{acceptance.get('blocked_unit_count', 0)} blocked, "
+            f"{acceptance.get('skipped_unit_count', 0)} skipped"
+        )
+        uncovered = acceptance.get("uncovered_required_skills") or []
+        if uncovered:
+            lines.append("- Uncovered required Skills: " + ", ".join(f"`{item}`" for item in uncovered))
+        lines.append(f"- Evidence basis: `{acceptance.get('evidence_basis') or 'unknown'}`")
 
     attempts = payload.get("attempts") or {}
     lines.extend(["", "## Attempt execution"])
@@ -1666,7 +1949,7 @@ def _build_improvement_payload_from_sources(
         "repair_history": repair_history,
         "suggestions": suggestions,
         "quality_opportunities": quality_opportunities,
-        "verdict": "ATTENTION" if suggestions else "PASS",
+        "verdict": "ATTENTION" if exit_code else "PASS",
         "exit_code": exit_code,
     }
     return exit_code, payload
@@ -2274,6 +2557,7 @@ def write_unit_manifest(
     status: str,
     attempt_id: str = "",
     repo_root: Path | None = None,
+    acceptance: dict[str, Any] | None = None,
 ) -> Path:
     from tooling.run_state import run_identity
 
@@ -2295,6 +2579,8 @@ def write_unit_manifest(
         "exit_code": exit_code,
         "outputs": [_artifact_record(workspace=workspace, relpath=rel) for rel in outputs if str(rel or "").strip()],
     }
+    if isinstance(acceptance, dict):
+        payload["acceptance"] = dict(acceptance)
     if repo_root is not None:
         skill_dir = repo_root / ".codex" / "skills" / skill
         if skill_dir.exists():
@@ -2891,6 +3177,7 @@ def _manifest_summary(record: dict[str, Any]) -> dict[str, Any]:
         "exit_code": record.get("exit_code"),
         "generated_at": str(record.get("generated_at") or ""),
         "outputs": outputs,
+        "acceptance": record.get("acceptance") if isinstance(record.get("acceptance"), dict) else {},
     }
 
 

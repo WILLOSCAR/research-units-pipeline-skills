@@ -136,6 +136,63 @@ def test_scorecard_validation_rejects_an_incomplete_renderer_envelope() -> None:
     assert "dimensions[0] must match the scorecard dimension contract" in errors
 
 
+def test_scorecard_validation_recomputes_derived_fields() -> None:
+    payload = scorecards.finalize_scorecard(
+        schema="example-scorecard.v1",
+        workflow="example",
+        dimensions=[
+            scorecards.build_dimension(
+                "grounding",
+                "Grounding",
+                passed=False,
+                partial=False,
+                evidence="No evidence pointer resolves.",
+                repair_surface=["output/REPORT.md"],
+            )
+        ],
+        pass_score=80,
+        critical_dimensions={"grounding"},
+        counts={"checks": 1},
+        limitations=[],
+    )
+    payload["verdict"] = "PASS"
+    payload["failed_critical_dimensions"] = []
+    payload["failures"] = []
+
+    errors = scorecards.validate_scorecard(payload, schema="example-scorecard.v1")
+
+    assert "failed_critical_dimensions must match failed critical dimensions" in errors
+    assert "verdict must be FAIL for the recomputed score and critical failures" in errors
+    assert "failures must match failed dimensions" in errors
+
+
+def test_scorecard_validation_rejects_dimension_status_score_conflict() -> None:
+    payload = scorecards.finalize_scorecard(
+        schema="example-scorecard.v1",
+        workflow="example",
+        dimensions=[
+            scorecards.build_dimension(
+                "grounding",
+                "Grounding",
+                passed=True,
+                partial=False,
+                evidence="Every pointer resolves.",
+                repair_surface=["output/REPORT.md"],
+            )
+        ],
+        pass_score=80,
+        critical_dimensions={"grounding"},
+        counts={"checks": 1},
+        limitations=[],
+    )
+    payload["dimensions"][0]["score"] = 0
+
+    errors = scorecards.validate_scorecard(payload, schema="example-scorecard.v1")
+
+    assert "dimensions[0].status must be FAIL for score 0/4" in errors
+    assert "score must equal the recomputed dimension score 0" in errors
+
+
 def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_path: Path) -> None:
     registered = registered_quality_skills()
     assert registered == {
@@ -153,12 +210,14 @@ def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_pat
         "citation-verifier",
         "claim-evidence-matrix",
         "claim-matrix-rewriter",
+        "claims-extractor",
         "dedupe-rank",
         "deliverable-selfloop",
         "draft-polisher",
         "evaluation-anchor-checker",
         "evidence-binder",
         "evidence-draft",
+        "evidence-auditor",
         "extraction-form",
         "global-reviewer",
         "idea-brief",
@@ -171,6 +230,7 @@ def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_pat
         "latex-scaffold",
         "literature-engineer",
         "module-source-coverage",
+        "novelty-matrix",
         "outline-builder",
         "outline-refiner",
         "paper-notes",
@@ -179,6 +239,7 @@ def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_pat
         "pipeline-auditor",
         "prose-writer",
         "protocol-writer",
+        "rubric-writer",
         "schema-normalizer",
         "screening-manager",
         "section-bindings",

@@ -10,7 +10,8 @@ runtime.
 |---|---|---|---|
 | `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
 | `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
-| `harness-lock.v1` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | Git revision, Completion Protocol identity, and hashes for Pipeline, Units, complete Skill implementation directories, and Kernel |
+| `harness-lock.v1` | `.harness/harness.lock.json` | historical Runs | Git revision and hashes for the checkout-resident Pipeline, Units, Skill implementations, and Kernel; retained for compatibility |
+| `harness-lock.v2` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | v1 identity plus a Workspace-local Pipeline contract snapshot and hash manifest for variant inheritance |
 | `workspace-invocation-lock.v1` | `.harness/invocation.lock` | `tooling.run_state.workspace_invocation_lock` | Diagnostic owner metadata for the process-scoped Workspace command lock |
 | `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
 | `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history, including Completion prepare/commit/recovery stages |
@@ -19,7 +20,7 @@ runtime.
 | `artifact-record.v1` | `.harness/artifacts.jsonl` | `tooling.run_state.register_artifacts` | Versioned Artifact provenance and hashes |
 | `failure-record.v1` | `.harness/failures/ledger.jsonl` | `tooling.run_state` | Append-only Failure opening and resolution records |
 | `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | `tooling.run_state.record_evaluation` | Append-only Workflow scorecards, repair surfaces, and optional efficiency metrics |
-| `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | `tooling.harness.write_unit_manifest` | Per-Attempt output contract, Artifact hashes, Completion phase (`PREPARED` or final status), and the executed Skill implementation fingerprint |
+| `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | `tooling.harness.write_unit_manifest` | Per-Attempt output contract, Artifact hashes, Completion phase (`PREPARED` or final status), executed Skill fingerprint, and additive Workflow-acceptance evidence |
 
 The JSONL ledgers are append-only. `run.json` and `effective.json` are current
 projections and may be replaced atomically.
@@ -40,11 +41,12 @@ records remain useful, but current-hash equality is enforced only for immutable
 Unit outputs. A Unit is trusted as DONE when its successful Attempt, final DONE
 Manifest, required Artifact records, and any declared Evaluation agree.
 
-New locks declare `protocols.completion = recoverable-provenance.v1`.
-Unversioned historical locks are not silently upgraded because doing so would
-claim guarantees that were not recorded when the Run was created. Run Audit
-labels them `legacy_unversioned`, identifies compatibility-sensitive evidence
-gaps, and keeps those gaps as audit errors.
+New locks declare `protocols.completion = recoverable-provenance.v2`. Version 2
+binds mandatory Workflow acceptance to the PREPARED/DONE Manifest and Completion
+Events. A v1 PREPARED transaction may be migrated only when current acceptance
+checks pass again; the migrated evidence records its source protocol. Failed
+revalidation becomes a durable `acceptance_recovery_failed` Failure and a
+`BLOCKED` Unit. Unversioned historical locks are never silently upgraded.
 
 ## Harness Reports
 
@@ -52,7 +54,8 @@ gaps, and keeps those gaps as audit errors.
 |---|---|---|---|---|
 | `skill-audit-report.v1` | `uv run python scripts/audit_skills.py --format json` | `scripts.audit_skills.build_report_payload` | `scripts.audit_skills.validate_skill_audit_payload` | ADR 0004 |
 | `doctor-report.v1` | `output/DOCTOR_REPORT.json` | `tooling.harness.build_doctor_payload` | `tooling.harness.validate_doctor_payload` | ADR 0003 |
-| `run-audit.v1` | `output/RUN_AUDIT.json` | `tooling.harness.build_run_audit_payload` | `tooling.harness.validate_run_audit_payload` | ADR 0002 |
+| `run-audit.v2` | `output/RUN_AUDIT.json` | `tooling.harness.build_run_audit_payload` | `tooling.harness.validate_run_audit_payload` | ADR 0017 |
+| `run-audit.v1` | historical `output/RUN_AUDIT.json` | historical producer; current validator remains read-compatible | `tooling.harness.validate_run_audit_payload` | ADR 0002 |
 | `run-audit-diff.v1` | `output/RUN_AUDIT_DIFF.json` | `tooling.harness.build_run_audit_diff_payload` | `tooling.harness.validate_run_audit_diff_payload` | ADR 0005 |
 | `improvement-report.v1` | `output/IMPROVEMENT_REPORT.json` | `tooling.harness.build_improvement_payload` | `tooling.harness.validate_improvement_payload` | ADR 0007 |
 | `artifact-pack.v1` | `output/ARTIFACT_PACK.json` | `tooling.harness.build_artifact_pack_payload` | `tooling.harness.validate_artifact_pack_payload` | ADR 0008 |
@@ -68,7 +71,7 @@ turn a PASS into a Failure. It gives a human or agent a bounded place to improve
 an accepted Run while preserving the distinction between contract acceptance
 and research quality.
 
-`run-audit.v1` includes additive `ledger_integrity` counts and issues. These
+Run Audit includes `ledger_integrity` counts and issues. These
 checks join Run identity, Event sequence, Attempt pairs, Manifests, Artifacts,
 Decisions, Failures, Evaluations, and current DONE projections; they do not
 replace Workflow-local semantic scorecards. New reports also project an
@@ -77,6 +80,20 @@ and measured adapter runtime when the local executor supplied it. Legacy and
 manual Attempts remain valid with runtime fields unavailable. When telemetry is
 present, the terminal Event carries the same normalized record; reconciliation
 preserves it and Run Audit reports malformed or divergent copies.
+
+`run-audit.v2` requires a `workflow_acceptance` projection. It
+joins the active Workflow's `required_checks` to current UNITS and matching
+acceptance records in both the DONE Manifest and committed Completion Event.
+`PASS` therefore means every required-check Unit is DONE with explicit,
+cross-ledger PASS evidence; older DONE Manifests without that record are
+reported as `UNVERIFIED`, not inferred as accepted. Its verdict distinguishes
+`PASS`, `IN_PROGRESS`, `INCOMPLETE`, and `ATTENTION`; only `PASS` exits zero.
+Older `run-audit.v1` payloads remain readable without this field and retain the
+historical `PASS`/`ATTENTION` verdict vocabulary.
+
+Scorecard validators recompute dimension totals, failed critical dimensions,
+failure projections, and the final verdict. A structurally valid but internally
+contradictory scorecard cannot authorize Completion.
 
 New `run-audit-diff.v1` payloads add an optional `attempt_comparison` object.
 When both source audits contain Attempt summaries, it reports Attempt, retry,

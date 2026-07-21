@@ -12,7 +12,7 @@ Goal -> Run -> Evidence -> Improve
 | Term | Canonical meaning |
 |---|---|
 | Goal | Requested outcome, constraints, target Artifacts, and success criteria. The machine view is `goal-spec.v2`. |
-| Run | One file-first execution of a Goal against an initially pinned Harness revision. The current local Harness can reconcile and resume its explicitly supported single-process interruption paths. |
+| Run | One file-first execution of a Goal against an initially pinned Harness revision and Pipeline contract snapshot. The current local Harness can reconcile and resume its explicitly supported single-process interruption paths. |
 | Evidence | Umbrella product stage for the Research Evidence that supports a deliverable and the Run Evidence that supports its execution history. |
 | Research Evidence | Sources, extracted observations, Claim-Evidence links, contradictions, gaps, and limitations that justify or qualify research content. |
 | Run Evidence | Attempts, Decisions, Artifacts, Manifests, hashes, Evaluations, Failures, and Audits that explain how a Run executed and whether its contracts passed. |
@@ -46,11 +46,12 @@ unbounded self-modification. Distinguish these two operations:
 | Term | Canonical meaning |
 |---|---|
 | Workspace | Directory containing the human-readable project files and machine-readable ledger for one Run. It is a storage boundary, not a Workflow. |
+| Revision lock | `harness-lock.v2` record that binds a Run to repository identity, a Workspace-local Pipeline snapshot bundle, Unit template, Skill implementations, Kernel hashes, and Completion Protocol. It supports reproducibility and drift detection; it is not the Invocation lock. |
 | Invocation lock | Process-scoped local mutex that serializes complete Harness commands against one Workspace. It is distinct from the Harness revision lock and is not a distributed worker lease. |
 | Unit | Logical step declared in `UNITS.csv`, with an owner, dependencies, inputs, outputs, and acceptance rule. |
 | Attempt | One concrete execution of a Unit. A retry creates another Attempt and preserves earlier history. Process-owned Attempts carry local crash-recovery metadata; manual Attempts may span commands. |
 | Completion | Recoverable transaction that commits a Unit only when its required outputs, successful Attempt, Workflow-required acceptance checks, DONE Manifest, Artifact records, and any declared Evaluation agree. `DONE` in `UNITS.csv` is its mutable projection. |
-| Checkpoint | Explicit boundary at which execution may require evidence review or human approval before later Units become runnable. |
+| Checkpoint | Explicit boundary at which execution may require evidence review or human approval before later Units become runnable. Human approval requires both the readable decision view and its append-only Decision record. |
 | Artifact | Durable input, intermediate output, report, manifest, scorecard, or deliverable produced or consumed by a Run. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and related provenance. It is not necessarily a portable archive. |
 | Decision | Append-only record of an explicit human or Harness intervention, including approvals and automatic checkpoint decisions. |
@@ -95,10 +96,13 @@ claim_id -> evidence gap -> novelty row -> review concern -> scorecard check
 core-set paper ID -> briefing pointer -> reading path -> brief scorecard
 
 `idea-brainstorm`:
-core-set paper ID -> signal -> direction -> screening -> shortlist -> memo -> idea scorecard
+C2 Decision -> core-set paper ID -> signal -> filtered direction -> screening -> shortlist -> memo -> idea scorecard
 
 `evidence-review`:
-protocol clause -> screening decision -> extraction row -> synthesis pointer -> evidence scorecard
+candidate ID -> protocol clause -> screening decision -> unique extraction row -> synthesis pointer -> evidence scorecard
+
+`source-tutorial`:
+manifest source ID -> indexed local source -> provenance pointer -> module coverage -> tutorial module -> delivery gate
 ```
 
 Markdown is the human view. JSONL, TSV, CSV, and JSON provide stable joins for

@@ -46,7 +46,8 @@ Keep matching heuristics and markdown rendering in shared tooling.
 
 - output exists
 - includes at least one row per claim
-- if related works are unavailable, the artifact says so explicitly
+- includes at least five unique related works across the matrix
+- if fewer than five related works are available, preserve that limitation in the artifact and block Completion so the user can provide a reference surface
 - TSV rows preserve `claim_id`, overlap, delta, and evidence as separate fields
 
 ## Non-goals

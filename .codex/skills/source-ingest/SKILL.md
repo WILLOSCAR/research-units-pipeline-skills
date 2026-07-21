@@ -39,8 +39,8 @@ Goal: normalize mixed source inputs into local tutorial-ready text while preserv
   - Bilibili subtitles when available
   - otherwise fail clearly instead of pretending the watch page is usable text
 - Plain YouTube/Bilibili watch pages should not be modeled as `kind: webpage`.
-- Continue on partial failure and record warnings.
-- Block only when no required source succeeds.
+- Continue past optional-source failures and record warnings.
+- Fail closed when any source marked `required: true` cannot be ingested.
 
 ## Script
 

@@ -12,6 +12,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from tooling.common import (
     atomic_write_text,
     copy_tree,
+    load_workspace_pipeline_spec,
     pipeline_cli_command,
     requested_delivery_formats,
     resolve_pipeline_spec_path,
@@ -170,6 +171,18 @@ def main() -> int:
     approve_p = sub.add_parser("approve", help="Tick an approval checkbox in DECISIONS.md (e.g., Approve C2)")
     approve_p.add_argument("--workspace", required=True, help="Workspace directory")
     approve_p.add_argument("--checkpoint", required=True, help="Checkpoint ID (e.g., C2)")
+    approve_p.add_argument(
+        "--focus-cluster",
+        action="append",
+        default=[],
+        help="Idea-brainstorm C2 focus cluster; repeat for multiple selections",
+    )
+    approve_p.add_argument(
+        "--hard-exclusion",
+        action="append",
+        default=[],
+        help="Idea-brainstorm C2 exclusion; repeat for multiple exclusions",
+    )
 
     mark_p = sub.add_parser("mark", help="Commit manual completion or perform a reasoned maintainer status override")
     mark_p.add_argument("--workspace", required=True, help="Workspace directory")
@@ -498,6 +511,36 @@ def _execute_command(args: argparse.Namespace) -> int:
         if not checkpoint:
             raise SystemExit("--checkpoint must be non-empty")
 
+        spec = load_workspace_pipeline_spec(workspace)
+        decision_note = ""
+        if spec is not None and spec.name == "idea-brainstorm" and checkpoint == "C2":
+            from tooling.ideation import (
+                parse_idea_brief,
+                parse_idea_focus_decision,
+                write_idea_focus_decision,
+            )
+
+            if args.focus_cluster:
+                try:
+                    write_idea_focus_decision(
+                        workspace / "DECISIONS.md",
+                        focus_clusters=args.focus_cluster,
+                        hard_exclusions=args.hard_exclusion,
+                    )
+                except ValueError as exc:
+                    raise SystemExit(str(exc)) from exc
+            selected = parse_idea_focus_decision(workspace / "DECISIONS.md").get("focus_clusters") or []
+            if not selected:
+                selected = parse_idea_brief(
+                    workspace / "output" / "trace" / "IDEA_BRIEF.md"
+                ).get("focus_clusters") or []
+            if not selected:
+                raise SystemExit(
+                    "idea-brainstorm C2 approval requires a recorded focus selection; "
+                    "pass --focus-cluster or edit the C2 block in DECISIONS.md."
+                )
+            decision_note = "focus_clusters=" + "; ".join(str(item) for item in selected)
+
         from tooling.common import set_decisions_approval
 
         set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=True)
@@ -507,6 +550,7 @@ def _execute_command(args: argparse.Namespace) -> int:
             action="checkpoint.approved",
             subject=checkpoint,
             decision="approved",
+            note=decision_note,
         )
         print(f"Approved {checkpoint} in {workspace / 'DECISIONS.md'}")
         return 0

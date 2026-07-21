@@ -25,6 +25,7 @@ from tooling.completion import (
 )
 from tooling.harness import write_unit_manifest
 from tooling.run_state import (
+    checkpoint_approval_recorded,
     ensure_run_state,
     finish_attempt,
     record_failure,
@@ -106,7 +107,11 @@ def run_one_unit(
 
     if owner == "HUMAN":
         checkpoint = row.get("checkpoint", "").strip()
-        if checkpoint and decisions_has_approval(workspace / "DECISIONS.md", checkpoint):
+        if (
+            checkpoint
+            and decisions_has_approval(workspace / "DECISIONS.md", checkpoint)
+            and checkpoint_approval_recorded(workspace=workspace, checkpoint=checkpoint)
+        ):
             completion = commit_unit_completion(
                 workspace=workspace,
                 repo_root=repo_root,
@@ -118,7 +123,18 @@ def run_one_unit(
             _refresh_status_checkpoint(status_path, UnitsTable.load(units_path))
             return RunResult(unit_id=unit_id, status=completion.status, message=completion.message)
 
+        auto_approval_allowed = True
         if checkpoint and checkpoint.upper() in auto_approve_set:
+            from tooling.common import load_workspace_pipeline_spec
+
+            active_spec = load_workspace_pipeline_spec(workspace)
+            auto_approval_allowed = not (
+                active_spec is not None
+                and active_spec.name == "idea-brainstorm"
+                and checkpoint.upper() == "C2"
+            )
+
+        if checkpoint and checkpoint.upper() in auto_approve_set and auto_approval_allowed:
             set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=True)
             record_decision(
                 workspace=workspace,
@@ -152,7 +168,16 @@ def run_one_unit(
             exit_code=None,
             message=f"Await HUMAN approval {checkpoint}",
         )
-        return RunResult(unit_id=unit_id, status="BLOCKED", message=f"Await HUMAN approval {checkpoint} in DECISIONS.md")
+        suffix = (
+            " with an explicit focus selection; idea-brainstorm C2 cannot be auto-approved"
+            if checkpoint and checkpoint.upper() in auto_approve_set and not auto_approval_allowed
+            else ""
+        )
+        return RunResult(
+            unit_id=unit_id,
+            status="BLOCKED",
+            message=f"Await HUMAN approval {checkpoint}{suffix} in DECISIONS.md",
+        )
 
     script_path = repo_root / ".codex" / "skills" / skill / "scripts" / "run.py"
     if not script_path.exists():

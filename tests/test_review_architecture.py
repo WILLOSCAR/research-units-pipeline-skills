@@ -57,10 +57,18 @@ class ReviewArchitectureTests(unittest.TestCase):
         self.assertEqual(brief.quality_contract["deliverable_kind"], "brief")
         self.assertEqual(brief.quality_contract["evidence_mode"], "light")
         self.assertFalse(brief.quality_contract["candidate_pool_policy"]["keep_full_deduped_pool"])
+        self.assertIn(
+            "reading_path",
+            brief.quality_contract["semantic_rubric"]["critical_dimensions"],
+        )
 
         self.assertEqual(paper.quality_contract["deliverable_kind"], "paper_review")
         self.assertEqual(paper.quality_contract["evidence_mode"], "manuscript_traceable")
         self.assertFalse(paper.quality_contract["candidate_pool_policy"]["keep_full_deduped_pool"])
+        self.assertIn(
+            "novelty_positioning",
+            paper.quality_contract["semantic_rubric"]["critical_dimensions"],
+        )
 
         self.assertEqual(evidence.quality_contract["deliverable_kind"], "evidence_review")
         self.assertEqual(evidence.quality_contract["evidence_mode"], "protocol_driven")
@@ -80,6 +88,90 @@ class ReviewArchitectureTests(unittest.TestCase):
         self.assertTrue(callable(review_render.render_claims_markdown))
         self.assertTrue(callable(brief_evaluation.evaluate_research_brief))
         self.assertTrue(callable(review_evaluation.evaluate_paper_review))
+
+    def test_evidence_screening_requires_one_decision_per_candidate(self) -> None:
+        from tooling.evidence_review_evaluation import evaluate_evidence_review
+        from tooling.quality_checks.evidence_review import check_screening
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            (workspace / "output").mkdir(parents=True, exist_ok=True)
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            (workspace / "output" / "PROTOCOL.md").write_text(
+                "# Protocol\n\n## Inclusion Criteria\n- I1: Include relevant work.\n\n"
+                "## Exclusion Criteria\n- E1: Exclude irrelevant work.\n",
+                encoding="utf-8",
+            )
+            (workspace / "papers" / "papers_dedup.jsonl").write_text(
+                json.dumps({"paper_id": "P0001", "title": "One"})
+                + "\n"
+                + json.dumps({"paper_id": "P0002", "title": "Two"})
+                + "\n",
+                encoding="utf-8",
+            )
+            with (workspace / "papers" / "screening_log.csv").open(
+                "w", encoding="utf-8", newline=""
+            ) as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=["paper_id", "decision", "reason", "reason_codes"],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "paper_id": "P0001",
+                        "decision": "include",
+                        "reason": "Matches I1.",
+                        "reason_codes": "I1",
+                    }
+                )
+
+            issues = check_screening(workspace, ["papers/screening_log.csv"])
+
+            coverage = next(issue for issue in issues if issue.code == "screening_candidate_coverage")
+            self.assertIn("1/2 candidate IDs", coverage.message)
+            self.assertIn("P0002", coverage.message)
+            scorecard = evaluate_evidence_review(workspace)
+            screening = next(
+                item
+                for item in scorecard["dimensions"]
+                if item["id"] == "screening_traceability"
+            )
+            self.assertEqual(screening["status"], "FAIL")
+            self.assertIn("Rows=1/2 candidates", screening["evidence"])
+
+    def test_research_brief_reading_path_is_completion_critical(self) -> None:
+        from tooling.brief_evaluation import evaluate_research_brief
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            (workspace / "output").mkdir(parents=True, exist_ok=True)
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/research-brief.pipeline.md\n",
+                encoding="utf-8",
+            )
+            with (workspace / "papers" / "core_set.csv").open(
+                "w", encoding="utf-8", newline=""
+            ) as handle:
+                writer = csv.DictWriter(handle, fieldnames=["paper_id", "title"])
+                writer.writeheader()
+                for index in range(1, 6):
+                    writer.writerow({"paper_id": f"P{index:04d}", "title": f"Paper {index}"})
+            (workspace / "output" / "SNAPSHOT.md").write_text(
+                "# Research Brief\n\n"
+                "## Scope\n- A bounded scope grounded in P0001 and P0002.\n\n"
+                "## Key themes\n- Theme A compares P0002 with P0003.\n"
+                "- Theme B explains the tradeoff in P0004.\n\n"
+                "## What to read first\n- P0001 only.\n\n"
+                "## Open problems / risks\n- Evaluation remains incomplete in P0005.\n",
+                encoding="utf-8",
+            )
+
+            scorecard = evaluate_research_brief(workspace)
+
+            self.assertEqual(scorecard["verdict"], "FAIL")
+            self.assertIn("reading_path", scorecard["failed_critical_dimensions"])
 
     def test_review_text_claim_candidate_extraction(self) -> None:
         from tooling.review_text import pick_claim_candidates
@@ -295,6 +387,115 @@ class ReviewArchitectureTests(unittest.TestCase):
             self.assertGreaterEqual(scorecard["score"], scorecard["pass_score"])
             self.assertIn("- Status: PASS", (workspace / "output" / "DELIVERABLE_SELFLOOP_TODO.md").read_text(encoding="utf-8"))
             self.assertIn("- Status: PASS", (workspace / "output" / "CONTRACT_REPORT.md").read_text(encoding="utf-8"))
+
+    def test_paper_review_blocks_when_related_work_is_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "init", "--workspace", str(workspace), "--pipeline", "paper-review", "--overwrite"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            (workspace / "inputs").mkdir(parents=True, exist_ok=True)
+            (workspace / "inputs" / "manuscript.md").write_text(
+                "# Demo Manuscript\n\n## Abstract\nWe propose RoboAdapt.\n\n"
+                "## Experiments\nRoboAdapt improves success rate by 12%.\n",
+                encoding="utf-8",
+            )
+
+            completed = subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "run", "--workspace", str(workspace), "--max-steps", "20"],
+                cwd=REPO_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(completed.returncode, 2, msg=completed.stderr or completed.stdout)
+            self.assertFalse((workspace / "output" / "REVIEW_SCORECARD.json").exists())
+            quality_gate = (workspace / "output" / "QUALITY_GATE.md").read_text(encoding="utf-8")
+            self.assertIn("paper_review_novelty_positioning", quality_gate)
+            with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+                statuses = {row["unit_id"]: row["status"] for row in csv.DictReader(handle)}
+            self.assertEqual(statuses["U025"], "BLOCKED")
+            self.assertEqual(statuses["U030"], "TODO")
+
+    def test_paper_review_scorecard_rejects_duplicate_ids_and_shallow_novelty(self) -> None:
+        from tooling.review_evaluation import evaluate_paper_review
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            output = workspace / "output"
+            output.mkdir(parents=True)
+            claims = [
+                {
+                    "claim_id": "C01",
+                    "text": "The method improves accuracy.",
+                    "claim_type": "empirical",
+                    "source_pointer": "Results, paragraph 1",
+                },
+                {
+                    "claim_id": "C01",
+                    "text": "The method is more efficient.",
+                    "claim_type": "empirical",
+                    "source_pointer": "Results, paragraph 2",
+                },
+            ]
+            gaps = [
+                {
+                    "gap_id": "G01",
+                    "claim_id": "C01",
+                    "evidence_present": "one result",
+                    "gap": "baseline missing",
+                    "minimal_fix": "add baseline",
+                    "severity": "major",
+                },
+                {
+                    "gap_id": "G01",
+                    "claim_id": "C01",
+                    "evidence_present": "one result",
+                    "gap": "budget missing",
+                    "minimal_fix": "report budget",
+                    "severity": "major",
+                },
+            ]
+            (output / "CLAIMS.jsonl").write_text(
+                "\n".join(json.dumps(item) for item in claims) + "\n",
+                encoding="utf-8",
+            )
+            (output / "EVIDENCE_AUDIT.jsonl").write_text(
+                "\n".join(json.dumps(item) for item in gaps) + "\n",
+                encoding="utf-8",
+            )
+            with (output / "NOVELTY_MATRIX.tsv").open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    delimiter="\t",
+                    fieldnames=["claim_id", "related_work", "overlap", "delta", "evidence"],
+                )
+                writer.writeheader()
+                for index in range(1, 5):
+                    writer.writerow(
+                        {
+                            "claim_id": "C01",
+                            "related_work": f"Prior Work {index}",
+                            "overlap": "same task",
+                            "delta": "claimed method delta",
+                            "evidence": "reference list",
+                        }
+                    )
+            (output / "REVIEW.md").write_text("# Review\n", encoding="utf-8")
+
+            scorecard = evaluate_paper_review(workspace)
+            failed = set(scorecard["failed_critical_dimensions"])
+
+            self.assertIn("claim_traceability", failed)
+            self.assertIn("evidence_coverage", failed)
+            self.assertIn("novelty_positioning", failed)
+            novelty = next(item for item in scorecard["dimensions"] if item["id"] == "novelty_positioning")
+            self.assertIn("4 unique related works", novelty["evidence"])
 
     def test_paper_review_semantic_failure_is_repaired_in_attempt_history(self) -> None:
         with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:

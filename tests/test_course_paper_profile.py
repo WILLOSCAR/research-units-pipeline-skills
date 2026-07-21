@@ -43,6 +43,7 @@ from tooling.quality_gate import (
     _check_tables_appendix_md,
     _check_tables_index_md,
     _draft_profile,
+    check_completion_acceptance,
     survey_citation_policy,
 )
 
@@ -106,6 +107,43 @@ def test_bounded_report_requests_share_the_compact_survey_profile() -> None:
     assert _sanitize_topic_for_query_seed("Analyze methods for research landscape report") == (
         "Analyze methods for research landscape report"
     )
+
+
+def test_survey_literature_completion_check_does_not_crash(tmp_path: Path) -> None:
+    for workflow in ("arxiv-survey", "arxiv-survey-latex"):
+        workspace = tmp_path / workflow
+        (workspace / "papers").mkdir(parents=True, exist_ok=True)
+        (workspace / "PIPELINE.lock.md").write_text(
+            f"pipeline: pipelines/{workflow}.pipeline.md\n",
+            encoding="utf-8",
+        )
+        (workspace / "papers" / "papers_raw.jsonl").write_text(
+            json.dumps(
+                {
+                    "title": "Grounded survey source",
+                    "authors": ["Researcher"],
+                    "year": 2026,
+                    "url": "https://arxiv.org/abs/2601.00001",
+                    "arxiv_id": "2601.00001",
+                    "abstract": "A grounded abstract for the retrieval quality check.",
+                    "provenance": [{"route": "fixture"}],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (workspace / "papers" / "retrieval_report.md").write_text(
+            "# Retrieval report\n\n- Fixture route: 1\n",
+            encoding="utf-8",
+        )
+
+        issues = check_completion_acceptance(
+            skill="literature-engineer",
+            workspace=workspace,
+            outputs=["papers/papers_raw.jsonl", "papers/retrieval_report.md"],
+        )
+
+        assert "completion_check_exception" not in {issue.code for issue in issues}
 
 
 def test_workflow_instruction_is_removed_before_query_seeding() -> None:

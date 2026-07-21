@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import re
+from collections import Counter
 from pathlib import Path
 
 from tooling.evidence_review_evaluation import (
@@ -10,6 +11,7 @@ from tooling.evidence_review_evaluation import (
     evaluate_evidence_review,
 )
 from tooling.quality_checks.common import QualityIssue, has_placeholder_markers
+from tooling.review_artifacts import load_candidate_records, stable_paper_id
 from tooling.review_protocol import parse_protocol
 
 
@@ -71,6 +73,13 @@ def check_screening(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
         ]
     with path.open("r", encoding="utf-8", newline="") as handle:
         rows = [dict(row) for row in csv.DictReader(handle)]
+    candidates = load_candidate_records(workspace)
+    candidate_ids = {
+        stable_paper_id(record, index=index)
+        for index, record in enumerate(candidates, start=1)
+    }
+    screened_ids = [str(row.get("paper_id") or "").strip() for row in rows]
+    screened_id_set = {paper_id for paper_id in screened_ids if paper_id}
     protocol = parse_protocol(protocol_path.read_text(encoding="utf-8", errors="ignore"))
     valid_codes = {
         code
@@ -98,6 +107,34 @@ def check_screening(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     if not rows:
         issues.append(
             QualityIssue(code="empty_screening_log", message=f"`{out_rel}` has no screening decisions.")
+        )
+    if not candidates:
+        issues.append(
+            QualityIssue(
+                code="missing_screening_candidate_pool",
+                message="No candidate pool is available to verify screening completeness.",
+            )
+        )
+    elif candidate_ids != screened_id_set:
+        missing = sorted(candidate_ids - screened_id_set)
+        unexpected = sorted(screened_id_set - candidate_ids)
+        issues.append(
+            QualityIssue(
+                code="screening_candidate_coverage",
+                message=(
+                    f"`{out_rel}` covers {len(screened_id_set & candidate_ids)}/{len(candidate_ids)} "
+                    f"candidate IDs; missing={missing[:5] or 'none'}, unexpected={unexpected[:5] or 'none'}."
+                ),
+            )
+        )
+    id_counts = Counter(paper_id for paper_id in screened_ids if paper_id)
+    duplicate_ids = sorted(paper_id for paper_id, count in id_counts.items() if count > 1)
+    if duplicate_ids:
+        issues.append(
+            QualityIssue(
+                code="duplicate_screening_decisions",
+                message=f"`{out_rel}` contains duplicate decisions for: {', '.join(duplicate_ids[:5])}.",
+            )
         )
     if invalid:
         issues.append(
@@ -146,6 +183,11 @@ def check_extraction(
         for row in rows
         if str(row.get("paper_id") or "").strip()
     }
+    extracted_id_list = [
+        str(row.get("paper_id") or "").strip()
+        for row in rows
+        if str(row.get("paper_id") or "").strip()
+    ]
     issues: list[QualityIssue] = []
     if not rows:
         return [QualityIssue(code="empty_extraction_table", message=f"`{out_rel}` has no extracted studies.")]
@@ -167,6 +209,18 @@ def check_extraction(
                     "Extraction IDs must equal included screening IDs; "
                     f"missing={missing_ids}, unexpected={unexpected_ids}."
                 ),
+            )
+        )
+    duplicate_ids = sorted(
+        paper_id
+        for paper_id, count in Counter(extracted_id_list).items()
+        if count > 1
+    )
+    if duplicate_ids:
+        issues.append(
+            QualityIssue(
+                code="duplicate_extraction_rows",
+                message=f"`{out_rel}` contains duplicate extraction rows for: {', '.join(duplicate_ids[:5])}.",
             )
         )
     thin_rows = sum(

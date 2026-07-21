@@ -1,6 +1,6 @@
 ---
 name: research-brief
-version: 1.3
+version: 1.5
 profile: research-brief
 routing_hints: [research brief, rapid review, topic overview, briefing, newcomer memo, snapshot, literature snapshot, help me understand, understand a topic, reading path, what should i read, 速览, 快速理解, 研究速览, 帮我理解, 快速了解, 入门, 阅读路径, 先读什么]
 routing_priority: 32
@@ -61,7 +61,7 @@ quality_contract:
   semantic_rubric:
     schema: research-brief-scorecard.v1
     pass_score: 80
-    critical_dimensions: [deliverable_structure, brief_specificity, source_traceability]
+    critical_dimensions: [deliverable_structure, brief_specificity, source_traceability, reading_path]
 stages:
   C0:
     title: Init

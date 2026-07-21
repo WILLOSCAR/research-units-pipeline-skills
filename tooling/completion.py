@@ -239,6 +239,13 @@ def commit_unit_completion(
 
     acceptance_required = completion_check_required(skill=skill, workspace=workspace)
     acceptance_issues = check_completion_acceptance(skill=skill, workspace=workspace, outputs=outputs)
+    acceptance_evidence: dict[str, Any] = {
+        "required": acceptance_required,
+        "skill": skill,
+        "status": "NOT_REQUIRED",
+        "report_path": "",
+        "issue_codes": [],
+    }
     if acceptance_required:
         try:
             report_path = write_quality_report(
@@ -269,6 +276,13 @@ def commit_unit_completion(
         if acceptance_issues:
             rejection = "; ".join(str(issue.message) for issue in acceptance_issues[:3])
             rel_report = str(report_path.relative_to(workspace))
+            acceptance_evidence.update(
+                {
+                    "status": "FAIL",
+                    "report_path": rel_report,
+                    "issue_codes": [str(issue.code) for issue in acceptance_issues],
+                }
+            )
             repair_surface = [rel_report, f".codex/skills/{skill}/SKILL.md"]
             if any(issue.code == "completion_contract_unavailable" for issue in acceptance_issues):
                 repair_surface = [rel_report, "PIPELINE.lock.md"]
@@ -286,7 +300,14 @@ def commit_unit_completion(
                 harness_mechanism="The Completion Protocol runs Workflow-required checks before committing DONE.",
                 repair_surface=repair_surface,
                 attempt_execution=attempt_execution,
+                acceptance=acceptance_evidence,
             )
+        acceptance_evidence.update(
+            {
+                "status": "PASS",
+                "report_path": str(report_path.relative_to(workspace)),
+            }
+        )
         verified_failure_types.add("acceptance_contract_failed")
         verified_failure_types.add("quality_report_error")
 
@@ -309,6 +330,7 @@ def commit_unit_completion(
                 repair_surface=list(semantic_failure["repair_surface"]),
                 severity=str(semantic_failure["severity"]),
                 attempt_execution=attempt_execution,
+                acceptance=acceptance_evidence,
             )
         verified_failure_types.add("semantic_quality_gate_failed")
 
@@ -322,6 +344,7 @@ def commit_unit_completion(
             status="PREPARED",
             attempt_id=attempt_id,
             repo_root=repo_root,
+            acceptance=acceptance_evidence,
         )
     except Exception as exc:
         rejection = f"Completion manifest could not be written: {type(exc).__name__}: {exc}"
@@ -351,6 +374,7 @@ def commit_unit_completion(
         stage="prepared",
         manifest_path=manifest_relpath,
         outputs=outputs,
+        acceptance=acceptance_evidence,
     )
     finish_attempt(
         workspace=workspace,
@@ -373,6 +397,7 @@ def commit_unit_completion(
         status="DONE",
         attempt_id=attempt_id,
         repo_root=repo_root,
+        acceptance=acceptance_evidence,
     )
     _set_unit_status(workspace=workspace, unit_id=unit_id, status="DONE")
     record_completion_stage(
@@ -382,6 +407,7 @@ def commit_unit_completion(
         stage="committed",
         manifest_path=manifest_relpath,
         outputs=outputs,
+        acceptance=acceptance_evidence,
     )
     update_status_log(workspace / "STATUS.md", f"{now_iso_seconds()} {unit_id} DONE ({message})")
     reconcile_run_state(workspace=workspace)
@@ -405,21 +431,8 @@ def _reject_completion(
     severity: str = "medium",
     write_manifest: bool = True,
     attempt_execution: dict[str, Any] | None = None,
+    acceptance: dict[str, Any] | None = None,
 ) -> CompletionResult:
-    _set_unit_status(workspace=workspace, unit_id=unit_id, status="BLOCKED")
-    manifest_relpath = ""
-    if write_manifest:
-        manifest_path = write_unit_manifest(
-            workspace=workspace,
-            unit_id=unit_id,
-            skill=skill,
-            outputs=outputs,
-            exit_code=exit_code,
-            status="BLOCKED",
-            attempt_id=attempt_id,
-            repo_root=repo_root,
-        )
-        manifest_relpath = str(manifest_path.relative_to(workspace))
     record_failure(
         workspace=workspace,
         unit_id=unit_id,
@@ -431,6 +444,21 @@ def _reject_completion(
         repair_surface=repair_surface,
         severity=severity,
     )
+    manifest_relpath = ""
+    if write_manifest:
+        manifest_path = write_unit_manifest(
+            workspace=workspace,
+            unit_id=unit_id,
+            skill=skill,
+            outputs=outputs,
+            exit_code=exit_code,
+            status="BLOCKED",
+            attempt_id=attempt_id,
+            repo_root=repo_root,
+            acceptance=acceptance,
+        )
+        manifest_relpath = str(manifest_path.relative_to(workspace))
+    _set_unit_status(workspace=workspace, unit_id=unit_id, status="BLOCKED")
     finish_attempt(
         workspace=workspace,
         attempt_id=attempt_id,

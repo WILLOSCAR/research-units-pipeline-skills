@@ -7,6 +7,7 @@ from typing import Callable
 
 from tooling import quality_reporting
 from tooling.quality_checks import evidence_review as evidence_review_checks
+from tooling.quality_checks import paper_review as paper_review_checks
 from tooling.quality_checks import delivery as delivery_checks
 from tooling.quality_checks import research_idea as research_idea_checks
 from tooling.quality_checks import source_tutorial as source_tutorial_checks
@@ -265,6 +266,7 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "bias-assessor": _check_bias_assessor,
     "chapter-briefs": survey_planning.check_chapter_briefs,
     "chapter-skeleton": survey_structure.check_chapter_skeleton,
+    "claims-extractor": paper_review_checks.check_claims,
     "citation-injector": survey_retrieval.check_citation_injection,
     "citation-verifier": survey_retrieval.check_citations,
     "claim-evidence-matrix": survey_planning.check_claim_evidence_matrix,
@@ -275,6 +277,7 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "evaluation-anchor-checker": survey_writing.check_eval_anchor_report,
     "evidence-binder": _check_evidence_bindings,
     "evidence-draft": survey_planning.check_evidence_drafts,
+    "evidence-auditor": paper_review_checks.check_evidence_audit,
     "extraction-form": _check_extraction_form,
     "global-reviewer": survey_writing.check_global_review,
     "idea-brief": research_idea_checks.check_idea_brief,
@@ -287,6 +290,7 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "latex-scaffold": delivery_checks.check_latex_scaffold,
     "literature-engineer": survey_retrieval.check_literature_engineer,
     "module-source-coverage": source_tutorial_checks.check_module_source_coverage,
+    "novelty-matrix": paper_review_checks.check_novelty_matrix,
     "outline-builder": survey_planning.check_outline,
     "outline-refiner": survey_planning.check_coverage_report,
     "paper-notes": survey_planning.check_paper_notes,
@@ -295,6 +299,7 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "pipeline-auditor": survey_writing.check_audit_report,
     "prose-writer": _check_draft,
     "protocol-writer": evidence_review_checks.check_protocol,
+    "rubric-writer": paper_review_checks.check_review,
     "schema-normalizer": survey_planning.check_schema_normalization_report,
     "screening-manager": evidence_review_checks.check_screening,
     "section-bindings": survey_structure.check_section_bindings,

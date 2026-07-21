@@ -21,6 +21,7 @@ DEFAULT_PASS_SCORE = 80
 DEFAULT_CRITICAL_DIMENSIONS = {
     "claim_traceability",
     "evidence_coverage",
+    "novelty_positioning",
     "review_traceability",
 }
 
@@ -119,33 +120,44 @@ def _claim_dimension(claims: list[dict[str, Any]]) -> dict[str, Any]:
         and _clean(claim.get("claim_type")) in valid_types
         and _clean(claim.get("source_pointer"))
     ]
+    claim_ids = [_clean(claim.get("claim_id")) for claim in claims if _clean(claim.get("claim_id"))]
+    duplicate_ids = len(claim_ids) - len(set(claim_ids))
     return _dimension(
         "claim_traceability",
         "Claim traceability",
-        passed=bool(claims) and len(valid) == len(claims),
+        passed=bool(claims) and len(valid) == len(claims) and duplicate_ids == 0,
         partial=bool(valid),
-        evidence=f"{len(valid)}/{len(claims)} claims have ID, type, text, and source pointer.",
+        evidence=f"{len(valid)}/{len(claims)} claims have ID, type, text, and source pointer; duplicate IDs={duplicate_ids}.",
         repair_surface=[".codex/skills/claims-extractor/SKILL.md", "output/CLAIMS.jsonl"],
     )
 
 
 def _evidence_dimension(claims: list[dict[str, Any]], gaps: list[dict[str, Any]]) -> dict[str, Any]:
     claim_ids = {_clean(claim.get("claim_id")) for claim in claims if _clean(claim.get("claim_id"))}
-    covered = {
-        _clean(gap.get("claim_id"))
+    valid_gaps = [
+        gap
         for gap in gaps
-        if _clean(gap.get("claim_id")) in claim_ids
+        if _clean(gap.get("gap_id"))
+        and _clean(gap.get("claim_id")) in claim_ids
         and _clean(gap.get("evidence_present"))
         and _clean(gap.get("gap"))
         and _clean(gap.get("minimal_fix"))
         and _clean(gap.get("severity")) in {"minor", "major", "critical"}
-    }
+    ]
+    covered = {_clean(gap.get("claim_id")) for gap in valid_gaps}
+    gap_ids = [_clean(gap.get("gap_id")) for gap in valid_gaps]
+    gap_claim_ids = [_clean(gap.get("claim_id")) for gap in valid_gaps]
+    one_per_claim = (
+        len(valid_gaps) == len(gaps) == len(claim_ids)
+        and len(gap_ids) == len(set(gap_ids))
+        and len(gap_claim_ids) == len(set(gap_claim_ids))
+    )
     return _dimension(
         "evidence_coverage",
         "Evidence coverage",
-        passed=bool(claim_ids) and covered == claim_ids,
+        passed=bool(claim_ids) and covered == claim_ids and one_per_claim,
         partial=bool(covered),
-        evidence=f"{len(covered)}/{len(claim_ids)} claims have a complete evidence assessment.",
+        evidence=f"{len(covered)}/{len(claim_ids)} claims have exactly one complete, uniquely identified evidence assessment.",
         repair_surface=[".codex/skills/evidence-auditor/SKILL.md", "output/EVIDENCE_AUDIT.jsonl"],
     )
 
@@ -162,13 +174,21 @@ def _novelty_dimension(claims: list[dict[str, Any]], rows: list[dict[str, str]])
         and _clean(row.get("evidence"))
     }
     unavailable = [row for row in rows if "unavailable" in _clean(row.get("related_work"))]
-    passed = bool(claim_ids) and covered == claim_ids and not unavailable
+    related_works = {
+        _clean(row.get("related_work"))
+        for row in rows
+        if _clean(row.get("related_work")) and "unavailable" not in _clean(row.get("related_work"))
+    }
+    passed = bool(claim_ids) and covered == claim_ids and len(related_works) >= 5 and not unavailable
     return _dimension(
         "novelty_positioning",
         "Novelty positioning",
         passed=passed,
         partial=bool(covered),
-        evidence=f"{len(covered)}/{len(claim_ids)} claims are positioned; unavailable rows={len(unavailable)}.",
+        evidence=(
+            f"{len(covered)}/{len(claim_ids)} claims are positioned against "
+            f"{len(related_works)} unique related works; unavailable rows={len(unavailable)}."
+        ),
         repair_surface=[".codex/skills/novelty-matrix/SKILL.md", "output/NOVELTY_MATRIX.tsv"],
     )
 

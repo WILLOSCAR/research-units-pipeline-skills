@@ -348,8 +348,8 @@ def check_literature_engineer(workspace: Path, outputs: list[str]) -> list[Quali
                 )
             )
         # Evidence-first: if we're not extracting full text, we need abstracts for non-hallucinated notes/drafting.
-        evidence_mode = evidence_mode(workspace)
-        if evidence_mode != "fulltext" and missing_abstract / max(1, total) >= 0.7:
+        mode = evidence_mode(workspace)
+        if mode != "fulltext" and missing_abstract / max(1, total) >= 0.7:
             issues.append(
                 QualityIssue(
                     code="raw_missing_abstracts",

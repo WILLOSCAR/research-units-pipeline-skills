@@ -1,6 +1,6 @@
 ---
 name: source-tutorial
-version: 1.1
+version: 1.3
 profile: source-tutorial
 routing_hints: [source tutorial, tutorial, 教程, 教学, lesson, course notes]
 routing_priority: 35

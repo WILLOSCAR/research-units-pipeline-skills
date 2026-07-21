@@ -119,10 +119,13 @@ def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None
     assert goal["schema"] == "goal-spec.v2"
     assert goal["constraints"] == {}
     assert goal["success_criteria"]["required_artifacts"] == goal["target_artifacts"]
-    assert lock["schema"] == "harness-lock.v1"
-    assert lock["protocols"]["completion"] == "recoverable-provenance.v1"
+    assert lock["schema"] == "harness-lock.v2"
+    assert lock["protocols"]["completion"] == "recoverable-provenance.v2"
     assert len(lock["repository"]["revision"]) == 40
     assert lock["pipeline"]["sha256"]
+    assert lock["pipeline"]["snapshot_sha256"] == lock["pipeline"]["sha256"]
+    assert (workspace / lock["pipeline"]["snapshot_path"]).is_file()
+    assert "research-brief.pipeline.md" in lock["pipeline"]["snapshot_files"]
     assert lock["units_template"]["sha256"]
     assert lock["skills"]
     assert all(record.get("script_sha256") for record in lock["skills"].values())
@@ -136,6 +139,83 @@ def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None
     assert lock["kernel"]["tooling/review_evaluation.py"]
     assert [event["type"] for event in events] == ["run.created", "run.planned"]
     assert [event["seq"] for event in events] == [1, 2]
+
+
+def test_pipeline_contract_snapshot_fails_closed_after_tampering(tmp_path: Path) -> None:
+    from tooling.common import load_workspace_pipeline_spec
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    lock = json.loads((workspace / ".harness" / "harness.lock.json").read_text(encoding="utf-8"))
+    snapshot = workspace / lock["pipeline"]["snapshot_path"]
+    assert load_workspace_pipeline_spec(workspace).path == snapshot.resolve()
+
+    snapshot.write_text(snapshot.read_text(encoding="utf-8") + "\n<!-- drift -->\n", encoding="utf-8")
+
+    assert load_workspace_pipeline_spec(workspace) is None
+    codes = {issue["code"] for issue in inspect_run_integrity(workspace)["issues"]}
+    assert "pipeline_snapshot_hash_mismatch" in codes
+    assert "pipeline_snapshot_dependency_hash_mismatch" in codes
+
+
+def test_pipeline_contract_snapshot_rejects_human_lock_projection_drift(tmp_path: Path) -> None:
+    from tooling.common import load_workspace_pipeline_spec
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/paper-review.pipeline.md\n",
+        encoding="utf-8",
+    )
+
+    assert load_workspace_pipeline_spec(workspace) is None
+    codes = {issue["code"] for issue in inspect_run_integrity(workspace)["issues"]}
+    assert "pipeline_lock_projection_mismatch" in codes
+
+
+def test_pipeline_snapshot_preserves_variant_parent_contract(tmp_path: Path) -> None:
+    from tooling.common import load_workspace_pipeline_spec
+
+    workspace = tmp_path / "latex-run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "arxiv-survey-latex",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    lock = json.loads((workspace / ".harness" / "harness.lock.json").read_text(encoding="utf-8"))
+    assert set(lock["pipeline"]["snapshot_files"]) == {
+        "arxiv-survey-latex.pipeline.md",
+        "arxiv-survey.pipeline.md",
+    }
+    spec = load_workspace_pipeline_spec(workspace)
+    assert spec is not None
+    assert spec.name == "arxiv-survey-latex"
+    assert spec.variant_of == "arxiv-survey"
+    assert "latex/main.pdf" in spec.target_artifacts
 
 
 def test_harness_lock_pins_skill_assets_with_the_executable_implementation(tmp_path: Path) -> None:
@@ -252,6 +332,40 @@ def test_quality_report_write_error_becomes_durable_completion_failure(
     assert attempts[-1]["status"] == "FAILED_RETRYABLE"
 
 
+def test_completion_rejection_records_failure_before_blocked_projection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tooling.completion as completion
+    from tooling.run_state import ensure_run_state
+
+    workspace = tmp_path / "rejection-fault"
+    _write_units(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    original_finish_attempt = completion.finish_attempt
+
+    def interrupt_terminal_attempt(**_: object) -> None:
+        raise RuntimeError("simulated crash before terminal Attempt append")
+
+    monkeypatch.setattr(completion, "finish_attempt", interrupt_terminal_attempt)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        completion.commit_unit_completion(
+            workspace=workspace,
+            repo_root=REPO_ROOT,
+            unit_id="U010",
+        )
+    monkeypatch.setattr(completion, "finish_attempt", original_finish_attempt)
+    ensure_run_state(workspace=workspace, repo_root=REPO_ROOT)
+
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    attempts = _jsonl(workspace / ".harness" / "attempts.jsonl")
+    assert failures[-1]["failure_type"] == "missing_outputs"
+    assert attempts[-1]["record_type"] == "finished"
+    assert attempts[-1]["status"] == "INTERRUPTED"
+    with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+        assert next(csv.DictReader(handle))["status"] == "BLOCKED"
+
+
 def test_retries_preserve_attempt_and_failure_history(tmp_path: Path) -> None:
     workspace = tmp_path / "run"
     _write_units(workspace / "UNITS.csv")
@@ -339,7 +453,11 @@ def test_scripted_retries_record_execution_metrics_and_audit_summary(tmp_path: P
 
     exit_code, audit = build_run_audit_payload(workspace=workspace, repo_root=repo_root)
 
-    assert exit_code == 0
+    assert exit_code == 2
+    assert audit["verdict"] == "ATTENTION"
+    assert "missing_pipeline_lock" in {
+        issue["code"] for issue in audit["harness_issues"]
+    }
     assert validate_run_audit_payload(audit) == []
     summary = audit["attempts"]
     assert summary["started"] == 2
@@ -636,6 +754,55 @@ def test_manual_completion_resolves_missing_adapter_failure(tmp_path: Path) -> N
         for item in improvement["suggestions"]
         if item["source_report"] == "failure_ledger"
     ] == []
+
+
+def test_completion_persists_workflow_acceptance_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tooling import quality_gate
+    from tooling.completion import commit_unit_completion
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    output = workspace / "output" / "result.md"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("accepted result\n", encoding="utf-8")
+    monkeypatch.setattr(quality_gate, "completion_check_required", lambda **_: True)
+    monkeypatch.setattr(quality_gate, "check_completion_acceptance", lambda **_: [])
+
+    result = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        message="Workflow acceptance passed",
+    )
+
+    assert result.status == "DONE"
+    manifest = json.loads((workspace / result.manifest_path).read_text(encoding="utf-8"))
+    assert manifest["acceptance"] == {
+        "issue_codes": [],
+        "report_path": "output/QUALITY_GATE.md",
+        "required": True,
+        "skill": "skill-without-script",
+        "status": "PASS",
+    }
+    committed = next(
+        event
+        for event in reversed(_jsonl(workspace / ".harness" / "events.jsonl"))
+        if event.get("type") == "unit.completion.committed"
+    )
+    assert committed["payload"]["acceptance"] == manifest["acceptance"]
+
+    manifest["acceptance"]["status"] = "FAIL"
+    (workspace / result.manifest_path).write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    issue_codes = {issue["code"] for issue in inspect_run_integrity(workspace)["issues"]}
+    assert "completion_acceptance_mismatch" in issue_codes
 
 
 def test_maintainer_status_override_requires_reason(tmp_path: Path) -> None:
@@ -1209,6 +1376,7 @@ def test_ensure_run_state_finalizes_prepared_completion_transaction(tmp_path: Pa
     from tooling.run_state import (
         ensure_run_state,
         initialize_run_state,
+        inspect_run_integrity,
         record_completion_stage,
         start_attempt,
     )
@@ -1308,6 +1476,182 @@ def test_reconciliation_recovers_manifest_written_before_prepared_event(
         for event in events
     )
     assert inspect_run_integrity(workspace)["issue_count"] == 0
+
+
+def test_reconciliation_does_not_promote_prepared_manifest_without_acceptance(
+    tmp_path: Path,
+) -> None:
+    from tooling.harness import write_unit_manifest
+    from tooling.run_state import (
+        ensure_run_state,
+        initialize_run_state,
+        record_completion_stage,
+        start_attempt,
+    )
+
+    workspace = tmp_path / "run"
+    _write_units(
+        workspace / "UNITS.csv",
+        status="DOING",
+        skill="arxiv-search",
+        outputs="papers/papers_raw.jsonl",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/research-brief.pipeline.md\n"
+        "units_template: templates/UNITS.research-brief.csv\n",
+        encoding="utf-8",
+    )
+    output = workspace / "papers" / "papers_raw.jsonl"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(
+            {
+                "title": "Undersized result",
+                "year": 2026,
+                "url": "https://example.org/one",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=REPO_ROOT / "pipelines" / "research-brief.pipeline.md",
+        units_template="templates/UNITS.research-brief.csv",
+    )
+    attempt_id = start_attempt(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        skill="arxiv-search",
+        inputs=(),
+    )
+    manifest_path = write_unit_manifest(
+        workspace=workspace,
+        unit_id="U010",
+        skill="arxiv-search",
+        outputs=["papers/papers_raw.jsonl"],
+        exit_code=0,
+        status="PREPARED",
+        attempt_id=attempt_id,
+        repo_root=REPO_ROOT,
+    )
+    record_completion_stage(
+        workspace=workspace,
+        unit_id="U010",
+        attempt_id=attempt_id,
+        stage="prepared",
+        manifest_path=str(manifest_path.relative_to(workspace)),
+        outputs=["papers/papers_raw.jsonl"],
+    )
+
+    snapshot = ensure_run_state(workspace=workspace, repo_root=REPO_ROOT)
+
+    with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+        assert next(csv.DictReader(handle))["status"] == "BLOCKED"
+    assert snapshot["state"] == "BLOCKED"
+    attempts = _jsonl(workspace / ".harness" / "attempts.jsonl")
+    assert [record["record_type"] for record in attempts] == ["started", "finished"]
+    assert attempts[-1]["status"] == "FAILED_RETRYABLE"
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    assert failures[-1]["failure_type"] == "acceptance_recovery_failed"
+
+
+def test_reconciliation_migrates_v1_prepared_acceptance_after_revalidation(
+    tmp_path: Path,
+) -> None:
+    from tooling.harness import write_unit_manifest
+    from tooling.run_state import (
+        ensure_run_state,
+        initialize_run_state,
+        inspect_run_integrity,
+        record_completion_stage,
+        start_attempt,
+    )
+
+    workspace = tmp_path / "legacy-run"
+    _write_units(
+        workspace / "UNITS.csv",
+        status="DOING",
+        skill="arxiv-search",
+        outputs="papers/papers_raw.jsonl",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/research-brief.pipeline.md\n"
+        "units_template: templates/UNITS.research-brief.csv\n",
+        encoding="utf-8",
+    )
+    output = workspace / "papers" / "papers_raw.jsonl"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "title": f"Legacy paper {index}",
+                    "year": 2026,
+                    "url": f"https://example.org/{index}",
+                }
+            )
+            for index in range(1, 16)
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=REPO_ROOT / "pipelines" / "research-brief.pipeline.md",
+        units_template="templates/UNITS.research-brief.csv",
+    )
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["protocols"]["completion"] = "recoverable-provenance.v1"
+    lock_path.write_text(json.dumps(lock), encoding="utf-8")
+    attempt_id = start_attempt(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        skill="arxiv-search",
+        inputs=(),
+    )
+    manifest_path = write_unit_manifest(
+        workspace=workspace,
+        unit_id="U010",
+        skill="arxiv-search",
+        outputs=["papers/papers_raw.jsonl"],
+        exit_code=0,
+        status="PREPARED",
+        attempt_id=attempt_id,
+        repo_root=REPO_ROOT,
+    )
+    record_completion_stage(
+        workspace=workspace,
+        unit_id="U010",
+        attempt_id=attempt_id,
+        stage="prepared",
+        manifest_path=str(manifest_path.relative_to(workspace)),
+        outputs=["papers/papers_raw.jsonl"],
+    )
+
+    snapshot = ensure_run_state(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert snapshot["state"] == "COMPLETED"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["acceptance"]["status"] == "PASS"
+    assert manifest["acceptance"]["migrated_from"] == "recoverable-provenance.v1"
+    committed = next(
+        event
+        for event in _jsonl(workspace / ".harness" / "events.jsonl")
+        if event.get("type") == "unit.completion.committed"
+    )
+    assert committed["payload"]["acceptance"] == manifest["acceptance"]
+    compatibility = inspect_run_integrity(workspace)["compatibility"]
+    assert compatibility["mode"] == "legacy_versioned"
+    assert compatibility["recorded_completion_protocol"] == "recoverable-provenance.v1"
+    assert compatibility["current_completion_protocol"] == "recoverable-provenance.v2"
 
 
 def test_reconciliation_does_not_recover_prepared_manifest_from_older_attempt(tmp_path: Path) -> None:
@@ -1609,8 +1953,8 @@ def test_run_audit_rejects_done_unit_without_attempt_or_manifest(tmp_path: Path)
     assert {"done_without_successful_attempt", "done_without_manifest"}.issubset(codes)
     assert audit["ledger_integrity"]["compatibility"] == {
         "mode": "current",
-        "recorded_completion_protocol": "recoverable-provenance.v1",
-        "current_completion_protocol": "recoverable-provenance.v1",
+        "recorded_completion_protocol": "recoverable-provenance.v2",
+        "current_completion_protocol": "recoverable-provenance.v2",
         "legacy_evidence_gap_codes": [],
         "interpretation": (
             "The Run declares the current Completion Protocol; integrity issues are current-protocol violations."
@@ -1680,6 +2024,58 @@ def test_auto_approval_records_machine_decision(tmp_path: Path) -> None:
     assert decisions[-1]["actor"] == {"kind": "harness", "id": "auto-approval"}
 
 
+def test_idea_focus_checkpoint_cannot_be_auto_approved(tmp_path: Path) -> None:
+    workspace = tmp_path / "idea-run"
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="")
+    with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[0]["owner"] = "HUMAN"
+    rows[0]["checkpoint"] = "C2"
+    with (workspace / "UNITS.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [ ] Approve C2\n",
+        encoding="utf-8",
+    )
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/idea-brainstorm.pipeline.md\n",
+        encoding="utf-8",
+    )
+
+    result = run_one_unit(workspace=workspace, repo_root=REPO_ROOT, auto_approve={"C2"})
+
+    assert result.status == "BLOCKED"
+    assert "cannot be auto-approved" in result.message
+    assert "- [ ] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    assert _jsonl(workspace / ".harness" / "decisions.jsonl") == []
+
+
+def test_checkbox_only_checkpoint_approval_does_not_authorize_completion(tmp_path: Path) -> None:
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="")
+    with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    rows[0]["owner"] = "HUMAN"
+    with (workspace / "UNITS.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [x] Approve C1\n",
+        encoding="utf-8",
+    )
+
+    result = run_one_unit(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert result.status == "BLOCKED"
+    assert "Await HUMAN approval C1" in result.message
+    assert _jsonl(workspace / ".harness" / "decisions.jsonl") == []
+
+
 def test_product_cli_goal_create_maps_to_existing_workflow(tmp_path: Path) -> None:
     workspace = tmp_path / "product-run"
 
@@ -1708,6 +2104,20 @@ def test_product_cli_goal_create_maps_to_existing_workflow(tmp_path: Path) -> No
     assert "State: PLANNED" in status.stdout
     assert "Resume: uv run rh run resume --workspace" in status.stdout
     assert "scripts/pipeline.py" not in status.stdout
+
+    approved = _run(
+        "-m",
+        "tooling.product_cli",
+        "run",
+        "approve",
+        "--workspace",
+        str(workspace),
+        "--checkpoint",
+        "C2",
+    )
+    assert approved.returncode == 0, approved.stderr or approved.stdout
+    assert "Approved C2" in approved.stdout
+    assert "- [x] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
 
 
 def test_product_start_rejects_an_existing_run_and_resume_continues(tmp_path: Path) -> None:
@@ -1858,6 +2268,16 @@ def test_workspace_invocation_lock_rejects_concurrent_commands(tmp_path: Path) -
         ("-m", "tooling.product_cli", "run", "status", "--workspace", str(workspace)),
         ("-m", "tooling.product_cli", "run", "start", "--workspace", str(workspace)),
         ("-m", "tooling.product_cli", "run", "resume", "--workspace", str(workspace)),
+        (
+            "-m",
+            "tooling.product_cli",
+            "run",
+            "approve",
+            "--workspace",
+            str(workspace),
+            "--checkpoint",
+            "C1",
+        ),
         ("-m", "tooling.product_cli", "evidence", "inspect", "--workspace", str(workspace)),
         ("-m", "tooling.product_cli", "improve", "diagnose", "--workspace", str(workspace)),
         (

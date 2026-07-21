@@ -132,8 +132,7 @@ def main() -> int:
     index_records: list[dict[str, Any]] = []
     provenance_records: list[dict[str, Any]] = []
     successes = 0
-    required_successes = 0
-    required_total = 0
+    failed_required_ids: list[str] = []
 
     for rec in sources:
         if not isinstance(rec, dict):
@@ -141,9 +140,9 @@ def main() -> int:
         source_id = str(rec.get("source_id") or "").strip()
         kind = str(rec.get("kind") or "").strip()
         required = bool(rec.get("required", False))
-        if required:
-            required_total += 1
         if not source_id or kind not in SUPPORTED_KINDS:
+            if required:
+                failed_required_ids.append(source_id or "<missing-source-id>")
             continue
 
         try:
@@ -168,8 +167,8 @@ def main() -> int:
         provenance_records.extend(prov)
         if result.status == "success":
             successes += 1
-            if required:
-                required_successes += 1
+        elif required:
+            failed_required_ids.append(source_id)
 
     write_jsonl(index_path, index_records)
     write_jsonl(prov_path, provenance_records)
@@ -177,8 +176,11 @@ def main() -> int:
     if successes == 0:
         print("No sources were ingested successfully.", file=sys.stderr)
         return 2
-    if required_total and required_successes == 0:
-        print("No required sources were ingested successfully.", file=sys.stderr)
+    if failed_required_ids:
+        print(
+            "Required sources failed ingestion: " + ", ".join(failed_required_ids),
+            file=sys.stderr,
+        )
         return 2
     return 0
 
