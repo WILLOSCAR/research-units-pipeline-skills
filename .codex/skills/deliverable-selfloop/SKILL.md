@@ -1,12 +1,6 @@
 ---
 name: deliverable-selfloop
-description: |
-  Use when a reader-facing deliverable exists and needs a deterministic PASS/FAIL quality gate.
-  **Trigger**: self loop, self-loop, polish deliverable, quality gate, fix-on-fail, 收敛, 自循环, 质量门.
-  **Use when**: A pipeline has produced a reader-facing deliverable (`output/*.md`) and you want deterministic convergence to PASS.
-  **Skip if**: You are still pre-approval for prose or the upstream evidence/structure artifacts are missing.
-  **Network**: none.
-  **Guardrail**: Do not invent papers/citations/results. Only use in-scope inputs already present in the workspace.
+description: Score an existing reader-facing deliverable and emit a deterministic PASS/FAIL scorecard plus bounded repair plan; use after synthesis, not to rewrite content.
 ---
 
 # Deliverable Self-Loop

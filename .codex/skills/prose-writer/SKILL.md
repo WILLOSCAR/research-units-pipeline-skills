@@ -3,10 +3,6 @@ name: prose-writer
 description: |
   Write `output/DRAFT.md` (or `output/SNAPSHOT.md`) from an approved outline and evidence packs, using only verified citation keys from `citations/ref.bib`.
   **Trigger**: write draft, prose writer, snapshot, survey writing, 写综述, 生成草稿, section-by-section drafting.
-  **Use when**: structure is approved (`DECISIONS.md` has `Approve C2`) and evidence packs exist (`outline/subsection_briefs.jsonl`, `outline/evidence_drafts.jsonl`).
-  **Skip if**: approvals are missing, or evidence packs are incomplete / scaffolded (missing-fields, TODO markers).
-  **Network**: none.
-  **Guardrail**: do not invent facts or citations; only cite keys present in `citations/ref.bib`; avoid pipeline-jargon leakage in final prose.
 ---
 
 # Prose Writer (Evidence-first)

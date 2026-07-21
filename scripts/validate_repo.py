@@ -293,6 +293,57 @@ def _validate_machine_readable_contract(*, path: Path, fm: dict[str, Any], spec:
     if spec.query_defaults and not spec.overridable_query_fields:
         findings.append(Finding("WARN", f"{path.name}: `query_defaults` is present but `overridable_query_fields` is empty."))
 
+    completion_policy = spec.quality_contract.get("completion_policy", {})
+    if not isinstance(completion_policy, dict):
+        findings.append(Finding("ERROR", f"{path.name}: `quality_contract.completion_policy` must be a mapping."))
+    else:
+        raw_required_checks = completion_policy.get("required_checks")
+        if not isinstance(raw_required_checks, list) or not raw_required_checks:
+            findings.append(
+                Finding(
+                    "ERROR",
+                    f"{path.name}: `quality_contract.completion_policy.required_checks` must be a non-empty list.",
+                )
+            )
+        else:
+            required_checks = [str(item or "").strip() for item in raw_required_checks]
+            if any(not item for item in required_checks):
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{path.name}: `quality_contract.completion_policy.required_checks` contains an empty Skill name.",
+                    )
+                )
+            duplicates = sorted({item for item in required_checks if required_checks.count(item) > 1})
+            if duplicates:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{path.name}: duplicate required completion checks: {', '.join(duplicates)}",
+                    )
+                )
+            from tooling.quality_gate import registered_quality_skills
+
+            unknown_checks = sorted(set(required_checks) - registered_quality_skills())
+            if unknown_checks:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{path.name}: required completion checks have no registered Harness checker: "
+                        f"{', '.join(unknown_checks)}",
+                    )
+                )
+            workflow_skills = _required_skills_from_spec(spec)
+            unrelated_checks = sorted(set(required_checks) - workflow_skills)
+            if unrelated_checks:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        f"{path.name}: required completion checks are not required Workflow Skills: "
+                        f"{', '.join(unrelated_checks)}",
+                    )
+                )
+
     if spec.variant_of and not spec.variant_overrides:
         findings.append(Finding("ERROR", f"{path.name}: `variant_of` requires a non-empty `variant_overrides` mapping."))
     if spec.variant_of:

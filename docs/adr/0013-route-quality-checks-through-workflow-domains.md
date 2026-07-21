@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-07-14
+- Amended: 2026-07-22
 
 ## Context
 
@@ -26,9 +27,15 @@ under `tooling/quality_checks/`:
 - one shared `QualityIssue` type and placeholder detector.
 
 An unregistered Skill still receives the Executor's declared output-existence
-checks, but has no Skill-specific semantic gate. The registry is enumerable and
-covered by regression tests. All quality-domain modules belong to
-`HARNESS_KERNEL_PATHS` because they judge whether a Run may pass.
+checks, but has no Skill-specific semantic gate. Each executable Workflow must
+declare the registered Skill checks that are mandatory for completion under
+`quality_contract.completion_policy.required_checks`. The Completion Protocol
+runs that subset for default, strict, and manual completion. Strict mode adds
+registered diagnostics that the active Workflow has not made mandatory.
+
+The registry is enumerable and covered by regression tests. All quality-domain
+modules belong to `HARNESS_KERNEL_PATHS` because they judge whether a Run may
+pass.
 
 ## Consequences
 
@@ -36,6 +43,11 @@ Quality ownership now follows the user's Workflow and Artifact lifecycle rather
 than one file's historical growth. The registry shows coverage explicitly,
 family modules can evolve without editing unrelated checks, and Run locks pin
 the mechanisms that judge results.
+
+Default execution can no longer report `DONE` merely because a Skill returned
+zero and its declared files exist. Manual completion crosses the same mandatory
+quality boundary. A Workflow may still use a deliberately small check set, but
+that choice is visible and validated in its Pipeline contract.
 
 The survey planning and writing modules remain substantial because their rules
 share real Artifact and citation context. Future decomposition should extract

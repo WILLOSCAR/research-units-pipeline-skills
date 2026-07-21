@@ -69,7 +69,7 @@ idea pipeline 和 survey path 一样都是 artifact-first，但它优化的是�
 | `C2` | 建立文献 landscape 并选 focus lenses | `outline/taxonomy.yml`、更新后的 `DECISIONS.md` |
 | `C3` | 把论文转成 signal tables | `papers/paper_notes.jsonl`、`output/trace/IDEA_SIGNAL_TABLE.md` |
 | `C4` | 生成并筛选候选方向 | `output/trace/IDEA_DIRECTION_POOL.md`、`output/trace/IDEA_SCREENING_TABLE.md` |
-| `C5` | 收敛、写作、评分并 self-loop | `output/trace/IDEA_SHORTLIST.md`、`output/REPORT.md`、`output/APPENDIX.md`、`output/REPORT.json`、`output/IDEA_SCORECARD.json` |
+| `C5` | 收敛、写作、评分并输出有边界的修复计划 | `output/trace/IDEA_SHORTLIST.md`、`output/REPORT.md`、`output/APPENDIX.md`、`output/REPORT.json`、`output/IDEA_SCORECARD.json` |
 
 ## 6. 哪些工件最关键
 

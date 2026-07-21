@@ -4,9 +4,6 @@ description: |
   Audit-style editing pass for `output/DRAFT.md`: remove template boilerplate, improve coherence, and enforce citation anchoring.
   **Trigger**: polish draft, de-template, coherence pass, remove boilerplate, 润色, 去套话, 去重复, 统一术语.
   **Use when**: a first-pass draft exists but reads like scaffolding (repetition/ellipsis/template phrases) or needs a coherence pass before global review/LaTeX.
-  **Skip if**: the draft already reads human-grade and passes quality gates; or prose is not approved in `DECISIONS.md`.
-  **Network**: none.
-  **Guardrail**: do not add/remove/invent citation keys; do not move citations across subsections; do not change claims beyond what existing citations support.
 ---
 
 # Draft Polisher (Audit-style editing)

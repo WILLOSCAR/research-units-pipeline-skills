@@ -4,9 +4,6 @@ description: |
   Map paper notes + taxonomy into a signal table of tensions, missing pieces, and promising academic axes for brainstorm discussion. Writes `output/trace/IDEA_SIGNAL_TABLE.md`.
   **Trigger**: idea signal table, brainstorm signals, research tensions, signal map, 研究信号表, tension map.
   **Use when**: you have a core set, a taxonomy, and paper notes, and need a table-first bridge from literature evidence to possible directions.
-  **Skip if**: `output/trace/IDEA_SIGNAL_TABLE.md` already exists and is refined.
-  **Network**: none.
-  **Guardrail**: no invented papers; every row must point to existing `paper_id`s.
 ---
 
 # Idea Signal Mapper

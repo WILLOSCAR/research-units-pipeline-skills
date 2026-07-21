@@ -6,6 +6,10 @@ variant_overrides:
   routing_hints: [latex, pdf, tex, course paper pdf, term paper pdf, course report pdf, seminar report pdf, technical survey report pdf, 可编译, 编译, 课程论文 PDF, 课程报告 PDF, 期末报告 PDF, 研讨课报告 PDF, 技术调研报告 PDF]
   routing_default: false
   routing_priority: 20
+  quality_contract:
+    completion_policy:
+      required_checks:
+        __append__: [latex-scaffold, latex-compile-qa]
   units_template: templates/UNITS.arxiv-survey-latex.csv
   target_artifacts:
     __append__:

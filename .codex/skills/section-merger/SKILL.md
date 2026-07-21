@@ -4,9 +4,6 @@ description: |
   Deterministically merge the final fingerprinted section snapshot into `output/DRAFT.md`, preserving outline order and inserting transitions only when explicitly enabled.
   **Trigger**: merge sections, merge draft, combine section files, sections/ -> output/DRAFT.md, 合并小节, 拼接草稿.
   **Use when**: you have per-unit prose files under `sections/` and want a single `output/DRAFT.md` for polishing/review/LaTeX.
-  **Skip if**: section files are missing or still contain scaffolding markers (fix `subsection-writer` first).
-  **Network**: none.
-  **Guardrail**: deterministic merge only (no new facts/citations); preserve section order from `outline/outline.yml`.
 ---
 
 # Section Merger

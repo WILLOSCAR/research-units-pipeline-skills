@@ -4,9 +4,6 @@ description: |
   Build chapter-level briefs (`outline/section_briefs.jsonl`) from chapter skeleton plus section bindings before stable H3 decomposition.
   **Trigger**: section briefs, chapter planning cards, section-first briefs, 章节 brief, 章级 brief.
   **Use when**: section bindings exist and the run needs chapter-level rationale and decomposition guidance before emitting stable H3 ids.
-  **Skip if**: `outline/section_briefs.jsonl` already exists and is refined.
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent papers; emit planning constraints, not reader-facing text.
 ---
 
 # Section Briefs

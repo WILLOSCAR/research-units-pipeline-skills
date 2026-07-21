@@ -30,6 +30,11 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
         with self._workspace() as tmp:
             workspace = Path(tmp)
             (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+            (workspace / "UNITS.csv").write_text(
+                "unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner\n"
+                "U045,Approve focus,META,human-checkpoint,DECISIONS.md,DECISIONS.md,approved,C2,TODO,,HUMAN\n",
+                encoding="utf-8",
+            )
             proc = subprocess.run(
                 [sys.executable, str(script), "--workspace", str(workspace), "--checkpoint", "C2"],
                 capture_output=True,
@@ -39,6 +44,264 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
             text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
             self.assertIn("[x] Approve C2", text)
+
+    def test_checkpoint_brief_prepares_review_without_approving(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "checkpoint-brief" / "scripts" / "run.py"
+        self.assertTrue(script.exists(), f"missing script: {script}")
+
+        with self._workspace() as tmp:
+            workspace = Path(tmp)
+            (workspace / "outline").mkdir(parents=True, exist_ok=True)
+            (workspace / "output" / "trace").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/idea-brainstorm.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+            (workspace / "UNITS.csv").write_text(
+                "unit_id,title,type,skill,inputs,outputs,acceptance,checkpoint,status,depends_on,owner\n"
+                "U045,Approve focus,META,human-checkpoint,DECISIONS.md,DECISIONS.md,approved,C2,TODO,,HUMAN\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "taxonomy.yml").write_text(
+                "- name: Grounded review agents\n  children:\n    - name: Evidence verification\n",
+                encoding="utf-8",
+            )
+            (workspace / "output" / "trace" / "IDEA_BRIEF.md").write_text(
+                "# IDEA_BRIEF\n",
+                encoding="utf-8",
+            )
+
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--workspace",
+                    str(workspace),
+                    "--checkpoint",
+                    "C2",
+                    "--inputs",
+                    "outline/taxonomy.yml;output/trace/IDEA_BRIEF.md",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn("C2 focus", text)
+            self.assertIn("Grounded review agents", text)
+            self.assertIn("[ ] Approve C2", text)
+            self.assertNotIn("[x] Approve C2", text)
+
+    def test_checkpoint_brief_only_summarizes_research_brief_declared_inputs(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "checkpoint-brief" / "scripts" / "run.py"
+
+        with self._workspace() as tmp:
+            workspace = Path(tmp)
+            (workspace / "outline").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/research-brief.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+            (workspace / "outline" / "taxonomy.yml").write_text(
+                "- name: Methods\n  children:\n    - name: Adaptation\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "outline.yml").write_text(
+                "- title: Methods\n  subsections:\n    - title: Adaptation\n",
+                encoding="utf-8",
+            )
+
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--workspace",
+                    str(workspace),
+                    "--checkpoint",
+                    "C2",
+                    "--inputs",
+                    "outline/taxonomy.yml;outline/outline.yml",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn("`outline/taxonomy.yml`: present", text)
+            self.assertIn("`outline/outline.yml`: present", text)
+            self.assertNotIn("mapping", text.lower())
+            self.assertNotIn("[x] Approve C2", text)
+
+    def test_survey_checkpoint_brief_exposes_every_declared_structure_artifact(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "checkpoint-brief" / "scripts" / "run.py"
+        declared = [
+            "outline/taxonomy.yml",
+            "outline/chapter_skeleton.yml",
+            "outline/section_bindings.jsonl",
+            "outline/section_binding_report.md",
+            "outline/section_briefs.jsonl",
+            "outline/outline.yml",
+            "outline/mapping.tsv",
+            "outline/coverage_report.md",
+            "outline/outline_state.jsonl",
+            "output/REROUTE_STATE.json",
+        ]
+
+        with self._workspace() as tmp:
+            workspace = Path(tmp)
+            (workspace / "outline").mkdir(parents=True, exist_ok=True)
+            (workspace / "output").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+            (workspace / "queries.md").write_text(
+                "- draft_profile: course_paper\n- per_subsection: 2\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "taxonomy.yml").write_text(
+                "- name: Evaluation\n  children:\n    - name: Metrics\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "chapter_skeleton.yml").write_text(
+                "- id: '1'\n  title: Evaluation\n  target_h3_count: 1\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "section_bindings.jsonl").write_text(
+                json.dumps({"section_id": "1", "status": "BLOCKED"}) + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "section_binding_report.md").write_text(
+                "# Section binding report\n\nStatus: BLOCKED\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "section_briefs.jsonl").write_text(
+                json.dumps({"section_id": "1", "status": "REROUTE"}) + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "outline.yml").write_text(
+                "- title: Evaluation\n  subsections:\n    - title: Metrics\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "mapping.tsv").write_text(
+                "section_id\tpaper_id\n1.1\tP0001\n1.1\tP0002\n",
+                encoding="utf-8",
+            )
+            (workspace / "outline" / "coverage_report.md").write_text(
+                "# Coverage\n\n1.1: 2 papers\n",
+                encoding="utf-8",
+            )
+            state = {
+                "status": "BLOCKED",
+                "structure_phase": "binding_reroute",
+                "h3_status": "unstable",
+                "approval_status": "pending",
+                "reroute_target": "section-bindings",
+                "retry_budget_remaining": 1,
+            }
+            (workspace / "outline" / "outline_state.jsonl").write_text(
+                json.dumps(state) + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "output" / "REROUTE_STATE.json").write_text(
+                json.dumps(state),
+                encoding="utf-8",
+            )
+
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--workspace",
+                    str(workspace),
+                    "--checkpoint",
+                    "C2",
+                    "--inputs",
+                    ";".join(declared),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            for relpath in declared:
+                self.assertIn(f"`{relpath}`: present", text)
+            self.assertIn("target-per-subsection=2", text)
+            self.assertIn("status=BLOCKED", text)
+            self.assertIn("reroute_target=section-bindings", text)
+            self.assertNotIn("[x] Approve C2", text)
+
+    def test_legacy_pipeline_router_delegates_later_checkpoint_without_approval(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "pipeline-router" / "scripts" / "run.py"
+
+        with self._workspace() as tmp:
+            workspace = Path(tmp)
+            (workspace / "outline").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/research-brief.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+            (workspace / "outline" / "taxonomy.yml").write_text("- name: Methods\n", encoding="utf-8")
+            (workspace / "outline" / "outline.yml").write_text("- title: Methods\n", encoding="utf-8")
+
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--workspace",
+                    str(workspace),
+                    "--checkpoint",
+                    "C2",
+                    "--inputs",
+                    "outline/taxonomy.yml;outline/outline.yml",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            self.assertIn("delegated to checkpoint-brief", proc.stderr)
+            text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn("C2 review", text)
+            self.assertNotIn("[x] Approve C2", text)
+
+    def test_checkpoint_brief_without_inputs_cannot_support_approval(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "checkpoint-brief" / "scripts" / "run.py"
+
+        with self._workspace() as tmp:
+            workspace = Path(tmp)
+            (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--workspace",
+                    str(workspace),
+                    "--checkpoint",
+                    "C1",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn("this review cannot support approval", text)
+            self.assertIn("Approval is unsupported", text)
+            self.assertNotIn("[x] Approve C1", text)
 
     def test_research_brief_renderer_bounds_long_real_source_abstracts(self) -> None:
         long_tail = " ".join(["additional evidence and implementation detail"] * 80)

@@ -4,9 +4,6 @@ description: |
   Internal template for creating or refactoring a skill into the repository's reference-first shape.
   **Trigger**: reference-first template, blueprint skill, create a reusable skill, refactor a script-heavy skill.
   **Use when**: you need a lean `SKILL.md`, explicit `references/`, machine-readable `assets/`, and a minimal deterministic `run.py`.
-  **Skip if**: the task is a one-off workflow that will not be reused as a skill.
-  **Network**: none.
-  **Guardrail**: keep domain knowledge and writing exemplars out of `run.py`; make reference loading explicit; do not ship reader-facing placeholder text.
 ---
 
 # Reference-First Skill Template

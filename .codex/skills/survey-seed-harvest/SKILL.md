@@ -4,9 +4,6 @@ description: |
   Identify survey/review papers in a retrieved set and extract taxonomy seeds into `outline/taxonomy.yml` (topics/subtopics/terminology).
   **Trigger**: survey seed harvest, taxonomy seeds, 从 survey 提 taxonomy, bootstrap taxonomy.
   **Use when**: retrieval/dedup 后想快速从已有 survey/review 论文中提取术语与主题结构，用于加速 `taxonomy-builder`。
-  **Skip if**: 已经有高质量 taxonomy（或你不想被 survey 既有框架限制）。
-  **Network**: none.
-  **Guardrail**: 产物是 seed，必须经 `taxonomy-builder` 重写与对齐 scope；避免生成泛化占位节点。
 ---
 
 # Survey Seed Harvest

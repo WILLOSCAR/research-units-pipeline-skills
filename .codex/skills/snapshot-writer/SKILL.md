@@ -4,9 +4,6 @@ description: |
   Use when a `research-brief` workspace has a small paper set plus outline and needs a compact reader-facing briefing instead of a full survey.
   **Trigger**: snapshot, literature snapshot, 速览, 48h snapshot, one-page snapshot, SNAPSHOT.md.
   **Use when**: 你要在 `research-brief` 流程里 24-48h 内交付一个“可读的研究速览”（bullet-first，含关键引用），而不是完整 survey。
-  **Skip if**: 你已经进入 evidence-first survey 写作（有 `outline/evidence_drafts.jsonl` / `citations/ref.bib` / `output/DRAFT.md`），应改用 `subsection-writer`/`prose-writer`。
-  **Network**: none.
-  **Guardrail**: 不发明论文/引用；引用只来自 `papers/core_set.csv`（或同 workspace 的候选池）；不写长段落（避免“像综述生成器”）。
 ---
 
 # Snapshot Writer

@@ -4,9 +4,6 @@ description: |
   Scaffold a LaTeX project (`latex/main.tex`, optional bibliography wiring, structure) from an existing Markdown draft.
   **Trigger**: latex scaffold, md→tex, LaTeX 项目骨架, 生成 main.tex.
   **Use when**: 需要 LaTeX/PDF 交付（例如 arxiv-survey-latex pipeline），且 draft 已生成/已进入写作阶段。
-  **Skip if**: 还没有 `output/DRAFT.md`（或你不需要 LaTeX 交付）。
-  **Network**: none.
-  **Guardrail**: 移除 markdown 残留（`##`, `**`, `[@...]`）；bibliography 指向 `citations/ref.bib`；不在此步骤改写内容。
 ---
 
 # LaTeX Scaffold

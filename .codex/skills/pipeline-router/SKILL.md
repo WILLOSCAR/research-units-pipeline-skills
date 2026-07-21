@@ -1,6 +1,6 @@
 ---
 name: pipeline-router
-description: Route an unbound research Goal to one Workflow and materialize its Pipeline lock and checkpoint questions; use when no valid `PIPELINE.lock.md` exists or the active checkpoint lacks a Decision block.
+description: Route an unbound research Goal to one Workflow or materialize its initial C0 kickoff block; use during initial binding, not for later checkpoint summaries or approval.
 ---
 
 # Pipeline Router
@@ -19,7 +19,7 @@ evidence method, record that choice, and expose the next human Decision.
 ## Outputs
 
 - `PIPELINE.lock.md` for a newly bound Goal.
-- A checkpoint block in `DECISIONS.md`.
+- The initial C0 checkpoint block in `DECISIONS.md`.
 - `queries.md` when the selected retrieval Workflow starts at C0.
 - A synchronized current Pipeline/checkpoint projection in `STATUS.md`.
 
@@ -67,21 +67,23 @@ by reinitialization or migration, never a silent rewrite.
 Completion criterion: the lock, Unit template, and Workspace projection refer
 to the same Pipeline.
 
-### 4. Expose the next checkpoint
+### 4. Expose the C0 checkpoint
 
-Materialize the active checkpoint block and approval checkbox in
-`DECISIONS.md`. At C0, seed `queries.md` from the Goal when retrieval is part of
-the selected Workflow.
+Materialize the C0 kickoff block and approval checkbox in `DECISIONS.md`. Seed
+`queries.md` from the Goal when retrieval is part of the selected Workflow.
+Later checkpoints use `checkpoint-brief`. Historical Workspaces whose saved
+Unit still invokes `pipeline-router` after C0 are delegated to
+`checkpoint-brief` with a deprecation warning; the router never approves them.
 
 The deterministic helper may be used after selection:
 
 ```bash
 uv run python .codex/skills/pipeline-router/scripts/run.py \
   --workspace workspaces/<name> \
-  --checkpoint <C0|C1|C2>
+  --checkpoint C0
 ```
 
-Completion criterion: `DECISIONS.md` contains the active checkpoint and one
+Completion criterion: `DECISIONS.md` contains the C0 checkpoint and one
 clear approval or answer surface; retrieval Workflows have a non-empty C0 query
 seed.
 
@@ -101,5 +103,5 @@ without making another routing inference.
   contract and the taxonomy leaves context.
 - Use `assets/pipeline-selection-form.md` only when missing routing facts require
   a human answer.
-- Run the helper with `--help` when checkpoint materialization needs debugging;
-  the helper records a route but does not choose one.
+- Run the helper with `--help` when C0 materialization needs debugging; the
+  helper records the initial route projection but does not choose one.

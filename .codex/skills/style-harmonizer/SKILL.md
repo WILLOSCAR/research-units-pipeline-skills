@@ -4,9 +4,6 @@ description: |
   De-slot and harmonize paper voice across `sections/*.md` without changing meaning or citation keys.
   **Trigger**: style harmonizer, de-template stems, remove slot phrases, discourse stems, 写作风格统一, 去槽位句式, 去生成器味.
   **Use when**: `writer-selfloop` is PASS but `output/WRITER_SELFLOOP_TODO.md` flags Style Smells (e.g., repeated count-based openers), or the draft reads like many sections share the same rhythm.
-  **Skip if**: you need new evidence/citations (route to C3/C4), or you are pre-C2 (NO PROSE).
-  **Network**: none.
-  **Guardrail**: do not invent facts; do not add/remove/move citation keys; do not move citations across subsections; keep claim->evidence anchoring intact.
 ---
 
 # Style Harmonizer (de-slot editor)

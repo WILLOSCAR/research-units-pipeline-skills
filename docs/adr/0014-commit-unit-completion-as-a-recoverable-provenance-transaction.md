@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-07-15
+- Amended: 2026-07-22
 
 ## Context
 
@@ -21,7 +22,8 @@ stops between those operations.
 All executable completion paths use `tooling.completion.commit_unit_completion`.
 A Unit is committed through one recoverable protocol:
 
-1. validate required outputs and Workflow-mandatory completion invariants;
+1. validate required outputs, global completion invariants, and the active
+   Workflow's mandatory Skill check when one is declared;
 2. validate and record a declared scorecard when one exists;
 3. write a per-Attempt Manifest with `PREPARED` status;
 4. record `unit.completion.prepared`;
@@ -53,9 +55,9 @@ does not downgrade or suppress the corresponding integrity errors.
 
 `DONE` is now a derived compatibility projection backed by durable evidence,
 not an independent source of truth. Manual and automated completion have the
-same provenance and scorecard behavior. The two-phase Manifest makes the
-recovery boundary explicit without adding another ledger: completion stages
-remain append-only Run Events.
+same provenance, mandatory acceptance, and scorecard behavior. The two-phase
+Manifest makes the recovery boundary explicit without adding another ledger:
+completion stages remain append-only Run Events.
 
 The protocol is still single-process and file-based. It does not provide
 distributed transactions or worker leases. Reconciliation can reconstruct a

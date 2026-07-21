@@ -4,9 +4,6 @@ description: |
   Generate and verify BibTeX entries from paper notes, writing `citations/ref.bib` and `citations/verified.jsonl`.
   **Trigger**: citation, BibTeX, ref.bib, verified.jsonl, references, 引用, 参考文献.
   **Use when**: 已有 `papers/paper_notes.jsonl`，需要为 prose/LaTeX 准备可追溯的引用（每条都有 url/date/title 验证记录）。
-  **Skip if**: 还没有 paper notes（或本次产出不需要引用/参考文献）。
-  **Network**: 自动验证通常需要网络；无网络时可先 record，再标注 needs manual verification。
-  **Guardrail**: 每个 BibTeX entry 必须对应一条 `citations/verified.jsonl` 记录；prose 只能使用已存在于 `citations/ref.bib` 的 citation keys。
 ---
 
 # Citation Verifier

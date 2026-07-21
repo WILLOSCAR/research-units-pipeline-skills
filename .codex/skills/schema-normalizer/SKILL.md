@@ -4,9 +4,6 @@ description: |
   Normalize cross-skill JSONL interfaces (ids + titles + citation key formats) so downstream skills do not rely on best-effort joins.
   **Trigger**: schema normalize, jsonl contract, interface drift, join drift, 字段不一致, schema 规范化.
   **Use when**: you have generated C2-C4 JSONL artifacts (outline/briefs/bindings/packs/anchors) and want deterministic, stable fields before self-loops/writing.
-  **Skip if**: you are not using the survey pipelines, or the workspace already has a fresh PASS `output/SCHEMA_NORMALIZATION_REPORT.md` for the current artifacts.
-  **Network**: none.
-  **Guardrail**: NO PROSE; deterministic transforms only; do not invent evidence/claims; only fill missing ids/titles from `outline/outline.yml`.
 ---
 
 # Schema Normalizer (NO PROSE)

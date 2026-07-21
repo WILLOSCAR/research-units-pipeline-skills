@@ -4,9 +4,6 @@ description: |
   Audit/regression checks for the evidence-first survey pipeline: citation health, per-section coverage, placeholder leakage, and template repetition.
   **Trigger**: auditor, audit, regression test, quality report, 审计, 回归测试.
   **Use when**: `output/DRAFT.md` exists and you want a deterministic PASS/FAIL report before LaTeX/PDF.
-  **Skip if**: you are still changing retrieval/outline/evidence packs heavily (audit later).
-  **Network**: none.
-  **Guardrail**: do not change content; only analyze and report.
 ---
 
 # Pipeline Auditor (draft audit + regression)

@@ -4,9 +4,6 @@ description: |
   Curate reader-facing survey tables for the Appendix (clean layout + high information density), using only in-scope evidence and existing citation keys.
   **Trigger**: appendix tables, publishable tables, survey tables, reader tables, 附录表格, 可发表表格, 综述表格.
   **Use when**: you have C4 artifacts (evidence packs + anchor sheet + citations) and want tables that look like a real survey (not internal logs).
-  **Skip if**: `outline/tables_appendix.md` already exists and is refined (meets the active profile table count; citation-backed; no placeholders; not index-y).
-  **Network**: none.
-  **Guardrail**: no invented facts; no pipeline jargon; no paragraph cells; use only keys present in `citations/ref.bib`.
 ---
 
 # Appendix Table Writer (publishable survey tables)

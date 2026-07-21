@@ -1913,9 +1913,19 @@ def record_evaluation(
     return record
 
 
-def latest_evaluation(workspace: Path) -> dict[str, Any]:
+def latest_evaluation(workspace: Path, *, verdict: str | None = None) -> dict[str, Any]:
     records = _read_jsonl(workspace / HARNESS_DIR / "evaluations" / "ledger.jsonl")
-    return records[-1] if records else {}
+    expected = str(verdict or "").strip().upper()
+    if not expected:
+        return records[-1] if records else {}
+    return next(
+        (
+            record
+            for record in reversed(records)
+            if str(record.get("verdict") or "").strip().upper() == expected
+        ),
+        {},
+    )
 
 
 def register_artifacts(

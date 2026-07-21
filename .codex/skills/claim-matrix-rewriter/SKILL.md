@@ -3,10 +3,6 @@ name: claim-matrix-rewriter
 description: |
   Rewrite `outline/claim_evidence_matrix.md` as a projection/index of evidence packs (NO PROSE), so claims/axes are driven by `outline/evidence_drafts.jsonl` rather than outline placeholders.
   **Trigger**: claim matrix rewriter, rewrite claim-evidence matrix, evidence-first claim matrix, matrix index, 证据矩阵重写, 从证据包生成矩阵.
-  **Use when**: `outline/subsection_briefs.jsonl` + `outline/evidence_drafts.jsonl` are ready and you want a clean claim→evidence index for QA/writing.
-  **Skip if**: `outline/claim_evidence_matrix.md` is already refined and consistent with evidence packs.
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent facts; only cite keys present in `citations/ref.bib`; if evidence is abstract/title-only, claims must be provisional.
 ---
 
 # Claim Matrix Rewriter (Evidence-first, NO PROSE)

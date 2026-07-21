@@ -3,10 +3,6 @@ name: evaluation-anchor-checker
 description: |
   Audit and rewrite evaluation/numeric claims to ensure they carry minimal protocol context (task + metric + constraint) and avoid underspecified model naming.
   **Trigger**: evaluation anchor checker, numeric claim hygiene, underspecified numbers, protocol context, 评测锚点检查, 数字断言, 指标上下文.
-  **Use when**: before final merge/polish, or when reviewers would likely flag claims as underspecified (numbers without task/metric/budget), or `pipeline-auditor` warns about suspicious model naming.
-  **Skip if**: evidence is too thin to justify numeric claims (route upstream to C3/C4), or you are pre-C2 (NO PROSE).
-  **Network**: none.
-  **Guardrail**: do not invent numbers; do not add/remove/move citation keys; if protocol context is missing, weaken/remove the numeric claim rather than guessing.
 ---
 
 # Evaluation Anchor Checker (make numbers reviewer-safe)

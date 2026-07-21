@@ -4,9 +4,6 @@ description: |
   Write structured notes for each paper in the core set into `papers/paper_notes.jsonl` (summary/method/results/limitations).
   **Trigger**: paper notes, structured notes, reading notes, 论文笔记, paper_notes.jsonl.
   **Use when**: survey 的 evidence 阶段（C3），已有 `papers/core_set.csv`（以及可选 fulltext），需要为后续 claims/citations/writing 准备可引用证据。
-  **Skip if**: 还没有 core set（先跑 `dedupe-rank`），或你只做极轻量 snapshot 不需要细粒度证据。
-  **Network**: none.
-  **Guardrail**: 具体可核对（method/metrics/limitations），避免大量重复模板；保持结构化字段而非长 prose。
 ---
 
 # Paper Notes

@@ -4,9 +4,6 @@ description: |
   Generate lightweight section/subsection transitions (NO NEW FACTS) to prevent “island” subsections; outputs a transition map that merging/writing can weave in.
   **Trigger**: transition weaver, weave transitions, coherence, 过渡句, 承接句, 章节连贯性.
   **Use when**: `outline/subsection_briefs.jsonl` exists and you want coherent flow before/after drafting (typically Stage C5).
-  **Skip if**: `outline/transitions.md` exists and is refined (no placeholders).
-  **Network**: none.
-  **Guardrail**: do not add new factual claims or citations; transitions may only refer to titles/RQs/bridge terms already present in briefs.
 ---
 
 # Transition Weaver (LLM-first; NO NEW FACTS)

@@ -59,22 +59,32 @@ def _write_predictions(path: Path, cases, *, replacements: dict[str, list[str]] 
 def test_invocation_corpus_covers_lifecycle_and_semantic_boundaries() -> None:
     catalog, scope, cases = _catalog_and_cases()
 
-    assert scope == "harness-lifecycle"
-    assert len(catalog) == 108
-    assert len(cases) == 33
-    assert sum(case.split == "baseline" for case in cases) == 21
-    assert sum(case.split == "challenge" for case in cases) == 12
+    assert scope == "research-harness-skills"
+    assert len(catalog) == 109
+    assert len(cases) == 48
+    assert sum(case.split == "baseline" for case in cases) == 30
+    assert sum(case.split == "challenge" for case in cases) == 18
     assert all(case.tags for case in cases)
     assert {case.expected_primary for case in cases} >= {
         "artifact-contract-auditor",
+        "checkpoint-brief",
         "human-checkpoint",
         "pipeline-router",
         "research-pipeline-runner",
         "unit-executor",
         "workspace-init",
         "arxiv-search",
+        "deliverable-selfloop",
+        "idea-brief",
+        "idea-memo-writer",
+        "manuscript-ingest",
         "pipeline-auditor",
+        "protocol-writer",
+        "rubric-writer",
+        "snapshot-writer",
+        "source-manifest",
         "subsection-writer",
+        "synthesis-writer",
         NO_REPO_SKILL,
     }
 
@@ -103,8 +113,8 @@ def test_perfect_predictions_pass_and_preserve_measured_context(tmp_path: Path) 
     assert payload["slices"]["splits"]["baseline"]["verdict"] == "PASS"
     assert payload["slices"]["splits"]["challenge"]["verdict"] == "PASS"
     assert payload["slices"]["tags"]["lexical-trap"]["primary_accuracy"] == 1.0
-    assert payload["catalog"]["description_chars"] > 0
-    assert payload["catalog"]["over_budget_descriptions"] > 0
+    assert 0 < payload["catalog"]["description_chars"] < 40000
+    assert payload["catalog"]["over_budget_descriptions"] == 0
     assert validate_invocation_evaluation(payload) == []
     legacy_payload = dict(payload)
     legacy_payload.pop("slices")

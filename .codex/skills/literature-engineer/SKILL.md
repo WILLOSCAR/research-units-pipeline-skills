@@ -2,12 +2,8 @@
 name: literature-engineer
 description: |
   Multi-route literature expansion + metadata normalization for evidence-first surveys.
-  Produces a large candidate pool (`papers/papers_raw.jsonl`, target ≥1200) with stable IDs and provenance, ready for dedupe/rank + citation generation.
   **Trigger**: evidence collector, literature engineer, 文献扩充, 多路召回, snowballing, cited by, references, 元信息增强, provenance.
   **Use when**: 需要把候选文献扩充到 ≥1200 篇并补齐可追溯 meta（survey pipeline 的 Stage C1，写作前置 evidence）。
-  **Skip if**: 已经有高质量 `papers/papers_raw.jsonl`（≥1200 且每条都有稳定标识+来源记录）。
-  **Network**: 可离线（靠 imports）；雪崩/在线检索需要网络。
-  **Guardrail**: 不允许编造论文；每条记录必须带稳定标识（arXiv id / DOI / 可信 URL）和 provenance；不写 output/ prose。
 ---
 
 # Literature Engineer (evidence collector)

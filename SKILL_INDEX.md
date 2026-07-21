@@ -24,6 +24,7 @@
 | `_template_reference_first` | 内部模板：把 skill 改造成 reference-first 结构 | 你在新建或重构 skill | 不是用户侧产物；目标是 `SKILL.md + references/ + assets/ + minimal scripts/` |
 | `workspace-init` | 初始化标准 workspace 骨架 | 任何新 run 的 C0 | `STATUS.md`、`UNITS.csv`、`CHECKPOINTS.md`、`DECISIONS.md`、基础目录 |
 | `pipeline-router` | 根据目标选择 pipeline，并写入 `PIPELINE.lock.md` | 需求不够清楚，或需要显式锁定流程 | `PIPELINE.lock.md`、HITL 问题、`DECISIONS.md` 更新 |
+| `checkpoint-brief` | 将阶段产物压缩成待人工审阅的 checkpoint 摘要 | 已完成阶段产物，但尚未进行人工批准 | `DECISIONS.md` 中的 review block |
 | `human-checkpoint` | 记录人工签字 / 勾选 `Approve C*` | pipeline 因 checkpoint 被挡住时 | 只改 `DECISIONS.md` |
 | `unit-planner` | 从 pipeline 模板生成或更新 `UNITS.csv` | 需要把流程具体化成 work units | `UNITS.csv`、必要时更新 `STATUS.md` / `CHECKPOINTS.md` |
 | `unit-executor` | 严格执行一个可运行 unit | 你想一步一步可审计推进 | 只推进一个 unit，对应工件会被更新 |
@@ -97,7 +98,7 @@
 | `draft-polisher` | 对合并稿做去套话与连贯性润色 | 想修整稿的 generator voice，但不改 citations 时 | 更新 `output/DRAFT.md` |
 | `global-reviewer` | 做全局一致性回看 | 想看术语、章节呼应、scope consistency 时 | `output/GLOBAL_REVIEW.md` |
 | `pipeline-auditor` | 对 survey 流程做 PASS/FAIL 审计 | 交付前、回归时、想查模板味/引用健康时 | `output/AUDIT_REPORT.md` |
-| `deliverable-selfloop` | 对最终交付物做诊断→修复→复检循环 | research-brief/tutorial/evidence-review/paper-review 等成品要收敛到 PASS 时 | `output/DELIVERABLE_SELFLOOP_TODO.md` |
+| `deliverable-selfloop` | 对已有交付物评分并输出有边界的修复计划 | research-brief/evidence-review/paper-review/idea-brainstorm 需要 Workflow-local Scorecard 时 | Scorecard + `output/DELIVERABLE_SELFLOOP_TODO.md`；不改写交付物 |
 | `terminology-normalizer` | 统一术语与同义词策略 | 同一概念在不同章节叫法不一致时 | 更新 draft / sections |
 | `redundancy-pruner` | 去掉跨章节重复 boilerplate | 多个 section 重复同一段结构或免责声明时 | 更新 draft / sections |
 | `style-harmonizer` | 去槽位句式、统一 paper voice | 草稿整体有“生成器节奏”时 | 更新 `sections/*.md` |

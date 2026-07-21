@@ -3,10 +3,6 @@ name: citation-injector
 description: |
   Apply a `citation-diversifier` budget report by injecting *in-scope* citations into an existing draft (NO NEW FACTS), so the run passes the global unique-citation gate without citation dumps.
   **Trigger**: citation injector, apply citation budget, inject citations, add citations safely, 引用注入, 按预算加引用, 引用增密.
-  **Use when**: `output/CITATION_BUDGET_REPORT.md` exists and you need to raise *global* unique citations (or reduce over-reuse) before `draft-polisher` / `pipeline-auditor`.
-  **Skip if**: you need more papers/citations upstream (fix C1/C2 mapping first), or `citations/ref.bib` is missing.
-  **Network**: none.
-  **Guardrail**: NO NEW FACTS; do not invent citations; only inject keys present in `citations/ref.bib`; keep injected citations within each H3’s allowed scope (via the budget report); avoid citation-dump paragraphs (embed cites per work).
 ---
 
 # Citation Injector (deterministic baseline edits; budget-as-constraints)

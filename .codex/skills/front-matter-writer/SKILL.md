@@ -3,10 +3,6 @@ name: front-matter-writer
 description: |
   Write the survey's front matter files (Abstract, Introduction, Related Work, Discussion, Conclusion) in paper voice, with high citation density and a single evidence-policy paragraph.
   **Trigger**: front matter writer, introduction writer, related work writer, abstract writer, discussion writer, conclusion writer, 引言, 相关工作, 摘要, 讨论, 结论.
-  **Use when**: you are in C5 (prose allowed) and need the paper-like shell to stop the draft reading like stitched subsections.
-  **Skip if**: `Approve C2` is missing in `DECISIONS.md`, or `citations/ref.bib` is missing.
-  **Network**: none.
-  **Guardrail**: no invented facts/citations; no pipeline jargon in final prose; no repeated evidence disclaimers; only use keys present in `citations/ref.bib`.
 ---
 
 # Front Matter Writer (compatibility router)

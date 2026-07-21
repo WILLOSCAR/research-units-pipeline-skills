@@ -4,9 +4,6 @@ description: |
   Logic coherence pass for per-H3 section files: enforce a clear paragraph-1 thesis and surface paragraph-island risks (connector stats are diagnostic, not a quota) before merging.
   **Trigger**: logic polisher, section logic, thesis statement, connectors, 段落逻辑, 连接词, 论证主线, 润色逻辑.
   **Use when**: `sections/S*.md` exist but read like paragraph islands; you want a targeted, debuggable self-loop before `section-merger`.
-  **Skip if**: sections are missing/thin (fix `subsection-writer` first) or evidence packs/briefs are scaffolded (fix C3/C4 first).
-  **Network**: none.
-  **Guardrail**: do not add new citations; do not invent facts; do not change citation keys; do not move citations across subsections.
 ---
 
 # Section Logic Polisher (thesis + argument bridges)

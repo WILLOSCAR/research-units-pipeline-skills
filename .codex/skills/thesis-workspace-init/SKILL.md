@@ -4,9 +4,6 @@ description: |
   初始化中文毕业论文工作区：检查学校模板与已有材料的放置位置，明确提示当前还缺什么，建立 `codex_md/` / `claude_md/` / `tmp_layout*/` 等中间层目录，并生成材料盘点与初始工作文件。
   **Trigger**: 毕业论文初始化, thesis workspace, 中文毕业论文准备, 模板归位, 材料盘点, 初始化论文工程.
   **Use when**: 你要开始一条毕业论文重构流程，手头已经有学校模板、旧 `tex`、PDF、Overleaf 源稿、bib 或图表材料，需要先把工程和中间层搭起来。
-  **Skip if**: 工作区已经稳定，且 `codex_md/material_index.md`、`codex_md/question_list.md`、`codex_md/00_thesis_outline.md` 都已存在并在使用。
-  **Network**: none.
-  **Guardrail**: 不改正文内容；不把 `chapters/` 当思考区；不在 repo root 散落毕业论文工件。
 ---
 
 # Thesis Workspace Init

@@ -4,9 +4,6 @@ description: |
   Write H2 chapter lead blocks (`sections/S<sec_id>_lead.md`) that preview the chapter's comparison lens and connect its H3 subsections, without adding new facts.
   **Trigger**: chapter lead writer, section lead writer, H2 lead, lead paragraph, 章节导读, 章节导语.
   **Use when**: you have H2 chapters with multiple H3 subsections and the draft reads like paragraph islands across subsections.
-  **Skip if**: the outline has no H3 subsections, or `outline/chapter_briefs.jsonl` is missing.
-  **Network**: none.
-  **Guardrail**: no new facts/citations; no headings; no narration templates; use only citation keys present in `citations/ref.bib`.
 ---
 
 # Chapter Lead Writer

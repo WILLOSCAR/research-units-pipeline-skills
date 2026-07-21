@@ -35,6 +35,8 @@ default_checkpoints: [C0,C1,C2,C3,C4]
 units_template: templates/UNITS.source-tutorial.csv
 contract_model: pipeline.frontmatter/v1
 quality_contract:
+  completion_policy:
+    required_checks: [source-manifest, source-ingest, source-tutorial-spec, module-source-coverage, tutorial-context-pack, tutorial-selfloop, latex-scaffold, latex-compile-qa, beamer-scaffold, beamer-compile-qa, artifact-contract-auditor]
   tutorial_policy:
     tutorial_form: article_first
     source_grounding: weak_explicit

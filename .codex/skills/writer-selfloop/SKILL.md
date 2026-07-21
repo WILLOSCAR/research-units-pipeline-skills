@@ -4,9 +4,6 @@ description: |
   Writing self-loop for surveys: run the strict section-quality gate, then rewrite only the failing `sections/*.md` files until the report is PASS.
   **Trigger**: writer self-loop, writing loop, quality gate loop, rewrite failing sections, 自循环, 反复改到 PASS.
   **Use when**: per-section files exist but C5 is FAIL/BLOCKED (thin sections, missing leads/front matter, citation-scope violations, generator voice).
-  **Skip if**: you are still pre-C2 (NO PROSE), or evidence packs are incomplete (fix C3/C4 first).
-  **Network**: none.
-  **Guardrail**: do not invent facts; only use citation keys present in `citations/ref.bib`; keep citations in-scope per `outline/evidence_bindings.jsonl`; do not add/remove citation keys during rewrites.
 ---
 
 # Writer Self-loop (fix only what fails)

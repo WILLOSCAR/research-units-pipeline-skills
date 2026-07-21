@@ -4,9 +4,6 @@ description: |
   Screen the direction pool with a discussion-first scoring pass, writing `output/trace/IDEA_SCREENING_TABLE.md`.
   **Trigger**: idea screener, screening table, brainstorm screening, 方向筛选表.
   **Use when**: you already have a direction pool and want a table-first comparison before curating the shortlist.
-  **Skip if**: the direction pool is still missing or obviously templated.
-  **Network**: none.
-  **Guardrail**: no invented papers; scoring should reflect discussion value and distinctness, not stylistic polish.
 ---
 
 # Idea Screener

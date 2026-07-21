@@ -1,5 +1,5 @@
 schema: skill-invocation-cases.v1
-scope: harness-lifecycle
+scope: research-harness-skills
 cases:
   - id: route-unbound-goal
     prompt: I know the deliverable I want, but no Workflow has been selected. Choose one and record the decision without running it.
@@ -73,6 +73,12 @@ cases:
     expected_primary: human-checkpoint
     allowed_support: []
     forbidden: [research-pipeline-runner, unit-executor]
+  - id: prepare-checkpoint-brief
+    prompt: Summarize the completed C2 structure artifacts into DECISIONS.md for human review, but do not approve or continue the run.
+    tags: [lifecycle, checkpoint]
+    expected_primary: checkpoint-brief
+    allowed_support: []
+    forbidden: [human-checkpoint, pipeline-router, research-pipeline-runner]
   - id: approve-with-constraints
     prompt: Approve C1 after recording the scope constraints I supplied, keeping the human Decision auditable.
     tags: [lifecycle, human]
@@ -133,6 +139,54 @@ cases:
     expected_primary: pipeline-auditor
     allowed_support: []
     forbidden: [artifact-contract-auditor]
+  - id: semantic-review-ingest
+    prompt: Ingest this manuscript into addressable claims and a manuscript profile, then stop before evaluating it.
+    tags: [semantic, review, ingestion]
+    expected_primary: manuscript-ingest
+    allowed_support: []
+    forbidden: [research-pipeline-runner, claims-extractor]
+  - id: semantic-review-rubric
+    prompt: Build the final referee rubric and recommendation from the completed paper-review evidence artifacts.
+    tags: [semantic, review, synthesis]
+    expected_primary: rubric-writer
+    allowed_support: []
+    forbidden: [deliverable-selfloop, research-pipeline-runner]
+  - id: semantic-evidence-protocol
+    prompt: Convert this evidence-review question into an explicit screening and extraction protocol before retrieval.
+    tags: [semantic, evidence-review, planning]
+    expected_primary: protocol-writer
+    allowed_support: []
+    forbidden: [source-tutorial-spec, tutorial-spec]
+  - id: semantic-evidence-synthesis
+    prompt: Write the evidence synthesis from the approved protocol, screening log, extraction table, and bias assessment.
+    tags: [semantic, evidence-review, synthesis]
+    expected_primary: synthesis-writer
+    allowed_support: []
+    forbidden: [prose-writer, research-pipeline-runner]
+  - id: semantic-idea-brief
+    prompt: Turn this research topic into a bounded brainstorm brief with query buckets, exclusions, and decision questions.
+    tags: [semantic, ideation, planning]
+    expected_primary: idea-brief
+    allowed_support: []
+    forbidden: [pipeline-router, research-pipeline-runner]
+  - id: semantic-idea-memo
+    prompt: Synthesize the existing idea shortlist and trace artifacts into the final discussion-ready brainstorm memo.
+    tags: [semantic, ideation, synthesis]
+    expected_primary: idea-memo-writer
+    allowed_support: []
+    forbidden: [prose-writer, research-pipeline-runner]
+  - id: semantic-brief-snapshot
+    prompt: Write the compact research briefing from the approved outline and core paper set, including a reading path.
+    tags: [semantic, orientation, synthesis]
+    expected_primary: snapshot-writer
+    allowed_support: []
+    forbidden: [prose-writer, research-pipeline-runner]
+  - id: semantic-tutorial-source-manifest
+    prompt: Inventory this fixed source pack with stable IDs and provenance before any tutorial planning or writing.
+    tags: [semantic, tutorial, ingestion]
+    expected_primary: source-manifest
+    allowed_support: []
+    forbidden: [arxiv-search, literature-engineer, research-pipeline-runner]
 
   - id: challenge-router-before-execution
     split: challenge
@@ -176,6 +230,13 @@ cases:
     expected_primary: human-checkpoint
     allowed_support: []
     forbidden: [research-pipeline-runner, unit-executor]
+  - id: challenge-checkpoint-summary-not-approval
+    split: challenge
+    tags: [lifecycle, checkpoint, lexical-trap]
+    prompt: C2 is not approved yet. Prepare the scope and outline review block from current artifacts, then stop for my decision.
+    expected_primary: checkpoint-brief
+    allowed_support: []
+    forbidden: [human-checkpoint, pipeline-router, research-pipeline-runner]
   - id: challenge-artifact-not-prose-audit
     split: challenge
     tags: [lifecycle, artifact, ambiguity]
@@ -218,3 +279,38 @@ cases:
     expected_primary: none
     allowed_support: []
     forbidden: [artifact-contract-auditor, pipeline-auditor]
+  - id: challenge-score-not-rewrite
+    split: challenge
+    tags: [semantic, quality, boundary]
+    prompt: The final deliverable already exists. Score it, write the Workflow scorecard and bounded repair plan, but do not rewrite any prose.
+    expected_primary: deliverable-selfloop
+    allowed_support: []
+    forbidden: [draft-polisher, writer-selfloop]
+  - id: challenge-idea-not-survey
+    split: challenge
+    tags: [semantic, ideation, lexical-trap]
+    prompt: Do not write a literature survey. Turn the already screened research directions into the final PI discussion memo only.
+    expected_primary: idea-memo-writer
+    allowed_support: []
+    forbidden: [prose-writer, research-pipeline-runner]
+  - id: challenge-protocol-not-tutorial-spec
+    split: challenge
+    tags: [semantic, evidence-review, ambiguity]
+    prompt: Define inclusion, exclusion, screening, extraction, and bias rules for a multi-study review; this is not a teaching plan.
+    expected_primary: protocol-writer
+    allowed_support: []
+    forbidden: [source-tutorial-spec, tutorial-spec]
+  - id: challenge-source-pack-not-retrieval
+    split: challenge
+    tags: [semantic, tutorial, lexical-trap]
+    prompt: These PDFs are the complete source set. Record their IDs and provenance without searching arXiv or expanding the corpus.
+    expected_primary: source-manifest
+    allowed_support: []
+    forbidden: [arxiv-search, literature-engineer]
+  - id: challenge-brief-not-survey-draft
+    split: challenge
+    tags: [semantic, orientation, ambiguity]
+    prompt: I only need a compact topic snapshot and reading order from the approved core set, not a long survey or end-to-end run.
+    expected_primary: snapshot-writer
+    allowed_support: []
+    forbidden: [prose-writer, research-pipeline-runner]

@@ -4,9 +4,6 @@ description: |
   Merge/simplify an over-fragmented outline to hit a paper-like section budget (NO PROSE): target final ToC ~6–8 H2, fewer thicker H3.
   **Trigger**: outline budget, merge sections, too many sections, H3 explosion, 大纲预算, 合并小节, 大纲太碎.
   **Use when**: `outline/outline.yml` exists but would produce thin sections (too many H2/H3); before (or immediately after) `section-mapper`.
-  **Skip if**: outline is already within budget and approved; or you are already drafting prose.
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent new topics; keep scope consistent; if you change section ids, you must reset mapping.
 ---
 
 # Outline Budgeter (NO PROSE)

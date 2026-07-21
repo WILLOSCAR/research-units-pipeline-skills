@@ -308,15 +308,15 @@ def main() -> int:
             f"- Focus clusters: {contract.get('focus_placeholder', '(to be filled after C2 approval)')}",
         ],
         "Query buckets": [
-            "## Query Buckets",
+            "## Query buckets",
             *[f"{idx}. {q}" for idx, q in enumerate(query_buckets, start=1)],
         ],
         "Table policy": [
-            "## Table Policy",
+            "## Table policy",
             *[f"- {line}" for line in (contract.get("table_policy") or [])],
         ],
         "Open questions": [
-            "## Open Questions",
+            "## Open questions",
             *[f"- {line}" for line in (contract.get("open_questions") or [])],
         ],
     }

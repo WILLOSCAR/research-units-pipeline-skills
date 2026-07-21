@@ -41,6 +41,8 @@ overridable_query_fields:
 quality_contract:
   deliverable_kind: brief
   evidence_mode: light
+  completion_policy:
+    required_checks: [arxiv-search, dedupe-rank, deliverable-selfloop, artifact-contract-auditor]
   retrieval_policy:
     domain_pack_query_mode: explicit
     minimum_records: 15
@@ -49,6 +51,8 @@ quality_contract:
     include_domain_pins: false
     minimum_domain_surveys: 1
     survey_title_bonus: 0
+    core_size_min: 5
+    core_size_max: 15
   brief_policy:
     primary_deliverable: output/SNAPSHOT.md
     style: bullets_first
@@ -77,7 +81,7 @@ stages:
     title: Structure
     checkpoint: C2
     mode: no_prose
-    required_skills: [taxonomy-builder, outline-builder, pipeline-router, human-checkpoint]
+    required_skills: [taxonomy-builder, outline-builder, checkpoint-brief, human-checkpoint]
     optional_skills: [outline-budgeter]
     produces: [outline/taxonomy.yml, outline/outline.yml, DECISIONS.md]
     human_checkpoint:

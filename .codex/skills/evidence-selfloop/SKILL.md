@@ -2,12 +2,7 @@
 name: evidence-selfloop
 description: |
   Evidence self-loop for surveys: read evidence bindings + evidence packs, then write an actionable upstream TODO plan (which stage/skill to fix) before writing more prose.
-  Writes `output/EVIDENCE_SELFLOOP_TODO.md`.
   **Trigger**: evidence self-loop, evidence loop, evidence gaps, binding gaps, blocking_missing, 证据自循环, 证据缺口回路.
-  **Use when**: C4 outputs exist (`outline/evidence_bindings.jsonl`, `outline/evidence_drafts.jsonl`) but writing looks hollow or C5 is BLOCKED due to thin evidence.
-  **Skip if**: you are still pre-C3 (no notes/evidence bank yet), or you want to draft anyway and accept a lower evidence bar.
-  **Network**: none.
-  **Guardrail**: analysis-only; do not edit evidence/writing artifacts; do not invent facts/citations; only write the TODO report.
 ---
 
 # Evidence Self-loop (C3/C4 fix → rebind → redraft)

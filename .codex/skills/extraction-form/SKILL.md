@@ -4,9 +4,6 @@ description: |
   Use when `evidence-review` has screened includes and needs a schema-aligned extraction table.
   **Trigger**: extraction form, extraction table, data extraction, 信息提取, 提取表.
   **Use when**: `evidence-review` 在 screening 后进入 extraction（C4），需要把纳入论文按字段落到 CSV 以支持后续 synthesis。
-  **Skip if**: 还没有 `papers/screening_log.csv` 或 protocol 未锁定。
-  **Network**: none.
-  **Guardrail**: 严格按 schema 填字段；不要在此阶段写 narrative synthesis（那是 `synthesis-writer`）。
 ---
 
 # Extraction Form

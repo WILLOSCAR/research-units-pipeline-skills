@@ -328,18 +328,29 @@ def run_one_unit(
             )
     if completed.returncode == 0 and not missing and scorecard_failure is None:
         if strict:
-            from tooling.quality_gate import check_unit_outputs, write_quality_report
-            try:
-                issues = check_unit_outputs(skill=skill, workspace=workspace, outputs=outputs)
-            except Exception as exc:  # pragma: no cover
-                from tooling.quality_gate import QualityIssue
+            from tooling.quality_gate import (
+                check_unit_outputs,
+                completion_check_required,
+                write_quality_report,
+            )
+            # Workflow-required checks are owned by the Completion Protocol so
+            # default, strict, and manual completion share one commit boundary.
+            # Strict mode adds checks for registered Skills that the Workflow
+            # has not promoted into its mandatory completion policy.
+            if completion_check_required(skill=skill, workspace=workspace):
+                issues = []
+            else:
+                try:
+                    issues = check_unit_outputs(skill=skill, workspace=workspace, outputs=outputs)
+                except Exception as exc:  # pragma: no cover
+                    from tooling.quality_gate import QualityIssue
 
-                issues = [
-                    QualityIssue(
-                        code="quality_gate_exception",
-                        message=f"Quality gate crashed: {type(exc).__name__}: {exc}",
-                    )
-                ]
+                    issues = [
+                        QualityIssue(
+                            code="quality_gate_exception",
+                            message=f"Quality gate crashed: {type(exc).__name__}: {exc}",
+                        )
+                    ]
             # Avoid confusing stale QUALITY_GATE.md after a successful run.
             report_path = workspace / "output" / "QUALITY_GATE.md"
             if issues or report_path.exists():

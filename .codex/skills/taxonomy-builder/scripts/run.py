@@ -108,9 +108,9 @@ def main() -> int:
         rep_str = ", ".join(rep[:4]) if rep else ""
         desc_terms = ", ".join([_pretty(item) for item in sub[:4]])
         desc_parts = [
-            f"Cluster capturing work where '{token}' is a salient term in titles/abstracts.",
-            f"Common related terms include: {desc_terms}." if desc_terms else "",
-            f"Representative paper_id(s): {rep_str}." if rep_str else "",
+            f"{_pretty(token)} groups studies whose scoped evidence emphasizes this concept.",
+            f"Its corpus boundary is defined by related mechanisms or settings such as {desc_terms}." if desc_terms else "",
+            f"Representative anchors in the current core set are {rep_str}." if rep_str else "",
         ]
         desc = " ".join([part for part in desc_parts if part]).strip()
 
@@ -280,9 +280,9 @@ def _child_description(*, parent: str, child: str, core_rows: list[dict[str, str
     rep = _representative_papers(core_rows=core_rows, terms=seed_terms)
     rep_str = ", ".join(rep[:3]) if rep else ""
     parts = [
-        f"Subtopic under '{parent}' focusing on '{child}' as a recurrent theme in the core set.",
-        f"Representative paper_id(s): {rep_str}." if rep_str else "",
-        "Use this bucket when the paper explicitly emphasizes this mechanism/setting in its title or abstract.",
+        f"{child} narrows {parent} to work that explicitly studies this mechanism or setting.",
+        f"The current core-set anchors are {rep_str}." if rep_str else "",
+        "Include a paper here only when its title or abstract supplies direct scope evidence.",
     ]
     return " ".join([part for part in parts if part]).strip()
 

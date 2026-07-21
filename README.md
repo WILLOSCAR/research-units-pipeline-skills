@@ -1,26 +1,48 @@
 # Research Harness
 
-Turn a research goal into a reviewable deliverable without losing the sources,
-decisions, and intermediate evidence behind it.
+Turn a research goal into a reviewable deliverable while preserving the
+sources, decisions, intermediate artifacts, and execution evidence behind it.
 
-Research Harness combines reusable research Skills with a file-first execution
-Harness. It can produce a brief, paper review, evidence synthesis, literature
-survey, bounded research report, or source-grounded tutorial. Each local Run
-keeps file-first state that can be inspected, audited, and resumed after the
-single-process interruption paths the current Harness supports.
+Research Harness is an end-to-end **Auto Research Design System** built from
+two complementary parts:
+
+- **Skills** perform bounded research transformations such as retrieval,
+  extraction, comparison, synthesis, review, and writing.
+- **Harness** organizes those Skills into recoverable Workflows, checks their
+  artifacts, records what happened, and locates the next repair when a Run
+  fails.
 
 ```text
 Goal -> Run -> Evidence -> Improve
 ```
 
-This is an end-to-end **Auto Research Design System**, not a fully autonomous
-scientist. Skills perform research transformations; Workflow contracts organize
-them into a delivery path; the Harness records state, checks artifacts, and
-locates failures so a person or agent can make the next bounded repair.
+The project does not claim to be an autonomous scientist. It makes long-form
+research work observable and correctable so a user or agent can deliver, audit,
+resume, and improve it without reconstructing the whole process from chat
+history.
 
-## Try A Small Run
+## Choose The Outcome
 
-The simplest topic-seeded demo is `research-brief`:
+Users choose a Workflow by the result they need. The internal Skills and Units
+remain implementation details until inspection or repair is necessary.
+
+| Desired result | Workflow | Starting point | Main deliverable |
+|---|---|---|---|
+| Understand a topic and decide what to read | `research-brief` | topic | `output/SNAPSHOT.md` |
+| Review one paper or manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
+| Synthesize studies under an explicit protocol | `evidence-review` | question and protocol | `output/SYNTHESIS.md` |
+| Write a literature survey or bounded research report | `arxiv-survey` | topic and delivery constraints | `output/DRAFT.md` |
+| Deliver the same Survey path as LaTeX and PDF | `arxiv-survey-latex` | topic and delivery constraints | `latex/main.pdf` |
+| Develop literature-grounded research directions | `idea-brainstorm` | topic and scope | `output/REPORT.md` |
+| Turn an existing source set into a tutorial | `source-tutorial` | source pack and audience | tutorial, article PDF, slides |
+
+`graduate-paper` remains a research-stage Chinese thesis path. It contains
+useful Skills but is not part of the seven executable Workflow contracts.
+
+## Start A Run
+
+The CLI currently runs from a source checkout and uses
+[uv](https://docs.astral.sh/uv/). Topic-seeded Workflows can start immediately:
 
 ```bash
 uv run rh goal create \
@@ -33,21 +55,16 @@ uv run rh run status --workspace workspaces/robot-adaptation
 uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-The result includes a readable brief (`output/SNAPSHOT.md`), a structured
-scorecard (`output/BRIEF_SCORECARD.json`), and an artifact index with hashes and
-provenance. If a quality gate fails, diagnose the Run with:
+The Run produces a readable brief, a structured scorecard, and an Artifact
+index with hashes and provenance. A failed contract can be diagnosed with:
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
 ```
 
-`improve diagnose` identifies the failed contract and its repair surface. It
-does not silently edit the Workspace or promote changes to the Harness.
-
-The `rh goal create` shortcut is most useful for topic-seeded Workflows. Paths
-that require an existing manuscript, source set, protocol, or human checkpoint
-can still initialize a Workspace, but their first execution step will block and
-name the missing prerequisite. They can also be invoked naturally from Codex:
+Workflows that require an existing manuscript, source pack, protocol, or human
+decision will stop at that prerequisite and name it. They can also be invoked
+naturally from Codex:
 
 ```text
 Use paper-review to review this manuscript. Keep every major concern traceable to the paper.
@@ -57,84 +74,7 @@ Use paper-review to review this manuscript. Keep every major concern traceable t
 Use arxiv-survey-latex to write an 8-10 page course paper on RAG evaluation and produce a PDF.
 ```
 
-## Choose A Workflow
-
-| Outcome | Workflow | Main deliverable |
-|---|---|---|
-| Understand a topic and decide what to read | `research-brief` | `output/SNAPSHOT.md` |
-| Review one paper or manuscript | `paper-review` | `output/REVIEW.md` |
-| Synthesize studies under an explicit protocol | `evidence-review` | `output/SYNTHESIS.md` |
-| Build a literature survey or evidence-first long report in Markdown | `arxiv-survey` | `output/DRAFT.md` |
-| Deliver the same survey/report path as LaTeX and PDF | `arxiv-survey-latex` | `latex/main.pdf` |
-| Develop literature-grounded research directions | `idea-brainstorm` | `output/REPORT.md` |
-| Turn an existing source set into a tutorial | `source-tutorial` | tutorial, article PDF, slides |
-
-`graduate-paper` remains a research-stage Chinese thesis path. It contains
-useful Skills and design material, but does not yet have the strict executable
-contract used by the seven Workflows above.
-
-### Survey As A Report Engine
-
-The Survey family is the long-form, topic-seeded path. It can deliver more than
-a publication-style survey when the requested result still depends on finding,
-comparing, and citing multiple research papers.
-
-| Requested result | What the Workflow emphasizes |
-|---|---|
-| Course paper, course report, term paper, or end-of-term report | A bounded research question, assignment-length outline, evidence-backed argument, comparison table, limitations, and conclusion |
-| Seminar or topic report | A focused conceptual path suitable for class discussion or presentation, grounded in several papers rather than one assigned reading |
-| Short literature-review report | Representative approaches, evidence, disagreements, limitations, and open questions without claiming systematic-review completeness |
-| Technical survey or research-landscape report | A decision-facing map of methods, benchmarks, assumptions, and gaps when research literature is the primary evidence |
-| Full literature survey | Broader retrieval, taxonomy, evidence, and citation coverage for a field-level account |
-
-An explicit bounded-report request activates the Survey family's
-bounded-report use-case overlay and selects the smaller `course_paper` delivery
-profile; a full survey keeps the broader `survey` profile. Users describe the outcome and constraints
-in the Goal rather than setting internal profile keys. Choose `arxiv-survey` for
-Markdown and `arxiv-survey-latex` when PDF or LaTeX is part of the deliverable.
-
-Survey Runs default to abstract-backed evidence. For a graded report that must
-support paper-level interpretation, ask for full-text evidence in the Goal;
-this is slower and more expensive. A quick topic orientation belongs in
-`research-brief`, one-manuscript criticism in `paper-review`, a protocol-driven
-systematic synthesis in `evidence-review`, and transformation of a fixed source
-pack in `source-tutorial`.
-
-The [Survey guide](readme/arxiv-survey.md) gives concrete Goal fields, report
-shapes, evidence modes, execution budgets, checkpoints, and copyable examples.
-
-The current [bounded-report evidence snapshot](examples/course-paper-pilot/README.md)
-is a course-paper instance: one completed 49-Unit Run, a passing Artifact audit,
-and a 10-page PDF for an 8-10 page Goal. It proves one delivery path, not stable
-quality across every topic or report genre.
-
-The [Research Brief Harness proof](examples/research-brief-harness-proof/README.md)
-is a smaller execution example: one versioned 11-Unit Run, 19/19 target
-Artifacts, a 100/100 Workflow scorecard, and a historical Audit Diff. Its
-sources are synthetic fixtures, so it proves Harness behavior rather than
-retrieval or scientific quality.
-
-The [real-source Research Brief proof](examples/research-brief-real-source-proof/README.md)
-repeats the 11-Unit shape with 80 live arXiv records, strict quality gates, a
-539-word briefing, and a synthetic-to-real Audit Diff. It validates the online
-source path while keeping retrieval completeness and expert content quality
-explicitly open.
-
-## One Product Loop
-
-| Stage | User question | Durable record |
-|---|---|---|
-| **Goal** | What outcome and constraints matter? | request, Workflow, required artifacts, success criteria |
-| **Run** | What ran, what is next, and can it resume? | Units, Attempts, Events, Decisions, Checkpoints |
-| **Evidence** | Why should I trust the result and its Run? | research evidence: sources and claim links; Run evidence: Artifacts, hashes, scorecards, audits |
-| **Improve** | Where did this Run fail, and what owns the repair? | Failure ledger, diagnosis, explicit repair surface |
-
-Evidence has two scopes. **Research Evidence** supports the content of the
-deliverable; **Run Evidence** supports what executed, what changed, and which
-checks passed. The product stage exposes both, but one does not substitute for
-the other. Today `rh evidence inspect` audits Run Evidence and indexes
-Workflow-local research Artifacts; it does not force every Workflow into one
-universal Claim-Evidence schema.
+## One End-To-End System
 
 ```mermaid
 flowchart LR
@@ -143,71 +83,90 @@ flowchart LR
     R --> U["Units"]
     U --> S["Research and control Skills"]
     S --> A["Artifacts and deliverable"]
-    A --> Q["Scorecard and audit"]
-    Q --> E["Evidence"]
+    A --> C["Completion and scorecards"]
+    C --> E["Evidence"]
     E --> I["Improve diagnosis"]
     I -. "bounded repair" .-> R
 
-    H["Harness kernel: state, completion, provenance, recovery"] --- R
-    H --- Q
+    H["Harness kernel"] --- R
+    H --- C
 ```
 
-The important separation is responsibility, not a rigid binary:
+The layers have distinct responsibilities:
 
-- **Research Skills** retrieve, extract, compare, synthesize, review, and write.
-- **Control Skills** materialize reports, checkpoints, manifests, and local gates.
-- **Workflow contracts** define ordered Units, inputs, outputs, and acceptance.
-- **Harness kernel** owns Run identity, scheduling, Attempts, Completion,
-  local command serialization, recovery, provenance, reconciliation,
-  implementation fingerprints, diagnosis, and audit.
+- **Workflow contract:** defines the stages, required Skills, target Artifacts,
+  checkpoints, and mandatory acceptance checks for one user outcome.
+- **Workspace:** stores one Run as human-readable files plus a machine ledger.
+- **Unit:** declares one step, its dependencies, inputs, outputs, owner, and
+  acceptance rule.
+- **Skill:** performs one bounded research or control capability.
+- **Artifact:** preserves a research input, intermediate result, scorecard,
+  report, or final deliverable.
+- **Harness kernel:** owns Run identity, scheduling, Attempts, Completion,
+  recovery, provenance, reconciliation, Audit, and failure attribution.
 
-Each Run lives in one Workspace. `GOAL.md`, `UNITS.csv`, `STATUS.md`,
-`DECISIONS.md`, and `output/` form the readable project surface; `.harness/`
-stores the machine ledger. Scripted work, manual semantic work, and approved
-checkpoints all pass through one Completion Protocol before a Unit is committed
-as `DONE`. The [architecture document](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
-defines the ledger, recovery, provenance, and Audit contracts.
+Every scripted Unit, manual semantic Unit, and approved checkpoint passes
+through the same Completion Protocol before it becomes `DONE`. Normal execution
+enforces the Workflow's mandatory checks. `--strict` adds diagnostics that the
+Workflow has not made mandatory; it is not the only checked mode.
 
-Commands for the same local Workspace are serialized. A conflicting command is
-rejected rather than allowed to interleave Attempt, Event, or report writes;
-different Workspaces remain independent. Automated Attempts carry local process
-ownership for crash recovery, while manual Attempts may intentionally remain
-open across commands.
+## Evidence And Quality
 
-## Current Evidence
+The system keeps two evidence scopes:
 
-Seven Workflows have executable contracts and Unit templates. Structural
-operability is broader than semantic proof:
+- **Research Evidence** supports or qualifies the content of the deliverable.
+- **Run Evidence** explains what executed, which Artifacts changed, and which
+  checks passed.
+
+It also separates three quality claims:
+
+| Layer | What a PASS means |
+|---|---|
+| Execution integrity | Attempts, state, Manifests, hashes, and provenance agree |
+| Contract acceptance | Required Artifacts satisfy observable Workflow checks |
+| Research quality | The result is useful, correct, and sufficiently complete on realistic inputs under expert or held-out evaluation |
+
+The Harness implements the first two layers. The third requires repeated Runs
+and external judgment. A scorecard does not prove scientific truth, novelty, or
+exhaustive retrieval.
+
+## Survey As A Report Engine
+
+The Survey family supports full literature surveys and bounded, literature-
+grounded deliverables such as course papers, course reports, seminar reports,
+short literature reviews, and focused technical landscape reports. Users state
+the intended outcome, length, evidence depth, and format in the Goal. The
+Workflow selects the internal delivery profile; users do not need to edit
+profile keys.
+
+Use `research-brief` for orientation, `paper-review` for one manuscript,
+`evidence-review` for protocol-driven synthesis, and `source-tutorial` for a
+fixed source pack. Use the Survey family when the deliverable requires finding,
+comparing, synthesizing, and citing multiple papers. See the
+[Survey guide](readme/arxiv-survey.md) for concrete Goals and evidence modes.
+
+## Current Proof Boundary
 
 - `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review`
-  have Workflow-local scorecards plus realistic fixture tests for failure ->
-  repair -> rerun behavior.
-- `research-brief` additionally has one completed real-source arXiv Run; its
-  lexical ranking and single-topic boundary remain pilot evidence, not general
-  semantic validation.
+  have Workflow-local scorecards and failure, repair, and rerun tests.
+- `research-brief` has a completed real-source arXiv pilot in addition to a
+  deterministic Harness proof.
 - `source-tutorial` has a strict local-source delivery test through article and
-  Beamer PDF compilation.
-- the survey family has one completed bounded-report/PDF Run (a course-paper
-  instance) and extensive contract tests; diverse-topic quality and measured
-  token comparisons remain open.
-- external held-out evaluation, candidate worktrees, automatic promotion, and
-  a hosted Run store are not implemented.
+  slide PDF compilation.
+- the Survey family has one completed bounded-report pilot with an audited
+  10-page PDF.
+- cross-topic stability, expert comparison, measured model-token benchmarks,
+  and automatic Harness candidate promotion remain open.
 
-Scorecards validate observable contracts and traceability. They do not reproduce
-experiments, establish scientific truth, or replace expert judgment.
+Published snapshots are deliberately narrow:
 
-## Maintainer Interface
+- [`research-brief` Harness proof](examples/research-brief-harness-proof/README.md)
+- [Real-source `research-brief` proof](examples/research-brief-real-source-proof/README.md)
+- [Course-paper delivery proof](examples/course-paper-pilot/README.md)
 
-Use the lower-level adapter when developing or auditing the system:
+## Maintainer Path
 
-```bash
-uv run python scripts/pipeline.py doctor --workspace workspaces/<name> --write
-uv run python scripts/pipeline.py audit --workspace workspaces/<name> --write
-uv run python scripts/pipeline.py improve --workspace workspaces/<name> --write
-uv run python scripts/pipeline.py pack --workspace workspaces/<name> --write
-```
-
-Validate the repository with:
+Validate the repository before changing maturity claims:
 
 ```bash
 uv run python scripts/validate_repo.py --strict
@@ -216,20 +175,22 @@ uv run python scripts/audit_skills.py --fail-on WARN
 uv run --extra test python -m pytest -q
 ```
 
-When extending a Workflow, change its contract under `pipelines/`, align the
+When extending a Workflow, update its contract under `pipelines/`, align the
 matching `templates/UNITS.*.csv`, implement the owned capability under
-`.codex/skills/`, and add a completed Run or failure/repair regression before
-raising its maturity claim.
+`.codex/skills/`, and add a completed Run or failure-repair regression before
+raising its proof state.
 
 ## Documentation
 
-- Users: start with the [Workflow catalog](docs/PIPELINE_TAXONOMY.md) and
-  [usage guides](readme/README.en.md).
-- Maintainers and reviewers: use the [architecture document](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
-  as the hub for [project language](docs/PROJECT_LANGUAGE.md),
-  [schemas](docs/SCHEMAS.md), [readiness](docs/HARNESS_READINESS.md),
-  [roadmap](docs/HARNESS_ROADMAP.md), and [ADRs](docs/adr/).
+- [Auto Research architecture](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
+- [Workflow catalog and maturity](docs/PIPELINE_TAXONOMY.md)
+- [Canonical project language](docs/PROJECT_LANGUAGE.md)
+- [Roadmap](docs/HARNESS_ROADMAP.md)
+- [Current readiness](docs/HARNESS_READINESS.md)
+- [Schemas](docs/SCHEMAS.md)
+- [Architecture decisions](docs/adr/)
+- [Detailed usage guides](readme/README.en.md)
 
-[中文说明](README.zh-CN.md)
+[Chinese README](README.zh-CN.md)
 
 [![Star History Chart](https://api.star-history.com/svg?repos=WILLOSCAR/research-units-pipeline-skills&type=Date)](https://star-history.com/#WILLOSCAR/research-units-pipeline-skills&Date)

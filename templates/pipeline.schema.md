@@ -41,6 +41,8 @@ overridable_query_fields:
   - <query-key>
 
 quality_contract:
+  completion_policy:
+    required_checks: [<required-skill-with-registered-checker>]
   <policy>: <value>
 loop_policy:
   stage_retry_budget:
@@ -94,6 +96,8 @@ variant_overrides:
 - Every stage must define non-empty `required_skills` and `produces`.
 - If a stage has `human_checkpoint`, it must write to `DECISIONS.md`.
 - `target_artifacts` must be covered by stage outputs; units-template coverage is also expected and is checked separately by repo validation.
+- `quality_contract.completion_policy.required_checks` names the required Workflow Skills whose registered Harness checks must pass before a Unit can become `DONE`, including default and manual completion paths.
+- Every required completion check must be a required Skill in the resolved Workflow and must exist in the Harness quality-check registry.
 - `structure_mode: section_first` requires:
   - `pre_retrieval_shell`
   - `binding_layers`

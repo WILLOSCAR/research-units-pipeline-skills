@@ -4,9 +4,6 @@ description: |
   Bind papers to chapter-level sections first, writing `outline/section_bindings.jsonl` and `outline/section_binding_report.md`.
   **Trigger**: section bindings, chapter bindings, section-first binding, 章节绑定, 章级绑定.
   **Use when**: survey structure should measure chapter saturation before stable H3 decomposition.
-  **Skip if**: chapter skeleton is missing or the bindings are already refined.
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent papers; produce auditable PASS/BLOCKED/REROUTE signals.
 ---
 
 # Section Bindings

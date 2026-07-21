@@ -12,6 +12,7 @@ from tooling.executor import run_one_unit
 from tooling.harness import (
     build_improvement_payload,
     build_run_audit_payload,
+    render_improvement_report,
     render_run_audit_report,
     validate_improvement_payload,
     validate_run_audit_payload,
@@ -129,6 +130,7 @@ def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None
     assert all(record.get("implementation_file_count", 0) > 0 for record in lock["skills"].values())
     assert lock["kernel"]["tooling/run_state.py"]
     assert lock["kernel"]["tooling/scorecards.py"]
+    assert lock["kernel"]["tooling/checkpoint_brief.py"]
     assert lock["kernel"]["tooling/quality_checks/survey_writing.py"]
     assert lock["kernel"]["tooling/brief_evaluation.py"]
     assert lock["kernel"]["tooling/review_evaluation.py"]
@@ -195,6 +197,59 @@ def test_invalid_declared_scorecard_blocks_success_and_is_not_recorded(tmp_path:
     assert _jsonl(workspace / ".harness" / "evaluations" / "ledger.jsonl") == []
     failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
     assert failures[-1]["failure_type"] == "semantic_quality_gate_failed"
+
+
+def test_quality_report_write_error_becomes_durable_completion_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tooling.completion import commit_unit_completion
+    from tooling import quality_gate
+
+    workspace = tmp_path / "quality-report-error"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+    papers = workspace / "papers"
+    papers.mkdir(parents=True, exist_ok=True)
+    (papers / "papers_raw.jsonl").write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "title": f"Quality Report Paper {index}",
+                    "year": 2024,
+                    "url": f"https://example.com/quality-report/{index}",
+                }
+            )
+            for index in range(1, 16)
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fail_report_write(**_: object) -> Path:
+        raise PermissionError("fixture output is read-only")
+
+    monkeypatch.setattr(quality_gate, "write_quality_report", fail_report_write)
+    result = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        message="manual acceptance",
+    )
+
+    assert result.status == "BLOCKED"
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    attempts = _jsonl(workspace / ".harness" / "attempts.jsonl")
+    assert failures[-1]["failure_type"] == "quality_report_error"
+    assert attempts[-1]["record_type"] == "finished"
+    assert attempts[-1]["status"] == "FAILED_RETRYABLE"
 
 
 def test_retries_preserve_attempt_and_failure_history(tmp_path: Path) -> None:
@@ -781,6 +836,67 @@ def test_manual_completion_enforces_and_records_declared_scorecard(tmp_path: Pat
     assert len(evaluations) == 1
     assert evaluations[0]["verdict"] == "PASS"
     assert evaluations[0]["attempt_id"]
+
+
+def test_manual_acceptance_failure_preserves_declared_fail_evaluation(tmp_path: Path) -> None:
+    from tooling.scorecards import build_dimension, finalize_scorecard
+
+    workspace = tmp_path / "manual-required-evaluation"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+    output = workspace / "output"
+    output.mkdir(parents=True, exist_ok=True)
+    scorecard = finalize_scorecard(
+        schema="research-brief-scorecard.v1",
+        workflow="research-brief",
+        dimensions=[
+            build_dimension(
+                "brief_specificity",
+                "Brief specificity",
+                passed=False,
+                partial=False,
+                evidence="The briefing is still generic.",
+                repair_surface=["output/SNAPSHOT.md"],
+            )
+        ],
+        pass_score=80,
+        critical_dimensions={"brief_specificity"},
+        counts={"checks": 1},
+        limitations=["Fixture scorecard."],
+    )
+    (output / "BRIEF_SCORECARD.json").write_text(json.dumps(scorecard), encoding="utf-8")
+    (output / "BRIEF_SCORECARD.md").write_text("# Brief scorecard\n\n- Verdict: FAIL\n", encoding="utf-8")
+    (output / "DELIVERABLE_SELFLOOP_TODO.md").write_text(
+        "# Deliverable self-loop\n\n- Status: FAIL\n",
+        encoding="utf-8",
+    )
+
+    failed = _run(
+        "scripts/pipeline.py",
+        "mark",
+        "--workspace",
+        str(workspace),
+        "--unit-id",
+        "U055",
+        "--status",
+        "DONE",
+        "--note",
+        "manual scorecard submission",
+    )
+
+    assert failed.returncode == 2
+    evaluations = _jsonl(workspace / ".harness" / "evaluations" / "ledger.jsonl")
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    assert [record["verdict"] for record in evaluations] == ["FAIL"]
+    assert evaluations[0]["unit_id"] == "U055"
+    assert failures[-1]["failure_type"] == "acceptance_contract_failed"
 
 
 def test_success_resolves_only_failure_types_verified_by_completion(tmp_path: Path) -> None:
@@ -1920,3 +2036,79 @@ def test_product_evidence_uses_latest_generic_evaluation(tmp_path: Path) -> None
     evidence = _run("-m", "tooling.product_cli", "evidence", "inspect", "--workspace", str(workspace))
 
     assert "Scorecard: PASS 88/100 [research-brief]" in evidence.stdout
+
+
+def test_improvement_exposes_non_blocking_headroom_from_passing_scorecard(tmp_path: Path) -> None:
+    from tooling.run_state import initialize_run_state, record_evaluation
+
+    workspace = tmp_path / "improvement-opportunity"
+    workspace.mkdir()
+    (workspace / "UNITS.csv").write_text(
+        ",".join(UNIT_FIELDS) + "\n",
+        encoding="utf-8",
+    )
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=REPO_ROOT / "pipelines" / "research-brief.pipeline.md",
+        units_template="templates/UNITS.research-brief.csv",
+        goal_text="robot adaptation briefing",
+    )
+    record_evaluation(
+        workspace=workspace,
+        attempt_id="attempt_test",
+        unit_id="U055",
+        skill="deliverable-selfloop",
+        scorecard_path="output/BRIEF_SCORECARD.json",
+        payload={
+            "schema": "research-brief-scorecard.v1",
+            "workflow": "research-brief",
+            "verdict": "PASS",
+            "score": 88,
+            "pass_score": 80,
+            "dimensions": [
+                {
+                    "id": "reading_path",
+                    "label": "Reading path",
+                    "status": "PASS",
+                    "score": 3,
+                    "max_score": 4,
+                    "evidence": "The sequence is valid but its rationale is thin.",
+                    "repair_surface": ["output/SNAPSHOT.md"],
+                }
+            ],
+            "failures": [],
+        },
+    )
+    record_evaluation(
+        workspace=workspace,
+        attempt_id="attempt_later_failure",
+        unit_id="U055",
+        skill="deliverable-selfloop",
+        scorecard_path="output/BRIEF_SCORECARD.json",
+        payload={
+            "schema": "research-brief-scorecard.v1",
+            "workflow": "research-brief",
+            "verdict": "FAIL",
+            "score": 45,
+            "pass_score": 80,
+            "dimensions": [],
+            "failures": [{"code": "regression", "message": "Later regression"}],
+        },
+    )
+
+    _, payload = build_improvement_payload(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert payload["source_reports"]["latest_passing_evaluation"]["score"] == 88
+    assert payload["quality_opportunities"] == [
+        {
+            "dimension_id": "reading_path",
+            "label": "Reading path",
+            "score": 3,
+            "max_score": 4,
+            "evidence": "The sequence is valid but its rationale is thin.",
+            "repair_surface": ["output/SNAPSHOT.md"],
+        }
+    ]
+    assert "Non-blocking quality opportunities" in render_improvement_report(payload)
+    assert validate_improvement_payload(payload) == []

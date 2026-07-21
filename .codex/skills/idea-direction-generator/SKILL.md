@@ -4,9 +4,6 @@ description: |
   Generate a compact pool of discussion-worthy research directions from the signal table, writing `output/trace/IDEA_DIRECTION_POOL.md`.
   **Trigger**: idea direction pool, brainstorm directions, research directions, 研究方向池, brainstorm pool.
   **Use when**: you already have a signal table and want a small, non-isomorphic set of candidate directions.
-  **Skip if**: `output/trace/IDEA_DIRECTION_POOL.md` already exists and is refined.
-  **Network**: none.
-  **Guardrail**: no invented papers; directions must stay anchored to the current signal table and core set.
 ---
 
 # Idea Direction Generator

@@ -3,10 +3,6 @@ name: evidence-draft
 description: |
   Create per-subsection evidence packs (NO PROSE): claim candidates, concrete comparisons, evaluation protocol, limitations, plus citation-backed evidence snippets with provenance.
   **Trigger**: evidence draft, evidence pack, claim candidates, concrete comparisons, evidence snippets, provenance, 证据草稿, 证据包, 可引用事实.
-  **Use when**: `outline/subsection_briefs.jsonl` exists and you want evidence-first section drafting where every paragraph can be backed by traceable citations/snippets.
-  **Skip if**: `outline/evidence_drafts.jsonl` already exists and is refined (no placeholders; >=4 grounded comparisons per subsection in survey mode; `blocking_missing` empty).
-  **Network**: none (richer evidence improves with abstracts/fulltext).
-  **Guardrail**: NO PROSE; do not invent facts; only use citation keys that exist in `citations/ref.bib`.
 ---
 
 # Evidence Draft

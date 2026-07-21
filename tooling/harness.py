@@ -843,6 +843,24 @@ def validate_improvement_payload(payload: dict[str, Any]) -> list[str]:
             for key in required:
                 if not isinstance(suggestion.get(key), str):
                     issues.append(f"`suggestions[{idx}].{key}` must be a string")
+
+    opportunities = payload.get("quality_opportunities", [])
+    if not isinstance(opportunities, list):
+        issues.append("`quality_opportunities` must be a list")
+    else:
+        for idx, opportunity in enumerate(opportunities):
+            if not isinstance(opportunity, dict):
+                issues.append(f"`quality_opportunities[{idx}]` must be an object")
+                continue
+            for key in ("dimension_id", "label", "evidence"):
+                if not isinstance(opportunity.get(key), str):
+                    issues.append(f"`quality_opportunities[{idx}].{key}` must be a string")
+            for key in ("score", "max_score"):
+                if not isinstance(opportunity.get(key), int):
+                    issues.append(f"`quality_opportunities[{idx}].{key}` must be an integer")
+            surfaces = opportunity.get("repair_surface")
+            if not isinstance(surfaces, list) or any(not isinstance(item, str) for item in surfaces):
+                issues.append(f"`quality_opportunities[{idx}].repair_surface` must be a list of strings")
     return issues
 
 
@@ -1604,7 +1622,39 @@ def _build_improvement_payload_from_sources(
         run_audit_payload=audit_payload,
     )
     suggestions.extend(_failure_suggestion_records(workspace=workspace, failures=failures, offset=len(suggestions)))
+    from tooling.run_state import latest_evaluation
+
+    evaluation = latest_evaluation(workspace, verdict="PASS")
+    quality_opportunities = _evaluation_opportunity_records(evaluation)
     exit_code = 2 if suggestions or doctor_exit or audit_exit else 0
+    source_reports = {
+        "doctor": {
+            "schema": str(doctor_payload.get("schema") or ""),
+            "verdict": str(doctor_payload.get("verdict") or ""),
+            "exit_code": int(doctor_payload.get("exit_code") or 0),
+        },
+        "run_audit": {
+            "schema": str(audit_payload.get("schema") or ""),
+            "verdict": str(audit_payload.get("verdict") or ""),
+            "exit_code": int(audit_payload.get("exit_code") or 0),
+        },
+        "failure_ledger": {
+            "schema": "failure-record.v1",
+            "verdict": "ATTENTION" if failures else "PASS",
+            "exit_code": 2 if failures else 0,
+            "record_count": len(failures),
+            "opened_count": int(repair_history["opened_count"]),
+            "resolved_count": int(repair_history["resolved_count"]),
+        },
+    }
+    if evaluation:
+        source_reports["latest_passing_evaluation"] = {
+            "schema": str(evaluation.get("schema") or "run-evaluation.v1"),
+            "verdict": str(evaluation.get("verdict") or "UNKNOWN"),
+            "exit_code": 0 if str(evaluation.get("verdict") or "").upper() == "PASS" else 2,
+            "score": evaluation.get("score"),
+            "workflow": str(evaluation.get("workflow") or ""),
+        }
     payload = {
         "schema": IMPROVEMENT_REPORT_SCHEMA,
         "generated_at": str(doctor_payload.get("generated_at") or now_iso_seconds()),
@@ -1612,32 +1662,48 @@ def _build_improvement_payload_from_sources(
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
         "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
-        "source_reports": {
-            "doctor": {
-                "schema": str(doctor_payload.get("schema") or ""),
-                "verdict": str(doctor_payload.get("verdict") or ""),
-                "exit_code": int(doctor_payload.get("exit_code") or 0),
-            },
-            "run_audit": {
-                "schema": str(audit_payload.get("schema") or ""),
-                "verdict": str(audit_payload.get("verdict") or ""),
-                "exit_code": int(audit_payload.get("exit_code") or 0),
-            },
-            "failure_ledger": {
-                "schema": "failure-record.v1",
-                "verdict": "ATTENTION" if failures else "PASS",
-                "exit_code": 2 if failures else 0,
-                "record_count": len(failures),
-                "opened_count": int(repair_history["opened_count"]),
-                "resolved_count": int(repair_history["resolved_count"]),
-            },
-        },
+        "source_reports": source_reports,
         "repair_history": repair_history,
         "suggestions": suggestions,
+        "quality_opportunities": quality_opportunities,
         "verdict": "ATTENTION" if suggestions else "PASS",
         "exit_code": exit_code,
     }
     return exit_code, payload
+
+
+def _evaluation_opportunity_records(evaluation: dict[str, Any]) -> list[dict[str, Any]]:
+    """Expose non-blocking scorecard headroom without turning PASS into failure."""
+
+    if str(evaluation.get("verdict") or "").upper() != "PASS":
+        return []
+    opportunities: list[dict[str, Any]] = []
+    dimensions = evaluation.get("dimensions")
+    if not isinstance(dimensions, list):
+        return opportunities
+    for item in dimensions:
+        if not isinstance(item, dict):
+            continue
+        score = item.get("score")
+        max_score = item.get("max_score")
+        if not isinstance(score, int) or not isinstance(max_score, int) or score >= max_score:
+            continue
+        surfaces = [
+            str(value or "").strip()
+            for value in item.get("repair_surface") or []
+            if str(value or "").strip()
+        ]
+        opportunities.append(
+            {
+                "dimension_id": str(item.get("id") or "unknown"),
+                "label": str(item.get("label") or item.get("id") or "Quality dimension"),
+                "score": score,
+                "max_score": max_score,
+                "evidence": str(item.get("evidence") or "No dimension evidence recorded."),
+                "repair_surface": surfaces,
+            }
+        )
+    return opportunities
 
 
 def render_improvement_report(payload: dict[str, Any]) -> str:
@@ -1681,6 +1747,20 @@ def render_improvement_report(payload: dict[str, Any]) -> str:
                     f"- Validation: `{suggestion.get('validation')}`",
                     "",
                 ]
+            )
+
+    lines.extend(["", "## Non-blocking quality opportunities"])
+    opportunities = payload.get("quality_opportunities") or []
+    if not opportunities:
+        lines.append("- No passing scorecard dimension reported remaining measurable headroom.")
+    else:
+        for opportunity in opportunities:
+            surfaces = ", ".join(f"`{value}`" for value in opportunity.get("repair_surface") or [])
+            lines.append(
+                f"- **{opportunity.get('label')}**: "
+                f"{opportunity.get('score')}/{opportunity.get('max_score')}. "
+                f"{opportunity.get('evidence')}"
+                + (f" Repair surface: {surfaces}." if surfaces else "")
             )
 
     history = payload.get("repair_history") or {}

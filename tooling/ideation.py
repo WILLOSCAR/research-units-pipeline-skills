@@ -606,12 +606,14 @@ def map_notes_to_clusters(taxonomy_path: Path, notes_path: Path) -> dict[str, li
     for top in taxonomy or []:
         if not isinstance(top, dict):
             continue
+        parent_name = str(top.get("name") or "").strip()
         for child in top.get("children") or []:
             if not isinstance(child, dict):
                 continue
-            name = str(child.get("name") or "").strip()
-            if not name:
+            child_name = str(child.get("name") or "").strip()
+            if not child_name:
                 continue
+            name = f"{parent_name} / {child_name}" if parent_name else child_name
             scored: list[tuple[int, dict[str, Any]]] = []
             for note in notes:
                 s = score_note_to_cluster(name, note)
@@ -886,6 +888,11 @@ def _best_fit(direction_type: str, axis: str) -> str:
     return "Best fit for PI/PhD discussions that want a thesis-worthy mechanism question rather than a generic benchmark wrapper."
 
 
+def _cluster_matches_focus(cluster: str, focus: set[str]) -> bool:
+    value = str(cluster or "").strip()
+    return value in focus or any(value.startswith(f"{item} /") for item in focus)
+
+
 def signals_to_direction_cards(signals: list[IdeaSignal], *, note_index: dict[str, dict[str, Any]], focus_clusters: list[str], pool_min: int, pool_max: int) -> list[DirectionCard]:
     focus = {x.strip() for x in focus_clusters if str(x).strip()}
     cards: list[DirectionCard] = []
@@ -980,7 +987,7 @@ def signals_to_direction_cards(signals: list[IdeaSignal], *, note_index: dict[st
             signal_ids=[signal.signal_id],
             anchor_reading_notes=anchor_reading_notes,
         ))
-    cards.sort(key=lambda c: (0 if c.cluster in focus else 1, c.cluster, c.program_kind, c.title))
+    cards.sort(key=lambda c: (0 if _cluster_matches_focus(c.cluster, focus) else 1, c.cluster, c.program_kind, c.title))
     target = max(pool_min, min(pool_max, len(cards)))
     return cards[:target]
 
@@ -1048,7 +1055,7 @@ def score_direction_cards(
 
     provisional: list[tuple[DirectionCard, float, int, int, int, int, int, int]] = []
     for card in cards:
-        discussion_worthiness = 5 if card.cluster in focus or card.time_to_clarity == "fast" else 4
+        discussion_worthiness = 5 if _cluster_matches_focus(card.cluster, focus) or card.time_to_clarity == "fast" else 4
         academic_value_score = 5 if any(token in card.contribution_shape.lower() for token in ["rule", "protocol", "regime map", "causal"]) else 4
         concrete_hooks = sum(1 for item in card.literature_suggests if _sentence_has_concrete_hook(item))
         evidence_grounding = 5 if len(card.paper_ids) >= 3 and concrete_hooks >= 2 else 4 if len(card.paper_ids) >= 2 and concrete_hooks >= 1 else 3

@@ -4,9 +4,6 @@ description: |
   Retrieve paper metadata from arXiv using keyword queries and save results as JSONL (`papers/papers_raw.jsonl`).
   **Trigger**: arXiv, arxiv, paper search, metadata retrieval, 文献检索, 论文检索, 拉取元数据, 离线导入.
   **Use when**: 需要一个初始论文集合（survey/snapshot 的 Stage C1），来源为 arXiv（在线检索或离线导入 export）。
-  **Skip if**: 已经有可用的 `papers/papers_raw.jsonl`，或数据源不是 arXiv。
-  **Network**: 在线检索需要网络；离线 `--input <export.*>` 不需要网络。
-  **Guardrail**: 只做 metadata；不要在 `output/` 写长 prose。
 ---
 
 # arXiv Search (metadata-first)

@@ -38,6 +38,10 @@ overridable_query_fields:
 quality_contract:
   deliverable_kind: evidence_review
   evidence_mode: protocol_driven
+  completion_policy:
+    required_checks: [protocol-writer, literature-engineer, dedupe-rank, screening-manager, extraction-form, bias-assessor, synthesis-writer, deliverable-selfloop, artifact-contract-auditor]
+  retrieval_policy:
+    minimum_records: 100
   candidate_pool_policy:
     keep_full_deduped_pool: true
   evidence_policy:

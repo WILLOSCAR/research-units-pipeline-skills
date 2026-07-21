@@ -69,7 +69,7 @@ without paying survey-scale context costs before focus is locked.
 | `C2` | build a literature landscape and choose focus lenses | `outline/taxonomy.yml`, updated `DECISIONS.md` |
 | `C3` | convert papers into signal tables | `papers/paper_notes.jsonl`, `output/trace/IDEA_SIGNAL_TABLE.md` |
 | `C4` | generate and screen candidate directions | `output/trace/IDEA_DIRECTION_POOL.md`, `output/trace/IDEA_SCREENING_TABLE.md` |
-| `C5` | converge, write, score, and self-loop the memo | `output/trace/IDEA_SHORTLIST.md`, `output/REPORT.md`, `output/APPENDIX.md`, `output/REPORT.json`, `output/IDEA_SCORECARD.json` |
+| `C5` | converge, write, score, and emit a bounded repair plan | `output/trace/IDEA_SHORTLIST.md`, `output/REPORT.md`, `output/APPENDIX.md`, `output/REPORT.json`, `output/IDEA_SCORECARD.json` |
 
 ## 6. The Key Artifacts
 

@@ -4,9 +4,6 @@ description: |
   Polish a single H3 unit file under `sections/` into survey-grade prose (de-template + contrast/eval/limitation), without changing citation keys.
   **Trigger**: subsection polisher, per-subsection polish, polish section file, 小节润色, 去模板, 结构化段落.
   **Use when**: `sections/S*.md` exists but reads rigid/template-y; you want to fix quality locally before `section-merger`.
-  **Skip if**: subsection files are missing, evidence packs are incomplete, or `Approve C2` is not recorded.
-  **Network**: none.
-  **Guardrail**: do not invent facts/citations; do not add/remove citation keys; keep citations within the same H3; keep citations subsection-scoped.
 ---
 
 # Subsection Polisher (local, pre-merge)

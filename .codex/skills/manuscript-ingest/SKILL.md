@@ -4,9 +4,6 @@ description: |
   Use when `paper-review` needs a canonical manuscript text artifact before claim extraction.
   **Trigger**: ingest paper, manuscript text, provide paper, paper.md, 输入论文, 导入稿件, 审稿输入.
   **Use when**: You are running the `paper-review` pipeline and need `output/PAPER.md` before `claims-extractor`.
-  **Skip if**: `output/PAPER.md` already exists and looks like the full manuscript text.
-  **Network**: none.
-  **Guardrail**: Do not summarize or rewrite the paper; store the raw text (or a faithful extraction) so claims stay traceable.
 ---
 
 # Manuscript Ingest

@@ -33,6 +33,8 @@ contract_model: pipeline.frontmatter/v1
 quality_contract:
   deliverable_kind: paper_review
   evidence_mode: manuscript_traceable
+  completion_policy:
+    required_checks: [deliverable-selfloop, artifact-contract-auditor]
   candidate_pool_policy:
     keep_full_deduped_pool: false
   review_policy:

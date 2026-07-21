@@ -4,9 +4,6 @@ description: |
   Bind addressable evidence IDs from `papers/evidence_bank.jsonl` to each subsection (H3), producing `outline/evidence_bindings.jsonl`.
   **Trigger**: evidence binder, evidence plan, section->evidence mapping, 证据绑定, evidence_id.
   **Use when**: `papers/evidence_bank.jsonl` exists and you want writer/auditor to use section-scoped evidence items (WebWeaver-style memory bank).
-  **Skip if**: you are not doing evidence-first section-by-section writing.
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent evidence; only select from the existing evidence bank.
 ---
 
 # Evidence Binder (NO PROSE)

@@ -3,10 +3,6 @@ name: citation-diversifier
 description: |
   Raise citation diversity/density (NO NEW FACTS): generate an in-scope “citation budget” plan per H3 so drafts stop failing the global unique-citation gate and stop looking under-cited.
   **Trigger**: cite boost, citation budget, unique citations too low, add more citations, improve reference density, 引用太少, 增加引用, 引用密度.
-  **Use when**: `pipeline-auditor` FAILs due to low unique citations, or you want to increase cite density without changing claims.
-  **Skip if**: you need new papers (fix C1/C2 mapping first), or `citations/ref.bib` / `outline/writer_context_packs.jsonl` is missing.
-  **Network**: none.
-  **Guardrail**: NO NEW FACTS; do not invent citations; only use keys already present in `citations/ref.bib`; keep citations within each H3’s allowed scope (`outline/writer_context_packs.jsonl` / `outline/evidence_bindings.jsonl`).
 ---
 
 # Citation Diversifier (budget-as-constraints) [NO NEW FACTS]

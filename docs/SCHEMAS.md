@@ -61,6 +61,13 @@ gaps, and keeps those gaps as audit errors.
 presence, hashes, and excerpts; it is not a portable archive containing every
 referenced file.
 
+`improvement-report.v1` separates blocking repair suggestions from
+`quality_opportunities`. The latter projects measurable headroom from the
+latest passing Workflow scorecard and does not change the report exit code or
+turn a PASS into a Failure. It gives a human or agent a bounded place to improve
+an accepted Run while preserving the distinction between contract acceptance
+and research quality.
+
 `run-audit.v1` includes additive `ledger_integrity` counts and issues. These
 checks join Run identity, Event sequence, Attempt pairs, Manifests, Artifacts,
 Decisions, Failures, Evaluations, and current DONE projections; they do not
@@ -115,7 +122,7 @@ The final argument snapshot refreshes this manifest after all H3 mutators.
 `section-merger` refuses an explicitly supplied manifest when a required section
 is missing or its bytes/hash no longer match.
 
-## Auto Review Evidence
+## `paper-review` Evidence
 
 The `paper-review` Workflow keeps human-readable Markdown and machine-readable
 sidecars in the same Workspace. Structured records are the join interface;
@@ -128,19 +135,19 @@ Markdown remains the reader-facing view.
 | `review-novelty-row.v1` | `output/NOVELTY_MATRIX.tsv` | `novelty-matrix` | Claim-to-related-work overlap, delta, and evidence row |
 | `paper-review-scorecard.v1` | `output/REVIEW_SCORECARD.json` | `deliverable-selfloop` via `tooling.review_evaluation` | Scored traceability rubric, failures, and repair surfaces |
 
-## Research Brief Evidence
+## `research-brief` Evidence
 
 | Schema | Path | Producer | Purpose |
 |---|---|---|---|
 | `research-brief-scorecard.v1` | `output/BRIEF_SCORECARD.json` | `deliverable-selfloop` via `tooling.brief_evaluation` | Brief structure, compactness, reading path, and core-set pointer validation |
 
-## Research Idea Evidence
+## `idea-brainstorm` Evidence
 
 | Schema | Path | Producer | Purpose |
 |---|---|---|---|
 | `idea-brainstorm-scorecard.v1` | `output/IDEA_SCORECARD.json` | `deliverable-selfloop` via `tooling.idea_evaluation` | Memo structure, trace consistency, direction actionability/diversity, and core-set pointer validation |
 
-## Evidence Review Evidence
+## `evidence-review` Evidence
 
 | Schema | Path | Producer | Purpose |
 |---|---|---|---|

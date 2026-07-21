@@ -47,14 +47,14 @@ class EvidenceReviewVerticalTests(unittest.TestCase):
                 "source": "fixture",
                 "provenance": [{"route": "fixture", "source": "fixture", "source_path": "test"}],
             }
-            for index in range(1, 7)
+            for index in range(1, 101)
         ]
         (papers / "papers_raw.jsonl").write_text(
             "\n".join(json.dumps(record) for record in records) + "\n",
             encoding="utf-8",
         )
         (papers / "retrieval_report.md").write_text(
-            "# Retrieval report\n\n- Route: deterministic fixture\n- Records: 6\n- Boundary: execution proof, not coverage proof\n",
+            "# Retrieval report\n\n- Route: deterministic fixture\n- Records: 100\n- Boundary: execution proof, not coverage proof\n",
             encoding="utf-8",
         )
 

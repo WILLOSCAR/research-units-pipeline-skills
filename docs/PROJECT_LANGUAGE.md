@@ -49,7 +49,7 @@ unbounded self-modification. Distinguish these two operations:
 | Invocation lock | Process-scoped local mutex that serializes complete Harness commands against one Workspace. It is distinct from the Harness revision lock and is not a distributed worker lease. |
 | Unit | Logical step declared in `UNITS.csv`, with an owner, dependencies, inputs, outputs, and acceptance rule. |
 | Attempt | One concrete execution of a Unit. A retry creates another Attempt and preserves earlier history. Process-owned Attempts carry local crash-recovery metadata; manual Attempts may span commands. |
-| Completion | Recoverable transaction that commits a Unit only when its required outputs, successful Attempt, DONE Manifest, Artifact records, and any declared Evaluation agree. `DONE` in `UNITS.csv` is its mutable projection. |
+| Completion | Recoverable transaction that commits a Unit only when its required outputs, successful Attempt, Workflow-required acceptance checks, DONE Manifest, Artifact records, and any declared Evaluation agree. `DONE` in `UNITS.csv` is its mutable projection. |
 | Checkpoint | Explicit boundary at which execution may require evidence review or human approval before later Units become runnable. |
 | Artifact | Durable input, intermediate output, report, manifest, scorecard, or deliverable produced or consumed by a Run. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and related provenance. It is not necessarily a portable archive. |
@@ -61,22 +61,43 @@ unbounded self-modification. Distinguish these two operations:
 | Structural readiness | A Workflow can be initialized, represented, executed or blocked predictably, audited, and resumed. |
 | Semantic readiness | A Workflow repeatedly produces useful, traceable, evidence-disciplined results on realistic inputs. |
 
+## Three Quality Layers
+
+Quality claims must name their layer. A PASS in one layer must not be described
+as proof of another.
+
+| Layer | Question answered | Current mechanism | Does not establish |
+|---|---|---|---|
+| Execution integrity | Did the declared work run and commit consistently? | Attempts, Events, Manifests, hashes, recovery, Doctor, Audit | That the research answer is good |
+| Contract acceptance | Did required Artifacts satisfy the observable Workflow contract? | `quality_contract.completion_policy.required_checks`, Workflow-local scorecards, Artifact audit | Scientific correctness, novelty, or exhaustive retrieval |
+| Research quality | Is the answer relevant, correct, complete enough, and useful for its reader? | Research Evidence, realistic repeated Runs, held-out cases, and expert review | General validity beyond the evaluated inputs |
+
+Workflow-required acceptance checks run at the shared Completion boundary for
+normal, strict, and manual completion. `--strict` adds registered diagnostics
+that a Workflow has not promoted into its mandatory policy; it is not a switch
+between unchecked and checked execution.
+
+Use `PASS` with a qualifier such as `execution-integrity PASS` or
+`contract-acceptance PASS` when the scope could otherwise be ambiguous. Reserve
+`research-quality validated` for evidence from realistic repeated evaluation or
+expert comparison.
+
 ## Evidence Chains
 
 Structured sidecars make reader-facing Markdown traceable without forcing one
 universal research schema.
 
 ```text
-Auto Review:
+`paper-review`:
 claim_id -> evidence gap -> novelty row -> review concern -> scorecard check
 
-Research Brief:
+`research-brief`:
 core-set paper ID -> briefing pointer -> reading path -> brief scorecard
 
-Research Idea:
+`idea-brainstorm`:
 core-set paper ID -> signal -> direction -> screening -> shortlist -> memo -> idea scorecard
 
-Evidence Review:
+`evidence-review`:
 protocol clause -> screening decision -> extraction row -> synthesis pointer -> evidence scorecard
 ```
 

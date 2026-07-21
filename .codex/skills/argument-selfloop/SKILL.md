@@ -4,9 +4,6 @@ description: |
   Build a final, machine-readable argument snapshot from current H3 sections and refresh section fingerprints before merge.
   **Trigger**: argument snapshot, section ledger, consistency contract, final section manifest, 论证快照, 一致性契约.
   **Use when**: section-level mutations are complete and the merge needs a current argument ledger plus content hashes.
-  **Skip if**: H3 prose is missing or below the active profile floor; repair upstream first.
-  **Network**: none.
-  **Guardrail**: diagnostic only; do not edit paper prose, invent claims, or change citations.
 ---
 
 # Argument Snapshot

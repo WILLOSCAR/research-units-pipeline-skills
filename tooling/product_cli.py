@@ -22,12 +22,16 @@ def main(argv: list[str] | None = None) -> int:
 
     goal = stages.add_parser("goal", help="Create a durable research goal and workspace")
     goal_actions = goal.add_subparsers(dest="action", required=True)
-    goal_create = goal_actions.add_parser("create", help="Create a goal and select its workflow")
-    goal_create.add_argument("--topic", required=True)
-    goal_create.add_argument("--workflow", default="", help="Workflow slug; omit to use routing hints")
-    goal_create.add_argument("--workspace", default="")
+    goal_create = goal_actions.add_parser("create", help="Create a topic-seeded goal and select its Workflow")
+    goal_create.add_argument("--topic", required=True, help="Research topic or bounded question")
+    goal_create.add_argument("--workflow", default="", help="Workflow slug; omit to route from the Goal text")
+    goal_create.add_argument("--workspace", default="", help="Workspace path; defaults to a generated path under workspaces/")
     goal_create.add_argument("--run", action="store_true", help="Start the run immediately")
-    goal_create.add_argument("--strict", action="store_true")
+    goal_create.add_argument(
+        "--strict",
+        action="store_true",
+        help="Add registered diagnostics beyond the Workflow's mandatory completion checks",
+    )
 
     run = stages.add_parser("run", help="Start, inspect, or resume a run")
     run_actions = run.add_subparsers(dest="action", required=True)
@@ -39,8 +43,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         action_parser = run_actions.add_parser(action, help=help_text)
         action_parser.add_argument("--workspace", required=True)
-        action_parser.add_argument("--max-steps", type=int, default=999)
-        action_parser.add_argument("--strict", action="store_true")
+        action_parser.add_argument("--max-steps", type=int, default=999, help="Maximum Units to attempt in this command")
+        action_parser.add_argument(
+            "--strict",
+            action="store_true",
+            help="Add registered diagnostics beyond the Workflow's mandatory completion checks",
+        )
     run_status = run_actions.add_parser(
         "status",
         help="Reconcile recoverable run state, then inspect it without executing units",
@@ -301,8 +309,14 @@ def _diagnose_improvement(workspace: Path) -> int:
     write_improvement_json(workspace=workspace, payload=payload)
     suggestions = payload.get("suggestions") if isinstance(payload.get("suggestions"), list) else []
     history = payload.get("repair_history") if isinstance(payload.get("repair_history"), dict) else {}
+    opportunities = (
+        payload.get("quality_opportunities")
+        if isinstance(payload.get("quality_opportunities"), list)
+        else []
+    )
     print(f"Improve: {payload.get('verdict') or 'ATTENTION'}")
     print(f"Open repairs: {len(suggestions)}")
+    print(f"Non-blocking quality opportunities: {len(opportunities)}")
     print(f"Resolved repairs: {history.get('resolved_count', 0)}")
     if suggestions:
         first = suggestions[0] if isinstance(suggestions[0], dict) else {}

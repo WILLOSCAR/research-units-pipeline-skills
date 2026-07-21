@@ -3,10 +3,6 @@ name: opener-variator
 description: |
   Rewrite subsection openers so they stop reading like a generated table-of-contents: remove \"overview/narration\" stems and reduce repeated opener cadences across H3s.
   **Trigger**: opener variator, opener rewrite, rewrite openers, overview opener, 开头改写, 小节开头, 去overview, 去旁白.
-  **Use when**: `writer-selfloop` is PASS but flags repeated opener stems / overview narration in `output/WRITER_SELFLOOP_TODO.md`, or the draft still has a subtle “generator cadence”.
-  **Skip if**: you are pre-C2 (NO PROSE), or the section is evidence-thin (route upstream; don’t stylize filler).
-  **Network**: none.
-  **Guardrail**: do not invent facts; do not add/remove/move citation keys; do not move citations across subsections; keep meaning intact.
 ---
 
 # Opener Variator (H3 first paragraph rewrite)

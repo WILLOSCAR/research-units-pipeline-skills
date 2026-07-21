@@ -2,12 +2,8 @@
 name: global-reviewer
 description: |
   Global consistency review for survey drafts: terminology, cross-section coherence, and scope/citation hygiene.
-  Writes `output/GLOBAL_REVIEW.md` and (optionally) applies safe edits to `output/DRAFT.md`.
   **Trigger**: global review, consistency check, coherence audit, 术语一致性, 全局回看, 章节呼应, 拷打 writer.
   **Use when**: Draft exists and you want a final evidence-first coherence pass before LaTeX/PDF.
-  **Skip if**: You are still changing the outline/mapping/notes (do those first), or prose writing is not approved.
-  **Network**: none.
-  **Guardrail**: Do not invent facts or citations; do not add new citation keys; treat missing evidence as a failure signal.
 ---
 
 # Global Reviewer (survey draft)

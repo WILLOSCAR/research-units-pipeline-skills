@@ -128,7 +128,7 @@ class ReviewArchitectureTests(unittest.TestCase):
             )
             (workspace / "papers").mkdir(parents=True, exist_ok=True)
             records = []
-            for idx in range(1, 6):
+            for idx in range(1, 16):
                 records.append(
                     {
                         "title": f"Brief Paper {idx}",
@@ -188,7 +188,7 @@ class ReviewArchitectureTests(unittest.TestCase):
                     "url": f"https://example.com/brief/{idx}",
                     "abstract": "Focused evidence for robot adaptation under distribution shift.",
                 }
-                for idx in range(1, 9)
+                for idx in range(1, 16)
             ]
             (workspace / "papers" / "papers_raw.jsonl").write_text(
                 "\n".join(json.dumps(record) for record in records) + "\n",
@@ -416,13 +416,16 @@ class ReviewArchitectureTests(unittest.TestCase):
             )
             (workspace / "papers").mkdir(parents=True, exist_ok=True)
             records = []
-            for idx in range(1, 4):
+            for idx in range(1, 101):
                 records.append(
                     {
                         "paper_id": f"P{idx:04d}",
                         "title": f"Tutoring Study {idx}",
+                        "authors": [f"Author {idx}"],
                         "year": 2024,
                         "url": f"https://example.com/t{idx}",
+                        "doi": f"10.1000/tutoring.{idx}",
+                        "provenance": [{"source": "fixture", "route": "approved-protocol"}],
                         "abstract": "Education tutoring agent evaluated with learning-gain and completion metrics.",
                         "population_or_setting": "Undergraduate tutoring sessions",
                         "task": "Adaptive tutoring dialogue",
@@ -464,6 +467,143 @@ class ReviewArchitectureTests(unittest.TestCase):
             self.assertGreaterEqual(scorecard["score"], scorecard["pass_score"])
             self.assertIn("- Status: PASS", (workspace / "output" / "DELIVERABLE_SELFLOOP_TODO.md").read_text(encoding="utf-8"))
             self.assertIn("- Status: PASS", (workspace / "output" / "CONTRACT_REPORT.md").read_text(encoding="utf-8"))
+
+    def test_default_completion_blocks_undersized_research_brief_retrieval(self) -> None:
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "init", "--workspace", str(workspace), "--pipeline", "research-brief", "--overwrite"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            records = [
+                {
+                    "title": f"Undersized Brief Paper {idx}",
+                    "year": 2024,
+                    "url": f"https://example.com/undersized/{idx}",
+                    "abstract": "A bounded research-brief fixture.",
+                }
+                for idx in range(1, 10)
+            ]
+            (workspace / "papers" / "import.jsonl").write_text(
+                "\n".join(json.dumps(record) for record in records) + "\n",
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "run", "--workspace", str(workspace), "--max-steps", "2"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            failed = subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "run-one", "--workspace", str(workspace)],
+                cwd=REPO_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(failed.returncode, 2)
+            self.assertIn("requires at least 15", failed.stdout)
+            failures = [
+                json.loads(line)
+                for line in (workspace / ".harness" / "failures" / "ledger.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            self.assertEqual(failures[-1]["failure_type"], "acceptance_contract_failed")
+
+    def test_manual_done_cannot_bypass_research_brief_acceptance(self) -> None:
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "init", "--workspace", str(workspace), "--pipeline", "research-brief", "--overwrite"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            (workspace / "papers" / "papers_raw.jsonl").write_text(
+                "\n".join(
+                    json.dumps(
+                        {
+                            "title": f"Manual Brief Paper {idx}",
+                            "year": 2024,
+                            "url": f"https://example.com/manual/{idx}",
+                        }
+                    )
+                    for idx in range(1, 10)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "run", "--workspace", str(workspace), "--max-steps", "2"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            failed = subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "mark", "--workspace", str(workspace), "--unit-id", "U010", "--status", "DONE", "--note", "claimed acceptance"],
+                cwd=REPO_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(failed.returncode, 2)
+            self.assertIn("requires at least 15", failed.stderr)
+
+    def test_bound_run_cannot_complete_when_pipeline_lock_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "init", "--workspace", str(workspace), "--pipeline", "research-brief", "--overwrite"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            (workspace / "papers" / "papers_raw.jsonl").write_text(
+                "\n".join(
+                    json.dumps(
+                        {
+                            "title": f"Bound Brief Paper {idx}",
+                            "year": 2024,
+                            "url": f"https://example.com/bound/{idx}",
+                        }
+                    )
+                    for idx in range(1, 16)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (workspace / "PIPELINE.lock.md").unlink()
+
+            failed = subprocess.run(
+                [sys.executable, "scripts/pipeline.py", "mark", "--workspace", str(workspace), "--unit-id", "U010", "--status", "DONE", "--note", "claimed without lock"],
+                cwd=REPO_ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(failed.returncode, 2)
+            self.assertIn("Pipeline contract cannot be loaded", failed.stderr)
+            failures = [
+                json.loads(line)
+                for line in (workspace / ".harness" / "failures" / "ledger.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            self.assertEqual(failures[-1]["failure_type"], "acceptance_contract_failed")
 
 
 if __name__ == "__main__":

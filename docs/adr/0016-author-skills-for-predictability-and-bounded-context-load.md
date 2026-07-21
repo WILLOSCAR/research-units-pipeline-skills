@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-07-16
+- Amended: 2026-07-22
 
 ## Context
 
@@ -49,10 +50,11 @@ Do not expose Skill-authoring vocabulary as a new user-facing product layer.
 ## Consequences
 
 The six lifecycle Skills now carry less duplicated routing material and make
-their stop conditions mechanically reviewable. A 24-request deterministic
-routing corpus protects all seven executable Workflows and the Survey LaTeX
-variant against common lexical traps. It does not prove model-level Skill
-selection accuracy or measured token savings.
+their stop conditions mechanically reviewable. A repository-wide mechanical
+migration then retained each over-budget Skill's capability sentence and
+branch-distinguishing trigger or use condition while removing duplicated Skip,
+Network, and Guardrail text from frontmatter. Those contracts remain in the
+Skill body.
 
 `scripts/audit_skills.py` can identify high-load descriptions and sprawling
 bodies without failing the repository on an uncalibrated heuristic. The normal
@@ -60,22 +62,19 @@ repository quality validator accepts compact invocation pointers and checks
 helper discoverability instead of requiring boilerplate CLI headings or
 repeated input paths.
 
-The invocation evaluator provides a 33-case corpus plus a reproducible
-108-Skill description-load baseline. It separates a 21-case baseline from a
-12-case challenge split covering colloquial requests, adjacent-Skill ambiguity,
-and lexical traps; diagnostic splits and tags are withheld from the candidate
-pack. A fresh blinded GPT-5.6 Pro run on 2026-07-17 scored `PASS` on both
-splits: 33/33 primary selections, no forbidden selections, and no unexpected
-repository Skills. The result is evidence for this corpus and model session,
-not proof across models or unseen prompts. Token usage remains unmeasured
-because the browser run did not expose it; the evaluator does not convert
-characters into estimated tokens.
+The invocation evaluator now provides a 48-case corpus across lifecycle routing
+and the semantic boundaries of all executable Workflow families. The 109-Skill
+catalog stays below 40,000 description characters, with no description above
+the 420-character informational budget. A blinded GPT-5.6 Pro run on 2026-07-17
+passed the earlier 33-case subset, but it predates the repository-wide
+description migration and is retained only as a historical baseline. A fresh
+blinded run across all 48 current cases is still required. Neither repository
+tests nor character counts prove model-level routing accuracy or measured token
+savings.
 
-The rest of the Skill catalog is not automatically rewritten. Each candidate
-still needs a behavior-preserving review because a short Skill can be
-under-specified, and some large reference-heavy Skills are legitimately large.
-Repository-wide migration remains evidence-driven rather than a bulk formatting
-exercise.
+Skill bodies and reference assets were not bulk-shortened. Their size is judged
+by whether branch-only context is loaded on demand and whether the invoked Skill
+retains enough information to complete its contract.
 
 The previous description-expansion script is removed because it recreated the
 exact duplication this decision is intended to prevent.

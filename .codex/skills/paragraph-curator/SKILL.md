@@ -4,9 +4,6 @@ description: |
   Deterministically compact final H3 bodies to the active delivery profile's paragraph budget without deleting prose or changing citation-block order.
   **Trigger**: paragraph compaction, paragraph budget, compact H3, 段落压缩, 段落预算.
   **Use when**: H3 section files have passed logic polish and must converge before the final argument snapshot and merge.
-  **Skip if**: prose or evidence is still missing; repair the owning writer or evidence unit first.
-  **Network**: none.
-  **Guardrail**: H3 only; merge adjacent paragraphs only; preserve all text, facts, and citation blocks in source order.
 ---
 
 # Paragraph Curator

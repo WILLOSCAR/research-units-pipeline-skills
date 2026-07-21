@@ -41,6 +41,43 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def test_pipeline_router_preserves_source_tutorial_intake_boundary(self) -> None:
+        script = self._script_path("pipeline-router")
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            (workspace / "GOAL.md").write_text(
+                "# Goal\n\nTeach behavior cloning from a fixed source pack.\n",
+                encoding="utf-8",
+            )
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/source-tutorial.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "DECISIONS.md").write_text("# Decisions\n\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--workspace",
+                    str(workspace),
+                    "--checkpoint",
+                    "C0",
+                    "--inputs",
+                    "GOAL.md",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr or result.stdout)
+            decisions = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+            self.assertIn("Source intake:", decisions)
+            self.assertIn("fixed source pack", decisions)
+            self.assertIn("required versus optional", decisions)
+            self.assertIn("do not expand it unless the Goal explicitly changes", decisions)
+
     def _scaffold_source_tutorial_workspace(self, workspace: Path, *, approved: bool = False) -> None:
         (workspace / "sources" / "normalized").mkdir(parents=True, exist_ok=True)
         (workspace / "output").mkdir(parents=True, exist_ok=True)

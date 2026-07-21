@@ -3,10 +3,6 @@ name: writer-context-pack
 description: |
   Build per-H3 writer context packs (NO PROSE): merge briefs + evidence packs + anchor facts + allowed citations into a single deterministic JSONL, so drafting is less hollow and less brittle.
   **Trigger**: writer context pack, context pack, drafting pack, paragraph plan pack, 写作上下文包.
-  **Use when**: `outline/subsection_briefs.jsonl` + `outline/evidence_drafts.jsonl` + `outline/anchor_sheet.jsonl` exist and you want to make C5 drafting easier/more consistent.
-  **Skip if**: upstream evidence is missing or scaffolded (fix `paper-notes` / `evidence-binder` / `evidence-draft` / `anchor-sheet` first).
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent facts/citations; only use citation keys present in `citations/ref.bib`.
 ---
 
 # Writer Context Pack (C4→C5 bridge) [NO PROSE]

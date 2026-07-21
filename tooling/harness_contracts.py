@@ -103,6 +103,7 @@ HARNESS_KERNEL_PATHS = (
     "tooling/run_state.py",
     "tooling/scorecards.py",
     "tooling/brief_evaluation.py",
+    "tooling/checkpoint_brief.py",
     "tooling/evidence_review_evaluation.py",
     "tooling/idea_evaluation.py",
     "tooling/review_evaluation.py",
@@ -244,14 +245,14 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
     "Current Families",
     "Survey Delivery Profiles",
     "bounded-report use-case overlay",
-    "Current Priority",
+    "Evidence Gaps",
     "`paper-review`",
 )
 
 PIPELINE_TAXONOMY_ROW_REQUIREMENTS = (
     ("Survey", "`arxiv-survey`", "`Executable`", "bounded-report pilot"),
     ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "audited 10-page PDF"),
-    ("Orientation", "`research-brief`", "`Executable`", "Real-source pilot"),
+    ("Orientation", "`research-brief`", "`Executable`", "Completed semantic pilot"),
     ("Review", "`paper-review`", "`Executable`", "Scored fixture proof"),
     ("Review", "`evidence-review`", "`Executable`", "Scored fixture proof"),
     ("Ideation", "`idea-brainstorm`", "`Executable`", "Scored fixture proof"),

@@ -4,9 +4,6 @@ description: |
   Define evidence-first table schemas for a survey: what each table must answer, row unit, columns, and which evidence-pack fields are required to fill it.
   **Trigger**: table schema, schema-first tables, table design, 表格 schema, 先 schema 后填充.
   **Use when**: you want survey tables that are verifiable and fillable before LaTeX (typically Stage C4, after evidence packs exist).
-  **Skip if**: `outline/table_schema.md` already exists and is refined (covers the profile-required index and Appendix tables; no placeholders; evidence mapping is explicit).
-  **Network**: none.
-  **Guardrail**: no invented facts; schema must be checkable and map each column to an evidence source.
 ---
 
 # Table Schema (two layers: index vs Appendix)

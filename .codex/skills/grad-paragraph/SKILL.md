@@ -4,9 +4,6 @@ description: |
   Write one survey-quality paragraph from evidence packs (tension → contrast → evaluation anchor → limitation).
   **Trigger**: grad paragraph, paragraph micro-structure, argument paragraph, 研究生段落, 论证段落, 对比段, 段落写作.
   **Use when**: you are drafting `sections/S*.md` (H3 body) and want subsection-specific, evidence-bounded prose instead of templates.
-  **Skip if**: evidence packs are missing/incomplete (fix `subsection-briefs`/`evidence-draft`/`evidence-binder` first), or `Approve C2` is not recorded in `DECISIONS.md`.
-  **Network**: none.
-  **Guardrail**: do not invent facts or citations; no placeholders/ellipsis; keep claims conservative when evidence is abstract-level (avoid repeating evidence-mode boilerplate in every paragraph).
 ---
 
 # Grad Paragraph (survey paragraph micro-skill)

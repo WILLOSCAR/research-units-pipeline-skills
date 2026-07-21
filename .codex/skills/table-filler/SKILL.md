@@ -4,9 +4,6 @@ description: |
   Fill `outline/tables_index.md` from `outline/table_schema.md` + evidence packs (NO PROSE in cells; citation-backed rows).
   **Trigger**: table filler, fill tables, evidence-first tables, index tables, 表格填充, 索引表.
   **Use when**: table schema exists and evidence packs are ready; you want a compact, citation-backed index table to support later writing and Appendix table curation.
-  **Skip if**: `outline/tables_index.md` already exists and is refined (meets the active profile table count; citations in rows; no placeholders).
-  **Network**: none.
-  **Guardrail**: do not invent facts; every row must include citations; do not write paragraph cells.
 ---
 
 # Table Filler (index tables, evidence-first)

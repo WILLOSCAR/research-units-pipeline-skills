@@ -4,9 +4,6 @@ description: |
   Map papers from the core set to each outline subsection and write `outline/mapping.tsv` with coverage tracking.
   **Trigger**: section mapper, mapping.tsv, coverage, paper-to-section mapping, 论文映射, 覆盖率.
   **Use when**: structure 阶段（C2），已有 `papers/core_set.csv` + `outline/outline.yml`，需要确保每小节有足够支持论文再进入 evidence/writing。
-  **Skip if**: 还没有 outline（先跑 `outline-builder`）或 core set 还没收敛。
-  **Network**: none.
-  **Guardrail**: 覆盖率可审计（避免所有小节重复用同几篇）；为弱覆盖小节留下明确补救方向（扩 query / 合并小节）。
 ---
 
 # Section Mapper

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 from typing import Callable
@@ -44,6 +45,102 @@ def survey_citation_policy(workspace: Path, *, bibliography_size: int, h3_count:
 def check_unit_outputs(*, skill: str, workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     checker = _QUALITY_CHECKS.get(skill)
     return checker(workspace, outputs) if checker is not None else []
+
+
+def required_completion_checks(workspace: Path) -> frozenset[str]:
+    """Return the Workflow-declared Skill checks that must pass before DONE."""
+
+    from tooling.common import load_workspace_pipeline_spec
+
+    spec = load_workspace_pipeline_spec(workspace)
+    if spec is None:
+        return frozenset()
+    completion_policy = spec.quality_contract.get("completion_policy", {})
+    if not isinstance(completion_policy, dict):
+        return frozenset()
+    raw_checks = completion_policy.get("required_checks", [])
+    if not isinstance(raw_checks, list):
+        return frozenset()
+    return frozenset(str(item or "").strip() for item in raw_checks if str(item or "").strip())
+
+
+def completion_contract_issue(workspace: Path) -> str:
+    """Return a fail-closed error when a bound Run loses its Pipeline contract."""
+
+    from tooling.common import load_workspace_pipeline_spec
+
+    if load_workspace_pipeline_spec(workspace) is not None:
+        return ""
+
+    run_workflow = ""
+    run_path = workspace / ".harness" / "run.json"
+    if run_path.exists():
+        try:
+            payload = json.loads(run_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            payload = {}
+        if isinstance(payload, dict):
+            run_workflow = str(payload.get("workflow") or "").strip()
+
+    declared_pipeline = ""
+    lock_path = workspace / "PIPELINE.lock.md"
+    if lock_path.exists():
+        try:
+            for raw_line in lock_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = raw_line.strip()
+                if line.startswith("pipeline:"):
+                    declared_pipeline = line.split(":", 1)[1].strip()
+                    break
+        except OSError:
+            declared_pipeline = ""
+
+    if run_workflow and run_workflow.lower() not in {"unknown", "unbound", "legacy"}:
+        return (
+            f"The Run is bound to Workflow `{run_workflow}`, but its Pipeline contract "
+            "cannot be loaded from `PIPELINE.lock.md`. Restore or migrate the lock before completion."
+        )
+    if declared_pipeline:
+        return (
+            f"`PIPELINE.lock.md` declares `{declared_pipeline}`, but that Pipeline contract "
+            "cannot be loaded. Repair the lock before completion."
+        )
+    return ""
+
+
+def completion_check_required(*, skill: str, workspace: Path) -> bool:
+    """Return whether the active Workflow makes this Skill check mandatory."""
+
+    return bool(completion_contract_issue(workspace)) or skill in required_completion_checks(workspace)
+
+
+def check_completion_acceptance(*, skill: str, workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    """Run a Workflow-declared acceptance check, including configuration errors."""
+
+    contract_issue = completion_contract_issue(workspace)
+    if contract_issue:
+        return [QualityIssue(code="completion_contract_unavailable", message=contract_issue)]
+    if not completion_check_required(skill=skill, workspace=workspace):
+        return []
+    checker = _QUALITY_CHECKS.get(skill)
+    if checker is None:
+        return [
+            QualityIssue(
+                code="missing_completion_check",
+                message=(
+                    f"The active Workflow requires an acceptance check for `{skill}`, "
+                    "but the Harness has no registered checker."
+                ),
+            )
+        ]
+    try:
+        return checker(workspace, outputs)
+    except Exception as exc:  # pragma: no cover - defensive commit boundary
+        return [
+            QualityIssue(
+                code="completion_check_exception",
+                message=f"Workflow acceptance check crashed: {type(exc).__name__}: {exc}",
+            )
+        ]
 
 
 def check_completion_invariants(*, skill: str, workspace: Path, outputs: list[str]) -> list[QualityIssue]:

@@ -74,14 +74,15 @@ new specific blocker is visible in durable Workspace state.
 - `DECISIONS.md` is the human-readable Decision surface.
 - `.harness/decisions.jsonl` is the machine-readable history; update it
   through the adapter rather than by hand.
-- Use `pipeline-router` to recreate a missing checkpoint block.
+- Use `checkpoint-brief` to recreate a post-route checkpoint review block.
 - `scripts/run.py` is a runner-compatibility helper that only toggles the
   Markdown checkbox. Prefer `scripts/pipeline.py approve`, which also records
   the machine Decision.
 
 ## Troubleshooting
 
-- If the approvals checklist is missing, materialize the checkpoint block with
-  `pipeline-router` before approval.
+- If the approvals checklist is missing after C0, materialize the review block
+  with `checkpoint-brief` before approval. Use `pipeline-router` only for the
+  initial C0 route.
 - If reviewed upstream Artifacts later change, expect the Harness to revoke the
   stale approval and request a new Decision.

@@ -4,9 +4,6 @@ description: |
   Planner-pass coverage + redundancy report for an outline+mapping, producing `outline/coverage_report.md` and `outline/outline_state.jsonl`.
   **Trigger**: planner, dynamic outline, outline refinement, coverage report, 大纲迭代, 覆盖率报告.
   **Use when**: you have `outline/outline.yml` + `outline/mapping.tsv` and want a verifiable, NO-PROSE planner pass before writing.
-  **Skip if**: you don't want any outline/mapping diagnostics (or you have a frozen/approved structure and will not change it).
-  **Network**: none.
-  **Guardrail**: NO PROSE; do not invent papers; only report coverage/reuse and propose structural actions as bullets.
 ---
 
 # Outline Refiner (Planner pass, NO PROSE)

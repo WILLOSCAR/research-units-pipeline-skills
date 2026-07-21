@@ -236,7 +236,7 @@ def check_arxiv_search(workspace: Path, outputs: list[str]) -> list[QualityIssue
 
 
 def check_literature_engineer(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    from tooling.common import read_jsonl
+    from tooling.common import pipeline_quality_contract_value, read_jsonl
 
     out_rel = outputs[0] if outputs else "papers/papers_raw.jsonl"
     report_rel = outputs[1] if len(outputs) >= 2 else "papers/retrieval_report.md"
@@ -285,6 +285,25 @@ def check_literature_engineer(workspace: Path, outputs: list[str]) -> list[Quali
             missing_prov += 1
 
     issues: list[QualityIssue] = []
+    minimum_records = int(
+        pipeline_quality_contract_value(
+            workspace,
+            "retrieval_policy",
+            "minimum_records",
+            default=1,
+        )
+        or 1
+    )
+    if total < minimum_records:
+        issues.append(
+            QualityIssue(
+                code="raw_pool_too_small",
+                message=(
+                    f"`{out_rel}` contains {total} records; the Workflow contract "
+                    f"requires at least {minimum_records}. Expand the approved retrieval plan before screening."
+                ),
+            )
+        )
     if missing_title:
         issues.append(QualityIssue(code="raw_missing_titles", message=f"`{out_rel}` has {missing_title} record(s) missing `title`."))
     if missing_url:
@@ -346,7 +365,7 @@ def check_literature_engineer(workspace: Path, outputs: list[str]) -> list[Quali
 
 
 def check_dedupe_rank(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    from tooling.common import read_jsonl
+    from tooling.common import pipeline_quality_contract_value, read_jsonl
 
     dedup_rel = outputs[0] if outputs else "papers/papers_dedup.jsonl"
     core_rel = outputs[1] if len(outputs) >= 2 else "papers/core_set.csv"
@@ -396,6 +415,39 @@ def check_dedupe_rank(workspace: Path, outputs: list[str]) -> list[QualityIssue]
         )
     if ids and len(set(ids)) != len(ids):
         issues.append(QualityIssue(code="core_set_duplicate_ids", message=f"`{core_rel}` contains duplicate `paper_id` values."))
+
+    core_size_min = int(
+        pipeline_quality_contract_value(
+            workspace,
+            "candidate_pool_policy",
+            "core_size_min",
+            default=0,
+        )
+        or 0
+    )
+    core_size_max = int(
+        pipeline_quality_contract_value(
+            workspace,
+            "candidate_pool_policy",
+            "core_size_max",
+            default=0,
+        )
+        or 0
+    )
+    if core_size_min and len(rows) < core_size_min:
+        issues.append(
+            QualityIssue(
+                code="core_set_too_small",
+                message=f"`{core_rel}` has {len(rows)} rows; the Workflow contract requires at least {core_size_min}.",
+            )
+        )
+    if core_size_max and len(rows) > core_size_max:
+        issues.append(
+            QualityIssue(
+                code="core_set_too_large",
+                message=f"`{core_rel}` has {len(rows)} rows; the Workflow contract allows at most {core_size_max}.",
+            )
+        )
 
     profile = pipeline_profile_name(workspace)
     if profile == "arxiv-survey":

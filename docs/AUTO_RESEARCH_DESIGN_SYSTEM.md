@@ -77,6 +77,7 @@ flowchart TB
         U --> AT["Attempts"]
         AT --> SK["Research and control Skills"]
         SK --> AR["Artifacts"]
+        AR --> CP["Completion Protocol"]
     end
 
     subgraph State["State And Evidence Plane"]
@@ -90,6 +91,15 @@ flowchart TB
         EL["evaluations/ledger.jsonl"]
     end
 
+    subgraph Quality["Quality Interpretation"]
+        Q1["Execution integrity"]
+        Q2["Contract acceptance"]
+        XR["Repeated runs + expert / held-out review"]
+        Q3["External research-quality judgment"]
+        Q1 --> Q2
+        Q2 -. "eligible for evaluation" .-> XR --> Q3
+    end
+
     subgraph Control["External Control Plane - Deferred"]
         CE["Candidate evaluation"]
         HE["Held-out suites"]
@@ -97,13 +107,16 @@ flowchart TB
     end
 
     R --> WF
-    AR --> E
+    CP --> E
     WS --> GS
     AT --> EV
     AT --> AP
     AR --> AF
     AR --> EL
     HL --> RS
+    CP --> Q1
+    WF --> Q2
+    AR --> XR
     FL --> I
     I -. "future candidate" .-> CE
     HE --> CE --> PR
@@ -113,6 +126,22 @@ The Execution and State planes exist in the current codebase. The External
 Control Plane is an architectural constraint and roadmap item; candidate
 evaluation and promotion are not implemented today.
 
+### Quality interpretation
+
+The Harness separates three claims that are easy to blur:
+
+1. **Execution integrity:** the Unit has a successful Attempt, declared
+   Artifacts, consistent Manifests, and recoverable provenance.
+2. **Contract acceptance:** the active Workflow's mandatory checks and declared
+   scorecard conditions pass at the Completion boundary.
+3. **Research quality:** the result is relevant, correct, sufficiently complete,
+   and useful on realistic inputs under expert or held-out evaluation.
+
+The first two layers are machine-observable today. The third is an empirical
+program, not a boolean supplied by the kernel. A contract-acceptance PASS must
+therefore never be narrated as proof of novelty, scientific truth, exhaustive
+retrieval, or expert-level judgment.
+
 ## 4. Module Responsibilities
 
 | Module | Interface | Implementation responsibility |
@@ -120,10 +149,10 @@ evaluation and promotion are not implemented today.
 | Product CLI | `rh goal/run/evidence/improve` | Maps user stages to existing pipeline operations |
 | Pipeline adapter | `scripts/pipeline.py` commands | Workspace setup, execution commands, audit commands, human transitions |
 | Run State | `tooling/run_state.py` functions | Run identity, initial revision lock, Workspace invocation lock, append-only ledgers, reconciliation, and cross-ledger integrity |
-| Completion Protocol | `commit_unit_completion(...)` | Required-output and scorecard checks, two-phase Manifest, successful Attempt, Artifact registration, and DONE projection |
+| Completion Protocol | `commit_unit_completion(...)` | Required outputs, Workflow-mandatory acceptance checks, scorecard checks, two-phase Manifest, successful Attempt, Artifact registration, and DONE projection |
 | Executor | `run_one_unit(...)` | Unit selection, Skill process dispatch, pre-completion failures, and delegation to the Completion Protocol |
 | Harness reports | `tooling/harness.py` builders | Standalone Doctor uses a shallow reconciled snapshot; Audit, diagnosis, and Artifact-index views share the deeper snapshot |
-| Quality registry | `tooling/quality_gate.py` | Stable Skill-to-check dispatch and compatibility entrypoints |
+| Quality registry | `tooling/quality_gate.py` | Stable Skill-to-check dispatch, Workflow-mandatory completion checks, and additional strict diagnostics |
 | Quality domains | `tooling/quality_checks/` | Workflow-family semantic checks for survey, review, ideation, tutorial, and delivery Artifacts |
 | Scorecard kernel | `tooling/scorecards.py` | Shared policy loading, scoring, failure projection, validation, rendering, and persistence |
 | Workflow evaluators | `tooling/*_evaluation.py` | Workflow-local dimensions and Evidence semantics behind the shared scorecard envelope |
@@ -316,7 +345,7 @@ The intended review model is:
 Source <- Evidence <- Claim-Evidence Link -> Claim -> Review finding
 ```
 
-The Auto Review fixture proof implements this model with stable Claim and Gap IDs. The
+The `paper-review` fixture proof implements this model with stable Claim and Gap IDs. The
 next design question is which fields survive repeated Runs and genuinely apply
 to another Workflow.
 
@@ -345,7 +374,7 @@ Observable Failure
 
 This prevents vague recommendations such as “improve the prompt.” Mechanical
 failures such as missing adapters, missing outputs, script exits, quality-gate
-failures, and interrupted attempts are recorded now. Auto Review also records
+failures, and interrupted attempts are recorded now. `paper-review` also records
 `semantic_quality_gate_failed` when its declared scorecard fails, including the
 specific structured artifact or Skill contract that should be repaired.
 Successful completion resolves only the Failure types that the succeeding path
@@ -425,27 +454,32 @@ join the protected Kernel before candidates can rely on them.
 Today this is a documented architecture rule, not a security sandbox. A real
 candidate system must enforce it through process and filesystem permissions.
 
-## 12. Current Maturity
+## 12. Current Maturity: Implementation And Evidence Snapshot
 
-| Area | Current evidence | Maturity |
+System rows below describe implementation readiness in ordinary language.
+Workflow rows quote the canonical proof states defined in
+`docs/PIPELINE_TAXONOMY.md`; this table does not introduce another maturity
+scale.
+
+| Area | Current evidence | Interpretation |
 |---|---|---|
 | Workflow contracts | Seven executable pipelines and Unit templates | High structural maturity |
 | Project Skills | Broad research, review, tutorial, writing, and control capability | Uneven by Workflow |
-| Completion integrity | Shared, lock-versioned two-phase Completion Protocol for scripted, manual, and approved Units | First local implementation; key paths tested |
+| Completion integrity | Shared, lock-versioned two-phase Completion Protocol plus mandatory Workflow checks for scripted, manual, default, and strict completion | First local implementation; key paths tested |
 | Run recovery | Durable IDs, Events, Attempts, prepared-transaction recovery, and stale-state interruption records | First local implementation; key crash windows tested |
 | Workspace serialization | Non-blocking process-scoped lock across all local Workspace commands; owner-crash release tested | First local implementation; distributed leases absent |
 | Inspection composition | Standalone Doctor uses a shallow snapshot; composed Doctor, Audit, Improvement, and Artifact index share one deep snapshot | Landed; Artifact hashing retains a distinct pass |
 | Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Medium-high |
 | Ledger integrity | Run Audit checks cross-ledger identities, references, completion evidence, and hashes | First local implementation; targeted tests |
 | Implementation freshness | per-Attempt Skill fingerprints and stale-DONE diagnosis | First implementation |
-| Mechanical failure diagnosis | Doctor, errors, failure ledger, repair map | Medium-high |
-| Semantic evaluation | Auto Review, Research Brief, Research Idea, and Evidence Review scorecards feed one Evaluation ledger; no diverse scored corpus | Medium |
-| Auto Review proof | Realistic fixture completes scorecard failure, repair, rerun, audit, and pack | First fixture proof; real-manuscript/expert comparison open |
-| Research Brief proof | [Versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), plus pointer failure/repair coverage | First real-source pilot; cross-topic and expert comparison open |
-| Research Idea proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | Third fixture proof |
-| Evidence Review proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | Fourth fixture proof |
-| Source Tutorial delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | Compiled fixture proof |
-| Bounded-report delivery | [49-Unit course-paper Run snapshot](../examples/course-paper-pilot/README.md), passing audit, 10-page PDF | First completed pilot; other report genres open |
+| Mechanical failure diagnosis | Doctor, errors, Failure ledger, blocking repair map, and non-blocking scorecard headroom | Medium-high |
+| Contract evaluation | `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review` scorecards feed one Evaluation ledger; no diverse expert-scored corpus | Implementation landed; external research-quality evidence open |
+| `paper-review` proof | Realistic fixture completes scorecard failure, repair, rerun, audit, and pack | `Scored fixture proof`; real-manuscript/expert comparison open |
+| `research-brief` proof | [Versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), plus pointer failure/repair coverage | `Completed semantic pilot`; cross-topic and expert comparison open |
+| `idea-brainstorm` proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | `Scored fixture proof` |
+| `evidence-review` proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | `Scored fixture proof` |
+| `source-tutorial` delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | `Compiled delivery proof` |
+| Bounded-report delivery | [49-Unit course-paper Run snapshot](../examples/course-paper-pilot/README.md), passing audit, 10-page PDF | `arxiv-survey`: `Completed semantic pilot`; `arxiv-survey-latex`: `Compiled delivery proof` |
 | Bounded Self-Harness | Architecture described; external evaluator absent | Not implemented |
 
 ## 13. Current Proof Strategy

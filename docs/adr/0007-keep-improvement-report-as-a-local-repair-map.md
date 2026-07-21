@@ -30,11 +30,16 @@ sidecar is `output/IMPROVEMENT_REPORT.json` with schema
 `improvement-report.v1`, summarized in `docs/SCHEMAS.md` and
 checked by `tooling.harness.validate_improvement_payload`.
 
-The report maps:
+The report maps blocking defects as:
 
 ```text
 source evidence -> observed problem -> upstream interface -> repair surface -> validation command
 ```
+
+It may also project non-blocking headroom from dimensions in the latest passing
+Workflow scorecard. These `quality_opportunities` identify existing repair
+surfaces but do not change the Improvement verdict or invent a new quality
+threshold.
 
 It does not mutate workspace state, rerun units, rewrite final deliverables, or
 claim semantic quality evaluation.
@@ -43,7 +48,8 @@ claim semantic quality evaluation.
 
 Self-improvement becomes a visible harness behavior rather than a vague prompt
 instruction. Future agents and maintainers can inspect what failed, where the
-failure likely belongs, and which local command should verify the repair.
+failure likely belongs, which accepted dimensions still have measurable
+headroom, and which local command should verify a repair.
 
 If future work adds artifact-pack export, natural-language checkpoint
 operations, or an autonomous policy loop, those features should consume or

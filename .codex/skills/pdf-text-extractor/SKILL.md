@@ -4,9 +4,6 @@ description: |
   Download PDFs (when available) and extract plain text to support full-text evidence, writing `papers/fulltext_index.jsonl` and `papers/fulltext/*.txt`.
   **Trigger**: PDF download, fulltext, extract text, papers/pdfs, 全文抽取, 下载PDF.
   **Use when**: `queries.md` 设置 `evidence_mode: fulltext`（或你明确需要全文证据）并希望为 paper notes/claims 提供更强 evidence。
-  **Skip if**: `evidence_mode: abstract`（默认）；或你不希望进行下载/抽取（成本/权限/时间）。
-  **Network**: fulltext 下载通常需要网络（除非你手工提供 PDF 缓存在 `papers/pdfs/`）。
-  **Guardrail**: 缓存下载到 `papers/pdfs/`；默认不覆盖已有抽取文本（除非显式要求重抽）。
 ---
 
 # PDF Text Extractor

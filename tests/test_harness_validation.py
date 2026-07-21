@@ -83,7 +83,7 @@ def _valid_taxonomy_text() -> str:
         "`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`.\n\n"
         "## Survey Delivery Profiles\n\n"
         "Course reports use the bounded-report use-case overlay in survey workflows.\n\n"
-        "## Current Priority\n\n"
+        "## Evidence Gaps\n\n"
         "`paper-review`\n\n"
     )
 

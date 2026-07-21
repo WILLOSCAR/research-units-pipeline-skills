@@ -188,7 +188,13 @@ def commit_unit_completion(
             attempt_execution=attempt_execution,
         )
 
-    from tooling.quality_gate import check_completion_invariants, has_completion_invariant
+    from tooling.quality_gate import (
+        check_completion_acceptance,
+        check_completion_invariants,
+        completion_check_required,
+        has_completion_invariant,
+        write_quality_report,
+    )
 
     invariant_issues = check_completion_invariants(skill=skill, workspace=workspace, outputs=outputs)
     if invariant_issues:
@@ -219,16 +225,72 @@ def commit_unit_completion(
         verified_failure_types.add("section_first_cutover")
 
     scorecard = load_declared_scorecard(workspace, outputs)
-    if scorecard is not None:
-        if not scorecard.validation_errors:
-            record_evaluation(
+    if scorecard is not None and not scorecard.validation_errors:
+        # Evaluation is Attempt evidence even when another Workflow acceptance
+        # check blocks Completion later in this transaction.
+        record_evaluation(
+            workspace=workspace,
+            attempt_id=attempt_id,
+            unit_id=unit_id,
+            skill=skill,
+            scorecard_path=scorecard.relpath,
+            payload=scorecard.payload,
+        )
+
+    acceptance_required = completion_check_required(skill=skill, workspace=workspace)
+    acceptance_issues = check_completion_acceptance(skill=skill, workspace=workspace, outputs=outputs)
+    if acceptance_required:
+        try:
+            report_path = write_quality_report(
                 workspace=workspace,
-                attempt_id=attempt_id,
                 unit_id=unit_id,
                 skill=skill,
-                scorecard_path=scorecard.relpath,
-                payload=scorecard.payload,
+                issues=acceptance_issues,
             )
+        except Exception as exc:
+            rejection = f"Workflow quality report could not be written: {type(exc).__name__}: {exc}"
+            return _reject_completion(
+                workspace=workspace,
+                repo_root=repo_root,
+                unit_id=unit_id,
+                attempt_id=attempt_id,
+                skill=skill,
+                outputs=outputs,
+                exit_code=exit_code,
+                failure_type="quality_report_error",
+                symptom=rejection,
+                causal_behavior="The acceptance result could not be persisted for review.",
+                harness_mechanism="Completion fails closed when the mandatory quality report is not durable.",
+                repair_surface=["output/QUALITY_GATE.md", "tooling/quality_reporting.py"],
+                severity="high",
+                write_manifest=False,
+                attempt_execution=attempt_execution,
+            )
+        if acceptance_issues:
+            rejection = "; ".join(str(issue.message) for issue in acceptance_issues[:3])
+            rel_report = str(report_path.relative_to(workspace))
+            repair_surface = [rel_report, f".codex/skills/{skill}/SKILL.md"]
+            if any(issue.code == "completion_contract_unavailable" for issue in acceptance_issues):
+                repair_surface = [rel_report, "PIPELINE.lock.md"]
+            return _reject_completion(
+                workspace=workspace,
+                repo_root=repo_root,
+                unit_id=unit_id,
+                attempt_id=attempt_id,
+                skill=skill,
+                outputs=outputs,
+                exit_code=exit_code,
+                failure_type="acceptance_contract_failed",
+                symptom=rejection,
+                causal_behavior="The Skill produced its declared files, but the Workflow acceptance contract did not pass.",
+                harness_mechanism="The Completion Protocol runs Workflow-required checks before committing DONE.",
+                repair_surface=repair_surface,
+                attempt_execution=attempt_execution,
+            )
+        verified_failure_types.add("acceptance_contract_failed")
+        verified_failure_types.add("quality_report_error")
+
+    if scorecard is not None:
         semantic_failure = scorecard_failure(scorecard)
         if semantic_failure is not None:
             rejection = str(semantic_failure["symptom"])

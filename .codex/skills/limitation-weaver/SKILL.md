@@ -3,10 +3,6 @@ name: limitation-weaver
 description: |
   Rewrite limitation passages so the paper keeps limitations without falling into count-based slot phrases (e.g., \"Two limitations…\") across many H3s.
   **Trigger**: limitation weaver, rewrite limitations, remove two limitations, 去Two limitations, 局限改写, caveat rewrite.
-  **Use when**: `writer-selfloop` is PASS but flags repeated count-based limitation openers in `output/WRITER_SELFLOOP_TODO.md`, or multiple H3s share the same limitation cadence.
-  **Skip if**: the limitation is evidence-missing (route upstream), or you are pre-C2 (NO PROSE).
-  **Network**: none.
-  **Guardrail**: do not invent facts; do not add/remove/move citation keys; do not delete subsection-specific limitations; keep claim→evidence anchoring intact.
 ---
 
 # Limitation Weaver (keep caveats, lose the slot phrase)

@@ -4,9 +4,6 @@ description: |
   Write survey prose into per-section files under `sections/` so each unit can be QA'd independently before merging.
   **Trigger**: subsection writer, per-section writing, split sections, sections/, 分小节写, 按章节拆分写作.
   **Use when**: `Approve C2` is recorded and writer packs exist (`outline/writer_context_packs.jsonl`); you want evidence-bounded drafting without a monolithic one-shot draft.
-  **Skip if**: `DECISIONS.md` approval is missing, or `outline/evidence_drafts.jsonl` / `citations/ref.bib` is missing.
-  **Network**: none.
-  **Guardrail**: do not invent facts/citations; no TODO/ellipsis leakage; keep citations subsection- or chapter-scoped; H3 body files and chapter leads must not contain headings.
 ---
 
 # Subsection Writer (compatibility router)

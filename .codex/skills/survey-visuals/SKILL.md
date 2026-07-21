@@ -4,9 +4,6 @@ description: |
   Draft non-prose visuals artifacts (timeline, figure specs) for a survey, grounded in evidence and using citation keys from `citations/ref.bib`.
   **Trigger**: survey visuals, timeline, figures, visuals, 图表, 时间线, figure spec.
   **Use when**: survey 的 C4（NO PROSE），已有 outline + claim/evidence + citations，需要先把时间线/图规格落盘。
-  **Skip if**: 你只关心正文（可跳过）；或缺少 `citations/ref.bib`。
-  **Network**: none.
-  **Guardrail**: NO PROSE；产物必须具体且可核对（含 citations），禁止遗留 TODO/SCAFFOLD。
 ---
 
 # Survey Visuals (timeline + figure specs; NO PROSE)

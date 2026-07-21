@@ -4,9 +4,6 @@ description: |
   Remove repeated boilerplate across sections (methodology disclaimers, generic transitions, repeated summaries) while preserving citations and meaning.
   **Trigger**: redundancy, repetition, boilerplate removal, 去重复, 去套话, 合并重复段落.
   **Use when**: the draft feels rigid because the same paragraph shape and disclaimer repeats across many subsections.
-  **Skip if**: you are still drafting major missing sections (finish drafting first).
-  **Network**: none.
-  **Guardrail**: do not add/remove citation keys; do not move citations across subsections; do not delete subsection-specific content.
 ---
 
 # Redundancy Pruner
