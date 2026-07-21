@@ -43,6 +43,7 @@ quality_contract:
   evidence_mode: light
   retrieval_policy:
     domain_pack_query_mode: explicit
+    minimum_records: 15
   candidate_pool_policy:
     keep_full_deduped_pool: false
     include_domain_pins: false

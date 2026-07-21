@@ -41,6 +41,8 @@ Do not treat `run.py` as the place for:
   `quality_contract.retrieval_policy.domain_pack_query_mode: explicit`; in that
   mode, the query list in `queries.md` remains authoritative and the domain
   pack must not replace its topic focus.
+- `quality_contract.retrieval_policy.minimum_records` turns a Workflow's raw
+  candidate-pool floor into a strict quality-gate check.
 
 ## Input
 

@@ -176,13 +176,33 @@ def check_pdf_text_extractor(workspace: Path, outputs: list[str]) -> list[Qualit
 
 
 def check_arxiv_search(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    from tooling.common import read_jsonl
+    from tooling.common import pipeline_quality_contract_value, read_jsonl
 
     out_rel = outputs[0] if outputs else "papers/papers_raw.jsonl"
     path = workspace / out_rel
     records = read_jsonl(path)
     if not records:
         return [QualityIssue(code="empty_raw", message=f"No records found in `{out_rel}`.")]
+
+    minimum_records = int(
+        pipeline_quality_contract_value(
+            workspace,
+            "retrieval_policy",
+            "minimum_records",
+            default=1,
+        )
+        or 1
+    )
+    if len(records) < minimum_records:
+        return [
+            QualityIssue(
+                code="raw_pool_too_small",
+                message=(
+                    f"`{out_rel}` contains {len(records)} records; the Workflow contract "
+                    f"requires at least {minimum_records}. Broaden or repair the query before ranking."
+                ),
+            )
+        ]
 
     placeholders = 0
     arxiv_sources = 0

@@ -790,6 +790,12 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
             )
         )
         if adaptation_focus:
+            if profile == "research-brief":
+                keyword_suggestions.append(
+                    "(all:robot OR all:robotic OR all:embodied) AND "
+                    "(all:adaptation OR all:shift OR all:sim-to-real OR "
+                    "all:continual OR all:out-of-distribution)"
+                )
             keyword_suggestions.extend(
                 [
                     "embodied agent adaptation",

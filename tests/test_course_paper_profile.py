@@ -142,6 +142,7 @@ def test_research_brief_goal_seeds_the_research_subject_not_delivery_language() 
         )
 
     assert '  - "reliable adaptation of embodied agents under distribution shift"' in queries
+    assert "(all:robot OR all:robotic OR all:embodied) AND" in queries
     assert '  - "robot policy adaptation"' in queries
     assert '  - "robot learning distribution shift"' in queries
     assert "bounded reading path" not in queries

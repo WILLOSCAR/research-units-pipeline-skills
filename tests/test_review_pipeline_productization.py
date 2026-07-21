@@ -11,6 +11,7 @@ from pathlib import Path
 
 from tooling.common import resolve_pipeline_spec_path
 from tooling.pipeline_spec import PipelineSpec
+from tooling.quality_checks.survey_retrieval import check_arxiv_search
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,7 @@ class ReviewPipelineProductizationTests(unittest.TestCase):
         self.assertEqual(spec.query_defaults["max_results"], 80)
         self.assertEqual(spec.query_defaults["core_size"], 12)
         self.assertEqual(spec.quality_contract["retrieval_policy"]["domain_pack_query_mode"], "explicit")
+        self.assertEqual(spec.quality_contract["retrieval_policy"]["minimum_records"], 15)
         self.assertFalse(spec.quality_contract["candidate_pool_policy"]["include_domain_pins"])
         self.assertEqual(spec.quality_contract["candidate_pool_policy"]["minimum_domain_surveys"], 1)
         self.assertEqual(spec.quality_contract["candidate_pool_policy"]["survey_title_bonus"], 0)
@@ -150,6 +152,38 @@ class ReviewPipelineProductizationTests(unittest.TestCase):
             self.assertNotIn("Octo: An Open-Source Generalist Robot Policy", {row["title"] for row in rows})
             self.assertEqual(sum("prior_survey" in row["reason"] for row in rows), 1)
             self.assertEqual(sum("Adaptation under Distribution Shift" in row["title"] for row in rows), 3)
+
+    def test_research_brief_rejects_an_undersized_raw_pool(self) -> None:
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/research-brief.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "queries.md").write_text(
+                "- keywords:\n  - robot policy adaptation\n  - robot learning distribution shift\n",
+                encoding="utf-8",
+            )
+            records = [
+                {
+                    "title": f"Robot Adaptation Study {idx}",
+                    "year": 2025,
+                    "url": f"https://arxiv.org/abs/2501.{idx:05d}",
+                    "source": "arxiv",
+                    "query": ["robot policy adaptation"],
+                }
+                for idx in range(9)
+            ]
+            (workspace / "papers" / "papers_raw.jsonl").write_text(
+                "\n".join(json.dumps(record) for record in records) + "\n",
+                encoding="utf-8",
+            )
+
+            issues = check_arxiv_search(workspace, ["papers/papers_raw.jsonl"])
+
+            self.assertEqual([issue.code for issue in issues], ["raw_pool_too_small"])
+            self.assertIn("requires at least 15", issues[0].message)
 
     def test_paper_review_pipeline_spec_loads(self) -> None:
         path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="paper-review")
