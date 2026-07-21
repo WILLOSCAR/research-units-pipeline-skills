@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import re
 
 
 def _markdown_table(headers: list[str], rows: list[list[str]]) -> str:
@@ -148,14 +149,14 @@ def render_research_brief_markdown(*, goal: str, papers: list[dict[str, str]], s
     for paper in chosen[:6]:
         pointer = _brief_pointer(paper)
         abstract = str(paper.get("abstract") or "").strip()
-        insight = abstract or f"Use this paper to understand {paper.get('title') or 'the topic'}"
+        insight = _brief_summary(abstract, max_words=45) or f"Use this paper to understand {paper.get('title') or 'the topic'}"
         lines.append(f"- {insight.rstrip('.')} [{pointer}].")
 
     lines.extend(["", "## What to read first"])
-    for paper in chosen[:6]:
+    for paper in chosen[:4]:
         pointer = _brief_pointer(paper)
         abstract = str(paper.get("abstract") or "").strip()
-        reason = abstract or "Representative item from the ranked core set."
+        reason = _brief_summary(abstract, max_words=28) or "Representative item from the ranked core set."
         lines.append(f"- {pointer}: {reason.rstrip('.')}.")
 
     lines.extend(
@@ -175,6 +176,57 @@ def _brief_pointer(paper: dict[str, str]) -> str:
     title = str(paper.get("title") or "Untitled paper").strip()
     url = str(paper.get("url") or "").strip()
     return f"{paper_id} - {title}" + (f" ({url})" if url else "")
+
+
+def _brief_summary(text: str, *, max_words: int) -> str:
+    clean = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not clean:
+        return ""
+
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", clean)
+        if sentence.strip()
+    ]
+    action_pattern = re.compile(
+        r"(?i)\b(?:we|the authors?|this (?:paper|work|study|survey|review))\s+"
+        r"(?:propose|present|introduce|develop|demonstrate|evaluate|show|find|review)s?\b"
+    )
+    result_pattern = re.compile(
+        r"(?i)\b(?:results?|experiments?|evaluation|findings?)\b.*\b"
+        r"(?:show|demonstrate|improve|outperform|reveal|indicate)s?\b"
+    )
+    focus_pattern = re.compile(
+        r"(?i)\b(?:adaptation|distribution shift|out-of-distribution|sim-to-real|"
+        r"continual learning|deployment|transfer)\b"
+    )
+
+    def sentence_score(sentence: str) -> int:
+        return (
+            6 * bool(action_pattern.search(sentence))
+            + 5 * bool(result_pattern.search(sentence))
+            + 2 * bool(focus_pattern.search(sentence))
+            - 4 * bool(re.search(r"(?i)\b(?:to do so|this approach|this method)\b", sentence))
+        )
+
+    summary = max(
+        enumerate(sentences),
+        key=lambda item: (sentence_score(item[1]), -item[0]),
+    )[1]
+    summary = re.sub(r"(?i)\bthis\s+(?:survey|review|paper|work|study)\b", "The study", summary)
+    summary = re.sub(
+        r"(?i)\bwe\s+(propose|present|introduce|develop|show|demonstrate|evaluate|find|review)\b",
+        lambda match: f"The authors {match.group(1).lower()}",
+        summary,
+    )
+    summary = re.sub(r"(?i)\bour\b", "the study's", summary)
+    summary = re.sub(r"(?<=, )The\s+", "the ", summary)
+    summary = re.sub(r"https?://\S+", "", summary).strip()
+
+    words = summary.split()
+    if len(words) > max_words:
+        summary = " ".join(words[:max_words]).rstrip(" ,;:-") + "..."
+    return summary.strip()
 
 
 def render_evidence_synthesis_markdown(rows: list[dict[str, str]]) -> str:

@@ -34,6 +34,7 @@ Optional:
 `scripts/run.py` should stay a thin adapter over shared review tooling:
 - read outline/core-set inputs
 - use the concrete Goal and available abstracts instead of copying survey scaffold bullets
+- select bounded method/result sentences from abstracts; never duplicate full abstracts into multiple sections
 - build a compact pointer-heavy briefing
 - write `output/SNAPSHOT.md`
 
@@ -54,6 +55,7 @@ The output should:
 - includes `## Scope`, `## Key themes`, `## What to read first`, and `## Open problems / risks`
 - includes at least three explicit paper pointers that resolve to `papers/core_set.csv`
 - keeps Scope and Key themes grounded in at least two core-set papers
+- stays within the Workflow evaluator's 100-1200 word compactness band
 - contains no survey-only scaffolding such as citation quotas, chapter plans, or "why this survey" narration
 
 ## Non-goals

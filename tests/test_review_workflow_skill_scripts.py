@@ -3,12 +3,15 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+
+from tooling.review_render import render_research_brief_markdown
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +39,79 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
             text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
             self.assertIn("[x] Approve C2", text)
+
+    def test_research_brief_renderer_bounds_long_real_source_abstracts(self) -> None:
+        long_tail = " ".join(["additional evidence and implementation detail"] * 80)
+        papers = [
+            {
+                "paper_id": f"P{idx:04d}",
+                "title": f"Adaptation Study {idx}",
+                "url": f"https://arxiv.org/abs/2501.{idx:05d}",
+                "abstract": (
+                    "This survey reviews embodied robot adaptation under distribution shift. "
+                    "We demonstrate a bounded transfer evaluation across deployment settings. "
+                    f"{long_tail}"
+                ),
+            }
+            for idx in range(1, 7)
+        ]
+
+        text = render_research_brief_markdown(
+            goal="# Goal\n\nUnderstand embodied robot adaptation.",
+            papers=papers,
+            sections=["Methods", "Evaluation", "Deployment"],
+        )
+
+        words = re.findall(r"\b\w+\b", text)
+        self.assertGreaterEqual(len(words), 100)
+        self.assertLessEqual(len(words), 1200)
+        self.assertNotIn("this survey", text.lower())
+        self.assertIn("P0006", text)
+        self.assertEqual(text.count("## What to read first"), 1)
+
+    def test_research_brief_renderer_prefers_method_sentence_over_background(self) -> None:
+        text = render_research_brief_markdown(
+            goal="# Goal\n\nUnderstand deployment adaptation.",
+            papers=[
+                {
+                    "paper_id": "P0001",
+                    "title": "Adaptive Teleoperation",
+                    "url": "https://example.com/p1",
+                    "abstract": (
+                        "Teleoperation supports collecting robot demonstrations at scale. "
+                        "This paper develops a domain-adaptive controller for deployment shift. "
+                        "Experiments show lower reconstruction error under changing channels."
+                    ),
+                },
+                {
+                    "paper_id": "P0002",
+                    "title": "Transfer Study",
+                    "url": "https://example.com/p2",
+                    "abstract": "We propose a transfer policy for sim-to-real adaptation.",
+                },
+                {
+                    "paper_id": "P0003",
+                    "title": "Continual Study",
+                    "url": "https://example.com/p3",
+                    "abstract": "We present a continual learning method for robot deployment.",
+                },
+                {
+                    "paper_id": "P0004",
+                    "title": "Representation Study",
+                    "url": "https://example.com/p4",
+                    "abstract": (
+                        "We propose to do so using a generic objective. "
+                        "We propose Contrastive Forward Dynamics for sim-to-real adaptation."
+                    ),
+                },
+            ],
+            sections=["Methods", "Evaluation"],
+        )
+
+        self.assertIn("The study develops a domain-adaptive controller", text)
+        self.assertIn("The authors propose Contrastive Forward Dynamics", text)
+        self.assertNotIn("supports collecting robot demonstrations", text)
+        self.assertNotIn("propose to do so", text)
 
     def test_style_certification_adapters_block_until_writer_report_is_clean(self) -> None:
         cases = {
