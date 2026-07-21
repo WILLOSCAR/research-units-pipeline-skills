@@ -1,6 +1,6 @@
 ---
 name: research-brief
-version: 1.2
+version: 1.3
 profile: research-brief
 routing_hints: [research brief, rapid review, topic overview, briefing, newcomer memo, snapshot, literature snapshot, help me understand, understand a topic, reading path, what should i read, 速览, 快速理解, 研究速览, 帮我理解, 快速了解, 入门, 阅读路径, 先读什么]
 routing_priority: 32
@@ -41,8 +41,13 @@ overridable_query_fields:
 quality_contract:
   deliverable_kind: brief
   evidence_mode: light
+  retrieval_policy:
+    domain_pack_query_mode: explicit
   candidate_pool_policy:
     keep_full_deduped_pool: false
+    include_domain_pins: false
+    minimum_domain_surveys: 1
+    survey_title_bonus: 0
   brief_policy:
     primary_deliverable: output/SNAPSHOT.md
     style: bullets_first

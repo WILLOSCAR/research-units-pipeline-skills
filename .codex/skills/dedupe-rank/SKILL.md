@@ -37,8 +37,14 @@ The script should prefer pipeline contract metadata over profile-name branching.
 
 Current important field:
 - `quality_contract.candidate_pool_policy.keep_full_deduped_pool`
+- `quality_contract.candidate_pool_policy.include_domain_pins`
+- `quality_contract.candidate_pool_policy.minimum_domain_surveys`
+- `quality_contract.candidate_pool_policy.survey_title_bonus`
 
 If true, the script keeps the full deduped pool in `papers/core_set.csv` unless the user explicitly overrides core size.
+Focused briefing Workflows can disable unconditional domain pins, reserve a
+smaller survey floor, and remove the generic survey-title bonus without
+changing broad Survey defaults.
 
 ## Acceptance
 

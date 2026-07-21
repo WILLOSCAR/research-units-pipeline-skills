@@ -733,6 +733,9 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
     keyword_suggestions = _query_seed_variants(topic_for_queries)
     tlow = topic_for_queries.lower()
     is_agent = any(t in tlow for t in ("agent", "agents", "agentic"))
+    is_llm_agent = is_agent and any(
+        t in tlow for t in ("llm", "language model", "large language model", "gpt")
+    )
     is_embodied = any(
         t in tlow
         for t in (
@@ -753,7 +756,7 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
     is_diffusion = "diffusion" in tlow
     is_generative = is_text_to_image or is_text_to_video or is_diffusion or ("image generation" in tlow) or ("generative" in tlow)
 
-    if is_agent:
+    if is_llm_agent:
         keyword_suggestions.extend(
             [
                 "LLM agent",
@@ -774,23 +777,49 @@ def seed_queries_from_topic(queries_path: Path, topic: str) -> None:
         exclude_suggestions.extend(["react hooks", "perovskite", "banach", "coxeter"])
 
     if is_embodied:
-        keyword_suggestions.extend(
-            [
-                "embodied AI survey",
-                "embodied AI review",
-                "embodied intelligence survey",
-                "embodied agent survey",
-                "robot foundation model survey",
-                "robot learning survey",
-                "robot manipulation survey",
-                "embodied robotics survey",
-                "vision-language-action survey",
-                "vision-language-action model",
-                "robot foundation model",
-                "generalist robot policy",
-                "world model robot",
-            ]
+        adaptation_focus = any(
+            term in tlow
+            for term in (
+                "adaptation",
+                "distribution shift",
+                "domain shift",
+                "out-of-distribution",
+                "test-time",
+                "continual learning",
+                "sim-to-real",
+            )
         )
+        if adaptation_focus:
+            keyword_suggestions.extend(
+                [
+                    "embodied agent adaptation",
+                    "robot policy adaptation",
+                    "robot learning distribution shift",
+                    "robot domain adaptation",
+                    "robot test-time adaptation",
+                    "sim-to-real policy adaptation",
+                    "continual robot learning",
+                    "out-of-distribution robot policy",
+                ]
+            )
+        else:
+            keyword_suggestions.extend(
+                [
+                    "embodied AI survey",
+                    "embodied AI review",
+                    "embodied intelligence survey",
+                    "embodied agent survey",
+                    "robot foundation model survey",
+                    "robot learning survey",
+                    "robot manipulation survey",
+                    "embodied robotics survey",
+                    "vision-language-action survey",
+                    "vision-language-action model",
+                    "robot foundation model",
+                    "generalist robot policy",
+                    "world model robot",
+                ]
+            )
 
     stripped_output_terms = topic_for_queries.lower().strip() != raw_tlow.strip()
     if stripped_output_terms and any(t in raw_tlow for t in ("latex", "pdf", "markdown", "typesetting")):
@@ -974,6 +1003,20 @@ def _sanitize_topic_for_query_seed(topic: str) -> str:
     text = str(topic or "").strip()
     if not text:
         return ""
+
+    brief_prefix = re.compile(
+        r"(?i)^\s*(?:please\s+)?(?:produce|write|draft|prepare|create)\s+"
+        r"(?:an?\s+)?(?:(?:compact|traceable|concise|high-signal|one-page)\s*,?\s*)*"
+        r"(?:research\s+)?(?:brief|briefing|snapshot|overview)\s+(?:on|about)\s+"
+    )
+    if brief_prefix.match(text):
+        text = brief_prefix.sub("", text)
+        text = re.sub(
+            r"(?i),\s+with\s+(?:an?\s+)?(?:bounded|explicit|clear|concise|short)\b.*$",
+            "",
+            text,
+        )
+
     patterns = [
         r"(?i)^\s*(?:please\s+)?(?:use|run)\s+(?:the\s+)?arxiv[-_\s]survey(?:[-_\s]latex)?(?:\s+workflow)?\s+(?:to\s+)?",
         r"^\s*(?:请)?使用\s*arxiv[-_\s]survey(?:[-_\s]latex)?(?:\s*工作流)?(?:来|去)?\s*",

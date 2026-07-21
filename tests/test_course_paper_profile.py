@@ -123,6 +123,32 @@ def test_workflow_instruction_is_removed_before_query_seeding() -> None:
     assert _sanitize_topic_for_query_seed(chinese_request) == "检索增强生成评测"
 
 
+def test_research_brief_goal_seeds_the_research_subject_not_delivery_language() -> None:
+    request = (
+        "Produce a compact, traceable research brief on reliable adaptation of "
+        "embodied agents under distribution shift, with a bounded reading path "
+        "and explicit open risks."
+    )
+
+    assert _sanitize_topic_for_query_seed(request) == (
+        "reliable adaptation of embodied agents under distribution shift"
+    )
+
+    with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+        queries = _kickoff(
+            workspace=Path(tmp),
+            topic=request,
+            pipeline="research-brief",
+        )
+
+    assert '  - "reliable adaptation of embodied agents under distribution shift"' in queries
+    assert '  - "robot policy adaptation"' in queries
+    assert '  - "robot learning distribution shift"' in queries
+    assert "bounded reading path" not in queries
+    assert '  - "LLM agent"' not in queries
+    assert '  - "embodied AI survey"' not in queries
+
+
 def test_delivery_format_detection_requires_delivery_context() -> None:
     assert requested_delivery_formats("Analyze PDF output fidelity in multimodal models") == []
     assert requested_delivery_formats("Analyze LaTeX parsing failures in research corpora") == []

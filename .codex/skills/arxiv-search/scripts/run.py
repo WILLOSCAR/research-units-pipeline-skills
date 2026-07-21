@@ -504,14 +504,26 @@ def _build_arxiv_query(queries: list[str], workspace: Path | None = None) -> str
     if not queries:
         return ""
 
-    # Domain-pack detection: when a pack matches the workspace context,
-    # rewrite the query using its core/signal clauses instead of raw ORs.
+    # Domain-pack rewrites remain the default for broad discovery workflows.
+    # Focused workflows can make their explicit query list authoritative.
     if workspace is not None:
-        pack = _load_domain_pack(workspace)
-        if _domain_pack_matches(queries, pack):
-            rewritten = _domain_pack_query(queries, pack)  # type: ignore[arg-type]
-            if rewritten:
-                return rewritten
+        from tooling.common import pipeline_quality_contract_value
+
+        query_mode = str(
+            pipeline_quality_contract_value(
+                workspace,
+                "retrieval_policy",
+                "domain_pack_query_mode",
+                default="rewrite",
+            )
+            or "rewrite"
+        ).strip().lower()
+        if query_mode != "explicit":
+            pack = _load_domain_pack(workspace)
+            if _domain_pack_matches(queries, pack):
+                rewritten = _domain_pack_query(queries, pack)  # type: ignore[arg-type]
+                if rewritten:
+                    return rewritten
 
     parts: list[str] = []
     for q in queries:

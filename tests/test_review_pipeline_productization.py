@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import importlib.util
 import json
 import subprocess
 import sys
@@ -12,6 +14,16 @@ from tooling.pipeline_spec import PipelineSpec
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_skill_script(skill_name: str):
+    script = REPO_ROOT / ".codex" / "skills" / skill_name / "scripts" / "run.py"
+    spec = importlib.util.spec_from_file_location(f"{skill_name.replace('-', '_')}_product_test", script)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 class ReviewPipelineProductizationTests(unittest.TestCase):
@@ -27,7 +39,117 @@ class ReviewPipelineProductizationTests(unittest.TestCase):
         self.assertIn("output/BRIEF_SCORECARD.json", spec.target_artifacts)
         self.assertEqual(spec.query_defaults["max_results"], 80)
         self.assertEqual(spec.query_defaults["core_size"], 12)
+        self.assertEqual(spec.quality_contract["retrieval_policy"]["domain_pack_query_mode"], "explicit")
+        self.assertFalse(spec.quality_contract["candidate_pool_policy"]["include_domain_pins"])
+        self.assertEqual(spec.quality_contract["candidate_pool_policy"]["minimum_domain_surveys"], 1)
+        self.assertEqual(spec.quality_contract["candidate_pool_policy"]["survey_title_bonus"], 0)
         self.assertEqual(spec.quality_contract["semantic_rubric"]["pass_score"], 80)
+
+    def test_research_brief_explicit_queries_are_not_replaced_by_domain_pack(self) -> None:
+        module = _load_skill_script("arxiv-search")
+        queries = ["robot policy adaptation", "robot learning distribution shift"]
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/research-brief.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "GOAL.md").write_text(
+                "# Goal\n\nReliable adaptation of embodied agents under distribution shift.\n",
+                encoding="utf-8",
+            )
+            (workspace / "queries.md").write_text(
+                "- keywords:\n  - robot policy adaptation\n  - robot learning distribution shift\n",
+                encoding="utf-8",
+            )
+
+            rendered = module._build_arxiv_query(queries, workspace=workspace)
+
+            self.assertIn('all:"robot policy adaptation"', rendered)
+            self.assertIn('all:"robot learning distribution shift"', rendered)
+            self.assertNotIn("all:vla", rendered)
+
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+                encoding="utf-8",
+            )
+            broad_rendered = module._build_arxiv_query(queries, workspace=workspace)
+            self.assertIn("all:vla", broad_rendered)
+
+    def test_research_brief_core_set_limits_domain_pack_bias(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "dedupe-rank" / "scripts" / "run.py"
+
+        with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
+            workspace = Path(tmp)
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/research-brief.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "GOAL.md").write_text(
+                "# Goal\n\nReliable adaptation of embodied agents under distribution shift.\n",
+                encoding="utf-8",
+            )
+            (workspace / "queries.md").write_text(
+                "- keywords:\n"
+                "  - embodied agent adaptation\n"
+                "  - robot policy adaptation\n"
+                "  - robot learning distribution shift\n"
+                "- core_size: \"4\"\n",
+                encoding="utf-8",
+            )
+
+            records = [
+                {
+                    "title": "Octo: An Open-Source Generalist Robot Policy",
+                    "year": 2024,
+                    "url": "https://arxiv.org/abs/2405.12213",
+                    "arxiv_id": "2405.12213v2",
+                    "abstract": "A generalist robot policy for manipulation.",
+                    "authors": ["Author"],
+                },
+                {
+                    "title": "A Survey of Embodied Robot Policies",
+                    "year": 2025,
+                    "url": "https://example.com/survey",
+                    "abstract": "An overview of embodied robot policy systems.",
+                    "authors": ["Author"],
+                },
+            ]
+            for idx in range(5):
+                records.append(
+                    {
+                        "title": f"Embodied Agent Adaptation under Distribution Shift {idx}",
+                        "year": 2025 + (idx % 2),
+                        "url": f"https://example.com/direct-{idx}",
+                        "abstract": (
+                            "Robot policy adaptation under distribution shift with continual "
+                            "learning and out-of-distribution evaluation."
+                        ),
+                        "authors": ["Author"],
+                    }
+                )
+            (workspace / "papers" / "papers_raw.jsonl").write_text(
+                "\n".join(json.dumps(record) for record in records) + "\n",
+                encoding="utf-8",
+            )
+
+            proc = subprocess.run(
+                [sys.executable, str(script), "--workspace", str(workspace)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+
+            with (workspace / "papers" / "core_set.csv").open(encoding="utf-8", newline="") as handle:
+                rows = list(csv.DictReader(handle))
+
+            self.assertEqual(len(rows), 4)
+            self.assertNotIn("Octo: An Open-Source Generalist Robot Policy", {row["title"] for row in rows})
+            self.assertEqual(sum("prior_survey" in row["reason"] for row in rows), 1)
+            self.assertEqual(sum("Adaptation under Distribution Shift" in row["title"] for row in rows), 3)
 
     def test_paper_review_pipeline_spec_loads(self) -> None:
         path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="paper-review")

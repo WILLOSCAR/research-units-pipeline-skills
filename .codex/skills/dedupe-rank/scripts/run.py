@@ -135,12 +135,35 @@ def main() -> int:
         ):
             # Some evidence-driven contracts should not silently drop candidates.
             core_size = max(core_size, len(deduped))
+    from tooling.common import pipeline_quality_contract_value
+
     query_tokens = _query_tokens(workspace)
-    pinned = _pinned_records(workspace, deduped)
+    include_domain_pins = bool(
+        pipeline_quality_contract_value(
+            workspace,
+            "candidate_pool_policy",
+            "include_domain_pins",
+            default=True,
+        )
+    )
+    pinned = _pinned_records(workspace, deduped) if include_domain_pins else []
+    survey_title_bonus = int(
+        pipeline_quality_contract_value(
+            workspace,
+            "candidate_pool_policy",
+            "survey_title_bonus",
+            default=2,
+        )
+        or 0
+    )
     if query_tokens:
         scored = []
         for record in deduped:
-            score = _relevance_score(record, query_tokens=query_tokens)
+            score = _relevance_score(
+                record,
+                query_tokens=query_tokens,
+                survey_title_bonus=survey_title_bonus,
+            )
             scored.append((score, int(record.get("year") or 0), str(record.get("title") or ""), record))
         # Prefer relevance; break ties by recency and title.
         scored.sort(key=lambda t: (-t[0], -t[1], t[2]))
@@ -162,10 +185,19 @@ def main() -> int:
         pack = _load_domain_pack(workspace)
         if pack is not None:
             sd = pack.get("survey_detection") or {}
-            floor = int(sd.get("min_surveys_floor") or 4)
-            cap = int(sd.get("min_surveys_cap") or 8)
-            ratio = float(sd.get("min_surveys_ratio") or 0.025)
-            min_surveys = min(cap, max(floor, int(core_size * ratio)))
+            policy_floor = pipeline_quality_contract_value(
+                workspace,
+                "candidate_pool_policy",
+                "minimum_domain_surveys",
+                default=None,
+            )
+            if policy_floor is not None:
+                min_surveys = max(0, int(policy_floor))
+            else:
+                floor = int(sd.get("min_surveys_floor") or 4)
+                cap = int(sd.get("min_surveys_cap") or 8)
+                ratio = float(sd.get("min_surveys_ratio") or 0.025)
+                min_surveys = min(cap, max(floor, int(core_size * ratio)))
         surveys_picked = 0
         if min_surveys:
             sd = (pack or {}).get("survey_detection") or {}
@@ -456,7 +488,12 @@ def _is_domain_survey_record(record: dict[str, Any], survey_detection: dict[str,
     return any(kw in abstract for kw in agent_kws)
 
 
-def _relevance_score(record: dict[str, Any], *, query_tokens: set[str]) -> int:
+def _relevance_score(
+    record: dict[str, Any],
+    *,
+    query_tokens: set[str],
+    survey_title_bonus: int = 2,
+) -> int:
     from tooling.common import tokenize
 
     title = str(record.get("title") or "").strip()
@@ -466,7 +503,7 @@ def _relevance_score(record: dict[str, Any], *, query_tokens: set[str]) -> int:
     base = sum(1 for t in query_tokens if t in tokens)
     title_low = title.lower()
     if "survey" in title_low or "review" in title_low:
-        base += 2
+        base += max(0, int(survey_title_bonus))
     return base
 
 

@@ -34,6 +34,14 @@ Do not treat `run.py` as the place for:
 - hardcoded topic detection or query rewriting (use domain packs)
 - domain-specific pinned paper lists (externalize to `assets/domain_packs/`)
 
+## Contract-driven behavior
+
+- Domain-pack query rewriting is the default for broad discovery Workflows.
+- A focused Workflow may set
+  `quality_contract.retrieval_policy.domain_pack_query_mode: explicit`; in that
+  mode, the query list in `queries.md` remains authoritative and the domain
+  pack must not replace its topic focus.
+
 ## Input
 
 - `queries.md` (keywords, excludes, time window)
