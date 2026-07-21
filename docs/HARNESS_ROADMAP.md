@@ -80,19 +80,21 @@ cross-ledger errors remain visible and six compatibility-sensitive issue types
 are identified as historical evidence gaps. This is compatibility
 classification, not retrospective certification.
 
-A [current versioned Research Brief proof](../examples/research-brief-harness-proof/README.md)
-now completes the same 11-Unit shape with 11 successful Attempts, 11 final
-Manifests, 19/19 target Artifacts, no integrity issues, and a passing
-before/after Audit Diff. Its retrieval input is synthetic, so the next pressure
-remains a real-source Run rather than another fixture-only success.
+A [versioned synthetic Research Brief proof](../examples/research-brief-harness-proof/README.md)
+and a separate [real-source arXiv proof](../examples/research-brief-real-source-proof/README.md)
+now complete the same 11-Unit shape with 11 successful Attempts, 11 final
+Manifests, 19/19 target Artifacts, no integrity issues, and passing Audit Diffs.
+The real-source Run also exposed and repaired query-focus, minimum-retrieval,
+and compact-delivery failures before being restarted from a clean revision.
 
 Next pressure:
 
 - inject process termination at each Completion stage and verify deterministic
   recovery across real Workspaces;
-- repeat the versioned Research Brief proof with real retrieved sources, then
-  compare its Audit and scorecard with the synthetic proof and audited
-  unversioned historical Run;
+- repeat the real-source Research Brief across unrelated topics and evaluate
+  semantic relevance, reading-path usefulness, and retrieval stability rather
+  than relying on the current lexical score and delivery-only scorecard;
+- add a bounded full-text or expert comparison before claiming content quality;
 - repeat the six-Skill invocation corpus with Codex and another provider;
   capture actual token and per-case latency fields when available, and inspect
   failures before selecting a third cohort; the current challenge pass is a

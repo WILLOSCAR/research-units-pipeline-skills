@@ -38,7 +38,7 @@ held-out evaluation.
 |---|---|---|---|---|---|---|---|
 | Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md` | `Executable` | `Completed semantic pilot` | One bounded-report pilot; general-survey diversity open |
 | Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `latex/main.pdf` | `Executable variant` | `Compiled delivery proof` | Same pilot produced an audited 10-page PDF; portability and repetition open |
-| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Scored fixture proof` | Cross-topic reading-path usefulness open |
+| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Real-source pilot` | One online arXiv Run; cross-topic relevance and reading-path usefulness open |
 | Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md`, scorecard | `Executable` | `Scored fixture proof` | Real-manuscript and expert comparison open |
 | Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md`, scorecard | `Executable` | `Scored fixture proof` | Retrieval completeness and validity judgment open |
 | Ideation | `idea-brainstorm` | `pipelines/idea-brainstorm.pipeline.md` | `templates/UNITS.idea-brainstorm.csv` | `output/REPORT.md`, scorecard | `Executable` | `Scored fixture proof` | Novelty judgment and cross-topic stability open |
@@ -49,9 +49,10 @@ held-out evaluation.
 the research lifecycle and adds TeX/PDF delivery Units and Artifacts.
 
 The `research-brief` proof state is backed by a
-[curated versioned Harness snapshot](../examples/research-brief-harness-proof/README.md).
-Its deterministic synthetic sources make the completion, scorecard, and Audit
-Diff inspectable without implying online retrieval quality.
+[curated versioned Harness snapshot](../examples/research-brief-harness-proof/README.md)
+and a separate [real-source arXiv snapshot](../examples/research-brief-real-source-proof/README.md).
+The first keeps completion evidence deterministic; the second pressures the
+same contract with online retrieval. Neither implies expert scientific review.
 
 ## Survey Delivery Profiles
 

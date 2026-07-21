@@ -23,14 +23,14 @@ contract; `Pilot-proven` means one non-placeholder end-to-end instance exists;
 | Completion integrity | Scripted, manual, and approved Units share one two-phase Completion Protocol; full stage fault matrix open | `Landed` |
 | Recovery | PREPARED Manifest with or without its prepared Event -> committed DONE; dead process-owned `DOING` -> interrupted Attempt -> new Attempt; manual ownership persists and ambiguous legacy `DOING` is reported, not rewritten | `Landed` |
 | Artifact provenance | Unit Manifests, hashes, Artifact ledger, Artifact index, immutable-output drift detection | `Landed` |
-| Cross-ledger Audit | Run identity, Attempt pairs, Manifests, Artifacts, Decisions, Failures, Evaluations, and DONE evidence; unversioned Runs are classified without hiding errors, and a current versioned fixture passes; real-source repetition remains open | `Landed` |
+| Cross-ledger Audit | Run identity, Attempt pairs, Manifests, Artifacts, Decisions, Failures, Evaluations, and DONE evidence; unversioned Runs are classified without hiding errors; current synthetic and real-source Research Brief Runs pass | `Landed` |
 | Implementation freshness | successful Attempts fingerprint their Skill implementation; doctor flags stale DONE Units | `Landed` |
 | Mechanical diagnosis | doctor, audit, Failure ledger, improvement report; applied repair is not a first-class transaction | `Landed` |
 | Inspection composition | standalone Doctor uses a shallow reconciled snapshot; Audit, Improvement, and Artifact index share one deep snapshot; hashing remains a distinct semantic pass | `Landed` |
 | Quality dispatch | Explicit Skill routes across Workflow-family modules, pinned by the Run lock | `Landed` |
 | Skill invocation economy | six lifecycle Skills use compact invocation pointers; a 24-request corpus protects deterministic Workflow routing; a fresh blinded GPT-5.6 Pro run passed all 21 baseline and 12 challenge Skill-selection cases, including ambiguity, lexical-trap, and non-repository slices; cross-model repetition and token traces remain open | `Fixture-proven` |
 | Auto Review proof | realistic scored fixture with semantic failure, repair, rerun, audit, and pack; real-manuscript/expert comparison open | `Fixture-proven` |
-| Research Brief proof | [versioned 11-Unit Harness snapshot](../examples/research-brief-harness-proof/README.md) plus a separate pointer failure, repair, and rerun fixture; synthetic retrieval boundary remains explicit | `Fixture-proven` |
+| Research Brief proof | [versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), and pointer failure/repair coverage; cross-topic and expert comparison remain open | `Pilot-proven` |
 | Research Idea proof | realistic fixture with bounded retrieval defaults plus anchor failure, repair, and rerun | `Fixture-proven` |
 | Evidence Review proof | realistic fixture with protocol-to-synthesis pointer failure, repair, and rerun | `Fixture-proven` |
 | Source Tutorial delivery | local-source fixture -> tutorial -> article PDF + Beamer PDF -> contract audit | `Fixture-proven` |

@@ -103,6 +103,11 @@ Goal 中明确要求“使用全文证据”，同时接受更高的运行时间
 Artifacts、100/100 Workflow Scorecard，以及与历史 Run 的 Audit Diff。其 Sources 为合成
 fixture，因此证明的是 Harness 行为，而非检索覆盖率或科学结论质量。
 
+[真实来源 Research Brief 证据快照](examples/research-brief-real-source-proof/README.md)
+用在线 arXiv 检索重复了同一条 11-Unit 链路：80 条真实元数据、严格质量门、539 词 Brief，
+以及 synthetic-to-real Audit Diff。它验证在线 Source 路径，但不把一次检索包装成完整性或
+专家级内容质量证明。
+
 ## 一个产品循环
 
 | 阶段 | 用户的问题 | 持久记录 |
@@ -158,6 +163,8 @@ Event 或报告。不同 Workspace 仍可独立运行。自动 Attempt 会记录
 
 - `paper-review`、`research-brief`、`idea-brainstorm`、`evidence-review` 已有各自的
   Scorecard，以及模拟真实结构的 Failure -> Repair -> Rerun fixture 测试。
+- `research-brief` 另有一条已完成的真实 arXiv Run；lexical ranking 与单主题证据边界仍属于
+  pilot，不代表通用语义质量已经验证。
 - `source-tutorial` 已有从本地 Source 到 Article PDF 与 Beamer PDF 的严格交付测试。
 - Survey 家族已有一条完成的有界报告/PDF Run（课程论文实例）和较完整的 Contract 测试；
   多主题质量稳定性与真实 Token 对比仍未完成。

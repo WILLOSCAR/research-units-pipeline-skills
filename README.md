@@ -114,6 +114,12 @@ Artifacts, a 100/100 Workflow scorecard, and a historical Audit Diff. Its
 sources are synthetic fixtures, so it proves Harness behavior rather than
 retrieval or scientific quality.
 
+The [real-source Research Brief proof](examples/research-brief-real-source-proof/README.md)
+repeats the 11-Unit shape with 80 live arXiv records, strict quality gates, a
+539-word briefing, and a synthetic-to-real Audit Diff. It validates the online
+source path while keeping retrieval completeness and expert content quality
+explicitly open.
+
 ## One Product Loop
 
 | Stage | User question | Durable record |
@@ -176,6 +182,9 @@ operability is broader than semantic proof:
 - `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review`
   have Workflow-local scorecards plus realistic fixture tests for failure ->
   repair -> rerun behavior.
+- `research-brief` additionally has one completed real-source arXiv Run; its
+  lexical ranking and single-topic boundary remain pilot evidence, not general
+  semantic validation.
 - `source-tutorial` has a strict local-source delivery test through article and
   Beamer PDF compilation.
 - the survey family has one completed bounded-report/PDF Run (a course-paper

@@ -1,0 +1,118 @@
+{
+  "schema": "completed-run-evidence.v1",
+  "captured_at": "2026-07-22T00:57:55+08:00",
+  "workflow": "research-brief",
+  "goal": "Produce a compact, traceable research brief on reliable adaptation of embodied agents under distribution shift, with a bounded reading path and explicit open risks.",
+  "source_mode": "online_arxiv_api",
+  "run_state": "COMPLETED",
+  "completion_protocol": "recoverable-provenance.v1",
+  "strict_quality_gates": true,
+  "repository": {
+    "revision": "b0a3bbd6a81c0ae20ae659b598f944980812e012",
+    "dirty": false,
+    "locked_kernel_files": 29,
+    "locked_skills": 10
+  },
+  "units": {
+    "total": 11,
+    "done": 11,
+    "active": 0
+  },
+  "attempts": {
+    "started": 11,
+    "finished": 11,
+    "succeeded": 11,
+    "open": 0,
+    "retry_units": 0,
+    "extra_attempts": 0,
+    "by_execution_mode": {
+      "process": 11
+    },
+    "measured_scripted_attempts": 10,
+    "total_adapter_elapsed_ms": 9590.789,
+    "max_adapter_elapsed_ms": 9002.307
+  },
+  "retrieval": {
+    "provider": "arxiv_api",
+    "raw_records": 80,
+    "deduplicated_records": 80,
+    "core_papers": 12,
+    "minimum_records_gate": 15
+  },
+  "artifact_audit": {
+    "verdict": "PASS",
+    "target_artifacts_present": 19,
+    "target_artifacts_missing": 0,
+    "unit_manifests": 11,
+    "harness_errors": 0,
+    "harness_warnings": 0,
+    "ledger_integrity_issues": 0,
+    "evidence_mode": "current"
+  },
+  "evaluation": {
+    "schema": "research-brief-scorecard.v1",
+    "verdict": "PASS",
+    "score": 100,
+    "pass_score": 80,
+    "core_papers": 12,
+    "unique_pointers": 6,
+    "reading_path_pointers": 4,
+    "words": 539
+  },
+  "product_loop": {
+    "evidence_verdict": "PASS",
+    "artifact_index_present": 71,
+    "artifact_index_total": 77,
+    "required_evidence": "complete",
+    "optional_diagnostics_absent": 6,
+    "improve_verdict": "PASS",
+    "open_repairs": 0
+  },
+  "baseline_comparison": {
+    "schema": "run-audit-diff.v1",
+    "verdict": "PASS",
+    "before_source_mode": "deterministic_synthetic_fixture",
+    "after_source_mode": "online_arxiv_api",
+    "before_completion_protocol": "recoverable-provenance.v1",
+    "after_completion_protocol": "recoverable-provenance.v1",
+    "manifest_delta": 0,
+    "harness_issue_delta": 0,
+    "retry_unit_delta": 0,
+    "extra_attempt_delta": 0,
+    "measured_attempt_delta": 1,
+    "total_adapter_elapsed_delta_ms": 9185.378
+  },
+  "files": {
+    "GOAL.md": {
+      "sha256": "de42c87b90657c69cef886092af95e5b80bc100ac16a09cd08fca67e40498075"
+    },
+    "queries.md": {
+      "sha256": "bed30d3e151701a7b167610edf2bcaf09c317f5cfe5c32e4913919c14b29139b"
+    },
+    "UNITS.csv": {
+      "sha256": "a34c39d9562676c116754f47d285257df60bd8fee9fee68d8e89abb3ed36b3d0"
+    },
+    "papers/core_set.csv": {
+      "sha256": "1c5905edefe34b4a379654359cfa5a90c4eb4d084359a7b7b6c509e21f93bf54"
+    },
+    "SNAPSHOT.md": {
+      "sha256": "c1c8f994fac6011bca0efdf9cc628560974866bfaf9119e9902b374f86165da2"
+    },
+    "BRIEF_SCORECARD.json": {
+      "sha256": "de4c246935cf2807c9c0c5a9179384f4d83d3f88a0d34ecf5c2be24f3c56e431"
+    },
+    "AUDIT_COMPARISON.md": {
+      "sha256": "6b7b5faf2ccd821da4047b00fcf344551acb05f8c9468e06f1fdb52bbf96a1bb"
+    }
+  },
+  "limitations": [
+    "single topic and single completed online Run",
+    "time-sensitive arXiv API results rather than a frozen retrieval archive",
+    "lexical ranking can retain narrowly relevant papers",
+    "abstract-level metadata rather than full-text evidence",
+    "no held-out evaluator or expert quality comparison",
+    "scorecard validates delivery structure and pointer traceability, not scientific truth",
+    "adapter runtime is not model Token, provider latency, or cost telemetry",
+    "not a reproducible archive of the complete local Workspace"
+  ]
+}

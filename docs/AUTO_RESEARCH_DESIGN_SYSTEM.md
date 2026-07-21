@@ -441,7 +441,7 @@ candidate system must enforce it through process and filesystem permissions.
 | Mechanical failure diagnosis | Doctor, errors, failure ledger, repair map | Medium-high |
 | Semantic evaluation | Auto Review, Research Brief, Research Idea, and Evidence Review scorecards feed one Evaluation ledger; no diverse scored corpus | Medium |
 | Auto Review proof | Realistic fixture completes scorecard failure, repair, rerun, audit, and pack | First fixture proof; real-manuscript/expert comparison open |
-| Research Brief proof | [Versioned 11-Unit Harness snapshot](../examples/research-brief-harness-proof/README.md) plus pointer failure, repair, and rerun coverage | Second fixture proof; real-source repetition open |
+| Research Brief proof | [Versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), plus pointer failure/repair coverage | First real-source pilot; cross-topic and expert comparison open |
 | Research Idea proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | Third fixture proof |
 | Evidence Review proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | Fourth fixture proof |
 | Source Tutorial delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | Compiled fixture proof |
@@ -472,7 +472,9 @@ experiments still require a broader completed-run corpus.
 `research-brief` is the adjacent proof that the Harness protocol is not tied to
 review-specific Claims. It uses a smaller Workflow-local scorecard and a
 reduced retrieval/core-set budget, then enters the same Evaluation and Failure
-history.
+history. Its real-source pilot demonstrates the online arXiv path and a concrete
+artifact-mediated improvement loop, while also showing that a passing delivery
+scorecard does not resolve lexical-ranking or expert-relevance questions.
 
 `idea-brainstorm` proves that the same protocol can supervise an open-ended
 research judgment task without pretending to solve novelty automatically. Its

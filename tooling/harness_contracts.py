@@ -251,7 +251,7 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
 PIPELINE_TAXONOMY_ROW_REQUIREMENTS = (
     ("Survey", "`arxiv-survey`", "`Executable`", "bounded-report pilot"),
     ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "audited 10-page PDF"),
-    ("Orientation", "`research-brief`", "`Executable`", "Scored fixture proof"),
+    ("Orientation", "`research-brief`", "`Executable`", "Real-source pilot"),
     ("Review", "`paper-review`", "`Executable`", "Scored fixture proof"),
     ("Review", "`evidence-review`", "`Executable`", "Scored fixture proof"),
     ("Ideation", "`idea-brainstorm`", "`Executable`", "Scored fixture proof"),
