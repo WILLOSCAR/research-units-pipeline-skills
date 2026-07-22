@@ -20,7 +20,7 @@ backup artifacts.
 | Run state | `COMPLETED` |
 | Units | 49 `DONE`, 0 active |
 | Target Artifacts | 73 present, 0 missing |
-| Harness audit | PASS, 0 errors, 0 warnings |
+| Captured Artifact audit | PASS, 0 errors, 0 warnings |
 | Merge freshness | PASS, 0 stale section-manifest entries |
 | Delivery | 10-page A4 PDF for an 8-10 page Goal |
 
@@ -41,9 +41,12 @@ hard floor.
 
 ## Interpretation
 
-This snapshot proves that one bounded topic-to-PDF path completed under the
-current artifact and Harness contracts. It does not prove cross-topic quality,
-retrieval completeness, scientific truth, expert agreement, or measured token
-efficiency. The full local Workspace remains outside version control because it
-contains hundreds of operational logs, Attempts, manifests, build by-products,
-and backup files that are useful for diagnosis but noisy for repository users.
+This historical snapshot proves that one bounded topic-to-PDF path completed
+with the Artifact audit captured in `run-summary.json`. It does not include the
+current `.harness` ledgers, Completion acceptance Manifests, or a
+`run-audit.v2` bundle, so it is delivery evidence rather than a current Harness
+protocol proof. It also does not prove cross-topic quality, retrieval
+completeness, scientific truth, expert agreement, or measured token efficiency.
+The full local Workspace remains outside version control because it contains
+operational logs, Attempts, manifests, build by-products, and backup files that
+are useful for diagnosis but noisy for repository users.

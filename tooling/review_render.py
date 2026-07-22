@@ -135,13 +135,17 @@ def render_research_brief_markdown(*, goal: str, papers: list[dict[str, str]], s
     ][:4]
     lens_text = ", ".join(lenses) if lenses else "methods, evaluation, and deployment risks"
     request = " ".join(goal.replace("# Goal", "").split()) or "Orient the reader to the target topic."
+    scope_anchor = f" The boundary is anchored by [{_brief_pointer(chosen[0])}]." if chosen else ""
 
     lines = [
         "# Research Brief",
         "",
         "## Scope",
         f"- Requested outcome: {request}",
-        f"- Evidence boundary: this is a focused orientation based on {len(papers)} selected papers, not an exhaustive literature claim.",
+        (
+            f"- Evidence boundary: this is a focused orientation based on {len(papers)} selected papers, "
+            f"not an exhaustive literature claim.{scope_anchor}"
+        ),
         f"- Comparison lenses: {lens_text}.",
         "",
         "## Key themes",

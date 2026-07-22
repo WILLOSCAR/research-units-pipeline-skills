@@ -53,12 +53,17 @@ def extract_pdf_text(path: Path) -> str:
     except Exception as exc:  # pragma: no cover
         raise RuntimeError(f"PDF extraction requires pypdf: {exc}") from exc
 
-    reader = PdfReader(str(path))
-    parts: list[str] = []
-    for idx, page in enumerate(reader.pages, start=1):
-        text = page.extract_text() or ""
-        if text.strip():
-            parts.append(f"[page {idx}]\n{text.strip()}")
+    try:
+        reader = PdfReader(str(path))
+        parts: list[str] = []
+        for idx, page in enumerate(reader.pages, start=1):
+            text = page.extract_text() or ""
+            if text.strip():
+                parts.append(f"[page {idx}]\n{text.strip()}")
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not extract manuscript PDF `{path}` ({type(exc).__name__}: {exc})."
+        ) from exc
     return "\n\n".join(parts).strip()
 
 

@@ -273,7 +273,7 @@ Use arxiv-survey to draft a Markdown survey on test-time adaptation for robots.
 If you want less interruption:
 
 ```text
-Use the arxiv-survey-latex pipeline and auto-approve the outline.
+Use arxiv-survey-latex and auto-approve the outline.
 ```
 
 ## 9. Core Skills Behind The Workflow

@@ -22,6 +22,7 @@ DEFAULT_CRITICAL_DIMENSIONS = {
     "deliverable_structure",
     "reading_path",
     "source_traceability",
+    "theme_grounding",
 }
 REQUIRED_SECTIONS = (
     "## Scope",
@@ -39,12 +40,13 @@ def evaluate_research_brief(workspace: Path) -> dict[str, Any]:
     paper_ids = _core_paper_ids(workspace / "papers" / "core_set.csv")
     pointer_ids = set(re.findall(r"\bP\d{4}\b", snapshot))
     reading_ids = set(re.findall(r"\bP\d{4}\b", _section(snapshot, "## What to read first")))
-    grounded_ids = set(
-        re.findall(
-            r"\bP\d{4}\b",
-            _section(snapshot, "## Scope") + "\n" + _section(snapshot, "## Key themes"),
-        )
-    )
+    scope_pointer_ids = set(re.findall(r"\bP\d{4}\b", _section(snapshot, "## Scope")))
+    theme_lines = [
+        line.strip()
+        for line in _section(snapshot, "## Key themes").splitlines()
+        if line.strip().startswith(("- ", "* "))
+    ]
+    theme_pointer_sets = [set(re.findall(r"\bP\d{4}\b", line)) for line in theme_lines]
 
     pass_score, critical_dimensions = _rubric_policy(workspace)
     dimensions = [
@@ -53,7 +55,7 @@ def evaluate_research_brief(workspace: Path) -> dict[str, Any]:
         _specificity_dimension(snapshot),
         _traceability_dimension(pointer_ids, paper_ids),
         _reading_path_dimension(reading_ids, paper_ids),
-        _grounding_dimension(grounded_ids, paper_ids),
+        _grounding_dimension(scope_pointer_ids, theme_pointer_sets, paper_ids),
         _compactness_dimension(snapshot),
     ]
     return finalize_scorecard(
@@ -194,14 +196,32 @@ def _reading_path_dimension(reading_ids: set[str], paper_ids: set[str]) -> dict[
     )
 
 
-def _grounding_dimension(grounded_ids: set[str], paper_ids: set[str]) -> dict[str, Any]:
-    valid = grounded_ids & paper_ids
+def _grounding_dimension(
+    scope_pointer_ids: set[str],
+    theme_pointer_sets: list[set[str]],
+    paper_ids: set[str],
+) -> dict[str, Any]:
+    grounded_scope = scope_pointer_ids & paper_ids
+    grounded_themes = sum(bool(pointers & paper_ids) for pointers in theme_pointer_sets)
+    total_themes = len(theme_pointer_sets)
+    grounded_papers = grounded_scope | set().union(
+        *(pointers & paper_ids for pointers in theme_pointer_sets)
+    )
+    passed = (
+        bool(grounded_scope)
+        and total_themes > 0
+        and grounded_themes == total_themes
+        and len(grounded_papers) >= 2
+    )
     return _dimension(
         "theme_grounding",
         "Theme grounding",
-        passed=len(valid) >= 2,
-        partial=bool(valid),
-        evidence=f"Scope and key themes cite {len(valid)} unique core-set papers.",
+        passed=passed,
+        partial=bool(grounded_scope) or grounded_themes > 0,
+        evidence=(
+            f"Scope grounded={bool(grounded_scope)}; key-theme bullets with valid core-set "
+            f"pointers={grounded_themes}/{total_themes}; unique grounded core papers={len(grounded_papers)}/2 minimum."
+        ),
         repair_surface=[".codex/skills/snapshot-writer/SKILL.md", "output/SNAPSHOT.md"],
     )
 

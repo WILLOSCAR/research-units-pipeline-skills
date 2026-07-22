@@ -29,6 +29,7 @@ the decision should guide future contributors and agents across runs.
 | [0016](0016-author-skills-for-predictability-and-bounded-context-load.md) | Author Skills for predictability and bounded context load | accepted |
 | [0017](0017-bind-completion-acceptance-to-recovery-and-audit.md) | Bind Completion acceptance to recovery and Audit | accepted |
 | [0018](0018-snapshot-pipeline-contracts-inside-each-run.md) | Snapshot Pipeline contracts inside each Run | accepted |
+| [0019](0019-bind-checkpoint-approval-to-reviewed-artifacts.md) | Bind Checkpoint approval to reviewed Artifacts | accepted |
 
 ## ADR Format Contract
 

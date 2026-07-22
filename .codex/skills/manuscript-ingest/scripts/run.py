@@ -36,7 +36,10 @@ def main() -> int:
         raise SystemExit("No manuscript source found. Add `inputs/manuscript.md|txt|pdf` or `inputs/paper.*`.")
 
     if source.suffix.lower() == ".pdf":
-        text = extract_pdf_text(source)
+        try:
+            text = extract_pdf_text(source)
+        except RuntimeError as exc:
+            raise SystemExit(str(exc)) from None
     else:
         text = source.read_text(encoding="utf-8", errors="ignore")
     if not text.strip():

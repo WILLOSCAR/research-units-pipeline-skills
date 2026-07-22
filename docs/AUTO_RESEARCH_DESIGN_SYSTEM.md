@@ -72,7 +72,7 @@ flowchart TB
     end
 
     subgraph Execution["Execution Plane"]
-        WF["Workflow contract"] --> WS["Workspace"]
+        WF["Pipeline contract"] --> WS["Workspace"]
         WS --> U["Unit plan"]
         U --> AT["Attempts"]
         AT --> SK["Research and control Skills"]
@@ -86,6 +86,7 @@ flowchart TB
         HL["harness.lock.json"]
         EV["events.jsonl"]
         AP["attempts.jsonl"]
+        DS["decisions.jsonl + review basis"]
         AF["artifacts.jsonl"]
         FL["failures/ledger.jsonl"]
         EL["evaluations/ledger.jsonl"]
@@ -111,6 +112,7 @@ flowchart TB
     WS --> GS
     AT --> EV
     AT --> AP
+    WS --> DS
     AR --> AF
     AR --> EL
     HL --> RS
@@ -162,10 +164,11 @@ retrieval, or expert-level judgment.
 | Unit plans | `templates/UNITS.*.csv` | Dependency graph, inputs, outputs, acceptance, owner, status |
 
 The current product CLI is a convenience adapter, not a universal input form.
-`rh goal create` can materialize a topic-seeded Workspace; Workflows that own an
-existing manuscript, source set, protocol, or human approval still require
-those inputs through the Workspace or Codex interaction and will block
-explicitly when they are absent.
+`rh goal create` materializes the Goal and Workflow Workspace. Topic-seeded
+paths can proceed directly; `paper-review` and `source-tutorial` still require
+their manuscript or source set through the Workspace or Codex interaction.
+`evidence-review` is different: it generates the Protocol from the review
+question, then blocks before retrieval until the user approves or revises it.
 
 `rh run start` is valid only while a Run remains `PLANNED`. `rh run resume`
 first reconciles persisted state and then re-enters the same scheduler. The two
@@ -240,9 +243,13 @@ If a legacy or hand-edited `DOING` projection has no unique open Attempt, the
 Harness reports an integrity error and leaves it unchanged. Recovery never
 invents ownership evidence merely to make the scheduler move again.
 
-A human Checkpoint is authorized only when its readable checkbox and matching
-append-only Decision record agree. Editing `DECISIONS.md` alone cannot authorize
-Completion; revocation records make the latest durable approval state explicit.
+A human Checkpoint is authorized only when its readable checkbox, append-only
+Decision record, and `checkpoint-review-basis.v1` fingerprints all agree with
+the current review Artifacts. A checkbox edited by itself cannot pass
+Completion, and changing an approved outline, protocol, or scope invalidates
+the stale authorization. Before another Unit runs, the Harness reopens that
+Checkpoint, clears its readable approval, and invalidates dependent Unit
+projections; PREPARED recovery and Audit enforce the same review basis.
 
 This first implementation remains single-process. The invocation lock prevents
 local command interleaving; it is not a worker lease or multi-host coordination
@@ -456,6 +463,7 @@ tooling/harness.py
 tooling/harness_contracts.py
 tooling/ideation.py
 tooling/pipeline_spec.py
+tooling/pipeline_snapshot.py
 tooling/quality_gate.py
 tooling/quality_reporting.py
 tooling/quality_checks/**
@@ -490,24 +498,24 @@ scale.
 
 | Area | Current evidence | Interpretation |
 |---|---|---|
-| Workflow contracts | Seven executable pipelines and Unit templates | High structural maturity |
+| Pipeline contracts | Seven executable Pipelines and Unit templates | Executable contracts; proof varies by Workflow |
 | Pipeline reproducibility | `harness-lock.v2` snapshots the selected Pipeline plus local variant dependencies and fails closed on hash drift | First local implementation; historical v1 Runs remain compatibility evidence |
 | Project Skills | Broad research, review, tutorial, writing, and control capability | Uneven by Workflow |
 | Completion integrity | Shared v2 two-phase Completion Protocol, cross-ledger acceptance evidence, recomputed scorecard consistency, and mandatory Workflow checks for scripted, manual, default, and strict completion | First local implementation; key paths tested |
 | Run recovery | Durable IDs, Events, Attempts, acceptance-aware prepared-transaction recovery, v1 PREPARED migration, and stale-state interruption records | First local implementation; key crash windows tested |
 | Workspace serialization | Non-blocking process-scoped lock across all local Workspace commands; owner-crash release tested | First local implementation; distributed leases absent |
 | Inspection composition | Standalone Doctor uses a shallow snapshot; composed Doctor, Audit, Improvement, and Artifact index share one deep snapshot | Landed; Artifact hashing retains a distinct pass |
-| Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Medium-high |
+| Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Implemented; refreshed public v2 proof remains open |
 | Ledger integrity | `run-audit.v2` checks cross-ledger identities, references, completion evidence, acceptance coverage, and hashes; only a complete verified Run can PASS | First local implementation; targeted tests |
 | Implementation freshness | per-Attempt Skill fingerprints and stale-DONE diagnosis | First implementation |
-| Mechanical failure diagnosis | Doctor, errors, Failure ledger, blocking repair map, and non-blocking scorecard headroom | Medium-high |
+| Mechanical failure diagnosis | Doctor, errors, Failure ledger, blocking repair map, and non-blocking scorecard headroom | Implemented; applied repair is not yet a first-class transaction |
 | Contract evaluation | `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review` scorecards feed one Evaluation ledger; no diverse expert-scored corpus | Implementation landed; external research-quality evidence open |
 | `paper-review` proof | Realistic fixture completes scorecard failure, repair, rerun, audit, and pack | `Scored fixture proof`; real-manuscript/expert comparison open |
-| `research-brief` proof | [Versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), plus pointer failure/repair coverage | `Completed semantic pilot`; cross-topic and expert comparison open |
+| `research-brief` proof | [Versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), plus pointer failure/repair coverage | `Completed outcome pilot`; cross-topic and expert comparison open |
 | `idea-brainstorm` proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | `Scored fixture proof` |
 | `evidence-review` proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | `Scored fixture proof` |
 | `source-tutorial` delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | `Compiled delivery proof` |
-| Bounded-report delivery | [49-Unit course-paper Run snapshot](../examples/course-paper-pilot/README.md), passing audit, 10-page PDF | `arxiv-survey`: `Completed semantic pilot`; `arxiv-survey-latex`: `Compiled delivery proof` |
+| Bounded-report delivery | [Historical 49-Unit course-paper snapshot](../examples/course-paper-pilot/README.md), captured Artifact audit, 10-page PDF | `arxiv-survey`: `Completed outcome pilot`; `arxiv-survey-latex`: `Compiled delivery proof`; current v2 proof open |
 | Bounded Self-Harness | Architecture described; external evaluator absent | Not implemented |
 
 ## 13. Current Proof Strategy
@@ -555,7 +563,7 @@ The project direction has not moved away from its original Skills and research
 Pipeline foundation. The change is a clarification of product hierarchy:
 
 - Skills remain reusable research and control capabilities.
-- Pipelines remain internal Workflow contracts.
+- Pipelines remain internal execution contracts for user-facing Workflows.
 - Workspaces remain durable execution containers.
 - Harness becomes the state, evidence, recovery, and improvement discipline.
 - `Goal -> Run -> Evidence -> Improve` becomes the user-facing product model.

@@ -103,13 +103,13 @@ Brainstorm literature-grounded research ideas around embodied agents for home ro
 如果你想显式钉住 pipeline：
 
 ```text
-Use pipelines/idea-brainstorm.pipeline.md to generate a research direction memo on embodied AI.
+Use idea-brainstorm to generate a research direction memo on embodied AI.
 ```
 
 如果你希望它更明确地面向某种读者：
 
 ```text
-Use the idea-brainstorm pipeline and optimize the memo for advisor discussion, not project planning.
+Use idea-brainstorm and optimize the memo for advisor discussion, not project planning.
 ```
 
 ## 8. 这条工作流背后的核心 skills

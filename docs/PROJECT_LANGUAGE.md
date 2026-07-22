@@ -32,7 +32,7 @@ unbounded self-modification. Distinguish these two operations:
 | Term | Canonical meaning |
 |---|---|
 | Research Harness | The public project name and user-facing product surface for choosing a Workflow, running it, inspecting Evidence, and diagnosing bounded improvements. |
-| Auto Research Design System | The whole repository: research and control Skills, Workflow contracts, and a file-first Harness for end-to-end research delivery. |
+| Auto Research Design System | The whole repository: research and control Skills, user-facing Workflows, executable Pipeline contracts, and a file-first Harness for end-to-end research delivery. |
 | Harness | Deterministic execution support for protocol, state, scheduling, Attempts, completion integrity, checkpoints, recovery, provenance, validation, Audit, and handoff. |
 | Harness kernel | Protected code that owns Run identity, scheduling, state transitions, Completion, provenance, reconciliation, diagnosis, quality dispatch, and shared scorecard mechanics. Its file inventory is `HARNESS_KERNEL_PATHS`. |
 | Skill | A reusable capability under `.codex/skills/`. Research Skills transform research content; control Skills materialize deterministic reports, manifests, checkpoints, or local gates. |
@@ -51,10 +51,10 @@ unbounded self-modification. Distinguish these two operations:
 | Unit | Logical step declared in `UNITS.csv`, with an owner, dependencies, inputs, outputs, and acceptance rule. |
 | Attempt | One concrete execution of a Unit. A retry creates another Attempt and preserves earlier history. Process-owned Attempts carry local crash-recovery metadata; manual Attempts may span commands. |
 | Completion | Recoverable transaction that commits a Unit only when its required outputs, successful Attempt, Workflow-required acceptance checks, DONE Manifest, Artifact records, and any declared Evaluation agree. `DONE` in `UNITS.csv` is its mutable projection. |
-| Checkpoint | Explicit boundary at which execution may require evidence review or human approval before later Units become runnable. Human approval requires both the readable decision view and its append-only Decision record. |
+| Checkpoint | Explicit boundary at which execution may require evidence review or human approval before later Units become runnable. Human approval requires a readable decision view, an append-only Decision record, and a matching fingerprint of the reviewed Artifacts. |
 | Artifact | Durable input, intermediate output, report, manifest, scorecard, or deliverable produced or consumed by a Run. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and related provenance. It is not necessarily a portable archive. |
-| Decision | Append-only record of an explicit human or Harness intervention, including approvals and automatic checkpoint decisions. |
+| Decision | Append-only record of an explicit human or Harness intervention. A Checkpoint approval also records which Artifact versions were reviewed, so later edits invalidate stale authorization. |
 | Audit | Bounded inspection of Run state, cross-ledger integrity, Artifact coverage, provenance, implementation freshness, or declared quality contracts. It may reconcile machine projections before reading them, but does not alter research content or Decisions. |
 | Failure | Durable record of an observable defect, its causal behavior, and the repair surface that owns it. |
 | Evaluation | Append-only Workflow-local scorecard result attached to a Run Attempt, including verdict, dimensions, repair surfaces, and optional efficiency metrics. |
@@ -70,7 +70,7 @@ as proof of another.
 | Layer | Question answered | Current mechanism | Does not establish |
 |---|---|---|---|
 | Execution integrity | Did the declared work run and commit consistently? | Attempts, Events, Manifests, hashes, recovery, Doctor, Audit | That the research answer is good |
-| Contract acceptance | Did required Artifacts satisfy the observable Workflow contract? | `quality_contract.completion_policy.required_checks`, Workflow-local scorecards, Artifact audit | Scientific correctness, novelty, or exhaustive retrieval |
+| Contract acceptance | Did required Artifacts satisfy the observable Pipeline contract for this Workflow? | `quality_contract.completion_policy.required_checks`, Workflow-local scorecards, Artifact audit | Scientific correctness, novelty, or exhaustive retrieval |
 | Research quality | Is the answer relevant, correct, complete enough, and useful for its reader? | Research Evidence, realistic repeated Runs, held-out cases, and expert review | General validity beyond the evaluated inputs |
 
 Workflow-required acceptance checks run at the shared Completion boundary for
@@ -95,6 +95,9 @@ claim_id -> evidence gap -> novelty row -> review concern -> scorecard check
 `research-brief`:
 core-set paper ID -> briefing pointer -> reading path -> brief scorecard
 
+`arxiv-survey`:
+core-set paper ID -> subsection brief -> evidence binding -> evidence draft -> cited section -> report audit
+
 `idea-brainstorm`:
 C2 Decision -> core-set paper ID -> signal -> filtered direction -> screening -> shortlist -> memo -> idea scorecard
 
@@ -102,7 +105,7 @@ C2 Decision -> core-set paper ID -> signal -> filtered direction -> screening ->
 candidate ID -> protocol clause -> screening decision -> unique extraction row -> synthesis pointer -> evidence scorecard
 
 `source-tutorial`:
-manifest source ID -> indexed local source -> provenance pointer -> module coverage -> tutorial module -> delivery gate
+manifest source ID -> indexed local source -> provenance pointer -> module coverage -> context pack -> visible Source notes -> tutorial module -> delivery gate
 ```
 
 Markdown is the human view. JSONL, TSV, CSV, and JSON provide stable joins for

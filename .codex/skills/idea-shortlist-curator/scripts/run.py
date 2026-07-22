@@ -146,7 +146,12 @@ def main() -> int:
     diversity_target = int(contract['lead_diversity_target'])
     diversity_axes = [str(x) for x in contract['lead_diversity_axes'] if str(x)]
     pool = {str(r.get('direction_id') or ''): r for r in read_jsonl(workspace / 'output' / 'trace' / 'IDEA_DIRECTION_POOL.jsonl') if isinstance(r, dict)}
-    screened = [r for r in read_jsonl(workspace / 'output' / 'trace' / 'IDEA_SCREENING_TABLE.jsonl') if isinstance(r, dict)]
+    screened = [
+        r
+        for r in read_jsonl(workspace / 'output' / 'trace' / 'IDEA_SCREENING_TABLE.jsonl')
+        if isinstance(r, dict)
+        and str(r.get('recommendation') or '').strip().lower() in {'keep', 'maybe'}
+    ]
     screened.sort(key=lambda r: (-float(r.get('total_score') or 0.0), str(r.get('direction_id') or '')))
     chosen = _group_candidates(
         screened,

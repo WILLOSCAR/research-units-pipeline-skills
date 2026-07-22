@@ -95,7 +95,7 @@ quality_contract:
   semantic_rubric:
     schema: idea-brainstorm-scorecard.v1
     pass_score: 80
-    critical_dimensions: [deliverable_structure, evidence_traceability, direction_actionability]
+    critical_dimensions: [deliverable_structure, trace_chain, shortlist_report_consistency, evidence_traceability, direction_actionability]
 loop_policy:
   stage_retry_budget:
     C1: 2

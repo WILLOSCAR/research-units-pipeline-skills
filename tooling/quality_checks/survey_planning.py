@@ -1412,6 +1412,176 @@ def check_evidence_drafts(workspace: Path, outputs: list[str]) -> list[QualityIs
     return issues
 
 
+def check_evidence_selfloop(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    """Recompute the prewrite STOP/OK/PASS decision from current evidence artifacts."""
+
+    from tooling.common import read_jsonl
+
+    report_rel = next(
+        (path for path in outputs if path.endswith("EVIDENCE_SELFLOOP_TODO.md")),
+        "output/EVIDENCE_SELFLOOP_TODO.md",
+    )
+    report_path = workspace / report_rel
+    if not report_path.exists() or report_path.stat().st_size == 0:
+        return [
+            QualityIssue(
+                code="missing_evidence_selfloop_report",
+                message=f"`{report_rel}` is missing or empty.",
+            )
+        ]
+
+    report = report_path.read_text(encoding="utf-8", errors="ignore")
+    status_match = re.search(r"(?im)^-\s*Status:\s*(PASS|OK|FAIL)\s*$", report)
+    recorded_status = status_match.group(1).upper() if status_match else ""
+    if not recorded_status:
+        return [
+            QualityIssue(
+                code="evidence_selfloop_status_missing",
+                message=f"`{report_rel}` must declare `- Status: PASS`, `OK`, or `FAIL`.",
+            )
+        ]
+
+    required = (
+        workspace / "outline" / "subsection_briefs.jsonl",
+        workspace / "outline" / "evidence_bindings.jsonl",
+        workspace / "outline" / "evidence_drafts.jsonl",
+    )
+    missing = [
+        str(path.relative_to(workspace))
+        for path in required
+        if not path.exists() or path.stat().st_size == 0
+    ]
+    if missing:
+        return [
+            QualityIssue(
+                code="evidence_selfloop_inputs_missing",
+                message=f"Evidence self-loop inputs are missing or empty: {', '.join(missing)}.",
+            )
+        ]
+
+    try:
+        briefs = read_jsonl(workspace / "outline" / "subsection_briefs.jsonl")
+        bindings = read_jsonl(workspace / "outline" / "evidence_bindings.jsonl")
+        drafts = read_jsonl(workspace / "outline" / "evidence_drafts.jsonl")
+    except (json.JSONDecodeError, OSError) as exc:
+        return [
+            QualityIssue(
+                code="evidence_selfloop_inputs_invalid",
+                message=f"Evidence self-loop inputs are not readable JSONL: {type(exc).__name__}: {exc}.",
+            )
+        ]
+
+    def inspect_records(
+        records: list[dict[str, Any]],
+        *,
+        list_field: str | None = None,
+    ) -> tuple[set[str], list[str]]:
+        ids: list[str] = []
+        problems: list[str] = []
+        for index, record in enumerate(records, start=1):
+            if not isinstance(record, dict):
+                problems.append(f"record {index} is not an object")
+                continue
+            sub_id = str(record.get("sub_id") or "").strip()
+            if not sub_id:
+                problems.append(f"record {index} has no sub_id")
+            else:
+                ids.append(sub_id)
+            if list_field and not isinstance(record.get(list_field), list):
+                problems.append(f"{sub_id or f'record {index}'}.{list_field} is not a list")
+        duplicates = sorted({sub_id for sub_id in ids if ids.count(sub_id) > 1})
+        if duplicates:
+            problems.append("duplicate sub_id values: " + ", ".join(duplicates))
+        return set(ids), problems
+
+    brief_ids, brief_problems = inspect_records(briefs)
+    binding_ids, binding_problems = inspect_records(bindings, list_field="binding_gaps")
+    draft_ids, draft_problems = inspect_records(drafts, list_field="blocking_missing")
+    schema_problems = brief_problems + binding_problems + draft_problems
+    if schema_problems:
+        return [
+            QualityIssue(
+                code="evidence_selfloop_inputs_invalid",
+                message="Evidence self-loop records violate their schema: " + "; ".join(schema_problems) + ".",
+            )
+        ]
+    if not brief_ids or brief_ids != binding_ids or brief_ids != draft_ids:
+        return [
+            QualityIssue(
+                code="evidence_selfloop_coverage_mismatch",
+                message=(
+                    "Subsection IDs must match exactly across briefs, bindings, and drafts; "
+                    f"briefs={sorted(brief_ids)}, bindings={sorted(binding_ids)}, drafts={sorted(draft_ids)}."
+                ),
+            )
+        ]
+
+    blocking_count = sum(
+        1
+        for record in drafts
+        if any(str(item or "").strip() for item in record["blocking_missing"])
+    )
+    gap_count = sum(
+        1
+        for record in bindings
+        if any(str(item or "").strip() for item in record["binding_gaps"])
+    )
+    expected_status = "FAIL" if blocking_count else "OK" if gap_count else "PASS"
+    if expected_status == "FAIL":
+        return [
+            QualityIssue(
+                code="evidence_selfloop_blocked",
+                message=(
+                    f"{blocking_count} evidence pack(s) still declare `blocking_missing`; "
+                    "repair C2/C3/C4 evidence before writing."
+                ),
+            )
+        ]
+    if recorded_status != expected_status:
+        return [
+            QualityIssue(
+                code="evidence_selfloop_status_stale",
+                message=(
+                    f"`{report_rel}` records {recorded_status}, but current evidence requires "
+                    f"{expected_status} (binding gaps={gap_count}). Rerun `evidence-selfloop`."
+                ),
+            )
+        ]
+    if expected_status == "OK":
+        missing_repairs: list[str] = []
+        for record in bindings:
+            sub_id = str(record.get("sub_id") or "").strip()
+            gaps = [str(item or "").strip() for item in record["binding_gaps"] if str(item or "").strip()]
+            if not gaps:
+                continue
+            section_match = re.search(
+                rf"(?ims)^###\s+{re.escape(sub_id)}(?:\s+[^\n]*)?$\n(?P<body>.*?)(?=^###\s+|^##\s+|\Z)",
+                report,
+            )
+            section = section_match.group("body") if section_match else ""
+            if not section:
+                missing_repairs.append(f"{sub_id}: subsection TODO")
+                continue
+            missing_repairs.extend(
+                f"{sub_id}: {gap}"
+                for gap in gaps
+                if gap not in section
+            )
+            if "Suggested fix path:" not in section or not re.search(r"\bC[34](?:/C[34])?:", section):
+                missing_repairs.append(f"{sub_id}: staged Suggested fix path")
+        if missing_repairs:
+            return [
+                QualityIssue(
+                    code="evidence_selfloop_repair_plan_missing",
+                    message=(
+                        f"`{report_rel}` must locate each binding gap and provide its smallest C3/C4 repair path; "
+                        "missing=" + "; ".join(missing_repairs[:8]) + "."
+                    ),
+                )
+            ]
+    return []
+
+
 def check_anchor_sheet(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     from tooling.common import read_jsonl
 

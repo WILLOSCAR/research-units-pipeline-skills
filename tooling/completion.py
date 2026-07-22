@@ -14,6 +14,8 @@ from tooling.common import (
 )
 from tooling.harness import write_unit_manifest
 from tooling.run_state import (
+    RECOVERABLE_COMPLETION_FAILURE_TYPES,
+    checkpoint_completion_approval_issue,
     ensure_run_state,
     finish_attempt,
     open_attempt_for_unit,
@@ -21,6 +23,7 @@ from tooling.run_state import (
     record_completion_stage,
     record_evaluation,
     record_failure,
+    revoke_checkpoint_approval,
     start_attempt,
 )
 from tooling.scorecards import validate_scorecard
@@ -145,9 +148,40 @@ def commit_unit_completion(
         if not item.strip().startswith("?")
     ]
 
+    approval_issue = checkpoint_completion_approval_issue(workspace=workspace, row=row)
+    if approval_issue:
+        revoke_checkpoint_approval(
+            workspace=workspace,
+            checkpoint=str(row.get("checkpoint") or "").strip(),
+            actor_id="completion-protocol",
+            note=f"Revoked while Completion blocked {unit_id}: {approval_issue}",
+        )
+        open_attempt = open_attempt_for_unit(workspace=workspace, unit_id=unit_id)
+        open_attempt_id = str(open_attempt.get("attempt_id") or "") if open_attempt else ""
+        active_attempt_id = str(attempt_id or open_attempt_id)
+        if active_attempt_id and open_attempt_id == active_attempt_id:
+            return _reject_completion(
+                workspace=workspace,
+                repo_root=repo_root,
+                unit_id=unit_id,
+                attempt_id=active_attempt_id,
+                skill=skill,
+                outputs=outputs,
+                exit_code=exit_code,
+                failure_type="checkpoint_approval_invalid",
+                symptom=approval_issue,
+                causal_behavior="The reviewed Checkpoint Artifacts or readable approval changed before Completion committed.",
+                harness_mechanism="The Completion Protocol revalidates artifact-bound approval at the commit boundary.",
+                repair_surface=["DECISIONS.md", *parse_semicolon_list(row.get("inputs"))],
+                severity="high",
+                attempt_execution=attempt_execution,
+            )
+        return CompletionResult(unit_id, attempt_id or "", "BLOCKED", approval_issue)
+
+    if attempt_id is None and str(row.get("status") or "").strip().upper() == "DONE":
+        return CompletionResult(unit_id, "", "DONE", "Unit is already DONE")
+
     if attempt_id is None:
-        if str(row.get("status") or "").strip().upper() == "DONE":
-            return CompletionResult(unit_id, "", "DONE", "Unit is already DONE")
         open_attempt = open_attempt_for_unit(workspace=workspace, unit_id=unit_id)
         if open_attempt:
             if str(open_attempt.get("skill") or "") != skill:
@@ -367,6 +401,7 @@ def commit_unit_completion(
         )
 
     manifest_relpath = str(manifest_path.relative_to(workspace))
+    verified_failure_types.update(RECOVERABLE_COMPLETION_FAILURE_TYPES)
     record_completion_stage(
         workspace=workspace,
         unit_id=unit_id,

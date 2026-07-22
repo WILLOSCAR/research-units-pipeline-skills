@@ -24,7 +24,7 @@ Goal -> Run -> Evidence -> Improve
 |---|---|---|---|
 | 快速理解一个主题并决定先读什么 | `research-brief` | topic | `output/SNAPSHOT.md` |
 | 评审一篇论文或 manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
-| 在明确 protocol 下综合多项研究 | `evidence-review` | 问题与 protocol | `output/SYNTHESIS.md` |
+| 在明确 protocol 下综合多项研究 | `evidence-review` | Review 问题，再人工批准 Protocol | `output/SYNTHESIS.md` |
 | 写文献 Survey 或有边界的研究报告 | `arxiv-survey` | topic 与交付约束 | `output/DRAFT.md` |
 | 把同一条 Survey 路径交付为 LaTeX 与 PDF | `arxiv-survey-latex` | topic 与交付约束 | `latex/main.pdf` |
 | 形成有文献依据的研究方向 | `idea-brainstorm` | topic 与 scope | `output/REPORT.md` |
@@ -33,14 +33,23 @@ Goal -> Run -> Evidence -> Improve
 `graduate-paper` 仍是中文毕业论文的 research-stage 路径。它有可用 Skills，但不属于
 当前 7 条可执行 Workflow Contract。
 
+不同 Workflow 的输入边界不能互换。`research-brief`、Survey 家族与
+`idea-brainstorm` 可以从 topic 开始；`paper-review` 必须有 manuscript；
+`source-tutorial` 必须有本地 source pack 与受众信息；`evidence-review` 会先把 Review
+问题写成 Protocol，并在检索前停下来等待批准。缺少前置材料时，Harness 会明确指出，
+而不是用臆造上下文替代。
+
 ## 启动一次 Run
 
-当前 CLI 从源码 checkout 中运行，并使用 [uv](https://docs.astral.sh/uv/)。
-从 topic 启动的 Workflow 可以直接开始：
+当前 CLI 从源码 checkout 中运行，需要 Python 3.10+，并使用
+[uv](https://docs.astral.sh/uv/)。`uv run` 会安装已声明的 Python 依赖，包括论文 PDF
+解析；Source Tutorial 摄取 PDF 还需要 `pdftotext`，LaTeX/PDF 交付则需要对应 Workflow
+编译检查所列的 TeX 工具，以及用于页数验收的 Poppler `pdfinfo` 或可选 `PyMuPDF`
+包。准备好这些依赖后，可以直接从 Goal 启动：
 
 ```bash
 uv run rh goal create \
-  --topic "机器人中的测试时自适应" \
+  --goal "理解机器人中的测试时自适应，并决定优先阅读什么" \
   --workflow research-brief \
   --workspace workspaces/robot-adaptation
 
@@ -51,18 +60,42 @@ uv run rh run resume --workspace workspaces/robot-adaptation
 uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-`run start` 会推进到下一个尚未满足的前置条件。对于 `research-brief`，先检查 C2 的
-候选文献与阅读计划 Artifacts，再批准 C2；`run resume` 会从持久化的 Unit ledger
-继续执行。完成后的 Run 包含人类可读的 Brief 与机器可读的 Scorecard；随后
-`evidence inspect` 才会写出带 Hash 与 provenance 的 Artifact Index。如果 Contract
-失败，可以运行：
+`run start` 会推进到下一个尚未满足的前置条件。对于 `research-brief`，先检查 core
+paper set、taxonomy、outline 与 C2 review block，再批准 C2；只有当前活跃的 Checkpoint
+可以被批准。批准会绑定所审阅 Artifact 的 Hash，材料变化后旧批准自动失效。
+`run resume` 会从持久化的 Unit ledger 继续执行。完成后的 Run 包含人类可读的 Brief
+与机器可读的 Scorecard；`evidence inspect` 会同时写出 Run Audit 与 Artifact Pack，
+并可生成便携 excerpt。如果 Contract 失败，可以运行：
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
 ```
 
-需要已有 Manuscript、Source Pack、Protocol 或人工决策的 Workflow 会在对应前置条件处
-停下并说明缺什么。也可以在 Codex 中用自然语言调用：
+对于由用户提供输入的 Workflow，先把材料放进 Workspace，再继续：
+
+```bash
+# 单篇 Manuscript 评审
+uv run rh goal create --goal "评审这篇论文" --workflow paper-review --workspace workspaces/review
+mkdir -p workspaces/review/inputs
+cp /path/to/manuscript.pdf workspaces/review/inputs/manuscript.pdf
+uv run rh run start --workspace workspaces/review
+
+# 固定资料包教程：第一次 start 会生成 sources/manifest.yml 并阻塞
+uv run rh goal create --goal "把这组资料教给新成员" --workflow source-tutorial --workspace workspaces/tutorial
+uv run rh run start --workspace workspaces/tutorial
+# 将示例项替换为真实网页、PDF、Markdown、Repo、Docs Site 或 Transcript Locator。
+uv run rh run resume --workspace workspaces/tutorial
+
+# Evidence Review：Workflow 先生成 Protocol，再停在 C1 等待批准
+uv run rh goal create --goal "判断哪些干预能提升检索忠实度" --workflow evidence-review --workspace workspaces/evidence-review
+uv run rh run start --workspace workspaces/evidence-review
+uv run rh run approve --workspace workspaces/evidence-review --checkpoint C1
+uv run rh run resume --workspace workspaces/evidence-review
+```
+
+需要已有 Manuscript、Source Pack 或人工决策的 Workflow 会在对应前置条件处停下并说明
+缺什么。`evidence-review` 会自行生成 Protocol，并在检索前暂停，让用户批准或修改，
+而不是要求用户预先提供 Protocol。也可以在 Codex 中用自然语言调用：
 
 ```text
 使用 paper-review 评审这篇论文，确保每条主要意见都能追溯到原文。
@@ -146,15 +179,22 @@ Survey 家族既能交付完整文献综述，也能交付有边界、以文献�
 
 - `paper-review`、`research-brief`、`idea-brainstorm` 与 `evidence-review` 已有 Workflow-local
   Scorecard 与 Failure -> Repair -> Rerun 测试；关键 Join 会拒绝过浅的 Novelty Surface、
-  不完整阅读路径、未进入执行的 Focus Decision，以及候选池到 Extraction 的覆盖缺口。
+  未落到核心论文的 Brief Scope、缺少有效论文指针或两篇论文覆盖的主题条目、断裂的
+  Ideation Trace/Shortlist、一致性不足的 Protocol 与
+  Extraction、缺失的 Bias 记录，以及词法上过度确定的结论；明确否定这些强结论的学术表达不会被误杀。
+- Survey 家族已有强制的写作前 Evidence Loop：Subsection Brief、Evidence Binding 与
+  Evidence Draft 必须覆盖完全相同的 Subsection ID；Gap 字段格式错误或仍有阻塞证据时，
+  不允许进入写作。
 - `research-brief` 除可重复的 Harness 证明外，还有一条完成的真实 arXiv 来源 pilot。
-- `source-tutorial` 已通过从本地 Source 到 Article PDF 与 Slides PDF 的严格交付测试。
+- `source-tutorial` 已通过从本地 Source 到 Article PDF 与 Slides PDF 的严格交付测试；
+  Context Pack 必须保留已批准的 Module-Source Coverage，并重新连接成功 Ingest、
+  Provenance、Snippet 与正文可见的 Source Notes。
 - Survey 家族已有一条完成的有界报告 pilot，包含已审计的 10 页 PDF。
 - 跨 topic 稳定性、专家对比、真实 model-token benchmark 与 Harness candidate 自动晋升尚未完成。
 
-已公开的 `research-brief` 快照运行于 `recoverable-provenance.v1`。它们仍是有效的交付物
-与历史 Run 证据，但不冒充 v2 的跨 ledger acceptance 证明；重新发布一条 v2 Run 已进入
-Roadmap。
+已公开的 `research-brief` 快照运行于 `recoverable-provenance.v1`；课程论文快照没有包含
+当前 `.harness` ledgers 或 `run-audit.v2` bundle。它们仍是有效的交付物与历史 Run 证据，
+但不冒充当前 v2 的跨 ledger acceptance 证明；重新发布公开 v2 Run 已进入 Roadmap。
 
 公开证据快照保持有边界：
 
@@ -170,6 +210,7 @@ Roadmap。
 uv run python scripts/validate_repo.py --strict
 uv run python scripts/readiness_audit.py --strict
 uv run python scripts/audit_skills.py --fail-on WARN
+uv run python scripts/audit_workflow_context.py
 uv run --extra test python -m pytest -q
 ```
 

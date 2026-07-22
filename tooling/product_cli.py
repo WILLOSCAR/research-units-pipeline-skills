@@ -22,8 +22,14 @@ def main(argv: list[str] | None = None) -> int:
 
     goal = stages.add_parser("goal", help="Create a durable research goal and workspace")
     goal_actions = goal.add_subparsers(dest="action", required=True)
-    goal_create = goal_actions.add_parser("create", help="Create a topic-seeded goal and select its Workflow")
-    goal_create.add_argument("--topic", required=True, help="Research topic or bounded question")
+    goal_create = goal_actions.add_parser("create", help="Create a bounded Goal and select its Workflow")
+    goal_text = goal_create.add_mutually_exclusive_group(required=True)
+    goal_text.add_argument("--goal", dest="goal_text", help="Requested research outcome or bounded question")
+    goal_text.add_argument(
+        "--topic",
+        dest="goal_text",
+        help="Backward-compatible alias for topic-seeded Goals",
+    )
     goal_create.add_argument("--workflow", default="", help="Workflow slug; omit to route from the Goal text")
     goal_create.add_argument("--workspace", default="", help="Workspace path; defaults to a generated path under workspaces/")
     goal_create.add_argument("--run", action="store_true", help="Start the run immediately")
@@ -97,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _dispatch(args: argparse.Namespace) -> int:
     if (args.stage, args.action) == ("goal", "create"):
-        command = ["kickoff", "--topic", args.topic]
+        command = ["kickoff", "--topic", args.goal_text]
         if args.workflow:
             command.extend(["--pipeline", args.workflow])
         if args.workspace:
@@ -192,7 +198,8 @@ def _run_status(workspace: Path) -> int:
     next_unit = payload.get("next_runnable") or {}
     issues = payload.get("harness_issues") or []
     print(f"Run: {identity.get('run_id') or workspace.name}")
-    print(f"State: {identity.get('state') or 'legacy workspace'}")
+    state = str(identity.get("state") or "legacy workspace")
+    print(f"State: {state}")
     print(f"Checkpoint: {payload.get('current_checkpoint') or 'unknown'}")
     if next_unit:
         print(
@@ -209,7 +216,9 @@ def _run_status(workspace: Path) -> int:
         print("Next: no runnable Unit")
     print(f"Issues: {len(issues)}")
     if next_unit and not issues:
-        print(f"Resume: uv run rh run resume --workspace {workspace}")
+        action = "start" if state == "PLANNED" else "resume"
+        label = "Start" if action == "start" else "Resume"
+        print(f"{label}: uv run rh run {action} --workspace {workspace}")
     else:
         print(f"Inspect: uv run python scripts/pipeline.py doctor --workspace {workspace} --write")
     return int(exit_code)

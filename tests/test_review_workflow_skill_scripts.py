@@ -101,6 +101,7 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
         with self._workspace() as tmp:
             workspace = Path(tmp)
             (workspace / "outline").mkdir(parents=True, exist_ok=True)
+            (workspace / "papers").mkdir(parents=True, exist_ok=True)
             (workspace / "PIPELINE.lock.md").write_text(
                 "pipeline: pipelines/research-brief.pipeline.md\n",
                 encoding="utf-8",
@@ -114,6 +115,10 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                 "- title: Methods\n  subsections:\n    - title: Adaptation\n",
                 encoding="utf-8",
             )
+            (workspace / "papers" / "core_set.csv").write_text(
+                "paper_id,title,year,url\nP0001,Adaptive Robot Policies,2025,https://example.org/p1\n",
+                encoding="utf-8",
+            )
 
             proc = subprocess.run(
                 [
@@ -124,7 +129,7 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
                     "--checkpoint",
                     "C2",
                     "--inputs",
-                    "outline/taxonomy.yml;outline/outline.yml",
+                    "papers/core_set.csv;outline/taxonomy.yml;outline/outline.yml",
                 ],
                 capture_output=True,
                 text=True,
@@ -135,6 +140,7 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             text = (workspace / "DECISIONS.md").read_text(encoding="utf-8")
             self.assertIn("`outline/taxonomy.yml`: present", text)
             self.assertIn("`outline/outline.yml`: present", text)
+            self.assertIn("`P0001` Adaptive Robot Policies (2025)", text)
             self.assertNotIn("mapping", text.lower())
             self.assertNotIn("[x] Approve C2", text)
 
@@ -531,6 +537,39 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
             paper = (workspace / "output" / "PAPER.md").read_text(encoding="utf-8")
             self.assertIn("We propose a new method.", paper)
+
+    def test_pdf_manuscript_dependency_is_available_to_the_ingest_path(self) -> None:
+        from pypdf import PdfWriter
+
+        from tooling.review_artifacts import extract_pdf_text
+
+        with self._workspace() as tmp:
+            pdf_path = Path(tmp) / "manuscript.pdf"
+            writer = PdfWriter()
+            writer.add_blank_page(width=612, height=792)
+            with pdf_path.open("wb") as handle:
+                writer.write(handle)
+
+            self.assertEqual(extract_pdf_text(pdf_path), "")
+
+    def test_manuscript_ingest_reports_corrupt_pdf_without_traceback(self) -> None:
+        script = REPO_ROOT / ".codex" / "skills" / "manuscript-ingest" / "scripts" / "run.py"
+
+        with self._workspace() as tmp:
+            workspace = Path(tmp)
+            (workspace / "inputs").mkdir(parents=True, exist_ok=True)
+            (workspace / "inputs" / "manuscript.pdf").write_bytes(b"not a valid pdf")
+
+            proc = subprocess.run(
+                [sys.executable, str(script), "--workspace", str(workspace)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("Could not extract manuscript PDF", proc.stderr)
+            self.assertNotIn("Traceback", proc.stderr)
 
     def test_claims_extractor_writes_traceable_claims(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "claims-extractor" / "scripts" / "run.py"

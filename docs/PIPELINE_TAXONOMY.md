@@ -26,7 +26,7 @@ Goal -> Run -> Evidence -> Improve
 - `Scored fixture proof`: a realistic local fixture completed a semantic
   scorecard and failure -> repair -> rerun cycle.
 - `Compiled delivery proof`: final document formats were built and audited.
-- `Completed semantic pilot`: one end-to-end Run produced a reader-facing
+- `Completed outcome pilot`: one end-to-end Run produced a reader-facing
   deliverable from non-placeholder research artifacts.
 
 No proof label means expert-level scientific quality, cross-topic stability, or
@@ -36,13 +36,13 @@ held-out evaluation.
 
 | Family | Workflow | Contract | Unit template | Main deliverable | Contract status | Proof state | Open boundary |
 |---|---|---|---|---|---|---|---|
-| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md` | `Executable` | `Completed semantic pilot` | One bounded-report pilot; general-survey diversity open |
-| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `latex/main.pdf` | `Executable variant` | `Compiled delivery proof` | Same pilot produced an audited 10-page PDF; portability and repetition open |
-| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Completed semantic pilot` | One online arXiv Run; cross-topic relevance and reading-path usefulness open |
+| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md` | `Executable` | `Completed outcome pilot` | One historical bounded-report pilot snapshot; current v2 proof and general-survey diversity open |
+| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `latex/main.pdf` | `Executable variant` | `Compiled delivery proof` | Same historical snapshot produced an audited 10-page PDF under its captured audit; current v2 proof, portability, and repetition open |
+| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Completed outcome pilot` | One online arXiv Run; cross-topic relevance and reading-path usefulness open |
 | Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md`, scorecard | `Executable` | `Scored fixture proof` | Real-manuscript and expert comparison open |
 | Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md`, scorecard | `Executable` | `Scored fixture proof` | Retrieval completeness and validity judgment open |
 | Ideation | `idea-brainstorm` | `pipelines/idea-brainstorm.pipeline.md` | `templates/UNITS.idea-brainstorm.csv` | `output/REPORT.md`, scorecard | `Executable` | `Scored fixture proof` | Novelty judgment and cross-topic stability open |
-| Tutorial | `source-tutorial` | `pipelines/source-tutorial.pipeline.md` | `templates/UNITS.source-tutorial.csv` | `output/TUTORIAL.md`, PDF, slides | `Executable` | `Compiled delivery proof` | Mixed-source grounding depth open |
+| Tutorial | `source-tutorial` | `pipelines/source-tutorial.pipeline.md` | `templates/UNITS.source-tutorial.csv` | `output/TUTORIAL.md`, PDF, slides | `Executable` | `Compiled delivery proof` | Exact coverage -> context-pack -> Source-notes join is fixture-tested; mixed-source grounding depth open |
 | Thesis | `graduate-paper` | `pipelines/graduate-paper-pipeline.md` | Unit template: none yet | thesis project Artifacts | `Research-stage` | None | Design and Skills only |
 
 `arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`. It inherits
@@ -89,9 +89,10 @@ abstract, at higher execution cost.
 Reference evidence: the
 [bounded-report pilot snapshot](../examples/course-paper-pilot/README.md) is a
 course-paper instance with 49 completed Units, a passing target-Artifact audit,
-and a 10-page PDF for an 8-10 page Goal. The next proof is repetition across
-unrelated topics and report genres with measured model, token, retry, latency,
-and quality data.
+and a 10-page PDF for an 8-10 page Goal. It does not contain the current v2
+ledger and acceptance bundle. The next proof is a current-protocol Run followed
+by repetition across unrelated topics and report genres with measured model,
+token, retry, latency, and quality data.
 
 ## Scored Contract Surfaces
 
@@ -103,9 +104,9 @@ inventories; this catalog only names the semantic join each proof exercises.
 | Workflow | Semantic join exercised | Scorecard boundary |
 |---|---|---|
 | `paper-review` | manuscript -> unique Claims -> unique evidence gaps -> at least five related works -> review concerns | Traceability and recommendation consistency, not scientific truth |
-| `research-brief` | core-set paper -> briefing pointer -> reading path | Structure, compactness, and pointer integrity, not broad topic completeness |
-| `idea-brainstorm` | C2 focus/exclusion Decision -> literature signal -> filtered direction -> screening -> shortlist -> memo | Traceability, actionability, diversity, and kill criteria, not novelty proof |
-| `evidence-review` | candidate ID -> protocol clause -> screening decision -> unique extraction row -> synthesis pointer | Complete candidate coverage and pointer integrity, not exhaustive retrieval or causal validity |
+| `research-brief` | core-set paper -> grounded theme and briefing pointer -> reading path | Structure, grounding, compactness, and pointer integrity, not broad topic completeness |
+| `idea-brainstorm` | explicit C2 focus/exclusion Decision -> literature signal -> filtered direction -> screening -> shortlist -> memo | Trace-chain integrity, shortlist consistency, actionability, scored diversity, and kill criteria, not novelty proof |
+| `evidence-review` | candidate ID -> protocol clause -> screening decision -> unique extraction/bias row -> bounded synthesis pointer | Complete candidate coverage, bias documentation, bounded conclusions, and pointer integrity, not exhaustive retrieval or causal validity |
 
 ## Evidence Gaps
 

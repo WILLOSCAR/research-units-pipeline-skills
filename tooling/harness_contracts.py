@@ -23,6 +23,11 @@ HARNESS_DOC_ENTRYPOINTS = {
     "docs/adr/0012-publish-curated-run-evidence-not-full-workspaces.md": "curated Run-evidence ADR",
     "docs/adr/0013-route-quality-checks-through-workflow-domains.md": "Workflow-domain quality routing ADR",
     "docs/adr/0014-commit-unit-completion-as-a-recoverable-provenance-transaction.md": "recoverable Unit-completion ADR",
+    "docs/adr/0015-serialize-workspace-commands-with-a-process-scoped-lock.md": "Workspace command-lock ADR",
+    "docs/adr/0016-author-skills-for-predictability-and-bounded-context-load.md": "bounded Skill-context ADR",
+    "docs/adr/0017-bind-completion-acceptance-to-recovery-and-audit.md": "Completion-acceptance ADR",
+    "docs/adr/0018-snapshot-pipeline-contracts-inside-each-run.md": "Pipeline-snapshot ADR",
+    "docs/adr/0019-bind-checkpoint-approval-to-reviewed-artifacts.md": "Checkpoint review-basis ADR",
 }
 
 HARNESS_README_LINKS = (
@@ -44,6 +49,7 @@ REPORT_SCHEMA_TERMS = (
     "run-event.v1",
     "unit-attempt.v1",
     "run-decision.v1",
+    "checkpoint-review-basis.v1",
     "artifact-record.v1",
     "failure-record.v1",
     "run-evaluation.v1",
@@ -63,6 +69,7 @@ REPORT_SCHEMA_TERMS = (
     "idea-brainstorm-scorecard.v1",
     "evidence-review-scorecard.v1",
     "completed-run-evidence.v1",
+    "workflow-context-footprint.v1",
 )
 
 ADR_ALLOWED_STATUSES = (
@@ -100,6 +107,7 @@ HARNESS_KERNEL_PATHS = (
     "tooling/harness_contracts.py",
     "tooling/ideation.py",
     "tooling/pipeline_spec.py",
+    "tooling/pipeline_snapshot.py",
     "tooling/quality_gate.py",
     "tooling/quality_reporting.py",
     "tooling/run_state.py",
@@ -176,6 +184,7 @@ EXECUTABLE_UNIT_TEMPLATES = (
 READINESS_VALIDATION_SURFACES = (
     "scripts/validate_repo.py",
     "scripts/audit_skills.py",
+    "scripts/audit_workflow_context.py",
     "scripts/evaluate_skill_invocations.py",
     "scripts/generate_skill_graph.py",
     "scripts/readiness_audit.py",
@@ -186,8 +195,10 @@ READINESS_VALIDATION_SURFACES = (
     "tests/test_run_state.py",
     "tests/test_scorecards.py",
     "tests/test_skill_invocation_eval.py",
+    "tests/test_workflow_context_audit.py",
     "tooling/product_cli.py",
     "tooling/skill_invocation_eval.py",
+    "tooling/workflow_context.py",
     *HARNESS_KERNEL_PATHS,
     "tests/test_evidence_review_vertical.py",
     "tests/test_idea_brainstorm_vertical.py",
@@ -255,7 +266,7 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
 PIPELINE_TAXONOMY_ROW_REQUIREMENTS = (
     ("Survey", "`arxiv-survey`", "`Executable`", "bounded-report pilot"),
     ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "audited 10-page PDF"),
-    ("Orientation", "`research-brief`", "`Executable`", "Completed semantic pilot"),
+    ("Orientation", "`research-brief`", "`Executable`", "Completed outcome pilot"),
     ("Review", "`paper-review`", "`Executable`", "Scored fixture proof"),
     ("Review", "`evidence-review`", "`Executable`", "Scored fixture proof"),
     ("Ideation", "`idea-brainstorm`", "`Executable`", "Scored fixture proof"),

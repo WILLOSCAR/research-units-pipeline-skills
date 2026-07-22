@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import socket
 import subprocess
 import uuid
@@ -29,14 +30,17 @@ except ImportError:  # pragma: no cover - the local Harness currently targets PO
 from tooling.common import (
     UnitsTable,
     atomic_write_text,
+    decisions_has_approval,
     ensure_dir,
     goal_constraints_from_request,
     load_workspace_pipeline_spec,
     now_iso_seconds,
     parse_semicolon_list,
+    set_decisions_approval,
     update_status_log,
 )
 from tooling.harness_contracts import HARNESS_KERNEL_PATHS
+from tooling.pipeline_snapshot import inspect_pipeline_snapshot_bundle
 
 
 HARNESS_DIR = ".harness"
@@ -51,6 +55,11 @@ EVALUATION_SCHEMA = "run-evaluation.v1"
 INVOCATION_LOCK_SCHEMA = "workspace-invocation-lock.v1"
 COMPLETION_PROTOCOL = "recoverable-provenance.v2"
 MIGRATABLE_COMPLETION_PROTOCOLS = {"recoverable-provenance.v1"}
+RECOVERABLE_COMPLETION_FAILURE_TYPES = {
+    "acceptance_recovery_failed",
+    "completion_manifest_error",
+}
+CHECKPOINT_REVIEW_BASIS_SCHEMA = "checkpoint-review-basis.v1"
 LEGACY_COMPLETION_EVIDENCE_CODES = {
     "attempt_artifact_missing",
     "attempt_start_event_missing",
@@ -702,6 +711,7 @@ def record_decision(
     decision: str,
     actor: dict[str, str],
     note: str = "",
+    review_basis: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     snapshot = _read_json_object(workspace / HARNESS_DIR / "run.json")
     previous_state = str(snapshot.get("state") or "")
@@ -716,6 +726,8 @@ def record_decision(
         "decision": decision,
         "note": note,
     }
+    if review_basis is not None:
+        record["review_basis"] = review_basis
     _append_jsonl(workspace / HARNESS_DIR / "decisions.jsonl", record)
     _append_event(
         workspace=workspace,
@@ -740,7 +752,13 @@ def record_decision(
 
 
 def record_human_decision(
-    *, workspace: Path, action: str, subject: str, decision: str, note: str = ""
+    *,
+    workspace: Path,
+    action: str,
+    subject: str,
+    decision: str,
+    note: str = "",
+    review_basis: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return record_decision(
         workspace=workspace,
@@ -749,26 +767,204 @@ def record_human_decision(
         decision=decision,
         actor={"kind": "human", "id": "workspace-operator"},
         note=note,
+        review_basis=review_basis,
     )
 
 
-def checkpoint_approval_recorded(*, workspace: Path, checkpoint: str) -> bool:
-    """Return the latest durable approval state for one Checkpoint."""
+def capture_checkpoint_review_basis(
+    *,
+    workspace: Path,
+    checkpoint: str,
+    require_active: bool = True,
+) -> dict[str, Any]:
+    """Fingerprint the artifacts a Checkpoint approval is expected to review."""
+
+    workspace = workspace.resolve()
+    checkpoint = str(checkpoint or "").strip()
+    if not checkpoint:
+        raise ValueError("Checkpoint must be non-empty.")
+    units_path = workspace / "UNITS.csv"
+    if not units_path.exists():
+        raise ValueError(f"Checkpoint {checkpoint} has no UNITS.csv review contract.")
+    table = UnitsTable.load(units_path)
+    unit_by_id = {
+        str(row.get("unit_id") or "").strip(): row
+        for row in table.rows
+        if str(row.get("unit_id") or "").strip()
+    }
+    candidates = [
+        row
+        for row in table.rows
+        if str(row.get("checkpoint") or "").strip() == checkpoint
+        and (
+            str(row.get("owner") or "").strip().upper() == "HUMAN"
+            or str(row.get("skill") or "").strip() == "human-checkpoint"
+        )
+    ]
+    eligible: list[dict[str, str]] = []
+    for row in candidates:
+        status = str(row.get("status") or "").strip().upper()
+        dependencies_ready = all(
+            dependency in unit_by_id
+            and str(unit_by_id[dependency].get("status") or "").strip().upper() in {"DONE", "SKIP"}
+            for dependency in parse_semicolon_list(row.get("depends_on"))
+        )
+        active = status in {"TODO", "DOING", "BLOCKED"} and dependencies_ready
+        if (require_active and active) or (not require_active and dependencies_ready):
+            eligible.append(row)
+    if len(eligible) != 1:
+        qualifier = "active " if require_active else ""
+        raise ValueError(
+            f"Checkpoint {checkpoint} must resolve to exactly one {qualifier}HUMAN Unit; "
+            f"found {len(eligible)}."
+        )
+
+    row = eligible[0]
+    declared_paths: dict[str, bool] = {}
+
+    def add_paths(value: object) -> None:
+        for raw_path in parse_semicolon_list(value):
+            optional = raw_path.startswith("?")
+            relpath = raw_path[1:] if optional else raw_path
+            relpath = relpath.strip()
+            if relpath and relpath not in {"STATUS.md", "UNITS.csv", "CHECKPOINTS.md"}:
+                declared_paths[relpath] = declared_paths.get(relpath, False) or not optional
+
+    add_paths(row.get("inputs"))
+    for dependency in parse_semicolon_list(row.get("depends_on")):
+        dependency_row = unit_by_id.get(dependency)
+        if dependency_row is None:
+            continue
+        add_paths(dependency_row.get("inputs"))
+        add_paths(dependency_row.get("outputs"))
+
+    artifacts: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for relpath, required in sorted(declared_paths.items()):
+        path = (workspace / relpath).resolve()
+        try:
+            path.relative_to(workspace)
+        except ValueError:
+            raise ValueError(f"Checkpoint {checkpoint} review path escapes the Workspace: {relpath}") from None
+        if not path.exists():
+            if required:
+                missing.append(relpath)
+            continue
+        if relpath == "DECISIONS.md" and not _checkpoint_decisions_projection(
+            path.read_text(encoding="utf-8", errors="replace"),
+            checkpoint=checkpoint,
+        ):
+            continue
+        fingerprint = _checkpoint_artifact_fingerprint(
+            path=path,
+            relpath=relpath,
+            checkpoint=checkpoint,
+        )
+        artifacts.append({"path": relpath, **fingerprint})
+    if missing:
+        raise ValueError(
+            f"Checkpoint {checkpoint} review basis is incomplete; missing: {', '.join(missing)}"
+        )
+    if not artifacts:
+        raise ValueError(
+            f"Checkpoint {checkpoint} has no review Artifacts; declare the evidence to review "
+            "as Unit inputs or dependency inputs/outputs before approval."
+        )
+    return {
+        "schema": CHECKPOINT_REVIEW_BASIS_SCHEMA,
+        "checkpoint": checkpoint,
+        "unit_id": str(row.get("unit_id") or "").strip(),
+        "artifacts": artifacts,
+    }
+
+
+def checkpoint_approval_status(*, workspace: Path, checkpoint: str) -> str:
+    """Classify the latest durable approval against the current review basis."""
 
     checkpoint = str(checkpoint or "").strip()
     if not checkpoint:
-        return False
-    approved = False
+        return "missing"
+    approval: dict[str, Any] | None = None
     for record in _read_jsonl(workspace / HARNESS_DIR / "decisions.jsonl"):
         if str(record.get("subject") or "").strip() != checkpoint:
             continue
         action = str(record.get("action") or "").strip()
         decision = str(record.get("decision") or "").strip().lower()
         if action in {"checkpoint.approved", "checkpoint.auto_approved"}:
-            approved = decision == "approved"
+            approval = record if decision == "approved" else None
         elif action == "checkpoint.approval.revoked":
-            approved = False
-    return approved
+            approval = None
+    if approval is None or not isinstance(approval.get("review_basis"), dict):
+        return "legacy" if approval is not None else "missing"
+    try:
+        current_basis = capture_checkpoint_review_basis(
+            workspace=workspace,
+            checkpoint=checkpoint,
+            require_active=False,
+        )
+    except ValueError:
+        return "unavailable"
+    return "active" if approval["review_basis"] == current_basis else "stale"
+
+
+def checkpoint_approval_recorded(*, workspace: Path, checkpoint: str) -> bool:
+    """Return whether one Checkpoint has current artifact-bound approval."""
+
+    return checkpoint_approval_status(workspace=workspace, checkpoint=checkpoint) == "active"
+
+
+def checkpoint_completion_approval_issue(*, workspace: Path, row: dict[str, Any]) -> str:
+    """Explain why a HUMAN Checkpoint cannot be completed against current Artifacts."""
+
+    owner = str(row.get("owner") or "").strip().upper()
+    skill = str(row.get("skill") or "").strip()
+    checkpoint = str(row.get("checkpoint") or "").strip()
+    if (owner != "HUMAN" and skill != "human-checkpoint") or not checkpoint:
+        return ""
+    readable_approval = decisions_has_approval(workspace / "DECISIONS.md", checkpoint)
+    approval_status = checkpoint_approval_status(workspace=workspace, checkpoint=checkpoint)
+    if readable_approval and approval_status == "active":
+        return ""
+    detail = {
+        "legacy": " The existing approval predates artifact-bound review and must be recorded again.",
+        "stale": " The reviewed Artifacts changed after approval and must be reviewed again.",
+        "unavailable": " The current Unit contract does not expose a complete review basis.",
+        "missing": " No durable artifact-bound approval is recorded.",
+    }.get(approval_status, "")
+    if not readable_approval:
+        detail += " The readable approval checkbox is not checked."
+    return (
+        f"Checkpoint {checkpoint} requires an active approval bound to the current review Artifacts."
+        f"{detail}"
+    )
+
+
+def revoke_checkpoint_approval(
+    *,
+    workspace: Path,
+    checkpoint: str,
+    actor_id: str,
+    note: str,
+) -> bool:
+    """Clear stale readable approval and append one durable revocation Decision."""
+
+    checkpoint = str(checkpoint or "").strip()
+    if not checkpoint:
+        return False
+    readable_approval = decisions_has_approval(workspace / "DECISIONS.md", checkpoint)
+    approval_status = checkpoint_approval_status(workspace=workspace, checkpoint=checkpoint)
+    if not readable_approval and approval_status == "missing":
+        return False
+    set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=False)
+    record_decision(
+        workspace=workspace,
+        action="checkpoint.approval.revoked",
+        subject=checkpoint,
+        decision="revoked",
+        actor={"kind": "harness", "id": actor_id},
+        note=f"{note} Previous approval status: {approval_status}.",
+    )
+    return True
 
 
 def record_completion_stage(
@@ -1096,8 +1292,8 @@ def _recover_prepared_completions(*, workspace: Path, run_id: str) -> list[str]:
                 outputs=outputs,
                 recovered=True,
                 acceptance=(
-                    payload.get("acceptance")
-                    if isinstance(payload.get("acceptance"), dict)
+                    manifest.get("acceptance")
+                    if isinstance(manifest.get("acceptance"), dict)
                     else None
                 ),
             )
@@ -1462,8 +1658,12 @@ def _completion_recovery_acceptance_issues(
     )
 
     skill = str(row.get("skill") or "").strip()
+    issues: list[str] = []
+    approval_issue = checkpoint_completion_approval_issue(workspace=workspace, row=row)
+    if approval_issue:
+        issues.append(approval_issue)
     if not completion_check_required(skill=skill, workspace=workspace):
-        return []
+        return issues
     checker_issues = check_completion_acceptance(
         skill=skill,
         workspace=workspace,
@@ -1471,7 +1671,6 @@ def _completion_recovery_acceptance_issues(
     )
     recorded_protocol = _recorded_completion_protocol(workspace)
     manifest_acceptance = manifest.get("acceptance")
-    issues: list[str] = []
     if (
         not isinstance(manifest_acceptance, dict)
         and recorded_protocol in MIGRATABLE_COMPLETION_PROTOCOLS
@@ -1553,7 +1752,15 @@ def _block_recovery_acceptance_failure(
 
     unit_id = str(row.get("unit_id") or "").strip()
     skill = str(row.get("skill") or "").strip()
+    checkpoint = str(row.get("checkpoint") or "").strip()
     symptom = "; ".join(issues[:3]) or "Completion acceptance could not be recovered."
+    if checkpoint_completion_approval_issue(workspace=workspace, row=row):
+        revoke_checkpoint_approval(
+            workspace=workspace,
+            checkpoint=checkpoint,
+            actor_id="completion-reconciler",
+            note=f"Revoked while recovery blocked {unit_id}: {symptom}",
+        )
     record_failure(
         workspace=workspace,
         unit_id=unit_id,
@@ -1745,6 +1952,22 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         seen_issues.add(key)
         issues.append({"level": level, "code": code, "message": message})
 
+    protocols = lock.get("protocols") if isinstance(lock.get("protocols"), dict) else {}
+    recorded_completion_protocol = str(protocols.get("completion") or "unversioned")
+    if recorded_completion_protocol not in {
+        COMPLETION_PROTOCOL,
+        "unversioned",
+        *MIGRATABLE_COMPLETION_PROTOCOLS,
+    }:
+        add(
+            "ERROR",
+            "unknown_completion_protocol",
+            (
+                f"Run declares unsupported Completion Protocol `{recorded_completion_protocol}`; "
+                "this Harness cannot validate its completion evidence safely."
+            ),
+        )
+
     ledger_paths = {
         "events": harness_dir / "events.jsonl",
         "attempts": harness_dir / "attempts.jsonl",
@@ -1791,30 +2014,13 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
                 "pipeline_lock_projection_mismatch",
                 f"`PIPELINE.lock.md` declares `{declared_value or '<missing>'}`, but the Harness lock binds `{source_value}`.",
             )
-        if source_value and not snapshot_value:
-            add("ERROR", "pipeline_snapshot_missing", "The v2 Harness lock binds a Pipeline but has no contract snapshot.")
-        elif snapshot_value:
-            candidate = Path(snapshot_value)
-            snapshot_path = (workspace / candidate).resolve() if not candidate.is_absolute() else candidate
-            expected_sha = str(pipeline_lock.get("snapshot_sha256") or "").strip()
-            if candidate.is_absolute() or not snapshot_path.is_relative_to(workspace.resolve()):
-                add("ERROR", "pipeline_snapshot_path_invalid", "The Pipeline snapshot path escapes the Workspace.")
-            elif not snapshot_path.is_file():
-                add("ERROR", "pipeline_snapshot_missing", f"Pinned Pipeline snapshot `{snapshot_value}` is missing.")
-            elif not expected_sha or _file_sha256(snapshot_path) != expected_sha:
-                add("ERROR", "pipeline_snapshot_hash_mismatch", f"Pinned Pipeline snapshot `{snapshot_value}` does not match its lock hash.")
-
-            snapshot_files = pipeline_lock.get("snapshot_files")
-            if not isinstance(snapshot_files, dict) or not snapshot_files:
-                add("ERROR", "pipeline_snapshot_bundle_missing", "The v2 Pipeline snapshot has no inheritance bundle manifest.")
-            else:
-                snapshot_dir = snapshot_path.parent
-                for filename, digest in sorted(snapshot_files.items()):
-                    dependency = (snapshot_dir / str(filename)).resolve()
-                    if not dependency.is_relative_to(snapshot_dir.resolve()) or not dependency.is_file():
-                        add("ERROR", "pipeline_snapshot_dependency_missing", f"Pinned Pipeline dependency `{filename}` is missing.")
-                    elif _file_sha256(dependency) != str(digest or ""):
-                        add("ERROR", "pipeline_snapshot_dependency_hash_mismatch", f"Pinned Pipeline dependency `{filename}` does not match its lock hash.")
+        if source_value or snapshot_value:
+            inspection = inspect_pipeline_snapshot_bundle(
+                workspace=workspace,
+                pipeline_lock=pipeline_lock,
+            )
+            for issue in inspection.issues:
+                add("ERROR", issue.code, issue.message)
 
     event_sequences = [record.get("seq") for record in ledgers["events"]]
     if event_sequences and event_sequences != list(range(1, len(event_sequences) + 1)):
@@ -2023,6 +2229,18 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
     for unit_id, row in units.items():
         if str(row.get("status") or "").strip().upper() != "DONE":
             continue
+        approval_issue = checkpoint_completion_approval_issue(workspace=workspace, row=row)
+        if approval_issue:
+            approval_status = checkpoint_approval_status(
+                workspace=workspace,
+                checkpoint=str(row.get("checkpoint") or "").strip(),
+            )
+            code = (
+                "done_checkpoint_approval_stale"
+                if approval_status == "stale"
+                else "done_checkpoint_approval_invalid"
+            )
+            add("ERROR", code, f"DONE Unit `{unit_id}` is not currently approved: {approval_issue}")
         successful_attempts = successful_by_unit.get(unit_id, set())
         if not successful_attempts:
             add("ERROR", "done_without_successful_attempt", f"DONE Unit `{unit_id}` has no successful Attempt.")
@@ -2374,36 +2592,78 @@ def _materialize_pipeline_contract_snapshot(
     ensure_dir(snapshot_dir)
     snapshot_files: dict[str, str] = {}
     sources: list[Path] = []
+    parents: dict[Path, Path] = {}
     current = pipeline_path.resolve()
     seen: set[Path] = set()
     while current not in seen:
         seen.add(current)
         sources.append(current)
-        from tooling.common import resolve_pipeline_spec_path
-        from tooling.pipeline_spec import PipelineSpec
+        from tooling.pipeline_spec import PipelineSpec, resolve_pipeline_variant_path
 
         spec = PipelineSpec.load(current)
         if not spec.variant_of:
             break
-        parent = resolve_pipeline_spec_path(repo_root=repo_root, pipeline_value=spec.variant_of)
-        if parent is None:
+        try:
+            parent = resolve_pipeline_variant_path(current, spec.variant_of)
+        except ValueError:
             raise ValueError(f"Could not snapshot Pipeline parent `{spec.variant_of}` for {current}.")
+        parent = parent.resolve()
+        parents[current] = parent
         current = parent
 
-    for source in sorted(sources):
-        target = snapshot_dir / source.name
-        atomic_write_text(target, source.read_text(encoding="utf-8"))
-        snapshot_files[source.name] = _file_sha256(target)
+    resolved_repo_root = repo_root.resolve()
+    targets: dict[Path, Path] = {}
+    for source in sources:
+        try:
+            relative = source.relative_to(resolved_repo_root)
+        except ValueError:
+            namespace = hashlib.sha256(str(source.parent).encode("utf-8")).hexdigest()[:16]
+            relative = Path("_external") / namespace / source.name
+        targets[source] = snapshot_dir / relative
 
-    selected = snapshot_dir / pipeline_path.name
-    if not selected.exists():
-        atomic_write_text(selected, pipeline_path.read_text(encoding="utf-8"))
-        snapshot_files[selected.name] = _file_sha256(selected)
+    for source in reversed(sources):
+        target = targets[source]
+        text = source.read_text(encoding="utf-8")
+        parent = parents.get(source)
+        if parent is not None and (
+            Path(PipelineSpec.load(source).variant_of).is_absolute()
+            or not source.is_relative_to(resolved_repo_root)
+            or not parent.is_relative_to(resolved_repo_root)
+        ):
+            relative_parent = Path(
+                os.path.relpath(targets[parent], start=target.parent)
+            ).as_posix()
+            text = _rewrite_pipeline_variant_reference(text, relative_parent, source=source)
+        ensure_dir(target.parent)
+        atomic_write_text(target, text)
+        key = target.relative_to(snapshot_dir).as_posix()
+        snapshot_files[key] = _file_sha256(target)
+
+    selected = targets[pipeline_path.resolve()]
     return {
+        "snapshot_root": _relative_or_absolute(snapshot_dir, workspace),
         "snapshot_path": _relative_or_absolute(selected, workspace),
         "snapshot_sha256": _file_sha256(selected),
         "snapshot_files": snapshot_files,
     }
+
+
+def _rewrite_pipeline_variant_reference(text: str, reference: str, *, source: Path) -> str:
+    """Point a copied variant at its copied parent without touching the live source."""
+
+    lines = text.splitlines(keepends=True)
+    in_frontmatter = False
+    for index, line in enumerate(lines):
+        if index == 0 and line.strip() == "---":
+            in_frontmatter = True
+            continue
+        if in_frontmatter and line.strip() == "---":
+            break
+        if in_frontmatter and re.match(r"^variant_of\s*:", line):
+            newline = "\n" if line.endswith("\n") else ""
+            lines[index] = f"variant_of: {json.dumps(reference)}{newline}"
+            return "".join(lines)
+    raise ValueError(f"Could not rewrite Pipeline parent reference in {source}.")
 
 
 def _completion_protocol_compatibility(
@@ -2632,6 +2892,45 @@ def _path_fingerprint(path: Path) -> dict[str, Any]:
             digest.update(_file_sha256(item).encode("ascii"))
         return {"type": "directory", "file_count": len(files), "sha256": digest.hexdigest()}
     return {"type": "file", "size": path.stat().st_size, "sha256": _file_sha256(path)}
+
+
+def _checkpoint_artifact_fingerprint(
+    *,
+    path: Path,
+    relpath: str,
+    checkpoint: str,
+) -> dict[str, Any]:
+    if relpath != "DECISIONS.md" or not path.is_file():
+        return _path_fingerprint(path)
+    text = path.read_text(encoding="utf-8", errors="replace")
+    normalized = _checkpoint_decisions_projection(text, checkpoint=checkpoint).encode("utf-8")
+    return {
+        "type": "file",
+        "size": len(normalized),
+        "sha256": hashlib.sha256(normalized).hexdigest(),
+        "normalization": "checkpoint-block-and-approval-checkbox-insensitive",
+    }
+
+
+def _checkpoint_decisions_projection(text: str, *, checkpoint: str) -> str:
+    """Project only one Checkpoint block so later Decisions do not stale earlier approval."""
+
+    block_match = re.search(
+        rf"<!-- BEGIN CHECKPOINT:{re.escape(checkpoint)} -->(.*?)<!-- END CHECKPOINT:{re.escape(checkpoint)} -->",
+        text,
+        flags=re.DOTALL,
+    )
+    if block_match is None:
+        return ""
+    approval_match = re.search(
+        rf"^(\s*-\s*)\[[ xX]\](\s*(?:Approve\s+)?{re.escape(checkpoint)}\b.*)$",
+        text,
+        flags=re.MULTILINE,
+    )
+    approval = ""
+    if approval_match is not None:
+        approval = f"{approval_match.group(1)}[ ]{approval_match.group(2)}"
+    return f"{approval}\n{block_match.group(0).strip()}\n"
 
 
 def _implementation_fingerprint(path: Path) -> dict[str, Any]:

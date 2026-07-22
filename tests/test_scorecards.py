@@ -218,6 +218,7 @@ def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_pat
         "evidence-binder",
         "evidence-draft",
         "evidence-auditor",
+        "evidence-selfloop",
         "extraction-form",
         "global-reviewer",
         "idea-brief",
@@ -324,3 +325,91 @@ def test_section_binding_check_keeps_report_parser_inside_structure_module(tmp_p
         workspace=tmp_path,
         outputs=["outline/section_bindings.jsonl", "outline/section_binding_report.md"],
     ) == []
+
+
+def test_theme_grounding_requires_every_theme_bullet_to_resolve() -> None:
+    from tooling.brief_evaluation import _grounding_dimension
+
+    dimension = _grounding_dimension(
+        {"P0001"},
+        [{"P0001"}, set(), {"P0002"}],
+        {"P0001", "P0002"},
+    )
+
+    assert dimension["status"] == "FAIL"
+    assert dimension["score"] == 2
+    assert "2/3" in dimension["evidence"]
+
+
+def test_theme_grounding_requires_scope_and_two_unique_core_papers() -> None:
+    from tooling.brief_evaluation import _grounding_dimension
+
+    no_scope = _grounding_dimension(
+        set(),
+        [{"P0001"}, {"P0002"}],
+        {"P0001", "P0002"},
+    )
+    one_paper = _grounding_dimension(
+        {"P0001"},
+        [{"P0001"}, {"P0001"}],
+        {"P0001", "P0002"},
+    )
+    grounded = _grounding_dimension(
+        {"P0001"},
+        [{"P0001"}, {"P0002"}],
+        {"P0001", "P0002"},
+    )
+
+    assert no_scope["status"] == "FAIL"
+    assert one_paper["status"] == "FAIL"
+    assert grounded["status"] == "PASS"
+
+
+def test_bias_completeness_is_a_critical_negative_dimension() -> None:
+    from tooling.evidence_review_evaluation import _bias_dimension
+
+    dimension = _bias_dimension(
+        [
+            {
+                "paper_id": "P0001",
+                "rob_overall": "",
+                "rob_domains": "selection: low",
+                "rob_notes": "",
+            }
+        ]
+    )
+
+    assert dimension["status"] == "FAIL"
+
+
+def test_conclusion_boundedness_preserves_negated_academic_language() -> None:
+    from tooling.evidence_review_evaluation import _boundedness_dimension
+
+    bounded = _boundedness_dimension(
+        "## Needs more evidence\n\nThe available evidence does not prove causality and is not conclusive.\n\n"
+        "## Risk of bias\n\nSelection bias remains possible.\n"
+    )
+    overclaim = _boundedness_dimension(
+        "## Needs more evidence\n\nThe available evidence proves the intervention causes recovery.\n\n"
+        "## Risk of bias\n\nSelection bias remains possible.\n"
+    )
+    common_overclaims = [
+        "The evidence demonstrates that the intervention improves recovery.",
+        "The review establishes that the intervention improves recovery.",
+        "The findings strongly support deploying the intervention.",
+    ]
+    hedged = _boundedness_dimension(
+        "## Needs more evidence\n\nThe available evidence may demonstrate an association, but does not establish causality.\n\n"
+        "## Risk of bias\n\nSelection bias remains possible.\n"
+    )
+
+    assert bounded["status"] == "PASS"
+    assert overclaim["status"] == "FAIL"
+    assert all(
+        _boundedness_dimension(
+            f"## Needs more evidence\n\n{claim}\n\n## Risk of bias\n\nSelection bias remains possible.\n"
+        )["status"]
+        == "FAIL"
+        for claim in common_overclaims
+    )
+    assert hedged["status"] == "PASS"

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from tooling.common import UnitsTable
 from tooling.executor import run_one_unit
 from tooling.harness import (
     build_improvement_payload,
@@ -75,6 +76,44 @@ def _write_units(
         )
 
 
+def _prepare_approved_human_checkpoint(workspace: Path) -> Path:
+    from tooling.common import set_decisions_approval
+    from tooling.run_state import (
+        capture_checkpoint_review_basis,
+        initialize_run_state,
+        record_human_decision,
+    )
+
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="DECISIONS.md")
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["inputs"] = "review.md;DECISIONS.md"
+    table.rows[0]["owner"] = "HUMAN"
+    table.save(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [ ] Approve C1\n",
+        encoding="utf-8",
+    )
+    review = workspace / "review.md"
+    review.write_text("review basis v1\n", encoding="utf-8")
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+    basis = capture_checkpoint_review_basis(workspace=workspace, checkpoint="C1")
+    set_decisions_approval(workspace / "DECISIONS.md", "C1", approved=True)
+    record_human_decision(
+        workspace=workspace,
+        action="checkpoint.approved",
+        subject="C1",
+        decision="approved",
+        review_basis=basis,
+    )
+    return review
+
+
 def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None:
     workspace = tmp_path / "run"
 
@@ -125,7 +164,8 @@ def test_init_creates_pinned_machine_readable_run_ledger(tmp_path: Path) -> None
     assert lock["pipeline"]["sha256"]
     assert lock["pipeline"]["snapshot_sha256"] == lock["pipeline"]["sha256"]
     assert (workspace / lock["pipeline"]["snapshot_path"]).is_file()
-    assert "research-brief.pipeline.md" in lock["pipeline"]["snapshot_files"]
+    assert lock["pipeline"]["snapshot_root"] == ".harness/contracts/pipelines"
+    assert "pipelines/research-brief.pipeline.md" in lock["pipeline"]["snapshot_files"]
     assert lock["units_template"]["sha256"]
     assert lock["skills"]
     assert all(record.get("script_sha256") for record in lock["skills"].values())
@@ -208,14 +248,136 @@ def test_pipeline_snapshot_preserves_variant_parent_contract(tmp_path: Path) -> 
 
     lock = json.loads((workspace / ".harness" / "harness.lock.json").read_text(encoding="utf-8"))
     assert set(lock["pipeline"]["snapshot_files"]) == {
-        "arxiv-survey-latex.pipeline.md",
-        "arxiv-survey.pipeline.md",
+        "pipelines/arxiv-survey-latex.pipeline.md",
+        "pipelines/arxiv-survey.pipeline.md",
     }
     spec = load_workspace_pipeline_spec(workspace)
     assert spec is not None
     assert spec.name == "arxiv-survey-latex"
     assert spec.variant_of == "arxiv-survey"
     assert "latex/main.pdf" in spec.target_artifacts
+
+
+def test_pipeline_snapshot_rejects_tampered_variant_parent_before_loading(tmp_path: Path) -> None:
+    from tooling.common import load_workspace_pipeline_spec
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "latex-run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "arxiv-survey-latex",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    parent = workspace / ".harness" / "contracts" / "pipelines" / "pipelines" / "arxiv-survey.pipeline.md"
+    parent.write_text(parent.read_text(encoding="utf-8") + "\n<!-- drift -->\n", encoding="utf-8")
+
+    assert load_workspace_pipeline_spec(workspace) is None
+    codes = {issue["code"] for issue in inspect_run_integrity(workspace)["issues"]}
+    assert "pipeline_snapshot_dependency_hash_mismatch" in codes
+
+
+def test_pipeline_snapshot_rejects_unlisted_resolved_parent(tmp_path: Path) -> None:
+    from tooling.common import load_workspace_pipeline_spec
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "latex-run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "arxiv-survey-latex",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["pipeline"]["snapshot_files"].pop("pipelines/arxiv-survey.pipeline.md")
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+
+    assert load_workspace_pipeline_spec(workspace) is None
+    codes = {issue["code"] for issue in inspect_run_integrity(workspace)["issues"]}
+    assert "pipeline_snapshot_parent_unlisted" in codes
+
+
+def test_v2_pipeline_snapshot_load_does_not_resolve_live_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tooling.common as common
+
+    workspace = tmp_path / "latex-run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "arxiv-survey-latex",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    monkeypatch.setattr(
+        common,
+        "resolve_pipeline_spec_path",
+        lambda **_: (_ for _ in ()).throw(AssertionError("live Pipeline lookup must not run")),
+    )
+    spec = common.load_workspace_pipeline_spec(workspace)
+
+    assert spec is not None
+    assert spec.name == "arxiv-survey-latex"
+
+
+def test_pipeline_snapshot_preserves_same_basename_parent_identity(tmp_path: Path) -> None:
+    from tooling.pipeline_snapshot import inspect_pipeline_snapshot_bundle
+    from tooling.pipeline_spec import PipelineSpec
+    from tooling.run_state import initialize_run_state
+
+    repo = tmp_path / "repo"
+    parent = repo / "pipelines" / "base" / "shared.pipeline.md"
+    child = repo / "pipelines" / "child" / "shared.pipeline.md"
+    parent.parent.mkdir(parents=True)
+    child.parent.mkdir(parents=True)
+    parent.write_text(
+        "---\nname: parent\nversion: 1\nunits_template: templates/UNITS.csv\n"
+        "target_artifacts: [output/result.md]\n---\n\n# Parent\n",
+        encoding="utf-8",
+    )
+    child.write_text(
+        "---\nname: child\nversion: 1\nvariant_of: ../base/shared.pipeline.md\n"
+        "variant_overrides:\n  target_artifacts:\n    __append__: [output/child.md]\n"
+        "---\n\n# Child\n",
+        encoding="utf-8",
+    )
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv", outputs="output/result.md")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=repo,
+        pipeline_path=child,
+        units_template="",
+    )
+
+    lock = json.loads((workspace / ".harness" / "harness.lock.json").read_text(encoding="utf-8"))
+    pipeline_lock = lock["pipeline"]
+    assert set(pipeline_lock["snapshot_files"]) == {
+        "pipelines/base/shared.pipeline.md",
+        "pipelines/child/shared.pipeline.md",
+    }
+    inspection = inspect_pipeline_snapshot_bundle(workspace=workspace, pipeline_lock=pipeline_lock)
+    assert inspection.valid
+    spec = PipelineSpec.load(inspection.selected_path)
+    assert spec.name == "child"
+    assert spec.variant_of == "../base/shared.pipeline.md"
+    assert spec.target_artifacts == ("output/result.md", "output/child.md")
 
 
 def test_harness_lock_pins_skill_assets_with_the_executable_implementation(tmp_path: Path) -> None:
@@ -1559,8 +1721,10 @@ def test_reconciliation_does_not_promote_prepared_manifest_without_acceptance(
     assert failures[-1]["failure_type"] == "acceptance_recovery_failed"
 
 
+@pytest.mark.parametrize("projected_status", ["DOING", "DONE"])
 def test_reconciliation_migrates_v1_prepared_acceptance_after_revalidation(
     tmp_path: Path,
+    projected_status: str,
 ) -> None:
     from tooling.harness import write_unit_manifest
     from tooling.run_state import (
@@ -1635,6 +1799,15 @@ def test_reconciliation_migrates_v1_prepared_acceptance_after_revalidation(
         manifest_path=str(manifest_path.relative_to(workspace)),
         outputs=["papers/papers_raw.jsonl"],
     )
+    if projected_status == "DONE":
+        units_path = workspace / "UNITS.csv"
+        with units_path.open(encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        rows[0]["status"] = "DONE"
+        with units_path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
+            writer.writeheader()
+            writer.writerows(rows)
 
     snapshot = ensure_run_state(workspace=workspace, repo_root=REPO_ROOT)
 
@@ -1652,6 +1825,70 @@ def test_reconciliation_migrates_v1_prepared_acceptance_after_revalidation(
     assert compatibility["mode"] == "legacy_versioned"
     assert compatibility["recorded_completion_protocol"] == "recoverable-provenance.v1"
     assert compatibility["current_completion_protocol"] == "recoverable-provenance.v2"
+
+
+def test_success_resolves_recoverable_completion_failures(tmp_path: Path) -> None:
+    from tooling.completion import commit_unit_completion
+    from tooling.run_state import finish_attempt, initialize_run_state, record_failure, start_attempt
+
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv", status="DOING")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    output = workspace / "output" / "result.md"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("repaired completion\n", encoding="utf-8")
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+    failed_attempt = start_attempt(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        skill="skill-without-script",
+        inputs=(),
+    )
+    for failure_type in ("completion_manifest_error", "acceptance_recovery_failed"):
+        record_failure(
+            workspace=workspace,
+            unit_id="U010",
+            attempt_id=failed_attempt,
+            failure_type=failure_type,
+            symptom=failure_type,
+            causal_behavior="fixture",
+            harness_mechanism="fixture",
+            repair_surface=["fixture"],
+        )
+    finish_attempt(
+        workspace=workspace,
+        attempt_id=failed_attempt,
+        unit_id="U010",
+        skill="skill-without-script",
+        status="FAILED_RETRYABLE",
+        exit_code=2,
+    )
+
+    result = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+    )
+
+    assert result.status == "DONE"
+    ledger = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    opened = {
+        str(record["failure_type"]): str(record["failure_id"])
+        for record in ledger
+        if record["status"] == "open"
+    }
+    resolved = {
+        str(record["failure_id"])
+        for record in ledger
+        if record["status"] == "resolved"
+    }
+    assert resolved == set(opened.values())
 
 
 def test_reconciliation_does_not_recover_prepared_manifest_from_older_attempt(tmp_path: Path) -> None:
@@ -2006,11 +2243,13 @@ def test_auto_approval_records_machine_decision(tmp_path: Path) -> None:
     with (workspace / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     rows[0]["owner"] = "HUMAN"
+    rows[0]["inputs"] = "review.md"
     with (workspace / "UNITS.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
     (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "review.md").write_text("review basis\n", encoding="utf-8")
     (workspace / "DECISIONS.md").write_text(
         "# Decisions\n\n## Approvals (check to unblock)\n- [ ] Approve C1\n",
         encoding="utf-8",
@@ -2022,6 +2261,382 @@ def test_auto_approval_records_machine_decision(tmp_path: Path) -> None:
     assert result.status == "DONE"
     assert decisions[-1]["action"] == "checkpoint.auto_approved"
     assert decisions[-1]["actor"] == {"kind": "harness", "id": "auto-approval"}
+    assert decisions[-1]["review_basis"]["schema"] == "checkpoint-review-basis.v1"
+
+
+def test_checkpoint_review_basis_rejects_empty_artifact_set(tmp_path: Path) -> None:
+    from tooling.run_state import capture_checkpoint_review_basis, initialize_run_state
+
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="")
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["owner"] = "HUMAN"
+    table.save(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [ ] Approve C1\n",
+        encoding="utf-8",
+    )
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+
+    with pytest.raises(ValueError, match="has no review Artifacts"):
+        capture_checkpoint_review_basis(workspace=workspace, checkpoint="C1")
+
+
+def test_legacy_checkpoint_approval_requires_explicit_refresh(tmp_path: Path) -> None:
+    from tooling.completion import commit_unit_completion
+    from tooling.run_state import initialize_run_state, record_human_decision
+
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="")
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["owner"] = "HUMAN"
+    table.rows[0]["inputs"] = "review.md"
+    table.save(workspace / "UNITS.csv")
+    (workspace / "review.md").write_text("review basis\n", encoding="utf-8")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [x] Approve C1\n",
+        encoding="utf-8",
+    )
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+    record_human_decision(
+        workspace=workspace,
+        action="checkpoint.approved",
+        subject="C1",
+        decision="approved",
+    )
+
+    completion = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+    )
+
+    assert completion.status == "BLOCKED"
+    assert "predates artifact-bound review" in completion.message
+
+
+def test_checkpoint_approval_is_invalidated_when_reviewed_artifact_changes(tmp_path: Path) -> None:
+    from tooling.common import set_decisions_approval
+    from tooling.run_state import (
+        capture_checkpoint_review_basis,
+        checkpoint_approval_recorded,
+        initialize_run_state,
+        record_human_decision,
+    )
+
+    workspace = tmp_path / "run"
+    workspace.mkdir(parents=True)
+    with (workspace / "UNITS.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
+        writer.writeheader()
+        writer.writerows(
+            [
+                {
+                    "unit_id": "U001",
+                    "title": "Prepare review artifact",
+                    "type": "STRUCTURE",
+                    "skill": "skill-without-script",
+                    "outputs": "output/review.md",
+                    "checkpoint": "C1",
+                    "status": "DONE",
+                    "owner": "CODEX",
+                },
+                {
+                    "unit_id": "U010",
+                    "title": "Approve review artifact",
+                    "type": "META",
+                    "skill": "human-checkpoint",
+                    "inputs": "output/review.md;DECISIONS.md",
+                    "outputs": "DECISIONS.md",
+                    "checkpoint": "C1",
+                    "status": "BLOCKED",
+                    "depends_on": "U001",
+                    "owner": "HUMAN",
+                },
+            ]
+        )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [ ] Approve C1\n",
+        encoding="utf-8",
+    )
+    review = workspace / "output" / "review.md"
+    review.parent.mkdir(parents=True)
+    review.write_text("version one\n", encoding="utf-8")
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+
+    basis = capture_checkpoint_review_basis(workspace=workspace, checkpoint="C1")
+    set_decisions_approval(workspace / "DECISIONS.md", "C1", approved=True)
+    record_human_decision(
+        workspace=workspace,
+        action="checkpoint.approved",
+        subject="C1",
+        decision="approved",
+        review_basis=basis,
+    )
+
+    assert checkpoint_approval_recorded(workspace=workspace, checkpoint="C1")
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[1]["status"] = "DONE"
+    table.save(workspace / "UNITS.csv")
+    review.write_text("version two\n", encoding="utf-8")
+    assert not checkpoint_approval_recorded(workspace=workspace, checkpoint="C1")
+    from tooling.completion import commit_unit_completion
+
+    completion = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+    )
+    assert completion.status == "BLOCKED"
+    assert "bound to the current review Artifacts" in completion.message
+    assert "changed after approval" in completion.message
+
+
+def test_checkpoint_decision_fingerprint_is_scoped_to_its_marked_block(tmp_path: Path) -> None:
+    from tooling.common import set_decisions_approval
+    from tooling.run_state import (
+        capture_checkpoint_review_basis,
+        checkpoint_approval_status,
+        initialize_run_state,
+        record_human_decision,
+    )
+
+    workspace = tmp_path / "run"
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="DECISIONS.md")
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["inputs"] = "DECISIONS.md"
+    table.rows[0]["owner"] = "HUMAN"
+    table.save(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    decisions = workspace / "DECISIONS.md"
+    decisions.write_text(
+        "# Decisions\n\n## Approvals\n- [ ] C1\n\n"
+        "<!-- BEGIN CHECKPOINT:C1 -->\n## C1 review\n- Scope: bounded\n"
+        "<!-- END CHECKPOINT:C1 -->\n",
+        encoding="utf-8",
+    )
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=None,
+        units_template="",
+    )
+    basis = capture_checkpoint_review_basis(workspace=workspace, checkpoint="C1")
+    set_decisions_approval(decisions, "C1", approved=True)
+    record_human_decision(
+        workspace=workspace,
+        action="checkpoint.approved",
+        subject="C1",
+        decision="approved",
+        review_basis=basis,
+    )
+    decisions.write_text(
+        decisions.read_text(encoding="utf-8")
+        + "\n<!-- BEGIN CHECKPOINT:C2 -->\n## C2 review\n- Focus: new\n<!-- END CHECKPOINT:C2 -->\n",
+        encoding="utf-8",
+    )
+
+    assert checkpoint_approval_status(workspace=workspace, checkpoint="C1") == "active"
+
+    decisions.write_text(
+        decisions.read_text(encoding="utf-8").replace("- Scope: bounded", "- Scope: changed"),
+        encoding="utf-8",
+    )
+    assert checkpoint_approval_status(workspace=workspace, checkpoint="C1") == "stale"
+
+
+def test_stale_checkpoint_completion_closes_open_attempt(tmp_path: Path) -> None:
+    from tooling.completion import commit_unit_completion
+    from tooling.run_state import open_attempt_for_unit, start_attempt
+
+    workspace = tmp_path / "run"
+    review = _prepare_approved_human_checkpoint(workspace)
+    attempt_id = start_attempt(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        skill="human-checkpoint",
+        inputs=("review.md", "DECISIONS.md"),
+    )
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["status"] = "DOING"
+    table.save(workspace / "UNITS.csv")
+    review.write_text("review basis v2\n", encoding="utf-8")
+
+    completion = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        attempt_id=attempt_id,
+    )
+
+    assert completion.status == "BLOCKED"
+    assert not open_attempt_for_unit(workspace=workspace, unit_id="U010")
+    assert UnitsTable.load(workspace / "UNITS.csv").rows[0]["status"] == "BLOCKED"
+    assert "- [ ] Approve C1" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    decisions = _jsonl(workspace / ".harness" / "decisions.jsonl")
+    assert decisions[-1]["action"] == "checkpoint.approval.revoked"
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    assert failures[-1]["failure_type"] == "checkpoint_approval_invalid"
+
+
+def test_prepared_checkpoint_recovery_fails_closed_after_artifact_drift(tmp_path: Path) -> None:
+    from tooling.harness import write_unit_manifest
+    from tooling.run_state import (
+        ensure_run_state,
+        record_completion_stage,
+        start_attempt,
+    )
+
+    workspace = tmp_path / "run"
+    review = _prepare_approved_human_checkpoint(workspace)
+    attempt_id = start_attempt(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+        skill="human-checkpoint",
+        inputs=("review.md", "DECISIONS.md"),
+    )
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["status"] = "DOING"
+    table.save(workspace / "UNITS.csv")
+    manifest_path = write_unit_manifest(
+        workspace=workspace,
+        unit_id="U010",
+        skill="human-checkpoint",
+        outputs=["DECISIONS.md"],
+        exit_code=0,
+        status="PREPARED",
+        attempt_id=attempt_id,
+        repo_root=REPO_ROOT,
+    )
+    record_completion_stage(
+        workspace=workspace,
+        unit_id="U010",
+        attempt_id=attempt_id,
+        stage="prepared",
+        manifest_path=str(manifest_path.relative_to(workspace)),
+        outputs=["DECISIONS.md"],
+    )
+    review.write_text("review basis v2\n", encoding="utf-8")
+
+    snapshot = ensure_run_state(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert snapshot["state"] != "COMPLETED"
+    assert UnitsTable.load(workspace / "UNITS.csv").rows[0]["status"] == "BLOCKED"
+    assert json.loads(manifest_path.read_text(encoding="utf-8"))["status"] == "PREPARED"
+    assert "- [ ] Approve C1" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    decisions = _jsonl(workspace / ".harness" / "decisions.jsonl")
+    assert decisions[-1]["action"] == "checkpoint.approval.revoked"
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    assert failures[-1]["failure_type"] == "acceptance_recovery_failed"
+
+
+def test_audit_rejects_done_checkpoint_after_artifact_drift(tmp_path: Path) -> None:
+    from tooling.completion import commit_unit_completion
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "run"
+    review = _prepare_approved_human_checkpoint(workspace)
+    completion = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+    )
+    assert completion.status == "DONE"
+    review.write_text("review basis v2\n", encoding="utf-8")
+
+    codes = {issue["code"] for issue in inspect_run_integrity(workspace)["issues"]}
+
+    assert "done_checkpoint_approval_stale" in codes
+
+
+def test_resume_reopens_stale_checkpoint_and_invalidates_downstream(tmp_path: Path) -> None:
+    from tooling.completion import commit_unit_completion
+
+    workspace = tmp_path / "run"
+    review = _prepare_approved_human_checkpoint(workspace)
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    downstream = dict(table.rows[0])
+    downstream.update(
+        {
+            "unit_id": "U020",
+            "title": "Downstream write",
+            "skill": "skill-without-script",
+            "inputs": "review.md",
+            "outputs": "output/result.md",
+            "checkpoint": "C2",
+            "status": "TODO",
+            "depends_on": "U010",
+            "owner": "CODEX",
+        }
+    )
+    table.rows.append(downstream)
+    table.save(workspace / "UNITS.csv")
+    completion = commit_unit_completion(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        unit_id="U010",
+    )
+    assert completion.status == "DONE"
+    review.write_text("review basis v2\n", encoding="utf-8")
+
+    result = run_one_unit(workspace=workspace, repo_root=REPO_ROOT)
+
+    statuses = {
+        row["unit_id"]: row["status"]
+        for row in UnitsTable.load(workspace / "UNITS.csv").rows
+    }
+    assert result.unit_id == "U010"
+    assert result.status == "BLOCKED"
+    assert statuses == {"U010": "BLOCKED", "U020": "TODO"}
+    assert "- [ ] Approve C1" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    decisions = _jsonl(workspace / ".harness" / "decisions.jsonl")
+    assert decisions[-1]["action"] == "checkpoint.approval.revoked"
+
+
+def test_unknown_completion_protocol_fails_integrity_audit(tmp_path: Path) -> None:
+    from tooling.run_state import inspect_run_integrity
+
+    workspace = tmp_path / "run"
+    result = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["protocols"]["completion"] = "recoverable-provenance.v999"
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+
+    integrity = inspect_run_integrity(workspace)
+
+    assert integrity["compatibility"]["mode"] == "unknown_protocol"
+    assert "unknown_completion_protocol" in {
+        issue["code"] for issue in integrity["issues"]
+    }
 
 
 def test_idea_focus_checkpoint_cannot_be_auto_approved(tmp_path: Path) -> None:
@@ -2049,6 +2664,46 @@ def test_idea_focus_checkpoint_cannot_be_auto_approved(tmp_path: Path) -> None:
 
     assert result.status == "BLOCKED"
     assert "cannot be auto-approved" in result.message
+    assert "- [ ] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    assert _jsonl(workspace / ".harness" / "decisions.jsonl") == []
+
+
+def test_auto_approval_fails_closed_when_pinned_pipeline_snapshot_is_invalid(tmp_path: Path) -> None:
+    from tooling.run_state import initialize_run_state
+
+    workspace = tmp_path / "idea-run"
+    _write_units(workspace / "UNITS.csv", skill="human-checkpoint", outputs="DECISIONS.md")
+    table = UnitsTable.load(workspace / "UNITS.csv")
+    table.rows[0]["inputs"] = "review.md;DECISIONS.md"
+    table.rows[0]["owner"] = "HUMAN"
+    table.rows[0]["checkpoint"] = "C2"
+    table.save(workspace / "UNITS.csv")
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    (workspace / "DECISIONS.md").write_text(
+        "# Decisions\n\n## Approvals (check to unblock)\n- [ ] Approve C2\n",
+        encoding="utf-8",
+    )
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/idea-brainstorm.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (workspace / "review.md").write_text("Choose one explicit research focus.\n", encoding="utf-8")
+    pipeline_path = REPO_ROOT / "pipelines" / "idea-brainstorm.pipeline.md"
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=pipeline_path,
+        units_template="",
+    )
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    snapshot_path = workspace / lock["pipeline"]["snapshot_path"]
+    snapshot_path.write_text(snapshot_path.read_text(encoding="utf-8") + "\n# tampered\n", encoding="utf-8")
+
+    result = run_one_unit(workspace=workspace, repo_root=REPO_ROOT, auto_approve={"C2"})
+
+    assert result.status == "BLOCKED"
+    assert "pinned Pipeline contract is unavailable or invalid" in result.message
     assert "- [ ] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
     assert _jsonl(workspace / ".harness" / "decisions.jsonl") == []
 
@@ -2084,7 +2739,7 @@ def test_product_cli_goal_create_maps_to_existing_workflow(tmp_path: Path) -> No
         "tooling.product_cli",
         "goal",
         "create",
-        "--topic",
+        "--goal",
         "robot adaptation",
         "--workflow",
         "research-brief",
@@ -2102,7 +2757,7 @@ def test_product_cli_goal_create_maps_to_existing_workflow(tmp_path: Path) -> No
     status = _run("-m", "tooling.product_cli", "run", "status", "--workspace", str(workspace))
     assert status.returncode == 0, status.stderr or status.stdout
     assert "State: PLANNED" in status.stdout
-    assert "Resume: uv run rh run resume --workspace" in status.stdout
+    assert "Start: uv run rh run start --workspace" in status.stdout
     assert "scripts/pipeline.py" not in status.stdout
 
     approved = _run(
@@ -2115,9 +2770,9 @@ def test_product_cli_goal_create_maps_to_existing_workflow(tmp_path: Path) -> No
         "--checkpoint",
         "C2",
     )
-    assert approved.returncode == 0, approved.stderr or approved.stdout
-    assert "Approved C2" in approved.stdout
-    assert "- [x] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
+    assert approved.returncode != 0
+    assert "active HUMAN Unit" in approved.stderr
+    assert "- [ ] Approve C2" in (workspace / "DECISIONS.md").read_text(encoding="utf-8")
 
 
 def test_product_start_rejects_an_existing_run_and_resume_continues(tmp_path: Path) -> None:

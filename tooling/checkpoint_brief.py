@@ -152,6 +152,8 @@ def _summarize_artifact(workspace: Path, relpath: str) -> str:
         return f"- `{relpath}`: missing"
     if relpath == "outline/taxonomy.yml":
         return _summarize_taxonomy(path, relpath)
+    if relpath == "papers/core_set.csv":
+        return _summarize_core_set(path, relpath)
     if relpath == "outline/chapter_skeleton.yml":
         return _summarize_chapter_skeleton(path, relpath)
     if relpath == "outline/section_bindings.jsonl":
@@ -167,6 +169,24 @@ def _summarize_artifact(workspace: Path, relpath: str) -> str:
     if relpath == "output/REROUTE_STATE.json":
         return _summarize_reroute_state(path, relpath)
     return _summarize_generic_file(path, relpath)
+
+
+def _summarize_core_set(path: Path, relpath: str) -> str:
+    try:
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+    except Exception as exc:
+        return f"- `{relpath}`: unreadable ({type(exc).__name__}: {exc})"
+    lines = [f"- `{relpath}`: papers={len(rows)}; review sample:"]
+    for row in rows[:8]:
+        paper_id = str(row.get("paper_id") or "<missing-id>").strip()
+        title = str(row.get("title") or "<missing-title>").strip()
+        year = str(row.get("year") or "").strip()
+        suffix = f" ({year})" if year else ""
+        lines.append(f"  - `{paper_id}` {title}{suffix}")
+    if len(rows) > 8:
+        lines.append(f"  - ... {len(rows) - 8} more paper(s) in the Artifact")
+    return "\n".join(lines)
 
 
 def _summarize_taxonomy(path: Path, relpath: str) -> str:

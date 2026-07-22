@@ -519,8 +519,13 @@ def resolve_idea_contract(workspace: Path) -> dict[str, Any]:
     screening_policy = quality_contract.get("screening_policy") or {}
     brief = parse_idea_brief(workspace / "output" / "trace" / "IDEA_BRIEF.md")
     focus_decision = parse_idea_focus_decision(workspace / "DECISIONS.md")
-    selected_focus = focus_decision.get("focus_clusters") or brief.get("focus_clusters") or []
+    selected_focus = focus_decision.get("focus_clusters") or []
     focus_clusters = [str(x).strip() for x in selected_focus if str(x).strip()]
+    if not focus_clusters:
+        raise ValueError(
+            "Missing explicit C2 focus selection in DECISIONS.md; "
+            "the pre-retrieval Idea Brief cannot authorize post-retrieval synthesis."
+        )
     direction_pool_min_default = _require_positive_int(query_defaults.get("direction_pool_min"), field_name="query_defaults.direction_pool_min")
     direction_pool_max_default = _require_positive_int(query_defaults.get("direction_pool_max"), field_name="query_defaults.direction_pool_max")
     shortlist_size_default = _require_positive_int(query_defaults.get("idea_shortlist_size"), field_name="query_defaults.idea_shortlist_size")

@@ -2,8 +2,9 @@
 
 This directory is a compact evidence snapshot from one completed
 `research-brief` Run under `recoverable-provenance.v1`. It demonstrates the
-current Completion Protocol and the `Goal -> Run -> Evidence -> Improve`
-product loop without publishing the full local Workspace.
+historical v1 Completion Protocol and the `Goal -> Run -> Evidence -> Improve`
+product loop without publishing the full local Workspace. The current protocol
+is v2; this snapshot is not a v2 acceptance proof.
 
 The source records are deterministic synthetic fixtures. This is a Harness
 execution proof, not a claim that online literature retrieval or scientific
@@ -44,7 +45,7 @@ The comparison moved from `ATTENTION` to `PASS`, increased DONE Manifests from
 10 to 11, reduced Harness issues from 8 to 0, and reduced extra Attempts from 1
 to 0. See [AUDIT_COMPARISON.md](AUDIT_COMPARISON.md).
 
-This comparison demonstrates better completion evidence under the current
+This comparison demonstrates better completion evidence under the captured v1
 protocol. It does not isolate a causal effect on research-content quality
 because the Runs used different fixture inputs and repository revisions.
 
@@ -64,9 +65,9 @@ because the Runs used different fixture inputs and repository revisions.
 ## Interpretation
 
 This snapshot proves that one bounded Research Brief fixture completed through
-the current local single-writer Harness with internally consistent Run
+the captured v1 local single-writer Harness with internally consistent Run
 evidence. It does not prove retrieval completeness, source authenticity,
 scientific correctness, expert agreement, cross-topic stability, model Token
-efficiency, or distributed execution. The complete ignored Workspace retains
+efficiency, current v2 acceptance, or distributed execution. The complete ignored Workspace retains
 the Events, Attempts, Artifacts, Manifests, Decisions, Evaluation, generated
 reports, and exact Kernel and Skill hashes needed for local diagnosis.

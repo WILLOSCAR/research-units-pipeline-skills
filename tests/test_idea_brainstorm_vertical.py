@@ -89,6 +89,32 @@ class IdeaBrainstormVerticalTests(unittest.TestCase):
         args.extend(["--note", "fixture acceptance checked" if status == "DONE" else "fixture repair override"])
         self._run(*args)
 
+    def test_pre_retrieval_brief_cannot_substitute_for_c2_focus_decision(self) -> None:
+        from tooling.ideation import resolve_idea_contract
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            (workspace / "output" / "trace").mkdir(parents=True)
+            (workspace / "PIPELINE.lock.md").write_text(
+                "pipeline: pipelines/idea-brainstorm.pipeline.md\n",
+                encoding="utf-8",
+            )
+            (workspace / "output" / "trace" / "IDEA_BRIEF.md").write_text(
+                "# Idea Brief\n\n## Focus lenses after C2\n"
+                "- Focus clusters: retrieval policy\n",
+                encoding="utf-8",
+            )
+            (workspace / "DECISIONS.md").write_text(
+                "# Decisions\n\n<!-- BEGIN CHECKPOINT:C2 -->\n"
+                "- Focus clusters: (select after retrieval)\n"
+                "- Hard exclusions: (none recorded)\n"
+                "<!-- END CHECKPOINT:C2 -->\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "explicit C2 focus selection"):
+                resolve_idea_contract(workspace)
+
     def test_retrieval_floor_and_hard_exclusions_are_executable_contracts(self) -> None:
         from tooling.ideation import IdeaSignal, signals_to_direction_cards
         from tooling.quality_checks.survey_retrieval import check_literature_engineer
@@ -228,6 +254,58 @@ class IdeaBrainstormVerticalTests(unittest.TestCase):
 
             shortlist_path = workspace / "output" / "trace" / "IDEA_SHORTLIST.jsonl"
             shortlist = [json.loads(line) for line in shortlist_path.read_text(encoding="utf-8").splitlines()]
+            original_direction_id = shortlist[0]["direction_id"]
+            shortlist[0]["direction_id"] = "DIR-999"
+            shortlist_path.write_text("\n".join(json.dumps(row) for row in shortlist) + "\n", encoding="utf-8")
+
+            failed_trace = self._run(str(PIPELINE_CLI), "run-one", "--workspace", str(workspace), "--strict", expected=2)
+            self.assertIn("Scorecard `output/IDEA_SCORECARD.json` failed", failed_trace.stdout)
+            trace_scorecard = json.loads((workspace / "output" / "IDEA_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertIn("trace_chain", trace_scorecard["failed_critical_dimensions"])
+
+            shortlist[0]["direction_id"] = original_direction_id
+            shortlist_path.write_text("\n".join(json.dumps(row) for row in shortlist) + "\n", encoding="utf-8")
+            self._mark(workspace, "U080", "TODO")
+
+            screening_path = workspace / "output" / "trace" / "IDEA_SCREENING_TABLE.jsonl"
+            screening = [json.loads(line) for line in screening_path.read_text(encoding="utf-8").splitlines()]
+            screened_direction = next(row for row in screening if row["direction_id"] == original_direction_id)
+            original_recommendation = screened_direction["recommendation"]
+            screened_direction["recommendation"] = "drop"
+            screening_path.write_text("\n".join(json.dumps(row) for row in screening) + "\n", encoding="utf-8")
+
+            failed_drop = self._run(str(PIPELINE_CLI), "run-one", "--workspace", str(workspace), "--strict", expected=2)
+            self.assertIn("Scorecard `output/IDEA_SCORECARD.json` failed", failed_drop.stdout)
+            drop_scorecard = json.loads((workspace / "output" / "IDEA_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertIn("trace_chain", drop_scorecard["failed_critical_dimensions"])
+
+            screened_direction["recommendation"] = original_recommendation
+            screening_path.write_text("\n".join(json.dumps(row) for row in screening) + "\n", encoding="utf-8")
+            self._mark(workspace, "U080", "TODO")
+
+            clean_screening_text = screening_path.read_text(encoding="utf-8")
+            screening_path.write_text(clean_screening_text + "{malformed\n", encoding="utf-8")
+            malformed = self._run(str(PIPELINE_CLI), "run-one", "--workspace", str(workspace), "--strict", expected=2)
+            self.assertIn("Scorecard `output/IDEA_SCORECARD.json` failed", malformed.stdout)
+            malformed_scorecard = json.loads((workspace / "output" / "IDEA_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertIn("trace_chain", malformed_scorecard["failed_critical_dimensions"])
+            screening_path.write_text(clean_screening_text, encoding="utf-8")
+            self._mark(workspace, "U080", "TODO")
+
+            report_path = workspace / "output" / "REPORT.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["top_directions"][0]["direction_id"] = "DIR-999"
+            report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+            failed_report_join = self._run(str(PIPELINE_CLI), "run-one", "--workspace", str(workspace), "--strict", expected=2)
+            self.assertIn("Scorecard `output/IDEA_SCORECARD.json` failed", failed_report_join.stdout)
+            report_scorecard = json.loads((workspace / "output" / "IDEA_SCORECARD.json").read_text(encoding="utf-8"))
+            self.assertIn("shortlist_report_consistency", report_scorecard["failed_critical_dimensions"])
+
+            report["top_directions"][0]["direction_id"] = original_direction_id
+            report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+            self._mark(workspace, "U080", "TODO")
+
             original_paper_ids = list(shortlist[0]["paper_ids"])
             shortlist[0]["paper_ids"] = ["P9999", *original_paper_ids[1:]]
             shortlist_path.write_text("\n".join(json.dumps(row) for row in shortlist) + "\n", encoding="utf-8")
@@ -252,7 +330,10 @@ class IdeaBrainstormVerticalTests(unittest.TestCase):
                 json.loads(line)
                 for line in (workspace / ".harness" / "evaluations" / "ledger.jsonl").read_text(encoding="utf-8").splitlines()
             ]
-            self.assertEqual([item["verdict"] for item in evaluations[-2:]], ["FAIL", "PASS"])
+            self.assertEqual(
+                [item["verdict"] for item in evaluations[-6:]],
+                ["FAIL", "FAIL", "FAIL", "FAIL", "FAIL", "PASS"],
+            )
             self.assertEqual(evaluations[-1]["workflow"], "idea-brainstorm")
 
 

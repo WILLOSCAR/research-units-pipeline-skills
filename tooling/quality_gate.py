@@ -277,6 +277,7 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "evaluation-anchor-checker": survey_writing.check_eval_anchor_report,
     "evidence-binder": _check_evidence_bindings,
     "evidence-draft": survey_planning.check_evidence_drafts,
+    "evidence-selfloop": survey_planning.check_evidence_selfloop,
     "evidence-auditor": paper_review_checks.check_evidence_audit,
     "extraction-form": _check_extraction_form,
     "global-reviewer": survey_writing.check_global_review,

@@ -51,7 +51,8 @@ The output should:
 - `output/SNAPSHOT.md` exists
 - includes `## Scope`, `## Key themes`, `## What to read first`, and `## Open problems / risks`
 - includes at least three explicit paper pointers that resolve to `papers/core_set.csv`
-- keeps Scope and Key themes grounded in at least two core-set papers
+- grounds Scope in at least one core-set paper, grounds every Key-theme bullet,
+  and covers at least two unique core-set papers across those sections
 - stays within the Workflow evaluator's 100-1200 word compactness band
 - contains no survey-only scaffolding such as citation quotas, chapter plans, or "why this survey" narration
 

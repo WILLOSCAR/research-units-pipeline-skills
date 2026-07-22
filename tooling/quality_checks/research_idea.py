@@ -424,6 +424,7 @@ def check_report_bundle(workspace: Path, outputs: list[str]) -> list[QualityIssu
     compare_rows = _markdown_table_data_rows(text, header_token="Rank")
     if len(compare_rows) < report_top_n:
         return [QualityIssue(code="brainstorm_report_thin_snapshot", message=f"`{report_rel}` should include a top-directions comparison table with at least {report_top_n} rows.")]
+    shortlist: list[dict[str, Any]] = []
     shortlist_path = workspace / "output" / "trace" / "IDEA_SHORTLIST.jsonl"
     if shortlist_path.exists() and shortlist_path.stat().st_size > 0:
         from tooling.common import read_jsonl
@@ -451,4 +452,18 @@ def check_report_bundle(workspace: Path, outputs: list[str]) -> list[QualityIssu
         rec_missing = sorted(required_rec - set(rec.keys()))
         if rec_missing:
             return [QualityIssue(code="brainstorm_report_json_thin_top_direction", message=f"`{json_rel}` top direction #{idx} is missing fields: {', '.join(rec_missing)}")]
+    if shortlist:
+        from tooling.idea_evaluation import shortlist_report_join_errors
+
+        join_errors = shortlist_report_join_errors(shortlist, top_directions)
+        if join_errors:
+            return [
+                QualityIssue(
+                    code="brainstorm_report_shortlist_trace_mismatch",
+                    message=(
+                        f"`{json_rel}` top directions must preserve shortlist rank and evidence identity: "
+                        + "; ".join(join_errors[:3])
+                    ),
+                )
+            ]
     return []

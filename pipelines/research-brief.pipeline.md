@@ -61,7 +61,7 @@ quality_contract:
   semantic_rubric:
     schema: research-brief-scorecard.v1
     pass_score: 80
-    critical_dimensions: [deliverable_structure, brief_specificity, source_traceability, reading_path]
+    critical_dimensions: [deliverable_structure, brief_specificity, source_traceability, reading_path, theme_grounding]
 stages:
   C0:
     title: Init

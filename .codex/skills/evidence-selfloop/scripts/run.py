@@ -300,7 +300,7 @@ def main() -> int:
 
             if gaps:
                 lines.append("- binding_gaps:")
-                for g in gaps[:8]:
+                for g in gaps:
                     lines.append(f"  - {g}")
 
             if smells:

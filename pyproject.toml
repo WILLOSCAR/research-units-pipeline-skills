@@ -9,6 +9,7 @@ description = "An end-to-end Auto Research design system built from semantic ski
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+  "pypdf>=4.0",
   "PyYAML>=6.0",
 ]
 

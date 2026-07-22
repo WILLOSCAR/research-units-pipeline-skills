@@ -216,6 +216,31 @@ def _resolve_pipeline_reference(path: Path, ref: str) -> Path:
     raise ValueError(f"Could not resolve `variant_of: {value}` from {path}")
 
 
+def resolve_pipeline_variant_path(path: Path, ref: str) -> Path:
+    """Resolve one variant parent with the same rules used by `PipelineSpec.load`."""
+
+    return _resolve_pipeline_reference(path.resolve(), ref)
+
+
+def resolve_pipeline_variant_chain(path: Path) -> tuple[Path, ...]:
+    """Return the selected Pipeline followed by every resolved variant parent."""
+
+    chain: list[Path] = []
+    seen: set[Path] = set()
+    current = path.resolve()
+    while True:
+        if current in seen:
+            rendered = " -> ".join(str(item) for item in [*chain, current])
+            raise ValueError(f"Cyclic `variant_of` chain detected: {rendered}")
+        seen.add(current)
+        chain.append(current)
+        raw = _parse_frontmatter(current.read_text(encoding="utf-8"))
+        variant_of = str(raw.get("variant_of") or "").strip()
+        if not variant_of:
+            return tuple(chain)
+        current = resolve_pipeline_variant_path(current, variant_of)
+
+
 def _deep_merge(base: Any, override: Any) -> Any:
     if isinstance(base, list) and isinstance(override, dict) and any(str(key).startswith("__") for key in override.keys()):
         return _apply_list_patch(base, override)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import time
@@ -25,11 +26,15 @@ from tooling.completion import (
 )
 from tooling.harness import write_unit_manifest
 from tooling.run_state import (
+    capture_checkpoint_review_basis,
+    checkpoint_completion_approval_issue,
     checkpoint_approval_recorded,
+    checkpoint_approval_status,
     ensure_run_state,
     finish_attempt,
     record_failure,
     record_decision,
+    revoke_checkpoint_approval,
     start_attempt,
 )
 
@@ -39,6 +44,27 @@ class RunResult:
     unit_id: str | None
     status: str
     message: str
+
+
+def _pinned_pipeline_contract_expected(workspace: Path) -> bool:
+    """Distinguish a tampered v2 contract from a legacy contract-free Workspace."""
+
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    if not lock_path.exists():
+        return False
+    try:
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return True
+    if not isinstance(lock, dict) or lock.get("schema") != "harness-lock.v2":
+        return False
+    pipeline = lock.get("pipeline")
+    if not isinstance(pipeline, dict):
+        return True
+    return any(
+        str(pipeline.get(key) or "").strip()
+        for key in ("path", "sha256", "snapshot_path", "snapshot_sha256")
+    )
 
 
 def _append_run_error(*, workspace: Path, unit_id: str, skill: str, kind: str, message: str, log_rel: str | None) -> None:
@@ -80,6 +106,7 @@ def run_one_unit(
 
     ensure_run_state(workspace=workspace, repo_root=repo_root, recover_stale_doing=True)
     table = UnitsTable.load(units_path)
+    _reopen_stale_checkpoint_units(workspace=workspace, table=table)
 
     runnable_idx = _find_first_runnable(table)
     if runnable_idx is None:
@@ -107,6 +134,7 @@ def run_one_unit(
 
     if owner == "HUMAN":
         checkpoint = row.get("checkpoint", "").strip()
+        auto_approval_error = ""
         if (
             checkpoint
             and decisions_has_approval(workspace / "DECISIONS.md", checkpoint)
@@ -128,11 +156,28 @@ def run_one_unit(
             from tooling.common import load_workspace_pipeline_spec
 
             active_spec = load_workspace_pipeline_spec(workspace)
-            auto_approval_allowed = not (
+            if active_spec is None and _pinned_pipeline_contract_expected(workspace):
+                auto_approval_allowed = False
+                auto_approval_error = "the pinned Pipeline contract is unavailable or invalid"
+            elif (
                 active_spec is not None
                 and active_spec.name == "idea-brainstorm"
                 and checkpoint.upper() == "C2"
-            )
+            ):
+                auto_approval_allowed = False
+
+        if checkpoint and checkpoint.upper() in auto_approve_set and auto_approval_allowed:
+            try:
+                review_basis = capture_checkpoint_review_basis(
+                    workspace=workspace,
+                    checkpoint=checkpoint,
+                )
+            except ValueError as exc:
+                review_basis = None
+                auto_approval_allowed = False
+                auto_approval_error = str(exc)
+            else:
+                auto_approval_error = ""
 
         if checkpoint and checkpoint.upper() in auto_approve_set and auto_approval_allowed:
             set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=True)
@@ -143,6 +188,7 @@ def run_one_unit(
                 decision="approved",
                 actor={"kind": "harness", "id": "auto-approval"},
                 note=f"Auto-approved while executing {unit_id}.",
+                review_basis=review_basis,
             )
             completion = commit_unit_completion(
                 workspace=workspace,
@@ -173,6 +219,8 @@ def run_one_unit(
             if checkpoint and checkpoint.upper() in auto_approve_set and not auto_approval_allowed
             else ""
         )
+        if checkpoint and checkpoint.upper() in auto_approve_set and not auto_approval_allowed and auto_approval_error:
+            suffix = f"; auto-approval review basis is invalid: {auto_approval_error}"
         return RunResult(
             unit_id=unit_id,
             status="BLOCKED",
@@ -534,6 +582,46 @@ def _find_first_runnable(table: UnitsTable) -> int | None:
         if deps_done:
             return idx
     return None
+
+
+def _reopen_stale_checkpoint_units(*, workspace: Path, table: UnitsTable) -> list[str]:
+    """Reopen stale HUMAN gates and invalidate every dependent Unit projection."""
+
+    reopened: list[str] = []
+    downstream: list[str] = []
+    for row in table.rows:
+        if str(row.get("status") or "").strip().upper() != "DONE":
+            continue
+        issue = checkpoint_completion_approval_issue(workspace=workspace, row=row)
+        if not issue:
+            continue
+        unit_id = str(row.get("unit_id") or "").strip()
+        checkpoint = str(row.get("checkpoint") or "").strip()
+        approval_status = checkpoint_approval_status(
+            workspace=workspace,
+            checkpoint=checkpoint,
+        )
+        row["status"] = "BLOCKED"
+        reopened.append(unit_id)
+        downstream.extend(invalidate_downstream_units(table, root_unit_id=unit_id))
+        table.save(workspace / "UNITS.csv")
+        revoke_checkpoint_approval(
+            workspace=workspace,
+            checkpoint=checkpoint,
+            actor_id="approval-revalidator",
+            note=(
+                f"Reopened {unit_id} before downstream execution because approval was {approval_status}. "
+                f"{issue}"
+            ),
+        )
+        update_status_log(
+            workspace / "STATUS.md",
+            f"{now_iso_seconds()} {unit_id} BLOCKED (checkpoint approval {approval_status}; downstream invalidated)",
+        )
+    if reopened:
+        table.save(workspace / "UNITS.csv")
+        _refresh_status_checkpoint(workspace / "STATUS.md", table)
+    return [*reopened, *downstream]
 
 
 def _refresh_status_checkpoint(status_path: Path, table: UnitsTable) -> None:

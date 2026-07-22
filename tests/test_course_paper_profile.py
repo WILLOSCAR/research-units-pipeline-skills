@@ -146,6 +146,212 @@ def test_survey_literature_completion_check_does_not_crash(tmp_path: Path) -> No
         assert "completion_check_exception" not in {issue.code for issue in issues}
 
 
+def test_evidence_selfloop_is_a_mandatory_prewrite_gate(tmp_path: Path) -> None:
+    spec = PipelineSpec.load(REPO_ROOT / "pipelines" / "arxiv-survey.pipeline.md")
+    assert "evidence-selfloop" in spec.quality_contract["completion_policy"]["required_checks"]
+
+    workspace = tmp_path / "survey"
+    outline = workspace / "outline"
+    output = workspace / "output"
+    outline.mkdir(parents=True)
+    output.mkdir(parents=True)
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (outline / "subsection_briefs.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "title": "Grounded section"}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_bindings.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "binding_gaps": []}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_drafts.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "blocking_missing": ["no usable citation keys"]}) + "\n",
+        encoding="utf-8",
+    )
+    (output / "EVIDENCE_SELFLOOP_TODO.md").write_text(
+        "# Evidence self-loop TODO\n\n- Status: FAIL\n",
+        encoding="utf-8",
+    )
+
+    issues = check_completion_acceptance(
+        skill="evidence-selfloop",
+        workspace=workspace,
+        outputs=["output/EVIDENCE_SELFLOOP_TODO.md"],
+    )
+
+    assert [issue.code for issue in issues] == ["evidence_selfloop_blocked"]
+
+
+def test_evidence_selfloop_rejects_stale_status_after_binding_change(tmp_path: Path) -> None:
+    workspace = tmp_path / "survey"
+    outline = workspace / "outline"
+    output = workspace / "output"
+    outline.mkdir(parents=True)
+    output.mkdir(parents=True)
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (outline / "subsection_briefs.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "title": "Grounded section"}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_bindings.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "binding_gaps": ["evaluation protocol"]}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_drafts.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "blocking_missing": []}) + "\n",
+        encoding="utf-8",
+    )
+    (output / "EVIDENCE_SELFLOOP_TODO.md").write_text(
+        "# Evidence self-loop TODO\n\n- Status: PASS\n",
+        encoding="utf-8",
+    )
+
+    issues = check_completion_acceptance(
+        skill="evidence-selfloop",
+        workspace=workspace,
+        outputs=["output/EVIDENCE_SELFLOOP_TODO.md"],
+    )
+
+    assert [issue.code for issue in issues] == ["evidence_selfloop_status_stale"]
+
+
+def test_evidence_selfloop_requires_located_repair_plan_for_ok_status(tmp_path: Path) -> None:
+    from tooling.quality_checks.survey_planning import check_evidence_selfloop
+
+    workspace = tmp_path / "survey"
+    outline = workspace / "outline"
+    output = workspace / "output"
+    outline.mkdir(parents=True)
+    output.mkdir(parents=True)
+    (outline / "subsection_briefs.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "title": "Grounded section"}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_bindings.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "binding_gaps": ["evaluation protocol"]}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_drafts.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "blocking_missing": []}) + "\n",
+        encoding="utf-8",
+    )
+    report = output / "EVIDENCE_SELFLOOP_TODO.md"
+    report.write_text("# Evidence self-loop TODO\n\n- Status: OK\n", encoding="utf-8")
+
+    issues = check_evidence_selfloop(workspace, ["output/EVIDENCE_SELFLOOP_TODO.md"])
+
+    assert [issue.code for issue in issues] == ["evidence_selfloop_repair_plan_missing"]
+
+    report.write_text(
+        "\n".join(
+            [
+                "# Evidence self-loop TODO",
+                "",
+                "- Status: OK",
+                "",
+                "## C. Per-subsection TODO (smallest upstream fix path)",
+                "",
+                "### 3.1 Grounded section",
+                "",
+                "- binding_gaps:",
+                "  - evaluation protocol",
+                "- Suggested fix path:",
+                "  - C4: enrich the evidence bank, then rerun `evidence-binder`.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert check_evidence_selfloop(workspace, ["output/EVIDENCE_SELFLOOP_TODO.md"]) == []
+
+
+def test_evidence_selfloop_rejects_subsection_coverage_drift(tmp_path: Path) -> None:
+    workspace = tmp_path / "survey"
+    outline = workspace / "outline"
+    output = workspace / "output"
+    outline.mkdir(parents=True)
+    output.mkdir(parents=True)
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (outline / "subsection_briefs.jsonl").write_text(
+        "\n".join(
+            json.dumps({"sub_id": sub_id, "title": f"Section {sub_id}"})
+            for sub_id in ("3.1", "3.2")
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_bindings.jsonl").write_text(
+        "\n".join(
+            json.dumps({"sub_id": sub_id, "binding_gaps": []})
+            for sub_id in ("3.1", "3.2")
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_drafts.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "blocking_missing": []}) + "\n",
+        encoding="utf-8",
+    )
+    (output / "EVIDENCE_SELFLOOP_TODO.md").write_text(
+        "# Evidence self-loop TODO\n\n- Status: PASS\n",
+        encoding="utf-8",
+    )
+
+    issues = check_completion_acceptance(
+        skill="evidence-selfloop",
+        workspace=workspace,
+        outputs=["output/EVIDENCE_SELFLOOP_TODO.md"],
+    )
+
+    assert [issue.code for issue in issues] == ["evidence_selfloop_coverage_mismatch"]
+
+
+def test_evidence_selfloop_rejects_non_list_gap_fields(tmp_path: Path) -> None:
+    workspace = tmp_path / "survey"
+    outline = workspace / "outline"
+    output = workspace / "output"
+    outline.mkdir(parents=True)
+    output.mkdir(parents=True)
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (outline / "subsection_briefs.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "title": "Grounded section"}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_bindings.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "binding_gaps": "none"}) + "\n",
+        encoding="utf-8",
+    )
+    (outline / "evidence_drafts.jsonl").write_text(
+        json.dumps({"sub_id": "3.1", "blocking_missing": []}) + "\n",
+        encoding="utf-8",
+    )
+    (output / "EVIDENCE_SELFLOOP_TODO.md").write_text(
+        "# Evidence self-loop TODO\n\n- Status: PASS\n",
+        encoding="utf-8",
+    )
+
+    issues = check_completion_acceptance(
+        skill="evidence-selfloop",
+        workspace=workspace,
+        outputs=["output/EVIDENCE_SELFLOOP_TODO.md"],
+    )
+
+    assert [issue.code for issue in issues] == ["evidence_selfloop_inputs_invalid"]
+
+
 def test_workflow_instruction_is_removed_before_query_seeding() -> None:
     request = (
         "Use arxiv-survey-latex to write an 8-10 page course report on RAG evaluation "

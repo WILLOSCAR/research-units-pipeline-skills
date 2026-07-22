@@ -50,6 +50,8 @@ from tooling.harness import (
 )
 from tooling.pipeline_spec import PipelineSpec
 from tooling.run_state import (
+    capture_checkpoint_review_basis,
+    checkpoint_approval_recorded,
     ConcurrentInvocationError,
     ensure_run_state,
     finish_attempt,
@@ -513,9 +515,13 @@ def _execute_command(args: argparse.Namespace) -> int:
 
         spec = load_workspace_pipeline_spec(workspace)
         decision_note = ""
+        ensure_run_state(workspace=workspace, repo_root=repo_root)
+        try:
+            capture_checkpoint_review_basis(workspace=workspace, checkpoint=checkpoint)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
         if spec is not None and spec.name == "idea-brainstorm" and checkpoint == "C2":
             from tooling.ideation import (
-                parse_idea_brief,
                 parse_idea_focus_decision,
                 write_idea_focus_decision,
             )
@@ -531,26 +537,27 @@ def _execute_command(args: argparse.Namespace) -> int:
                     raise SystemExit(str(exc)) from exc
             selected = parse_idea_focus_decision(workspace / "DECISIONS.md").get("focus_clusters") or []
             if not selected:
-                selected = parse_idea_brief(
-                    workspace / "output" / "trace" / "IDEA_BRIEF.md"
-                ).get("focus_clusters") or []
-            if not selected:
                 raise SystemExit(
                     "idea-brainstorm C2 approval requires a recorded focus selection; "
                     "pass --focus-cluster or edit the C2 block in DECISIONS.md."
                 )
             decision_note = "focus_clusters=" + "; ".join(str(item) for item in selected)
 
+        review_basis = capture_checkpoint_review_basis(
+            workspace=workspace,
+            checkpoint=checkpoint,
+        )
+
         from tooling.common import set_decisions_approval
 
         set_decisions_approval(workspace / "DECISIONS.md", checkpoint, approved=True)
-        ensure_run_state(workspace=workspace, repo_root=repo_root)
         record_human_decision(
             workspace=workspace,
             action="checkpoint.approved",
             subject=checkpoint,
             decision="approved",
             note=decision_note,
+            review_basis=review_basis,
         )
         print(f"Approved {checkpoint} in {workspace / 'DECISIONS.md'}")
         return 0
@@ -616,11 +623,20 @@ def _execute_command(args: argparse.Namespace) -> int:
             checkpoint = str(selected_row.get("checkpoint") or "").strip()
             owner = str(selected_row.get("owner") or "").strip().upper()
             skill = str(selected_row.get("skill") or "").strip()
-            if (owner == "HUMAN" or skill == "human-checkpoint") and checkpoint and not decisions_has_approval(
-                workspace / "DECISIONS.md", checkpoint
+            if (
+                (owner == "HUMAN" or skill == "human-checkpoint")
+                and checkpoint
+                and (
+                    not decisions_has_approval(workspace / "DECISIONS.md", checkpoint)
+                    or not checkpoint_approval_recorded(
+                        workspace=workspace,
+                        checkpoint=checkpoint,
+                    )
+                )
             ):
                 print(
-                    f"Cannot mark {unit_id} DONE before checkpoint {checkpoint} is approved; use `pipeline.py approve`.",
+                    f"Cannot mark {unit_id} DONE before checkpoint {checkpoint} has an active, "
+                    "Artifact-bound approval; use `pipeline.py approve`.",
                     file=sys.stderr,
                 )
                 return 2

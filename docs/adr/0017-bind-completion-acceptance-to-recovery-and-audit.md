@@ -26,8 +26,9 @@ zero. Improvement and Artifact Pack therefore cannot upgrade an unfinished Run
 to PASS. The validator remains read-compatible with historical v1 reports.
 
 Scorecard validation recomputes derived score, critical failures, failure
-records, and verdict. Human Checkpoint Completion requires both the readable
-checkbox and an append-only Decision record.
+records, and verdict. Human Checkpoint Completion requires the readable
+checkbox and an append-only Decision record; ADR 0019 additionally binds new
+approvals to reviewed Artifact fingerprints.
 
 ## Consequences
 

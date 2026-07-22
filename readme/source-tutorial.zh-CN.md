@@ -92,21 +92,26 @@ slides 应该：
 这条 workflow 需要明确的 source set。只有 topic 的请求应先走 `research-brief` 或
 survey workflow。
 
-如果 source set 稀疏或噪声很高，在接受 `output/TUTORIAL.md` 之前，建议先检查
+如果 Source Set 稀疏或噪声很高，在接受 `output/TUTORIAL.md` 之前，建议先检查
 `sources/manifest.yml`、`sources/index.jsonl`、`outline/module_plan.yml`、
-`outline/source_coverage.jsonl` 和 `outline/tutorial_context_packs.jsonl`。当前自检
-对结构存在性更敏感，对 module-plan fidelity 和 source grounding 还不够强。
+`outline/source_coverage.jsonl` 和 `outline/tutorial_context_packs.jsonl`。当前 Gate
+会检查 Module Plan 一致性、Coverage 与 Context Pack 的 Source ID 完全对齐、成功
+Ingest 与 Provenance、Source-backed Snippet，以及每个 Module 中可见的 Source Notes；
+但它不能证明任意混合资料集上的教学质量。
 
 Delivery Path 已有严格的本地 Source 回归：在工具链可用时，完整执行 Workflow，并用
 `latexmk` 编译 Article 与 Beamer PDF。它证明的是交付机制，不代表任意 Source Set 的
 教学质量都已经成熟。
+
+PDF Source 摄取需要 `pdftotext`；编译交付除了声明的 TeX 工具，还需要 Poppler
+`pdfinfo` 或可选 `PyMuPDF` 包完成页数验收。
 
 ## 7. 推荐 Prompt
 
 示例保留英文 workflow 名称；具体要求可以用中文写。
 
 ```text
-Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.
+Use source-tutorial. I will provide webpages, PDFs, and repo docs; turn them into a reader-first tutorial with PDF and Beamer slides.
 ```
 
 ```text

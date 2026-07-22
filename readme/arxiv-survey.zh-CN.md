@@ -256,7 +256,7 @@ Write a LaTeX survey about embodied AI and show me the outline first.
 如果你想少停顿一些：
 
 ```text
-Use the arxiv-survey-latex pipeline and auto-approve the outline.
+Use arxiv-survey-latex and auto-approve the outline.
 ```
 
 ## 9. 这条工作流背后的核心 skills

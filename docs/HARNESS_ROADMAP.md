@@ -90,7 +90,9 @@ Goal: reduce avoidable context loading and reruns without hiding evidence.
 - route failures to the smallest owning surface: Artifact, Skill, Unit,
   Workflow policy, or Harness kernel;
 - make planned, effective, and actual execution paths inspectable;
-- measure repeated scans and Artifact hashing before optimizing them.
+- keep `scripts/audit_workflow_context.py` as the static character-count
+  baseline, then measure real prompt tokens, repeated scans, and Artifact
+  hashing before optimizing them.
 
 Exit evidence:
 

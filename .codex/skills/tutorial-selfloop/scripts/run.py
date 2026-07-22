@@ -36,9 +36,9 @@ def main() -> int:
         _write_report(report_path, status="FAIL", issues=["Missing `output/TUTORIAL.md`."])
         return 2
 
-    from tooling.quality_checks.source_tutorial import tutorial_structure_issues
+    from tooling.quality_checks.source_tutorial import tutorial_contract_issues
 
-    issues = tutorial_structure_issues(tutorial_path)
+    issues = tutorial_contract_issues(workspace)
 
     status = "PASS" if not issues else "FAIL"
     _write_report(report_path, status=status, issues=issues)

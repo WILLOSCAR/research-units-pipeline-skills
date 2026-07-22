@@ -194,6 +194,7 @@ def load_source_bundle(workspace: Path) -> list[dict[str, Any]]:
                         "local_path": local_path,
                         "note": str(prov.get("note") or "").strip(),
                         "origin": str(prov.get("origin_url_or_path") or "").strip(),
+                        "text": text,
                     }
                 )
         else:
@@ -208,6 +209,7 @@ def load_source_bundle(workspace: Path) -> list[dict[str, Any]]:
                         "local_path": local_path,
                         "note": "",
                         "origin": str(rec.get("canonical_url") or "").strip(),
+                        "text": text,
                     }
                 )
 
@@ -880,10 +882,21 @@ def _source_snippets_for_module(module: dict[str, Any], selected_sources: list[d
     )
     snippets: list[dict[str, str]] = []
     for source in selected_sources:
-        snippet = _best_snippet(source["text"], query)
-        pointer = ""
-        if source.get("pointers"):
-            pointer = str(source["pointers"][0].get("pointer") or "").strip()
+        candidates: list[tuple[int, str, str]] = []
+        query_tokens = set(tokenize(query))
+        for pointer_record in source.get("pointers") or []:
+            pointer_text = str(pointer_record.get("text") or "").strip()
+            pointer = str(pointer_record.get("pointer") or "").strip()
+            if not pointer_text or not pointer:
+                continue
+            candidate = _best_snippet(pointer_text, query)
+            overlap = len(query_tokens.intersection(tokenize(candidate)))
+            candidates.append((overlap, pointer, candidate))
+        if candidates:
+            _, pointer, snippet = max(candidates, key=lambda item: (item[0], len(item[2])))
+        else:
+            snippet = _best_snippet(source["text"], query)
+            pointer = ""
         snippets.append(
             {
                 "source_id": source["source_id"],
@@ -1123,7 +1136,7 @@ def _best_snippet(text: str, query: str) -> str:
         key=lambda sentence: (-_sentence_score(sentence, query), len(sentence)),
     )
     best = ranked[0].strip()
-    return best if len(best) <= 240 else best[:237].rstrip() + "..."
+    return best if len(best) <= 240 else best[:240].rstrip()
 
 
 def _sentence_score(sentence: str, query: str) -> int:

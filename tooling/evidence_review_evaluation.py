@@ -20,6 +20,8 @@ from tooling.scorecards import (
 SCORECARD_SCHEMA = "evidence-review-scorecard.v1"
 DEFAULT_PASS_SCORE = 80
 DEFAULT_CRITICAL_DIMENSIONS = {
+    "bias_completeness",
+    "conclusion_boundedness",
     "protocol_operability",
     "screening_traceability",
     "extraction_coverage",
@@ -306,7 +308,7 @@ def _traceability_dimension(synthesis_ids: set[str], extraction_ids: set[str], i
 
 
 def _boundedness_dimension(synthesis: str) -> dict[str, Any]:
-    forbidden = re.findall(r"(?i)\b(proves?|definitive(?:ly)?|causes?|guarantees?|conclusive)\b", synthesis)
+    forbidden = _unbounded_overclaim_tokens(synthesis)
     has_limits = "## Needs more evidence" in synthesis and "## Risk of bias" in synthesis
     return _dimension(
         "conclusion_boundedness",
@@ -315,6 +317,67 @@ def _boundedness_dimension(synthesis: str) -> dict[str, Any]:
         partial=has_limits and len(forbidden) <= 1,
         evidence="Conclusions retain explicit evidence and bias limits." if has_limits and not forbidden else f"Overclaim tokens={', '.join(forbidden) if forbidden else 'none'}; limits present={has_limits}.",
         repair_surface=[".codex/skills/synthesis-writer/SKILL.md", "output/SYNTHESIS.md"],
+    )
+
+
+def _unbounded_overclaim_tokens(synthesis: str) -> list[str]:
+    """Find strong conclusion language while preserving explicit negation and critique."""
+
+    tokens: list[str] = []
+    in_fence = False
+    pattern = re.compile(
+        r"(?i)\b("
+        r"proves?|definitive(?:ly)?|causes?|guarantees?|conclusive|"
+        r"demonstrat(?:e|es|ed|ing)|establish(?:es|ed|ing)?|"
+        r"confirm(?:s|ed|ing)?|validat(?:e|es|ed|ing)"
+        r")\b"
+    )
+    recommendation_pattern = re.compile(
+        r"(?i)\b("
+        r"strongly\s+supports?\s+(?:deploying|deployment|adopting|adoption|implementing|implementation|use)|"
+        r"supports?\s+(?:immediate|routine|broad|universal)\s+"
+        r"(?:deployment|adoption|implementation|use)|"
+        r"should\s+(?:now\s+)?(?:be\s+)?(?:deployed|adopted|implemented|used)"
+        r")\b"
+    )
+    for line in synthesis.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence or stripped.startswith(("#", ">")):
+            continue
+        for match in recommendation_pattern.finditer(line):
+            before = line[max(0, match.start() - 80) : match.start()].casefold()
+            if not _is_negated_or_hedged(before):
+                tokens.append(match.group(1))
+        for match in pattern.finditer(line):
+            before = line[max(0, match.start() - 80) : match.start()].casefold()
+            after = line[match.end() : match.end() + 45].casefold()
+            nearby_before = " ".join(before.split()[-8:])
+            if _is_negated_or_hedged(nearby_before):
+                continue
+            if re.search(r"\b(?:claim|word|term|language|statement)s?\s+(?:that\s+)?$", nearby_before):
+                continue
+            token = match.group(1)
+            if token.casefold() in {"cause", "causes"} and re.match(
+                r"\s+(?:remain|include|were|are|may|might|could|uncertain|unknown)\b",
+                after,
+            ):
+                continue
+            tokens.append(token)
+    return tokens
+
+
+def _is_negated_or_hedged(before: str) -> bool:
+    nearby = " ".join(str(before or "").casefold().split()[-8:])
+    return bool(
+        re.search(
+            r"(?:\bnot\b|\bno\b|\bnever\b|\bcannot\b|\bcan't\b|\bdoesn't\b|\bdoes\s+not\b|"
+            r"\bdid\s+not\b|\bfails?\s+to\b|\bavoid(?:s|ed|ing)?\b|\bwithout\b|"
+            r"\bmay\b|\bmight\b|\bcould\b|\bappears?\s+to\b|\bseems?\s+to\b)",
+            nearby,
+        )
     )
 
 

@@ -126,6 +126,7 @@ quality_contract:
       - evidence-binder
       - subsection-briefs
       - evidence-draft
+      - evidence-selfloop
       - anchor-sheet
       - writer-context-pack
       - subsection-writer

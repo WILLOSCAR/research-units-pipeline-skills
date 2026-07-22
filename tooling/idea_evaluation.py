@@ -22,6 +22,8 @@ DEFAULT_CRITICAL_DIMENSIONS = {
     "deliverable_structure",
     "direction_actionability",
     "evidence_traceability",
+    "shortlist_report_consistency",
+    "trace_chain",
 }
 TRACE_ARTIFACTS = (
     "output/trace/IDEA_SIGNAL_TABLE.jsonl",
@@ -46,7 +48,7 @@ def evaluate_idea_brainstorm(workspace: Path) -> dict[str, Any]:
     dimensions = [
         _artifact_dimension(workspace),
         _structure_dimension(report_text, top_directions),
-        _trace_dimension(workspace),
+        _trace_dimension(workspace, core_ids),
         _consistency_dimension(shortlist, top_directions),
         _traceability_dimension(referenced_ids, core_ids),
         _actionability_dimension(top_directions),
@@ -102,19 +104,31 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows, _ = _read_jsonl_with_errors(path)
+    return rows
+
+
+def _read_jsonl_with_errors(path: Path) -> tuple[list[dict[str, Any]], list[int]]:
     if not path.exists() or path.stat().st_size == 0:
-        return []
+        return [], []
     rows: list[dict[str, Any]] = []
-    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+    malformed: list[int] = []
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8", errors="ignore").splitlines(),
+        start=1,
+    ):
         if not line.strip():
             continue
         try:
             value = json.loads(line)
         except json.JSONDecodeError:
+            malformed.append(line_number)
             continue
         if isinstance(value, dict):
             rows.append(value)
-    return rows
+        else:
+            malformed.append(line_number)
+    return rows, malformed
 
 
 def _core_paper_ids(path: Path) -> set[str]:
@@ -193,29 +207,192 @@ def _structure_dimension(report: str, top_directions: list[dict[str, Any]]) -> d
     )
 
 
-def _trace_dimension(workspace: Path) -> dict[str, Any]:
+def _trace_dimension(workspace: Path, core_ids: set[str]) -> dict[str, Any]:
     present = [relpath for relpath in TRACE_ARTIFACTS if (workspace / relpath).exists() and (workspace / relpath).stat().st_size > 0]
     missing = [relpath for relpath in TRACE_ARTIFACTS if relpath not in present]
+    if missing:
+        return _dimension(
+            "trace_chain",
+            "Trace chain",
+            passed=False,
+            partial=len(present) >= 2,
+            evidence=f"Missing: {', '.join(missing)}",
+            repair_surface=missing,
+        )
+
+    errors: list[str] = []
+    parsed: list[list[dict[str, Any]]] = []
+    for relpath in TRACE_ARTIFACTS:
+        records, malformed_lines = _read_jsonl_with_errors(workspace / relpath)
+        parsed.append(records)
+        if malformed_lines:
+            errors.append(
+                f"{relpath} has malformed JSONL lines: {', '.join(str(line) for line in malformed_lines)}"
+            )
+    signals, directions, screening, shortlist = parsed
+
+    def unique_ids(records: list[dict[str, Any]], field: str, label: str) -> set[str]:
+        values = [str(record.get(field) or "").strip() for record in records]
+        if not records or any(not value for value in values):
+            errors.append(f"{label} has missing {field} values")
+        duplicates = sorted({value for value in values if value and values.count(value) > 1})
+        if duplicates:
+            errors.append(f"{label} repeats {field}: {', '.join(duplicates)}")
+        return {value for value in values if value}
+
+    def id_list(record: dict[str, Any], field: str, label: str) -> set[str]:
+        value = record.get(field)
+        if not isinstance(value, list):
+            errors.append(f"{label}.{field} is not a list")
+            return set()
+        normalized = {str(item or "").strip() for item in value if str(item or "").strip()}
+        if not normalized:
+            errors.append(f"{label}.{field} is empty")
+        return normalized
+
+    signal_ids = unique_ids(signals, "signal_id", "signals")
+    direction_ids = unique_ids(directions, "direction_id", "directions")
+    screening_ids = unique_ids(screening, "direction_id", "screening")
+    shortlist_ids = unique_ids(shortlist, "direction_id", "shortlist")
+
+    signal_papers: dict[str, set[str]] = {}
+    for record in signals:
+        signal_id = str(record.get("signal_id") or "").strip()
+        papers = id_list(record, "paper_ids", f"signal {signal_id or '<missing>'}")
+        signal_papers[signal_id] = papers
+        unknown = sorted(papers - core_ids)
+        if unknown:
+            errors.append(f"signal {signal_id} references unknown papers: {', '.join(unknown)}")
+
+    direction_by_id: dict[str, dict[str, Any]] = {}
+    for record in directions:
+        direction_id = str(record.get("direction_id") or "").strip()
+        direction_by_id[direction_id] = record
+        linked_signals = id_list(record, "signal_ids", f"direction {direction_id or '<missing>'}")
+        unknown_signals = sorted(linked_signals - signal_ids)
+        if unknown_signals:
+            errors.append(f"direction {direction_id} references unknown signals: {', '.join(unknown_signals)}")
+        papers = id_list(record, "paper_ids", f"direction {direction_id or '<missing>'}")
+        unknown_papers = sorted(papers - core_ids)
+        if unknown_papers:
+            errors.append(f"direction {direction_id} references unknown papers: {', '.join(unknown_papers)}")
+        linked_papers = set().union(*(signal_papers.get(signal_id, set()) for signal_id in linked_signals))
+        if papers - linked_papers:
+            errors.append(f"direction {direction_id} has papers not inherited from its signals")
+
+    if screening_ids - direction_ids:
+        errors.append("screening references unknown directions: " + ", ".join(sorted(screening_ids - direction_ids)))
+    if shortlist_ids - screening_ids:
+        errors.append("shortlist references unscreened directions: " + ", ".join(sorted(shortlist_ids - screening_ids)))
+
+    screening_by_id = {
+        str(record.get("direction_id") or "").strip(): record
+        for record in screening
+        if str(record.get("direction_id") or "").strip()
+    }
+    invalid_recommendations = sorted(
+        direction_id
+        for direction_id in shortlist_ids
+        if str(screening_by_id.get(direction_id, {}).get("recommendation") or "").strip().lower()
+        not in {"keep", "maybe"}
+    )
+    if invalid_recommendations:
+        errors.append(
+            "shortlist includes directions not retained by screening: "
+            + ", ".join(invalid_recommendations)
+        )
+
+    for record in shortlist:
+        direction_id = str(record.get("direction_id") or "").strip()
+        direction = direction_by_id.get(direction_id) or {}
+        shortlist_signals = id_list(record, "signal_ids", f"shortlist {direction_id or '<missing>'}")
+        direction_signals = {
+            str(item or "").strip()
+            for item in direction.get("signal_ids") or []
+            if str(item or "").strip()
+        } if isinstance(direction.get("signal_ids"), list) else set()
+        if shortlist_signals != direction_signals:
+            errors.append(f"shortlist {direction_id} does not preserve direction signal IDs")
+        shortlist_papers = id_list(record, "paper_ids", f"shortlist {direction_id or '<missing>'}")
+        direction_papers = {
+            str(item or "").strip()
+            for item in direction.get("paper_ids") or []
+            if str(item or "").strip()
+        } if isinstance(direction.get("paper_ids"), list) else set()
+        if shortlist_papers - direction_papers:
+            errors.append(f"shortlist {direction_id} introduces papers outside its direction")
+
     return _dimension(
         "trace_chain",
         "Trace chain",
-        passed=not missing,
-        partial=len(present) >= 2,
-        evidence="Signals, direction pool, screening, and shortlist sidecars are present." if not missing else f"Missing: {', '.join(missing)}",
-        repair_surface=missing or list(TRACE_ARTIFACTS),
+        passed=not errors,
+        partial=bool(signal_ids and direction_ids and screening_ids and shortlist_ids),
+        evidence=(
+            f"Joined {len(signal_ids)} signals -> {len(direction_ids)} directions -> "
+            f"{len(screening_ids)} screened -> {len(shortlist_ids)} shortlisted records."
+            if not errors
+            else "; ".join(errors[:5])
+        ),
+        repair_surface=list(TRACE_ARTIFACTS),
     )
 
 
+def shortlist_report_join_errors(
+    shortlist: list[dict[str, Any]],
+    top: list[dict[str, Any]],
+) -> list[str]:
+    """Join report directions to shortlist rank and evidence identity."""
+
+    if not top:
+        return ["report has no top directions"]
+    if len(shortlist) < len(top):
+        return [f"report has {len(top)} top directions but shortlist has {len(shortlist)} records"]
+
+    errors: list[str] = []
+    for index, (shortlist_record, report_record) in enumerate(
+        zip(shortlist[: len(top)], top),
+        start=1,
+    ):
+        for field in ("rank", "direction_id", "title"):
+            expected = str(shortlist_record.get(field) or "").strip()
+            actual = str(report_record.get(field) or "").strip()
+            if not expected or actual != expected:
+                errors.append(
+                    f"rank {index} {field} mismatch: shortlist={expected or '<missing>'}, report={actual or '<missing>'}"
+                )
+        for field in ("signal_ids", "paper_ids"):
+            expected_values = shortlist_record.get(field)
+            actual_values = report_record.get(field)
+            expected = sorted(
+                str(item or "").strip()
+                for item in expected_values
+                if str(item or "").strip()
+            ) if isinstance(expected_values, list) else []
+            actual = sorted(
+                str(item or "").strip()
+                for item in actual_values
+                if str(item or "").strip()
+            ) if isinstance(actual_values, list) else []
+            if actual != expected:
+                errors.append(
+                    f"rank {index} {field} mismatch: shortlist={expected}, report={actual}"
+                )
+    return errors
+
+
 def _consistency_dimension(shortlist: list[dict[str, Any]], top: list[dict[str, Any]]) -> dict[str, Any]:
-    top_titles = [str(item.get("title") or "").strip() for item in top]
-    shortlist_titles = [str(item.get("title") or "").strip() for item in shortlist[: len(top)]]
-    passed = bool(top_titles) and top_titles == shortlist_titles and all(top_titles)
+    errors = shortlist_report_join_errors(shortlist, top)
+    passed = not errors
     return _dimension(
         "shortlist_report_consistency",
         "Shortlist/report consistency",
         passed=passed,
-        partial=bool(set(top_titles) & set(shortlist_titles)),
-        evidence="Lead directions preserve shortlist rank order." if passed else f"Report titles={top_titles}; shortlist titles={shortlist_titles}.",
+        partial=bool(shortlist and top),
+        evidence=(
+            "Lead directions preserve shortlist rank and evidence identity."
+            if passed
+            else "; ".join(errors[:5])
+        ),
         repair_surface=[".codex/skills/idea-memo-writer/SKILL.md", "output/REPORT.json", "output/trace/IDEA_SHORTLIST.jsonl"],
     )
 

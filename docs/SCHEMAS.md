@@ -11,12 +11,12 @@ runtime.
 | `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
 | `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
 | `harness-lock.v1` | `.harness/harness.lock.json` | historical Runs | Git revision and hashes for the checkout-resident Pipeline, Units, Skill implementations, and Kernel; retained for compatibility |
-| `harness-lock.v2` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | v1 identity plus a Workspace-local Pipeline contract snapshot and hash manifest for variant inheritance |
+| `harness-lock.v2` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | v1 identity plus a Workspace-local, path-preserving Pipeline contract snapshot and hash manifest for variant inheritance |
 | `workspace-invocation-lock.v1` | `.harness/invocation.lock` | `tooling.run_state.workspace_invocation_lock` | Diagnostic owner metadata for the process-scoped Workspace command lock |
 | `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
 | `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history, including Completion prepare/commit/recovery stages |
 | `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt; process-owned starts record execution mode, PID, and host, while scripted finishes may add measured adapter runtime, output character counts, and log path |
-| `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_decision` | Machine-readable human and Harness interventions; `record_human_decision` is the human wrapper |
+| `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_decision` | Machine-readable human and Harness interventions; Checkpoint approvals include a `checkpoint-review-basis.v1` Artifact fingerprint bundle |
 | `artifact-record.v1` | `.harness/artifacts.jsonl` | `tooling.run_state.register_artifacts` | Versioned Artifact provenance and hashes |
 | `failure-record.v1` | `.harness/failures/ledger.jsonl` | `tooling.run_state` | Append-only Failure opening and resolution records |
 | `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | `tooling.run_state.record_evaluation` | Append-only Workflow scorecards, repair surfaces, and optional efficiency metrics |
@@ -24,6 +24,17 @@ runtime.
 
 The JSONL ledgers are append-only. `run.json` and `effective.json` are current
 projections and may be replaced atomically.
+
+A `checkpoint-review-basis.v1` object binds one approval to the active HUMAN
+Unit and the current hashes of its declared review inputs and direct
+dependency evidence. For `DECISIONS.md`, only the matching marked Checkpoint
+block and a checkbox-normalized approval line are hashed; later Checkpoint
+blocks cannot invalidate an earlier Decision, while edits inside its reviewed
+block still do. Historical approval records
+without this object remain readable but cannot authorize Completion. When the
+basis becomes stale, execution, Completion, and PREPARED recovery clear the
+readable checkbox and append `checkpoint.approval.revoked` before the Unit can
+be approved again.
 
 `invocation.lock` is not a historical ledger and its presence does not mean a
 command is active. The operating-system `flock`, not the retained JSON metadata,
@@ -113,6 +124,7 @@ under a gitignored `workspaces/<name>/evaluation/` directory.
 | `skill-invocation-candidate-pack.v1` | `scripts/evaluate_skill_invocations.py --emit-candidate-pack` | Gold-label-free model input containing repository Skill descriptions and case prompts only |
 | `skill-invocation-prediction.v1` | One JSONL record per case, supplied by Codex, GPT Pro, or another model runner | Ordered selected Skills plus optional observed model, token, and latency fields |
 | `skill-invocation-evaluation.v1` | `scripts/evaluate_skill_invocations.py` | Aggregate and split/tag accuracy, forbidden/unexpected selection, repository versus external Skill choice, and reproducible Skill-context character load |
+| `workflow-context-footprint.v1` | `scripts/audit_workflow_context.py` | Separate static proxies for full-catalog routing descriptions, unique selected Skill bodies, and serial per-Unit selected bodies; never represented as observed model tokens |
 
 The evaluator does not infer tokens from characters. An unscored corpus report
 is a context baseline, not model-selection evidence. A scored `PASS` applies

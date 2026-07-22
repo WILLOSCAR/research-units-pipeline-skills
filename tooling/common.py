@@ -1338,6 +1338,7 @@ def resolve_pipeline_spec_path(*, repo_root: Path, pipeline_value: str) -> Path 
 
 def load_workspace_pipeline_spec(workspace: Path):
     from tooling.pipeline_spec import PipelineSpec
+    from tooling.pipeline_snapshot import inspect_pipeline_snapshot_bundle
 
     try:
         # Pipeline contracts belong to the checkout executing the run. A Workspace
@@ -1375,36 +1376,19 @@ def load_workspace_pipeline_spec(workspace: Path):
             if not isinstance(pipeline_lock, dict):
                 return None
             locked_source_value = str(pipeline_lock.get("path") or "").strip()
-            declared_source = resolve_pipeline_spec_path(
-                repo_root=repo_root,
-                pipeline_value=pipeline_name,
-            )
-            locked_source = resolve_pipeline_spec_path(
-                repo_root=repo_root,
-                pipeline_value=locked_source_value,
-            )
             if (
                 not locked_source_value
-                or declared_source is None
-                or locked_source is None
-                or declared_source != locked_source
+                or _normalized_pipeline_lock_value(pipeline_name)
+                != _normalized_pipeline_lock_value(locked_source_value)
             ):
                 return None
-            snapshot_value = str(pipeline_lock.get("snapshot_path") or "").strip()
-            expected_sha = str(pipeline_lock.get("snapshot_sha256") or "").strip()
-            if not snapshot_value or not expected_sha:
+            inspection = inspect_pipeline_snapshot_bundle(
+                workspace=workspace,
+                pipeline_lock=pipeline_lock,
+            )
+            if not inspection.valid:
                 return None
-            candidate = Path(snapshot_value)
-            if candidate.is_absolute():
-                return None
-            workspace_root = workspace.resolve()
-            snapshot_path = (workspace_root / candidate).resolve()
-            if not snapshot_path.is_relative_to(workspace_root) or not snapshot_path.is_file():
-                return None
-            actual_sha = hashlib.sha256(snapshot_path.read_bytes()).hexdigest()
-            if actual_sha != expected_sha:
-                return None
-            spec_path = snapshot_path
+            spec_path = inspection.selected_path
 
     if spec_path is None:
         spec_path = resolve_pipeline_spec_path(repo_root=repo_root, pipeline_value=pipeline_name)
@@ -1415,6 +1399,15 @@ def load_workspace_pipeline_spec(workspace: Path):
         return PipelineSpec.load(spec_path)
     except Exception:
         return None
+
+
+def _normalized_pipeline_lock_value(value: object) -> str:
+    """Normalize a human lock projection without consulting the mutable checkout."""
+
+    normalized = Path(str(value or "").strip()).as_posix()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
 
 
 def pipeline_query_defaults(workspace: Path) -> dict[str, Any]:

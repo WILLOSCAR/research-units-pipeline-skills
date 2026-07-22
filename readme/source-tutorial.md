@@ -94,16 +94,22 @@ to `research-brief` or a survey workflow first.
 When a source set is sparse or noisy, inspect `sources/manifest.yml`,
 `sources/index.jsonl`, `outline/module_plan.yml`,
 `outline/source_coverage.jsonl`, and `outline/tutorial_context_packs.jsonl`
-before accepting `output/TUTORIAL.md`. The current self-check is still stronger
-on structure than on module-plan fidelity and source grounding.
+before accepting `output/TUTORIAL.md`. The current gate checks module-plan
+fidelity, exact coverage-to-context-pack source IDs, successful ingest and
+provenance, source-backed snippets, and visible per-module Source notes. It
+does not establish pedagogical quality across arbitrary mixed source sets.
 
 The delivery path is covered by a strict local-source regression: it executes
 the complete Workflow and compiles both article and Beamer PDFs with `latexmk`
 when the toolchain is available. This proves delivery mechanics, not the
 pedagogical quality of arbitrary source sets.
 
+PDF source ingest requires `pdftotext`. Compiled delivery requires the declared
+TeX tools plus either Poppler's `pdfinfo` or the optional `PyMuPDF` package for
+page-count acceptance.
+
 ## 7. Recommended Prompt
 
 ```text
-Use the source-tutorial pipeline. I will provide webpages, PDFs, and repo docs, then turn them into a reader-first tutorial with PDF and Beamer slides.
+Use source-tutorial. I will provide webpages, PDFs, and repo docs; turn them into a reader-first tutorial with PDF and Beamer slides.
 ```

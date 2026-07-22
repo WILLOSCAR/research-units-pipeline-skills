@@ -53,7 +53,7 @@ quality_contract:
   semantic_rubric:
     schema: evidence-review-scorecard.v1
     pass_score: 80
-    critical_dimensions: [protocol_operability, screening_traceability, extraction_coverage, synthesis_traceability]
+    critical_dimensions: [protocol_operability, screening_traceability, extraction_coverage, bias_completeness, synthesis_traceability, conclusion_boundedness]
 stages:
   C0:
     title: Init

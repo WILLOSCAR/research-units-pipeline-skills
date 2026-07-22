@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import socket
 import subprocess
@@ -344,6 +345,17 @@ class SourceTutorialPipelineTests(unittest.TestCase):
                 [],
             )
 
+            coverage_records[0]["source_ids"] = ["missing-source"]
+            self._write_jsonl(
+                workspace / "outline" / "source_coverage.jsonl",
+                coverage_records,
+            )
+            issues = check_module_source_coverage(
+                workspace,
+                ["outline/source_coverage.jsonl"],
+            )
+            self.assertIn("source_coverage_unresolved_sources", {issue.code for issue in issues})
+
             self._write_jsonl(
                 workspace / "outline" / "source_coverage.jsonl",
                 coverage_records[:-1],
@@ -375,6 +387,82 @@ class SourceTutorialPipelineTests(unittest.TestCase):
                 ),
                 [],
             )
+
+            original_first = json.loads(json.dumps(packs[0]))
+            packs[0]["source_ids"] = ["fabricated-source"]
+            packs[0]["source_snippets"] = [
+                {
+                    "source_id": "fabricated-source",
+                    "snippet": "Plausible but ungrounded text.",
+                    "pointer": "fabricated:1",
+                }
+            ]
+            self._write_jsonl(
+                workspace / "outline" / "tutorial_context_packs.jsonl",
+                packs,
+            )
+            issues = check_tutorial_context_packs(
+                workspace,
+                ["outline/tutorial_context_packs.jsonl"],
+            )
+            codes = {issue.code for issue in issues}
+            self.assertIn("tutorial_context_packs_coverage_mismatch", codes)
+            self.assertIn("tutorial_context_packs_unresolved_sources", codes)
+
+            packs[0] = json.loads(json.dumps(original_first))
+            packs[0]["source_snippets"] = []
+            self._write_jsonl(
+                workspace / "outline" / "tutorial_context_packs.jsonl",
+                packs,
+            )
+            issues = check_tutorial_context_packs(
+                workspace,
+                ["outline/tutorial_context_packs.jsonl"],
+            )
+            self.assertIn("tutorial_context_packs_ungrounded", {issue.code for issue in issues})
+
+            packs[0] = json.loads(json.dumps(original_first))
+            first_snippet = dict(packs[0]["source_snippets"][0])
+            packs[0]["source_snippets"][0] = {
+                **first_snippet,
+                "pointer": "sources/normalized/not-the-source.md",
+            }
+            self._write_jsonl(workspace / "outline" / "tutorial_context_packs.jsonl", packs)
+            issues = check_tutorial_context_packs(
+                workspace,
+                ["outline/tutorial_context_packs.jsonl"],
+            )
+            self.assertIn("tutorial_context_packs_pointer_mismatch", {issue.code for issue in issues})
+
+            packs[0] = json.loads(json.dumps(original_first))
+            packs[0]["source_snippets"][0] = {
+                **first_snippet,
+                "snippet": "Fabricated prose that does not occur in the selected source.",
+            }
+            self._write_jsonl(workspace / "outline" / "tutorial_context_packs.jsonl", packs)
+            issues = check_tutorial_context_packs(
+                workspace,
+                ["outline/tutorial_context_packs.jsonl"],
+            )
+            self.assertIn(
+                "tutorial_context_packs_snippet_content_mismatch",
+                {issue.code for issue in issues},
+            )
+
+            packs[0] = json.loads(json.dumps(original_first))
+            packs[0]["source_snippets"].append(
+                {
+                    "source_id": "not-approved-for-this-module",
+                    "pointer": first_snippet["pointer"],
+                    "snippet": first_snippet["snippet"],
+                }
+            )
+            self._write_jsonl(workspace / "outline" / "tutorial_context_packs.jsonl", packs)
+            issues = check_tutorial_context_packs(
+                workspace,
+                ["outline/tutorial_context_packs.jsonl"],
+            )
+            self.assertIn("tutorial_context_packs_unapproved_snippets", {issue.code for issue in issues})
 
     def test_source_tutorial_writer_requires_c2_approval(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -626,6 +714,69 @@ class SourceTutorialPipelineTests(unittest.TestCase):
 
             self.assertEqual([issue.code for issue in issues], ["tutorial_selfloop_stale_or_invalid"])
 
+    def test_tutorial_selfloop_rejects_missing_source_notes(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_tutorial_selfloop_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            self._scaffold_source_tutorial_workspace(workspace, approved=True)
+            self._run_structured_tutorial_flow_until_context_packs(workspace)
+            proc = self._run_script("source-tutorial-writer", workspace)
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            report = workspace / "output" / "TUTORIAL_SELFLOOP_TODO.md"
+            report.write_text("# Tutorial self-loop\n\n- Status: PASS\n", encoding="utf-8")
+            packs = read_jsonl(workspace / "outline" / "tutorial_context_packs.jsonl")
+            source_id = str(packs[0]["source_ids"][0])
+            tutorial = workspace / "output" / "TUTORIAL.md"
+            text = tutorial.read_text(encoding="utf-8")
+            text = re.sub(r"(?m)^- `[^`]+`.*$", "- Approved source set", text)
+            text = text.replace(
+                "### Why it matters",
+                f"### Why it matters\n\nThe module mentions `{source_id}` outside Source notes.",
+                1,
+            )
+            tutorial.write_text(text, encoding="utf-8")
+
+            issues = check_tutorial_selfloop_report(
+                workspace,
+                ["output/TUTORIAL_SELFLOOP_TODO.md"],
+            )
+
+            self.assertEqual([issue.code for issue in issues], ["tutorial_selfloop_stale_or_invalid"])
+
+    def test_tutorial_selfloop_requires_every_approved_source_and_pointer(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_tutorial_selfloop_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            self._scaffold_source_tutorial_workspace(workspace, approved=True)
+            self._run_structured_tutorial_flow_until_context_packs(workspace)
+            packs = read_jsonl(workspace / "outline" / "tutorial_context_packs.jsonl")
+            target = next(pack for pack in packs if len(pack.get("source_ids") or []) >= 2)
+            proc = self._run_script("source-tutorial-writer", workspace)
+            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
+            (workspace / "output" / "TUTORIAL_SELFLOOP_TODO.md").write_text(
+                "# Tutorial self-loop\n\n- Status: PASS\n",
+                encoding="utf-8",
+            )
+            removed_source = str(target["source_ids"][1])
+            tutorial_path = workspace / "output" / "TUTORIAL.md"
+            tutorial = tutorial_path.read_text(encoding="utf-8")
+            tutorial = re.sub(
+                rf"(?m)^- `{re.escape(removed_source)}`.*\n?",
+                "",
+                tutorial,
+                count=1,
+            )
+            tutorial_path.write_text(tutorial, encoding="utf-8")
+
+            issues = check_tutorial_selfloop_report(
+                workspace,
+                ["output/TUTORIAL_SELFLOOP_TODO.md"],
+            )
+
+            self.assertEqual([issue.code for issue in issues], ["tutorial_selfloop_stale_or_invalid"])
+
     def test_source_ingest_repo_reads_readme_docs(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"
         self.assertTrue(script.exists(), f"missing script: {script}")
@@ -762,6 +913,111 @@ class SourceTutorialPipelineTests(unittest.TestCase):
 
             self.assertIn("source_index_manifest_mismatch", codes)
             self.assertIn("required_source_ingest_failed", codes)
+
+    def test_source_ingest_rejects_provenance_from_an_unrelated_local_path(self) -> None:
+        from tooling.quality_checks.source_tutorial import check_source_ingest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            self._scaffold_source_tutorial_workspace(workspace)
+            (workspace / "sources" / "manifest.yml").write_text(
+                textwrap.dedent(
+                    """\
+                    sources:
+                      - source_id: intro-web
+                        kind: webpage
+                        locator: https://example.com/behavior-cloning
+                        label: Behavior Cloning Primer
+                        required: true
+                      - source_id: repo-guide
+                        kind: repo
+                        locator: https://example.com/repo
+                        label: Robot Learning Repo Guide
+                        required: true
+                      - source_id: lecture-video
+                        kind: video
+                        locator: https://www.youtube.com/watch?v=demo
+                        label: Debugging Rollouts Lecture
+                        required: false
+                    """
+                ),
+                encoding="utf-8",
+            )
+            provenance = read_jsonl(workspace / "sources" / "provenance.jsonl")
+            provenance[0]["local_path"] = "sources/normalized/lecture-video.md"
+            provenance[0]["pointer"] = "sources/normalized/lecture-video.md"
+            self._write_jsonl(workspace / "sources" / "provenance.jsonl", provenance)
+
+            issues = check_source_ingest(
+                workspace,
+                ["sources/index.jsonl", "sources/provenance.jsonl"],
+            )
+
+            self.assertIn("source_provenance_path_mismatch", {issue.code for issue in issues})
+
+    def test_source_tutorial_checks_report_malformed_jsonl_by_artifact(self) -> None:
+        from tooling.quality_checks.source_tutorial import (
+            check_module_source_coverage,
+            check_source_ingest,
+            check_tutorial_context_packs,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            self._scaffold_source_tutorial_workspace(workspace)
+            (workspace / "sources" / "manifest.yml").write_text(
+                textwrap.dedent(
+                    """\
+                    sources:
+                      - source_id: intro-web
+                        kind: webpage
+                        locator: https://example.com/behavior-cloning
+                        label: Behavior Cloning Primer
+                        required: true
+                    """
+                ),
+                encoding="utf-8",
+            )
+            index_path = workspace / "sources" / "index.jsonl"
+            provenance_path = workspace / "sources" / "provenance.jsonl"
+            original_index = index_path.read_text(encoding="utf-8")
+            original_provenance = provenance_path.read_text(encoding="utf-8")
+
+            index_path.write_text('{"source_id":\n', encoding="utf-8")
+            index_issues = check_source_ingest(
+                workspace,
+                ["sources/index.jsonl", "sources/provenance.jsonl"],
+            )
+            self.assertEqual(index_issues[0].code, "source_index_invalid_jsonl")
+            self.assertIn("line 1", index_issues[0].message)
+
+            index_path.write_text(original_index, encoding="utf-8")
+            provenance_path.write_text('{"source_id":\n', encoding="utf-8")
+            provenance_issues = check_source_ingest(
+                workspace,
+                ["sources/index.jsonl", "sources/provenance.jsonl"],
+            )
+            self.assertIn(
+                "source_provenance_invalid_jsonl",
+                {issue.code for issue in provenance_issues},
+            )
+            provenance_path.write_text(original_provenance, encoding="utf-8")
+
+            coverage_path = workspace / "outline" / "source_coverage.jsonl"
+            coverage_path.write_text('{"module_id":\n', encoding="utf-8")
+            coverage_issues = check_module_source_coverage(
+                workspace,
+                ["outline/source_coverage.jsonl"],
+            )
+            self.assertEqual(coverage_issues[0].code, "source_coverage_invalid_jsonl")
+
+            context_path = workspace / "outline" / "tutorial_context_packs.jsonl"
+            context_path.write_text('{"module_id":\n', encoding="utf-8")
+            context_issues = check_tutorial_context_packs(
+                workspace,
+                ["outline/tutorial_context_packs.jsonl"],
+            )
+            self.assertEqual(context_issues[0].code, "tutorial_context_packs_invalid_jsonl")
 
     def test_source_ingest_pdf_local_file_succeeds(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"

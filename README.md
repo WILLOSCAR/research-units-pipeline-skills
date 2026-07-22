@@ -30,23 +30,35 @@ remain implementation details until inspection or repair is necessary.
 |---|---|---|---|
 | Understand a topic and decide what to read | `research-brief` | topic | `output/SNAPSHOT.md` |
 | Review one paper or manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
-| Synthesize studies under an explicit protocol | `evidence-review` | question and protocol | `output/SYNTHESIS.md` |
+| Synthesize studies under an explicit protocol | `evidence-review` | review question, then an approved protocol | `output/SYNTHESIS.md` |
 | Write a literature survey or bounded research report | `arxiv-survey` | topic and delivery constraints | `output/DRAFT.md` |
 | Deliver the same Survey path as LaTeX and PDF | `arxiv-survey-latex` | topic and delivery constraints | `latex/main.pdf` |
 | Develop literature-grounded research directions | `idea-brainstorm` | topic and scope | `output/REPORT.md` |
 | Turn an existing source set into a tutorial | `source-tutorial` | source pack and audience | tutorial, article PDF, slides |
 
 `graduate-paper` remains a research-stage Chinese thesis path. It contains
-useful Skills but is not part of the seven executable Workflow contracts.
+useful Skills but is not part of the seven executable Pipeline contracts.
+
+The input boundaries are deliberate. `research-brief`, the Survey family, and
+`idea-brainstorm` can begin from a topic. `paper-review` requires a manuscript;
+`source-tutorial` requires a local source pack and audience; `evidence-review`
+turns a review question into a protocol and stops for approval before retrieval.
+The Harness names a missing prerequisite instead of silently replacing it with
+invented context.
 
 ## Start A Run
 
-The CLI currently runs from a source checkout and uses
-[uv](https://docs.astral.sh/uv/). Topic-seeded Workflows can start immediately:
+The CLI currently runs from a source checkout, requires Python 3.10+, and uses
+[uv](https://docs.astral.sh/uv/). `uv run` installs the declared Python
+dependencies, including PDF manuscript extraction. Source Tutorial PDF ingest
+also requires `pdftotext`; LaTeX/PDF delivery requires the TeX tools named by
+the selected Workflow's compile checks plus either Poppler's `pdfinfo` or the
+optional `PyMuPDF` package for page-count acceptance. Goal-seeded Workflows can
+then start:
 
 ```bash
 uv run rh goal create \
-  --topic "test-time adaptation for robotics" \
+  --goal "Understand test-time adaptation for robotics and decide what to read" \
   --workflow research-brief \
   --workspace workspaces/robot-adaptation
 
@@ -58,19 +70,44 @@ uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
 `run start` advances until the next unmet prerequisite. For `research-brief`,
-inspect the C2 shortlist and reading-plan Artifacts before approving C2; `run
-resume` then continues from the persisted Unit ledger. The completed Run
-contains a readable brief and structured scorecard. `evidence inspect` then
-writes the Artifact index with hashes and provenance. A failed contract can be
-diagnosed with:
+inspect the core paper set, taxonomy, outline, and C2 review block before
+approving C2; only the currently active Checkpoint can be approved. The
+approval is bound to the reviewed Artifact hashes, so changing those files
+invalidates stale authorization. `run resume` then continues from the persisted
+Unit ledger. The completed Run contains a readable brief and structured
+scorecard. `evidence inspect` writes both the Run Audit and Artifact Pack, with
+optional portable excerpts. A failed contract can be diagnosed with:
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
 ```
 
-Workflows that require an existing manuscript, source pack, protocol, or human
-decision will stop at that prerequisite and name it. They can also be invoked
-naturally from Codex:
+For input-owned Workflows, prepare the Workspace before resuming:
+
+```bash
+# Single-manuscript review
+uv run rh goal create --goal "Review this manuscript" --workflow paper-review --workspace workspaces/review
+mkdir -p workspaces/review/inputs
+cp /path/to/manuscript.pdf workspaces/review/inputs/manuscript.pdf
+uv run rh run start --workspace workspaces/review
+
+# Fixed-source tutorial: the first start scaffolds sources/manifest.yml and blocks
+uv run rh goal create --goal "Teach this source set to new team members" --workflow source-tutorial --workspace workspaces/tutorial
+uv run rh run start --workspace workspaces/tutorial
+# Replace the generated manifest entry with real webpage, PDF, Markdown, repo, docs-site, or transcript locators.
+uv run rh run resume --workspace workspaces/tutorial
+
+# Evidence review: the Workflow writes the protocol, then stops for C1 approval
+uv run rh goal create --goal "Determine which interventions improve retrieval faithfulness" --workflow evidence-review --workspace workspaces/evidence-review
+uv run rh run start --workspace workspaces/evidence-review
+uv run rh run approve --workspace workspaces/evidence-review --checkpoint C1
+uv run rh run resume --workspace workspaces/evidence-review
+```
+
+Workflows that require an existing manuscript, source pack, or human decision
+stop at that prerequisite and name it. `evidence-review` creates its own
+protocol and pauses before retrieval so the user can approve or revise it.
+These Workflows can also be invoked naturally from Codex:
 
 ```text
 Use paper-review to review this manuscript. Keep every major concern traceable to the paper.
@@ -166,21 +203,29 @@ comparing, synthesizing, and citing multiple papers. See the
 
 - `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review`
   have Workflow-local scorecards and failure, repair, and rerun tests. Their
-  critical joins now reject shallow novelty surfaces, incomplete reading paths,
-  ignored focus decisions, and candidate-to-extraction coverage gaps.
+  critical joins reject shallow novelty surfaces, an ungrounded Brief scope,
+  theme bullets without valid paper pointers or two-paper coverage,
+  broken ideation trace/shortlist consistency, protocol or extraction gaps,
+  incomplete bias records, and lexically overconfident conclusions while preserving explicit negation.
+- the Survey family has a mandatory prewrite evidence loop: subsection briefs,
+  evidence bindings, and evidence drafts must cover the same subsection IDs,
+  and malformed gap fields or unresolved blocking evidence stop writing.
 - `research-brief` has a completed real-source arXiv pilot in addition to a
   deterministic Harness proof.
 - `source-tutorial` has a strict local-source delivery test through article and
-  slide PDF compilation.
+  slide PDF compilation; its context packs must preserve the exact approved
+  module-source coverage and rejoin successful ingest, provenance, snippets,
+  and visible Source notes.
 - the Survey family has one completed bounded-report pilot with an audited
   10-page PDF.
 - cross-topic stability, expert comparison, measured model-token benchmarks,
   and automatic Harness candidate promotion remain open.
 
 The published `research-brief` snapshots were captured under
-`recoverable-provenance.v1`. They remain outcome and historical Run evidence,
-but they are not presented as v2 cross-ledger acceptance proofs; refreshing one
-v2 public Run is an explicit Roadmap item.
+`recoverable-provenance.v1`. The course-paper snapshot does not contain the
+current `.harness` ledgers or a `run-audit.v2` bundle. These remain outcome and
+historical Run evidence, not current v2 cross-ledger acceptance proofs;
+refreshing public v2 Runs is an explicit Roadmap item.
 
 Published snapshots are deliberately narrow:
 
@@ -196,6 +241,7 @@ Validate the repository before changing maturity claims:
 uv run python scripts/validate_repo.py --strict
 uv run python scripts/readiness_audit.py --strict
 uv run python scripts/audit_skills.py --fail-on WARN
+uv run python scripts/audit_workflow_context.py
 uv run --extra test python -m pytest -q
 ```
 

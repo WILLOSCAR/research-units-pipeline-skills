@@ -18,7 +18,7 @@ is complete or that the briefing is scientifically correct.
 
 | Evidence | Observed value |
 |---|---|
-| Workflow | `research-brief` v1.3 |
+| Workflow | `research-brief` |
 | Source mode | Online arXiv API retrieval |
 | Completion Protocol | `recoverable-provenance.v1` |
 | Repository lock | `b0a3bbd`, clean checkout with Kernel and Skill hashes retained locally |
@@ -66,9 +66,10 @@ from a clean revision rather than retroactively certifying an earlier Workspace.
 ## Interpretation
 
 This snapshot proves that one focused Research Brief completed from live arXiv
-metadata through strict Unit checks, the current Completion Protocol, semantic
-evaluation, cross-ledger Audit, Evidence inspection, and Improve diagnosis. It
-also demonstrates an artifact-mediated improvement loop: failed intermediate
+metadata through strict Unit checks, the captured v1 Completion Protocol,
+semantic evaluation, cross-ledger Audit, Evidence inspection, and Improve
+diagnosis. The repository now uses v2, so this is historical Run evidence rather
+than current-v2 proof. It also demonstrates an artifact-mediated improvement loop: failed intermediate
 outputs led to bounded contract and renderer changes, followed by a clean rerun.
 
 It does not prove retrieval completeness, paper relevance at expert-review
