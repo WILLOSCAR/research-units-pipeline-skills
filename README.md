@@ -263,4 +263,11 @@ raising its proof state.
 
 [Chinese README](README.zh-CN.md)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=WILLOSCAR/research-units-pipeline-skills&type=Date)](https://star-history.com/#WILLOSCAR/research-units-pipeline-skills&Date)
+## Star History
+
+<a href="https://www.star-history.com/?repos=WILLOSCAR%2Fresearch-units-pipeline-skills&type=date&legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/star-history/star-history-dark.svg">
+    <img alt="Star history chart" src="assets/star-history/star-history-light.svg">
+  </picture>
+</a>

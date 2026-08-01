@@ -1,0 +1,30 @@
+name: Update star history
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  watch:
+    types: [started]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: star-history
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Render star history
+        uses: narayann7/star-history-action@c2061675dacbf6f35d116e556015b8905843387f # v1.0.4
+        with:
+          repos: ${{ github.repository }}
+          token: ${{ github.token }}
+          update-readme: "false"

@@ -230,3 +230,12 @@ uv run --extra test python -m pytest -q
 - [中文使用导航](readme/README.zh-CN.md)
 
 [English README](README.md)
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=WILLOSCAR%2Fresearch-units-pipeline-skills&type=date&legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/star-history/star-history-dark.svg">
+    <img alt="Star history chart" src="assets/star-history/star-history-light.svg">
+  </picture>
+</a>
