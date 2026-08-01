@@ -54,7 +54,8 @@ Keep the current output contract:
 - `sections/discussion.md`
 - `sections/conclusion.md`
 - `output/FRONT_MATTER_REPORT.md`
-- `output/FRONT_MATTER_CONTEXT.json`
+- `output/FRONT_MATTER_CONTEXT.json`, including the base template bank, any
+  selected domain overlay, and their repository-relative SHA-256 hashes
 
 ## Compatibility mode
 

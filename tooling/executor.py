@@ -46,6 +46,13 @@ class RunResult:
     message: str
 
 
+def _file_generation_marker(path: Path) -> tuple[int, int, int, int] | None:
+    if not path.is_file():
+        return None
+    stat = path.stat()
+    return (stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+
+
 def _pinned_pipeline_contract_expected(workspace: Path) -> bool:
     """Distinguish a tampered v2 contract from a legacy contract-free Workspace."""
 
@@ -292,6 +299,11 @@ def run_one_unit(
     log_rel = f"output/unit_logs/{unit_id}.{skill}.{attempt_id}.log"
     log_path = workspace / log_rel
     adapter_rel = str(script_path.relative_to(repo_root))
+    scorecard_markers_before = {
+        relpath: _file_generation_marker(workspace / relpath)
+        for relpath in outputs
+        if relpath.upper().endswith("_SCORECARD.JSON")
+    }
     process_started = time.perf_counter()
 
     try:
@@ -384,11 +396,39 @@ def run_one_unit(
     missing = [rel for rel in required_outputs if rel and not (workspace / rel).exists()]
     scorecard = load_declared_scorecard(workspace, outputs)
     scorecard_failure = None
+    scorecard_is_fresh = False
     if scorecard:
         scorecard_relpath = scorecard.relpath
         scorecard_payload = scorecard.payload
-        scorecard_failure = declared_scorecard_failure(scorecard)
-        if not scorecard.validation_errors and (completed.returncode != 0 or scorecard_failure is not None):
+        scorecard_is_fresh = (
+            _file_generation_marker(workspace / scorecard_relpath)
+            != scorecard_markers_before.get(scorecard_relpath)
+        )
+        if not scorecard_is_fresh:
+            scorecard_failure = {
+                "failure_type": "stale_scorecard_output",
+                "symptom": (
+                    f"Declared scorecard `{scorecard_relpath}` was not created or refreshed by "
+                    f"Attempt `{attempt_id}`."
+                ),
+                "causal_behavior": (
+                    "The executor found a scorecard left by an earlier Attempt after the current "
+                    "adapter returned."
+                ),
+                "repair_surface": [
+                    scorecard_relpath,
+                    f".codex/skills/{skill}/scripts/run.py",
+                    "tooling/executor.py",
+                ],
+                "severity": "high",
+            }
+        else:
+            scorecard_failure = declared_scorecard_failure(scorecard)
+        if (
+            scorecard_is_fresh
+            and not scorecard.validation_errors
+            and (completed.returncode != 0 or scorecard_failure is not None)
+        ):
             from tooling.run_state import record_evaluation
 
             record_evaluation(
@@ -468,6 +508,7 @@ def run_one_unit(
             "missing_outputs",
             "missing_skill_adapter",
             "script_failed",
+            "stale_scorecard_output",
         }
         if strict:
             resolved_failure_types.add("quality_gate_failed")
@@ -520,18 +561,23 @@ def run_one_unit(
             execution=execution,
         )
         return RunResult(unit_id=unit_id, status="BLOCKED", message=f"Missing outputs: {', '.join(missing)}" + (f"; see {log_rel}" if log_path.exists() else ""))
-    failure_label = "semantic scorecard failed" if scorecard_failure else "script failed"
+    failure_label = "declared scorecard failed" if scorecard_failure else "script failed"
     failure_message = (
         str(scorecard_failure["symptom"])
         if scorecard_failure
         else f"Skill script failed (exit {completed.returncode})"
     )
     update_status_log(status_path, f"{now_iso_seconds()} {unit_id} BLOCKED ({failure_label})")
+    scorecard_failure_type = (
+        str(scorecard_failure.get("failure_type") or "semantic_quality_gate_failed")
+        if scorecard_failure
+        else "script_failed"
+    )
     _append_run_error(
         workspace=workspace,
         unit_id=unit_id,
         skill=skill,
-        kind="semantic_quality_gate_failed" if scorecard_failure else "script_failed",
+        kind=scorecard_failure_type,
         message=failure_message,
         log_rel=log_rel if log_path.exists() else None,
     )
@@ -540,7 +586,7 @@ def run_one_unit(
         workspace=workspace,
         unit_id=unit_id,
         attempt_id=attempt_id,
-        failure_type="semantic_quality_gate_failed" if scorecard_failure else "script_failed",
+        failure_type=scorecard_failure_type,
         symptom=str(scorecard_failure["symptom"]) if scorecard_failure else f"Skill process exited with code {completed.returncode}.",
         causal_behavior=str(scorecard_failure["causal_behavior"]) if scorecard_failure else "The skill adapter returned a non-zero process result.",
         harness_mechanism="The executor reads declared scorecard failures before classifying a non-zero skill exit." if scorecard_failure else "The executor treats non-zero skill exits as blocked attempts.",

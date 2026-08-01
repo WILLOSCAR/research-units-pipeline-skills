@@ -54,12 +54,24 @@ topic -> retrieval -> structure -> evidence -> long-form draft -> optional PDF
 | 技术调研或研究现状报告 | 面向研发读者、主要证据来自研究文献 | 聚焦问题用有界 Overlay；全领域覆盖用默认 `survey` Profile |
 | 完整文献 Survey | 需要更广 taxonomy、更密 evidence packs 和更高引用覆盖 | 默认 `survey` Profile |
 
-这些交付物共享研究流程，但不是套用同一个文章模板：
+这些交付物共享一条研究生命周期，但不采用完全相同的文体大纲：
 
 - 课程论文/报告通常围绕作业问题，依次组织背景、路线比较、证据表、局限和有边界的结论；
 - 研讨课或专题报告更强调适合讲解与讨论的概念主线，但主要判断仍需由多篇论文支撑；
 - 短文献综述聚焦代表性路线、分歧与研究空白，不宣称做了穷尽式筛选；
 - 技术调研或研究现状报告面向决策，突出 Benchmark、部署前提、失败模式和未解决问题。
+
+这并不表示当前参考 Adapter 完全不使用模板。C5 阶段缺少 Section 文件时，
+`subsection-writer/scripts/run.py` 可以根据 `writer_context_packs.jsonl` 和带版本的模板，
+确定性组装待审的 Section 正文。这个 deterministic bootstrap 不是模型写作证据，也不是
+最终写作策略。脚本不能创建 `sections/h3_bodies.refined.ok`；Marker 只表示将 H3 正文提交
+验收。随后，强制检查会从该 Run 已记录的 Writer 模板资产中提取固定片段，并在字面片段残留
+超过 10% 时拒绝 Run；`writer-selfloop` 生成报告时会调用同一个共享的严格 Section
+检查器。强制的 `pipeline-auditor` 会测量整份合并稿、校验已选资产哈希，并对照 v2 Run
+Lock 校验 3 个模板所属 Skill implementation，再生成完整 Scorecard。Completion 只把
+Verdict 与 Dimensions 投影到 Evaluation Ledger。通过该比例只说明字面
+重合下界合格，不能证明作者身份或原创性。10% 是初始政策目标，目前还没有完成态 PASS Run
+证明它可达。
 
 判断边界看证据来源：这条路径适合“研究论文是主要来源”的任务；目前不适合市场情报、
 实时网页监控、实验报告或单一材料读后感。快速入门用 `research-brief`，单篇论文评审用
@@ -147,6 +159,9 @@ C2-C4 故意是 structure-first、evidence-first：
 
 C5 不是“一次写完整篇”，而是包含：
 
+- 为缺失 Section 执行 deterministic bootstrap
+- 根据该 Run 已选择的 Writer 模板资产执行强制的 template-residue 验收
+- 由模型或人工复核并进行 evidence-bounded 改写
 - front matter 生成
 - 按 section 拆分写作
 - 定向 style 与 opener 修复
@@ -155,7 +170,7 @@ C5 不是“一次写完整篇”，而是包含：
 - 数值上下文清理
 - 最终 argument 与 section hash 快照
 - 确定性 merge
-- final audit
+- 生成全稿 template-residue Scorecard、校验已选资产哈希与 v2 Writer Implementation Lock 的 final audit
 
 真正的大部分质量提升都发生在这里。
 

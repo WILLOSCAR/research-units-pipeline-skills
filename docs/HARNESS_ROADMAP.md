@@ -64,7 +64,8 @@ evidence snapshots:
 - repeat `evidence-review` and compare protocol execution with human screening
   and extraction judgments;
 - repeat bounded Survey reports across course, seminar, and technical-report
-  prompts;
+  prompts; retain whole-draft residue scorecards, measure rewrite effort, and
+  calibrate the initial 10% policy only after at least one completed passing Run;
 - strengthen `source-tutorial` source-to-module and module-to-slide grounding.
 
 Each retained case should include Goal, locked Workflow revision, final

@@ -1,0 +1,51 @@
+name: Repository verification
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Sync locked environment
+        run: uv sync --locked --extra test --python 3.12
+
+      - name: Check Python defects
+        run: uv run --locked --extra test ruff check .
+
+      - name: Validate repository contracts
+        run: uv run --locked python scripts/validate_repo.py --strict
+
+      - name: Audit readiness
+        run: uv run --locked python scripts/readiness_audit.py --strict
+
+      - name: Audit Skills
+        run: uv run --locked python scripts/audit_skills.py --fail-on WARN --summary-only
+
+      - name: Audit Workflow context
+        run: uv run --locked python scripts/audit_workflow_context.py
+
+      - name: Run tests
+        run: uv run --locked --extra test python -m pytest -q

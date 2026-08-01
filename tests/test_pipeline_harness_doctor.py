@@ -9,7 +9,9 @@ from pathlib import Path
 from tooling.executor import run_one_unit
 from tooling.harness import (
     build_doctor_payload,
+    build_run_audit_payload,
     build_run_audit_diff_payload,
+    render_run_audit_report,
     render_run_audit_diff_report,
     validate_artifact_pack_payload,
     validate_doctor_payload,
@@ -19,6 +21,7 @@ from tooling.harness import (
     write_unit_manifest,
 )
 from tooling.pipeline_spec import PipelineSpec
+from tooling.run_state import initialize_run_state, record_evaluation
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -567,6 +570,224 @@ def test_audit_writes_compact_run_ledger_when_artifacts_are_present(tmp_path: Pa
     assert audit_payload["unit_status"] == {"DONE": 1}
     assert audit_payload["unit_output_manifests"]["count"] == 1
     assert validate_run_audit_payload(audit_payload) == []
+
+
+def test_run_audit_projects_latest_template_residue_evaluation(tmp_path: Path) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U109",
+                "title": "Audit draft",
+                "skill": "pipeline-auditor",
+                "owner": "CODEX",
+                "outputs": (
+                    "output/AUDIT_REPORT.md;"
+                    "output/TEMPLATE_RESIDUE_SCORECARD.json"
+                ),
+                "status": "BLOCKED",
+            }
+        ],
+    )
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    record_evaluation(
+        workspace=workspace,
+        attempt_id="attempt_residue",
+        unit_id="U109",
+        skill="pipeline-auditor",
+        scorecard_path="output/TEMPLATE_RESIDUE_SCORECARD.json",
+        payload={
+            "schema": "template-residue-scorecard.v1",
+            "workflow": "arxiv-survey",
+            "verdict": "FAIL",
+            "score": 50,
+            "pass_score": 100,
+            "dimensions": [
+                {
+                    "id": "template_residue_limit",
+                    "status": "FAIL",
+                    "matched_sentence_count": 96,
+                    "sentence_count": 140,
+                    "matched_sentence_ratio": 0.685714,
+                    "max_ratio": 0.1,
+                    "template_asset_count": 5,
+                },
+                {
+                    "id": "template_source_provenance",
+                    "status": "PASS",
+                    "selection_status": "PASS",
+                    "implementation_lock_status": "PASS",
+                    "selected_assets": [
+                        "asset-a.json",
+                        "asset-b.json",
+                        "asset-c.json",
+                        "asset-d.json",
+                        "asset-e.json",
+                    ],
+                    "drifted_skills": [],
+                },
+            ],
+            "failures": [],
+        },
+    )
+
+    _, payload = build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+
+    observation = payload["quality_observations"]["template_residue"]
+    assert observation == {
+        "status": "RECORDED",
+        "evaluator_id": "template-residue-scorecard.v1",
+        "evaluation_id": observation["evaluation_id"],
+        "attempt_id": "attempt_residue",
+        "unit_id": "U109",
+        "verdict": "FAIL",
+        "scorecard_path": "output/TEMPLATE_RESIDUE_SCORECARD.json",
+        "matched_sentence_count": 96,
+        "sentence_count": 140,
+        "matched_sentence_ratio": 0.685714,
+        "max_ratio": 0.1,
+        "template_asset_count": 5,
+        "selection_status": "PASS",
+        "implementation_lock_status": "PASS",
+        "selected_assets": [
+            "asset-a.json",
+            "asset-b.json",
+            "asset-c.json",
+            "asset-d.json",
+            "asset-e.json",
+        ],
+        "drifted_skills": [],
+    }
+    assert validate_run_audit_payload(payload) == []
+    report = render_run_audit_report(payload)
+    assert "Whole-draft literal residue: 96/140 = 68.6%" in report
+    assert "Writer implementation lock: `PASS`" in report
+
+
+def test_run_audit_reports_malformed_evaluation_ledger_without_crashing(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U109",
+                "title": "Audit draft",
+                "skill": "pipeline-auditor",
+                "owner": "CODEX",
+                "outputs": "output/AUDIT_REPORT.md",
+                "status": "BLOCKED",
+            }
+        ],
+    )
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    initialize_run_state(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        pipeline_path=REPO_ROOT / "pipelines" / "arxiv-survey.pipeline.md",
+        units_template="",
+    )
+    ledger = workspace / ".harness" / "evaluations" / "ledger.jsonl"
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    ledger.write_text("{not-json}\n", encoding="utf-8")
+
+    exit_code, payload = build_run_audit_payload(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+    )
+
+    assert exit_code == 2
+    assert payload["quality_observations"]["template_residue"]["status"] == (
+        "UNAVAILABLE"
+    )
+    assert any(
+        issue["code"] == "malformed_ledger_record"
+        for issue in payload["harness_issues"]
+    )
+
+
+def test_run_audit_rejects_contradictory_template_residue_evaluation(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "ws"
+    write_units(
+        workspace / "UNITS.csv",
+        [
+            {
+                "unit_id": "U109",
+                "title": "Audit draft",
+                "skill": "pipeline-auditor",
+                "owner": "CODEX",
+                "outputs": "output/TEMPLATE_RESIDUE_SCORECARD.json",
+                "status": "BLOCKED",
+            }
+        ],
+    )
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    record_evaluation(
+        workspace=workspace,
+        attempt_id="attempt_contradictory",
+        unit_id="U109",
+        skill="pipeline-auditor",
+        scorecard_path="output/TEMPLATE_RESIDUE_SCORECARD.json",
+        payload={
+            "schema": "template-residue-scorecard.v1",
+            "workflow": "arxiv-survey",
+            "verdict": "PASS",
+            "score": 100,
+            "pass_score": 100,
+            "dimensions": [
+                {
+                    "id": "template_residue_limit",
+                    "status": "PASS",
+                    "matched_sentence_count": 96,
+                    "sentence_count": 140,
+                    "matched_sentence_ratio": 0.685714,
+                    "max_ratio": 0.1,
+                    "template_asset_count": 1,
+                },
+                {
+                    "id": "template_source_provenance",
+                    "status": "PASS",
+                    "selection_status": "PASS",
+                    "implementation_lock_status": "PASS",
+                    "selected_assets": ["asset-a.json"],
+                    "drifted_skills": [],
+                },
+            ],
+            "failures": [],
+        },
+    )
+
+    exit_code, payload = build_run_audit_payload(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+    )
+
+    observation = payload["quality_observations"]["template_residue"]
+    assert exit_code == 2
+    assert observation["status"] == "INVALID"
+    assert "template_residue_limit.status contradicts its metrics" in observation[
+        "invalid_reasons"
+    ]
+    assert any(
+        issue["code"] == "invalid_template_residue_evaluation"
+        for issue in payload["harness_issues"]
+    )
 
 
 def test_run_audit_fails_closed_without_pipeline_lock(tmp_path: Path) -> None:

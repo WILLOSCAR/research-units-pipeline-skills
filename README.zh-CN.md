@@ -171,6 +171,19 @@ Survey 家族既能交付完整文献综述，也能交付有边界、以文献�
 课程报告、研讨课报告、短文献评述与技术现状报告。用户只需在 Goal 中说明用途、篇幅、
 证据深度与格式；Workflow 自行选择内部 delivery profile。
 
+当前 Survey Writer 有一条明确的生成边界：参考脚本可以根据结构化 Writer Pack 与带版本的
+当前模板资产，为缺失 Section 确定性生成 bootstrap prose。但这只是待审初稿。
+`sections/h3_bodies.refined.ok` 只表示正文已提交验收，不能证明由谁审阅。Marker 存在后，
+强制的 `subsection-writer` 检查会从该 Run 已记录的 Writer 模板资产提取固定片段；H3 正文中
+命中片段的句子超过 10% 时，Run 不能通过。`writer-selfloop` 生成报告时会调用同一个共享的
+严格 Section 检查器。随后，强制的 `pipeline-auditor` 会测量整份合并稿、对照
+`output/FRONT_MATTER_CONTEXT.json` 校验实际选择的 Front Matter 模板及哈希，再对照
+`harness-lock.v2` 校验 3 个模板所属 Skill implementation，并写入
+`output/TEMPLATE_RESIDUE_SCORECARD.json`。Completion Protocol 只把 Verdict 与 Dimensions
+投影到 Evaluation Ledger；完整计量与带 Heading 的定位样例保留在 Scorecard 文件中。
+该指标只是可复现的确定性模板残留下界，不能证明模型作者身份、原创性
+或发表质量。10% 是初始政策目标，目前还没有完成态 PASS Run 证明它可达。
+
 快速理解 topic 用 `research-brief`，单篇评审用 `paper-review`，按 Protocol 综合用
 `evidence-review`，固定资料包转教程用 `source-tutorial`。当交付物需要检索、比较、
 综合并引用多篇论文时，选 Survey 家族。详见 [Survey 使用说明](readme/arxiv-survey.zh-CN.md)。
@@ -189,7 +202,12 @@ Survey 家族既能交付完整文献综述，也能交付有边界、以文献�
 - `source-tutorial` 已通过从本地 Source 到 Article PDF 与 Slides PDF 的严格交付测试；
   Context Pack 必须保留已批准的 Module-Source Coverage，并重新连接成功 Ingest、
   Provenance、Snippet 与正文可见的 Source Notes。
-- Survey 家族已有一条完成的有界报告 pilot，包含已审计的 10 页 PDF。
+- Survey 家族已有一条完成的有界报告 pilot，包含已审计的 10 页 PDF；按 5 个当前候选
+  模板库的 `template-residue-measurement.v1` 计算，全稿 140 句中有 96 句命中（68.6%）；H3
+  早期检查范围仍为 90 句中 49 句（54.4%），Front Matter 子集为 41/41。因此该
+  快照不满足当前 10% 门槛，只能作为历史交付证据；它没有保留可选 Domain Overlay 的
+  实际选择记录，也没有保留 actor/revision trace，
+  无法把其余正文归因到模型或人工。
 - 跨 topic 稳定性、专家对比、真实 model-token benchmark 与 Harness candidate 自动晋升尚未完成。
 
 已公开的 `research-brief` 快照运行于 `recoverable-provenance.v1`；课程论文快照没有包含
@@ -211,8 +229,12 @@ uv run python scripts/validate_repo.py --strict
 uv run python scripts/readiness_audit.py --strict
 uv run python scripts/audit_skills.py --fail-on WARN
 uv run python scripts/audit_workflow_context.py
+uv run --extra test ruff check .
 uv run --extra test python -m pytest -q
 ```
+
+`.github/workflows/verify.yml` 会在 Pull Request 与 `main` 上自动运行这些仓库维护检查。
+它是代码库 CI，不是用户侧 Research Workflow。
 
 扩展 Workflow 时，先修改 `pipelines/` 中的 Contract，对齐 `templates/UNITS.*.csv`，
 再在 `.codex/skills/` 实现对应能力。只有在补充 Completed Run 或 Failure-Repair 回归证据后，

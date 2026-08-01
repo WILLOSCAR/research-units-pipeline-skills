@@ -68,6 +68,8 @@ REPORT_SCHEMA_TERMS = (
     "research-brief-scorecard.v1",
     "idea-brainstorm-scorecard.v1",
     "evidence-review-scorecard.v1",
+    "template-residue-measurement.v1",
+    "template-residue-scorecard.v1",
     "completed-run-evidence.v1",
     "workflow-context-footprint.v1",
 )
@@ -95,6 +97,8 @@ HARNESS_LOCAL_CHECKS = (
     "uv run python scripts/validate_repo.py --strict",
     "uv run python scripts/readiness_audit.py --strict",
     HARNESS_SKILL_AUDIT_GATE,
+    "uv run python scripts/audit_workflow_context.py",
+    "uv run --extra test ruff check .",
     "uv run --extra test python -m pytest -q",
 )
 
@@ -125,6 +129,7 @@ HARNESS_KERNEL_PATHS = (
     "tooling/quality_checks/paper_review.py",
     "tooling/quality_checks/research_idea.py",
     "tooling/quality_checks/source_tutorial.py",
+    "tooling/quality_checks/template_residue.py",
     "tooling/quality_checks/survey_planning.py",
     "tooling/quality_checks/survey_policy.py",
     "tooling/quality_checks/survey_retrieval.py",

@@ -53,14 +53,15 @@ Optional but useful:
 ## Outputs
 
 Keep the current contract:
-- `sections/abstract.md`
-- `sections/discussion.md`
-- `sections/conclusion.md`
-- `sections/S<sec_id>.md` for H2-without-H3 bodies
-- `sections/S<sec_id>_lead.md` for H2 lead blocks
 - `sections/S<sub_id>.md` for H3 bodies
-- `sections/sections_manifest.jsonl`
-- `sections/h3_bodies.refined.ok` only after a model or human has reviewed the generated H3 bodies and the writer self-loop passes
+- `sections/sections_manifest.jsonl`, refreshed across all section files already
+  produced by the three writer Skills
+- `sections/h3_bodies.refined.ok` after a model or human has reviewed the
+  generated H3 bodies and is submitting U100 for mandatory acceptance
+
+`front-matter-writer` owns Abstract, Introduction, Related Work, Discussion, and
+Conclusion. `chapter-lead-writer` owns H2 lead blocks. This Skill reads those
+files while refreshing the shared manifest but does not claim their authorship.
 
 ## Writer policy
 
@@ -76,8 +77,22 @@ Opener / ending policy:
 
 Use `scripts/run.py` as a helper only:
 - it may bootstrap missing H3 files and refresh the manifest
+- bootstrap prose is assembled deterministically from writer packs and the
+  versioned template assets; it is inspectable fallback material, not a claim
+  of model authorship or final prose quality
 - it must not be treated as the canonical source of prose shape or voice policy
 - it must not self-certify its bootstrap prose: the script never creates `sections/h3_bodies.refined.ok`
+- the marker is only U100's submission attestation; it is created before the
+  downstream `writer-selfloop`, so it cannot mean that the self-loop already passed
+- mandatory acceptance independently compares H3 sentences with the Run-selected
+  writer template assets and rejects literal residue above the Pipeline limit
+- `writer-selfloop` calls the shared strict section checker, which recomputes the
+  H3 measure before the report can PASS
+- the mandatory `pipeline-auditor` measures the entire merged draft and writes a
+  scorecard whose verdict and dimensions the Harness projects into the
+  evaluation ledger
+- the current 10% limit is an initial policy target; no completed passing Run has
+  yet established that the end-to-end Workflow can attain it
 - if the marker predates a writer input or the writer script, it is stale and the next run removes it before regenerating bootstrap prose
 
 ## Quick Start

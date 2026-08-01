@@ -31,7 +31,9 @@ below.
 | Mechanical diagnosis | doctor, audit, Failure ledger, blocking repair map, and non-blocking headroom from the latest passing scorecard; applied repair is not a first-class transaction | `Landed` |
 | Inspection composition | standalone Doctor uses a shallow reconciled snapshot; Audit, Improvement, and Artifact index share one deep snapshot; hashing remains a distinct semantic pass | `Landed` |
 | Quality dispatch | Explicit Skill routes across Workflow-family modules, pinned by the Run lock; Survey prewrite coverage and Source Tutorial grounding are rejoined from current structured Artifacts | `Landed` |
-| Skill description economy | all 109 tracked Skill descriptions fit the 420-character information budget; total catalog description load remains below 40,000 characters | `Landed` |
+| Survey template-residue acceptance | `template-residue-scorecard.v1` measures English/CJK prose against Run-selected writer assets; `FRONT_MATTER_CONTEXT.json` records selected front-matter assets and hashes, early H3 checks run through `subsection-writer` and the shared strict checker used by `writer-selfloop`, and final `pipeline-auditor` measures the whole draft, fail-closes missing/legacy implementation locks, emits the full scorecard, and projects Attempt evidence into the evaluation ledger | `Landed` |
+| Survey residue threshold calibration | 10% is enforced as an initial policy target, but no completed passing Run has demonstrated attainability; the only public sample measures 96/140 whole-draft matches (68.6%) | `Deferred` |
+| Skill description economy | all tracked Skill descriptions fit the 420-character information budget; total catalog description load remains below 40,000 characters; strict validation rejects Skill packages absent from `SKILL_INDEX.md` | `Landed` |
 | Skill invocation evaluator | model-neutral evaluator, 48-case lifecycle plus Workflow-semantic corpus, fixture scoring, and context-load accounting; fresh model execution remains open | `Landed` |
 | Workflow context footprint | seven executable Unit templates mapped to unique and repeated Skill character counts; observed model tokens remain open | `Landed` |
 | Semantic evaluation | Four Workflow-local evaluators feed a common ledger; critical joins cover review identity and novelty, brief theme grounding and reading path, ideation trace/consistency, and protocol-to-bounded-synthesis evidence; ideation diversity remains scored headroom; cross-Workflow corpus absent | `Landed` |
@@ -49,8 +51,8 @@ source of truth for definitions and complete Workflow rows.
 
 | Workflow | Canonical proof state | Open boundary |
 |---|---|---|
-| `arxiv-survey` | `Completed outcome pilot` | Public pilot lacks current v2 ledgers; one bounded-report topic and general Survey diversity remain open |
-| `arxiv-survey-latex` | `Compiled delivery proof` | Public pilot lacks current v2 ledgers; one audited 10-page PDF, portability, and repetition remain open |
+| `arxiv-survey` | `Completed outcome pilot` | Public pilot lacks current v2 ledgers; 96/140 whole-draft sentences (68.6%) and 49/90 H3 sentences (54.4%) match five current candidate template banks, so it fails the current 10% whole-draft gate; the optional overlay selection, actor/revision attribution, threshold attainability, and general Survey diversity remain open |
+| `arxiv-survey-latex` | `Compiled delivery proof` | Public pilot proves a 10-page PDF delivery path, not free-form model writing; portability and repetition remain open |
 | `research-brief` | `Completed outcome pilot` | Published Runs use historical v1; current v2 public proof, cross-topic behavior, and expert usefulness remain open |
 | `paper-review` | `Scored fixture proof` | Real-manuscript and expert comparison open |
 | `evidence-review` | `Scored fixture proof` | Retrieval completeness and validity judgment open |
@@ -64,8 +66,18 @@ uv run python scripts/validate_repo.py --strict
 uv run python scripts/readiness_audit.py --strict
 uv run python scripts/audit_skills.py --fail-on WARN
 uv run python scripts/audit_workflow_context.py
+uv run --extra test ruff check .
 uv run --extra test python -m pytest -q
 ```
+
+`.github/workflows/verify.yml` runs the same repository-maintainer gates on
+pull requests and `main`. It is CI for this codebase, not a user-facing Research
+Workflow.
+
+The Ruff selection is deliberately narrow: `E9`, `F63`, `F7`, and `F82`. It has
+zero findings in the current checkout and serves as a future syntax and
+undefined-name regression floor. It is not evidence of broad lint, type, or
+style cleanliness.
 
 If a new long-running Goal ledger is intentionally active, audit it as
 additional continuity evidence:

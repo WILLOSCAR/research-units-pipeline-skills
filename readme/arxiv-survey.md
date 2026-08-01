@@ -56,7 +56,7 @@ research lifecycle can be shaped into several outcomes:
 | Technical survey or research-landscape report | A literature-backed map for an R&D audience | same overlay for a focused question; default `survey` delivery profile for field-wide coverage |
 | Full literature survey | Broad taxonomy, dense evidence packs, and high citation coverage | default `survey` profile |
 
-These outcomes share research mechanics, not a rigid paper template:
+These outcomes share a research lifecycle, not an identical genre outline:
 
 - a course paper/report usually moves from assignment question and background to
   approach comparison, evidence table, limitations, and a bounded conclusion;
@@ -66,6 +66,23 @@ These outcomes share research mechanics, not a rigid paper template:
   without claiming exhaustive screening;
 - a technical or research-landscape report foregrounds decision criteria,
   benchmarks, deployment assumptions, failure modes, and unresolved gaps.
+
+This does not mean the current reference adapter is template-free. During C5,
+`subsection-writer/scripts/run.py` may assemble provisional section bodies from
+`writer_context_packs.jsonl` and versioned templates when section files are
+missing. This deterministic bootstrap is not evidence of model authorship and
+is not a final writing policy. The script cannot create
+`sections/h3_bodies.refined.ok`; the marker only submits the H3 prose for
+acceptance. The mandatory check then compares H3 sentences with fixed fragments
+derived from the template assets recorded for that Run and rejects residue above
+10%. `writer-selfloop` invokes the same shared strict section checker while
+producing its report. The mandatory `pipeline-auditor` measures the entire
+merged draft, verifies selected asset hashes and the three template-owning Skill
+implementations against the v2 Run lock, and emits a full scorecard. Completion
+projects its verdict and dimensions into the evaluation ledger. A
+passing ratio is a literal-overlap lower bound, not proof of authorship or
+originality. The 10% limit is an initial policy target that no completed passing
+Run has yet validated.
 
 The boundary is the evidence base. This path is appropriate when research
 papers are the primary sources. It is not currently a market-intelligence,
@@ -166,6 +183,9 @@ The point is to make the later draft traceable instead of relying on a single wr
 
 C5 is not a single draft call. It includes:
 
+- deterministic bootstrap for missing section files
+- mandatory template-residue acceptance against the Run-selected writer assets
+- model or human review and evidence-bounded rewriting
 - front matter generation
 - per-section drafting
 - targeted style and opener repair
@@ -174,7 +194,7 @@ C5 is not a single draft call. It includes:
 - numeric-context hygiene
 - final argument and section-hash snapshot
 - deterministic merge
-- final audit
+- final audit with a whole-draft template-residue scorecard, selected-asset hashes, and a v2 writer-implementation lock check
 
 That is where most quality improvements happen.
 

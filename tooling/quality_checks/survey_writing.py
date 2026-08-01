@@ -19,6 +19,10 @@ from tooling.quality_checks.survey_text import (
     repeated_template_text,
     split_h3_blocks,
 )
+from tooling.quality_checks.template_residue import (
+    check_subsection_template_residue,
+    check_template_residue_documents,
+)
 
 
 def section_files_newer_than(workspace: Path, reference: Path) -> list[str]:
@@ -281,6 +285,7 @@ def check_sections_manifest_index(workspace: Path, outputs: list[str]) -> list[Q
         return f"S{safe}" if safe else "S"
 
     expected: set[str] = {"sections/abstract.md", "sections/discussion.md", "sections/conclusion.md"}
+    expected_h3: set[str] = set()
 
     if isinstance(outline, list):
         for sec in outline:
@@ -296,7 +301,9 @@ def check_sections_manifest_index(workspace: Path, outputs: list[str]) -> list[Q
                         continue
                     sub_id = str(sub.get("id") or "").strip()
                     if sub_id:
-                        expected.add(f"sections/{_slug_unit_id(sub_id)}.md")
+                        relpath = f"sections/{_slug_unit_id(sub_id)}.md"
+                        expected.add(relpath)
+                        expected_h3.add(relpath)
             else:
                 if sec_id:
                     expected.add(f"sections/{_slug_unit_id(sec_id)}.md")
@@ -340,6 +347,18 @@ def check_sections_manifest_index(workspace: Path, outputs: list[str]) -> list[Q
             QualityIssue(
                 code="sections_missing_files",
                 message=f"Missing per-section files under `sections/` (e.g., {sample}{suffix}).",
+            )
+        )
+
+    marker_rel = next(
+        (item for item in outputs if item.endswith(".refined.ok")),
+        "sections/h3_bodies.refined.ok",
+    )
+    if (workspace / marker_rel).exists():
+        issues.extend(
+            check_subsection_template_residue(
+                workspace=workspace,
+                relpaths=sorted(expected_h3),
             )
         )
 
@@ -462,6 +481,13 @@ def check_sections_manifest(workspace: Path, outputs: list[str]) -> list[Quality
                 message=f"Missing per-section files under `{base_dir.as_posix()}` (e.g., {sample}{suffix}).",
             )
         )
+
+    issues.extend(
+        check_subsection_template_residue(
+            workspace=workspace,
+            relpaths=[rel for kind, _, rel in expected_files if kind == "h3"],
+        )
+    )
 
     # Load bibliography keys for cite hygiene.
     bib_path = workspace / "citations" / "ref.bib"
@@ -1151,7 +1177,16 @@ def check_audit_report(workspace: Path, outputs: list[str]) -> list[QualityIssue
         return [QualityIssue(code="empty_audit_report", message=f"`{out_rel}` is empty.")]
     if "- Status: PASS" not in text:
         return [QualityIssue(code="audit_report_not_pass", message=f"`{out_rel}` does not report PASS; fix issues and rerun auditor.")]
-    return []
+
+    draft_rel = "output/DRAFT.md"
+    draft_path = workspace / draft_rel
+    if not draft_path.exists():
+        return [QualityIssue(code="missing_audited_draft", message=f"`{draft_rel}` does not exist.")]
+    draft = draft_path.read_text(encoding="utf-8", errors="ignore")
+    return check_template_residue_documents(
+        workspace=workspace,
+        documents=[(draft_rel, draft)],
+    )
 
 
 def check_draft(workspace: Path, outputs: list[str]) -> list[QualityIssue]:

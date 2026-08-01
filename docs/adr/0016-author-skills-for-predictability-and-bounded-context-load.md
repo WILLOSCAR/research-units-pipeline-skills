@@ -63,9 +63,9 @@ helper discoverability instead of requiring boilerplate CLI headings or
 repeated input paths.
 
 The invocation evaluator now provides a 48-case corpus across lifecycle routing
-and the semantic boundaries of all executable Workflow families. The 109-Skill
-catalog stays below 40,000 description characters, with no description above
-the 420-character informational budget. A blinded GPT-5.6 Pro run on 2026-07-17
+and the semantic boundaries of all executable Workflow families. The tracked
+Skill catalog stays below 40,000 description characters, with no description
+above the 420-character informational budget. A blinded GPT-5.6 Pro run on 2026-07-17
 passed the earlier 33-case subset, but it predates the repository-wide
 description migration and is retained only as a historical baseline. A fresh
 blinded run across all 48 current cases is still required. Neither repository

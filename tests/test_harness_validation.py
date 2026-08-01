@@ -184,6 +184,21 @@ def test_current_harness_docs_are_valid_entrypoints() -> None:
     assert findings == []
 
 
+def test_skill_index_reports_unclassified_skill_packages(tmp_path: Path) -> None:
+    skills_dir = tmp_path / "skills"
+    for name in ("indexed-skill", "missing-skill"):
+        skill_dir = skills_dir / name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(f"# {name}\n", encoding="utf-8")
+    skill_index = tmp_path / "SKILL_INDEX.md"
+    skill_index.write_text("- `indexed-skill`\n", encoding="utf-8")
+
+    assert validate_repo._skills_missing_from_index(
+        skills_dir=skills_dir,
+        skill_index=skill_index,
+    ) == ["missing-skill"]
+
+
 def test_readiness_audit_and_repo_validation_share_harness_contracts() -> None:
     assert validate_repo.HARNESS_README_LINKS is harness_contracts.HARNESS_README_LINKS
     assert readiness_audit.README_LINKS is harness_contracts.HARNESS_README_LINKS
@@ -225,6 +240,8 @@ def test_harness_docs_validation_reports_missing_local_harness_check(tmp_path: P
             "`uv run python scripts/validate_repo.py --strict`, "
             "`uv run python scripts/readiness_audit.py --strict`, "
             "`uv run python scripts/audit_skills.py --fail-on WARN`, "
+            "`uv run python scripts/audit_workflow_context.py`, "
+            "`uv run --extra test ruff check .`, "
             "`uv run --extra test python -m pytest -q`.",
         )
     ]

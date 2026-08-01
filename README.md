@@ -193,6 +193,25 @@ the intended outcome, length, evidence depth, and format in the Goal. The
 Workflow selects the internal delivery profile; users do not need to edit
 profile keys.
 
+The current Survey writer has an explicit generation boundary. Its reference
+scripts can deterministically bootstrap missing section prose from structured
+writer packs and the current versioned template assets. That bootstrap is
+provisional. `sections/h3_bodies.refined.ok` is an attestation that the prose is
+ready for acceptance, not proof of who reviewed it. Once the marker exists, the
+mandatory `subsection-writer` check derives fixed fragments from the template
+assets recorded for that Run and rejects it when more than 10% of H3 sentences
+retain a literal fragment. `writer-selfloop` invokes the same shared strict
+section checker while producing its report. The mandatory `pipeline-auditor`
+then measures the entire merged draft, verifies the selected front-matter asset
+hashes and the three template-owning Skill implementations against
+`harness-lock.v2`, and writes `output/TEMPLATE_RESIDUE_SCORECARD.json`. The
+Completion Protocol projects its verdict and dimensions into the evaluation
+ledger; the scorecard file retains the full measurement and localized examples.
+This measure is a reproducible lower bound on deterministic template residue,
+not proof of model authorship, originality, or publication quality. The 10%
+limit is an initial policy target; no completed passing Run has yet demonstrated
+that it is attainable.
+
 Use `research-brief` for orientation, `paper-review` for one manuscript,
 `evidence-review` for protocol-driven synthesis, and `source-tutorial` for a
 fixed source pack. Use the Survey family when the deliverable requires finding,
@@ -217,7 +236,14 @@ comparing, synthesizing, and citing multiple papers. See the
   module-source coverage and rejoin successful ingest, provenance, snippets,
   and visible Source notes.
 - the Survey family has one completed bounded-report pilot with an audited
-  10-page PDF.
+  10-page PDF. Against five current candidate banks under
+  `template-residue-measurement.v1`, 96 of
+  140 draft sentences (68.6%) contain a literal fragment. The H3-only early-check
+  scope remains 49 of 90 (54.4%), while the front-matter subset is 41 of 41. The
+  snapshot therefore fails the current 10% limit and remains historical delivery
+  evidence; it does not retain the optional domain-overlay selection or an
+  actor/revision trace that could attribute the remaining prose to a model or
+  human.
 - cross-topic stability, expert comparison, measured model-token benchmarks,
   and automatic Harness candidate promotion remain open.
 
@@ -242,8 +268,13 @@ uv run python scripts/validate_repo.py --strict
 uv run python scripts/readiness_audit.py --strict
 uv run python scripts/audit_skills.py --fail-on WARN
 uv run python scripts/audit_workflow_context.py
+uv run --extra test ruff check .
 uv run --extra test python -m pytest -q
 ```
+
+`.github/workflows/verify.yml` automates these repository-maintainer checks on
+pull requests and `main`. It is CI for the codebase, not a user-facing Research
+Workflow.
 
 When extending a Workflow, update its contract under `pipelines/`, align the
 matching `templates/UNITS.*.csv`, implement the owned capability under

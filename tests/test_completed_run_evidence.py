@@ -27,6 +27,67 @@ def test_course_paper_snapshot_is_complete_and_hash_consistent() -> None:
     assert summary["artifact_audit"]["verdict"] == "PASS"
     assert summary["artifact_audit"]["target_artifacts_missing"] == 0
     assert summary["delivery"]["pages"] == 10
+    assert summary["writing_provenance"] == {
+        "schema": "template-residue-measurement.v1",
+        "measurement_scope": "examples/course-paper-pilot/DRAFT.md",
+        "measurement_scope_description": "Entire reader-facing draft",
+        "template_asset_scope": (
+            "Five current candidate writer-template banks; the historical Run did not "
+            "retain its optional domain-overlay selection."
+        ),
+        "template_assets": [
+            ".codex/skills/front-matter-writer/assets/front_matter_templates.json",
+            ".codex/skills/front-matter-writer/assets/domain_templates/llm_agents.json",
+            ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json",
+            ".codex/skills/subsection-writer/assets/paragraph_job_templates.json",
+            ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json",
+        ],
+        "template_asset_sha256": {
+            ".codex/skills/front-matter-writer/assets/front_matter_templates.json": (
+                "f14ff99f69d233ca825dbe2fb41aebbb191c67d387882abde13350631b271f02"
+            ),
+            ".codex/skills/front-matter-writer/assets/domain_templates/llm_agents.json": (
+                "6081aac7bf7cb10734eaf8d4001b3e110a1f4194e4f894777de8cc7bd129f212"
+            ),
+            ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json": (
+                "85ea675a7d1cad3471187cbe71b9aea90a01b4cfe1a56146f0561c79ec370963"
+            ),
+            ".codex/skills/subsection-writer/assets/paragraph_job_templates.json": (
+                "859c546d1b99960e7ab665281f2468fc2d556b5ccc1153e6cd194c8f9070170f"
+            ),
+            ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json": (
+                "0143a81c1d58f6aaf7f725ceb330bd3b1c66c73fa5e008ff7ac75a0d4e7bd1b4"
+            ),
+        },
+        "min_literal_chars": 24,
+        "sentence_count": 140,
+        "matched_sentence_count": 96,
+        "matched_sentence_ratio": 0.685714,
+        "scope_breakdown": {
+            "h3_early_check": {
+                "sentence_count": 90,
+                "matched_sentence_count": 49,
+                "matched_sentence_ratio": 0.544444,
+            },
+            "front_matter": {
+                "sentence_count": 41,
+                "matched_sentence_count": 41,
+                "matched_sentence_ratio": 1.0,
+            },
+        },
+        "current_gate_scope": "Entire merged reader-facing draft",
+        "current_workflow_limit": 0.1,
+        "current_gate_verdict": "FAIL",
+        "threshold_validation": "No completed passing Run has yet validated the 10% policy target.",
+        "interpretation": (
+            "Lower bound on literal deterministic bootstrap-template residue; "
+            "not an authorship classifier."
+        ),
+        "asset_lock_trace": "not retained",
+        "actor_revision_trace": "not retained",
+    }
+    for relpath, digest in summary["writing_provenance"]["template_asset_sha256"].items():
+        assert _sha256(REPO_ROOT / relpath) == digest
 
     for relative_path, metadata in summary["files"].items():
         artifact = SNAPSHOT / relative_path

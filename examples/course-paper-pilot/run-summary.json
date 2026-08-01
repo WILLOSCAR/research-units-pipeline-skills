@@ -29,6 +29,49 @@
     "stale_manifest_entries": 0,
     "transition_injection": false
   },
+  "writing_provenance": {
+    "schema": "template-residue-measurement.v1",
+    "measurement_scope": "examples/course-paper-pilot/DRAFT.md",
+    "measurement_scope_description": "Entire reader-facing draft",
+    "template_asset_scope": "Five current candidate writer-template banks; the historical Run did not retain its optional domain-overlay selection.",
+    "template_assets": [
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json",
+      ".codex/skills/front-matter-writer/assets/domain_templates/llm_agents.json",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json"
+    ],
+    "template_asset_sha256": {
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json": "f14ff99f69d233ca825dbe2fb41aebbb191c67d387882abde13350631b271f02",
+      ".codex/skills/front-matter-writer/assets/domain_templates/llm_agents.json": "6081aac7bf7cb10734eaf8d4001b3e110a1f4194e4f894777de8cc7bd129f212",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json": "85ea675a7d1cad3471187cbe71b9aea90a01b4cfe1a56146f0561c79ec370963",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json": "859c546d1b99960e7ab665281f2468fc2d556b5ccc1153e6cd194c8f9070170f",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json": "0143a81c1d58f6aaf7f725ceb330bd3b1c66c73fa5e008ff7ac75a0d4e7bd1b4"
+    },
+    "min_literal_chars": 24,
+    "sentence_count": 140,
+    "matched_sentence_count": 96,
+    "matched_sentence_ratio": 0.685714,
+    "scope_breakdown": {
+      "h3_early_check": {
+        "sentence_count": 90,
+        "matched_sentence_count": 49,
+        "matched_sentence_ratio": 0.544444
+      },
+      "front_matter": {
+        "sentence_count": 41,
+        "matched_sentence_count": 41,
+        "matched_sentence_ratio": 1.0
+      }
+    },
+    "current_gate_scope": "Entire merged reader-facing draft",
+    "current_workflow_limit": 0.1,
+    "current_gate_verdict": "FAIL",
+    "threshold_validation": "No completed passing Run has yet validated the 10% policy target.",
+    "interpretation": "Lower bound on literal deterministic bootstrap-template residue; not an authorship classifier.",
+    "asset_lock_trace": "not retained",
+    "actor_revision_trace": "not retained"
+  },
   "files": {
     "GOAL.md": {
       "sha256": "6266b3e87629405c279d777cf8e47ac9e1edf4b1045c8e511a7b384c42d2ae0b"
@@ -54,6 +97,10 @@
     "no held-out evaluator",
     "no expert quality comparison",
     "no reliable model, token, cost, or latency telemetry",
+    "96 of 140 whole-draft sentences (68.6%) and 49 of 90 H3 sentences (54.4%) match five current deterministic writer-template banks under template-residue-measurement.v1; the historical Run did not retain which optional domain overlay was selected; current 10% whole-draft gate verdict: FAIL",
+    "no completed passing Run has yet validated the 10% template-residue policy target",
+    "no retained v2 asset-lock evidence for the historical measurement",
+    "no retained actor or revision trace for attributing the remaining prose",
     "not a reproducible archive of the complete local Workspace"
   ]
 }

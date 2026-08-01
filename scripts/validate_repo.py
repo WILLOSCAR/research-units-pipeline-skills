@@ -484,6 +484,20 @@ def _validate_docs() -> list[Finding]:
     skill_index = REPO_ROOT / "SKILL_INDEX.md"
     if not skill_index.exists():
         findings.append(Finding("WARN", "Missing `SKILL_INDEX.md` (see TODO Sprint 1.1)."))
+    else:
+        unindexed_skills = _skills_missing_from_index(
+            skills_dir=SKILLS_DIR,
+            skill_index=skill_index,
+        )
+        if unindexed_skills:
+            findings.append(
+                Finding(
+                    "WARN",
+                    "`SKILL_INDEX.md` does not classify tracked Skills: "
+                    + ", ".join(f"`{skill}`" for skill in unindexed_skills)
+                    + ".",
+                )
+            )
 
     graph_script = REPO_ROOT / "scripts" / "generate_skill_graph.py"
     if not graph_script.exists():
@@ -505,6 +519,17 @@ def _validate_docs() -> list[Finding]:
     findings.extend(_validate_harness_docs(repo_root=REPO_ROOT, docs_dir=DOCS_DIR))
 
     return findings
+
+
+def _skills_missing_from_index(*, skills_dir: Path, skill_index: Path) -> list[str]:
+    if not skill_index.exists():
+        return []
+    index_text = skill_index.read_text(encoding="utf-8", errors="ignore")
+    return [
+        skill_file.parent.name
+        for skill_file in sorted(skills_dir.glob("*/SKILL.md"))
+        if f"`{skill_file.parent.name}`" not in index_text
+    ]
 
 
 def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:

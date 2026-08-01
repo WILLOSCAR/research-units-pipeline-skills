@@ -1978,7 +1978,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
     }
     ledgers: dict[str, list[dict[str, Any]]] = {}
     for name, path in ledger_paths.items():
-        records, malformed_lines = _read_jsonl_with_errors(path)
+        records, malformed_lines = read_jsonl_with_errors(path)
         ledgers[name] = records
         for line_number in malformed_lines:
             add("ERROR", "malformed_ledger_record", f"`{path.relative_to(workspace)}` line {line_number} is not valid JSON.")
@@ -2534,7 +2534,7 @@ def _build_harness_lock(
     for skill in sorted({str(row.get("skill") or "").strip() for row in units if row.get("skill")}):
         skill_path = repo_root / ".codex" / "skills" / skill / "SKILL.md"
         if skill_path.exists():
-            implementation = _implementation_fingerprint(skill_path.parent)
+            implementation = implementation_fingerprint(skill_path.parent)
             record = {
                 "path": _relative_or_absolute(skill_path, repo_root),
                 "sha256": _file_sha256(skill_path),
@@ -2933,7 +2933,7 @@ def _checkpoint_decisions_projection(text: str, *, checkpoint: str) -> str:
     return f"{approval}\n{block_match.group(0).strip()}\n"
 
 
-def _implementation_fingerprint(path: Path) -> dict[str, Any]:
+def implementation_fingerprint(path: Path) -> dict[str, Any]:
     files = sorted(
         item
         for item in path.rglob("*")
@@ -3006,7 +3006,9 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _read_jsonl_with_errors(path: Path) -> tuple[list[dict[str, Any]], list[int]]:
+def read_jsonl_with_errors(path: Path) -> tuple[list[dict[str, Any]], list[int]]:
+    """Read valid JSON objects while retaining malformed line numbers for audit."""
+
     if not path.exists():
         return [], []
     records: list[dict[str, Any]] = []

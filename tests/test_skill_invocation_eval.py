@@ -60,7 +60,7 @@ def test_invocation_corpus_covers_lifecycle_and_semantic_boundaries() -> None:
     catalog, scope, cases = _catalog_and_cases()
 
     assert scope == "research-harness-skills"
-    assert len(catalog) == 109
+    assert len(catalog) == 107
     assert len(cases) == 48
     assert sum(case.split == "baseline" for case in cases) == 30
     assert sum(case.split == "challenge" for case in cases) == 18

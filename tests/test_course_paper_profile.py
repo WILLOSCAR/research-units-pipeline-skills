@@ -46,9 +46,54 @@ from tooling.quality_gate import (
     check_completion_acceptance,
     survey_citation_policy,
 )
+from tooling.quality_checks.template_residue import (
+    FRONT_MATTER_CONTEXT_PATH,
+    MEASUREMENT_SCHEMA,
+    SCORECARD_SCHEMA,
+    TEMPLATE_ASSETS_BY_SKILL,
+    build_template_residue_scorecard,
+    check_subsection_template_residue,
+    measure_template_residue,
+    selected_template_asset_evidence,
+)
+from tooling.quality_checks.survey_text import split_h3_blocks
+from tooling.run_state import implementation_fingerprint
+from tooling.scorecards import validate_scorecard
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_template_provenance(workspace: Path) -> None:
+    front_asset = TEMPLATE_ASSETS_BY_SKILL["front-matter-writer"][0]
+    front_relpath = str(front_asset.relative_to(REPO_ROOT))
+    context_path = workspace / FRONT_MATTER_CONTEXT_PATH
+    context_path.parent.mkdir(parents=True, exist_ok=True)
+    context_path.write_text(
+        json.dumps(
+            {
+                "template_assets": [front_relpath],
+                "template_asset_sha256": {
+                    front_relpath: hashlib.sha256(front_asset.read_bytes()).hexdigest()
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    skills = {
+        name: {
+            "implementation_sha256": implementation_fingerprint(
+                REPO_ROOT / ".codex" / "skills" / name
+            )["sha256"]
+        }
+        for name in TEMPLATE_ASSETS_BY_SKILL
+    }
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path.write_text(
+        json.dumps({"schema": "harness-lock.v2", "skills": skills}),
+        encoding="utf-8",
+    )
 
 
 def _load_skill_script(skill_name: str):
@@ -59,6 +104,300 @@ def _load_skill_script(skill_name: str):
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_course_paper_pilot_records_measured_template_residue_lower_bound() -> None:
+    draft_path = REPO_ROOT / "examples" / "course-paper-pilot" / "DRAFT.md"
+    draft = draft_path.read_text(encoding="utf-8")
+
+    summary = measure_template_residue(
+        documents=[
+            (
+                "examples/course-paper-pilot/DRAFT.md",
+                draft,
+            )
+        ]
+    )
+
+    assert summary["sentence_count"] == 140
+    assert summary["schema"] == MEASUREMENT_SCHEMA
+    assert summary["matched_sentence_count"] == 96
+    assert summary["matched_sentence_ratio"] == 0.685714
+    assert len(summary["template_assets"]) == 5
+
+    h3_summary = measure_template_residue(
+        documents=[
+            (f"examples/course-paper-pilot/DRAFT.md#{title}", body)
+            for title, body in split_h3_blocks(draft)
+        ]
+    )
+    assert h3_summary["sentence_count"] == 90
+    assert h3_summary["matched_sentence_count"] == 49
+    assert h3_summary["matched_sentence_ratio"] == 0.544444
+
+    front_matter_titles = {"Abstract", "Introduction", "Related Work", "Discussion", "Conclusion"}
+    front_matter_blocks: list[tuple[str, str]] = []
+    current_title = ""
+    current_lines: list[str] = []
+    for line in draft.splitlines():
+        if line.startswith("## "):
+            if current_title in front_matter_titles:
+                front_matter_blocks.append((current_title, "\n".join(current_lines)))
+            current_title = line[3:].strip()
+            current_lines = []
+        elif current_title:
+            current_lines.append(line)
+    if current_title in front_matter_titles:
+        front_matter_blocks.append((current_title, "\n".join(current_lines)))
+    front_matter_summary = measure_template_residue(documents=front_matter_blocks)
+    assert front_matter_summary["sentence_count"] == 41
+    assert front_matter_summary["matched_sentence_count"] == 41
+    assert front_matter_summary["matched_sentence_ratio"] == 1.0
+
+
+def test_template_residue_gate_rejects_unedited_bootstrap_prose(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    relpath = "sections/S3_1.md"
+    section_path = tmp_path / relpath
+    section_path.parent.mkdir(parents=True)
+    section_path.write_text(
+        "The literature on retrieval evaluation becomes hard to compare when papers keep the same label "
+        "but change the conditions that give their gains meaning.\n\n"
+        "This is the central pressure point: benchmarks preserve different assumptions.\n",
+        encoding="utf-8",
+    )
+
+    issues = check_subsection_template_residue(workspace=tmp_path, relpaths=[relpath])
+
+    assert [issue.code for issue in issues] == ["template_residue_above_threshold"]
+    assert "2/2 sentences (100%)" in issues[0].message
+
+
+def test_template_residue_gate_accepts_prose_without_literal_asset_fragments(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    relpath = "sections/S3_1.md"
+    section_path = tmp_path / relpath
+    section_path.parent.mkdir(parents=True)
+    section_path.write_text(
+        "Retrieval metrics answer different questions, so a useful comparison must name the user task "
+        "and the evidence failure it is intended to expose.\n\n"
+        "A rank-based score can improve while answer support remains incomplete, which makes the two "
+        "signals complementary rather than interchangeable.\n",
+        encoding="utf-8",
+    )
+
+    assert check_subsection_template_residue(workspace=tmp_path, relpaths=[relpath]) == []
+
+
+def test_template_residue_gate_fails_closed_without_run_provenance(tmp_path: Path) -> None:
+    relpath = "sections/S3_1.md"
+    section_path = tmp_path / relpath
+    section_path.parent.mkdir(parents=True)
+    section_path.write_text("A clean reader-facing sentence.\n", encoding="utf-8")
+
+    issues = check_subsection_template_residue(workspace=tmp_path, relpaths=[relpath])
+
+    assert {issue.code for issue in issues} == {
+        "template_residue_asset_selection_unverified",
+        "template_residue_implementation_lock_mismatch",
+    }
+
+
+def test_template_residue_uses_the_run_selected_domain_overlay(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    overlay = TEMPLATE_ASSETS_BY_SKILL["front-matter-writer"][1]
+    overlay_relpath = str(overlay.relative_to(REPO_ROOT))
+    context_path = tmp_path / FRONT_MATTER_CONTEXT_PATH
+    context = json.loads(context_path.read_text(encoding="utf-8"))
+    context["template_assets"].append(overlay_relpath)
+    context["template_asset_sha256"][overlay_relpath] = hashlib.sha256(
+        overlay.read_bytes()
+    ).hexdigest()
+    context_path.write_text(json.dumps(context), encoding="utf-8")
+
+    selection = selected_template_asset_evidence(tmp_path)
+
+    assert selection["status"] == "PASS"
+    assert len(selection["asset_paths"]) == 5
+    assert overlay_relpath in selection["asset_paths"]
+
+
+def test_template_residue_measurement_counts_cjk_sentences() -> None:
+    summary = measure_template_residue(
+        documents=[("draft.md", "这是第一句话。这里是第二句话！这是第三个问题？")]
+    )
+
+    assert summary["sentence_count"] == 3
+    assert summary["matched_sentence_count"] == 0
+
+
+def test_subsection_writer_marker_cannot_bypass_template_residue_gate(tmp_path: Path) -> None:
+    from tooling.quality_gate import check_unit_outputs
+
+    _write_template_provenance(tmp_path)
+    outline = tmp_path / "outline" / "outline.yml"
+    outline.parent.mkdir(parents=True)
+    outline.write_text(
+        "- id: 3\n"
+        "  title: Retrieval evaluation\n"
+        "  subsections:\n"
+        "    - id: 3.1\n"
+        "      title: Evidence coverage\n",
+        encoding="utf-8",
+    )
+    section_paths = {
+        "sections/abstract.md": "A bounded abstract.\n",
+        "sections/discussion.md": "A bounded discussion.\n",
+        "sections/conclusion.md": "A bounded conclusion.\n",
+        "sections/S3_lead.md": "A chapter lead grounded in the reviewed structure.\n",
+        "sections/S3_1.md": (
+            "The literature on evidence coverage becomes hard to compare when papers keep the same label "
+            "but change the conditions that give their gains meaning.\n"
+        ),
+    }
+    for relpath, text in section_paths.items():
+        path = tmp_path / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    manifest = tmp_path / "sections" / "sections_manifest.jsonl"
+    manifest.write_text(
+        "\n".join(json.dumps({"path": relpath}) for relpath in section_paths) + "\n",
+        encoding="utf-8",
+    )
+
+    bootstrap_issues = check_unit_outputs(
+        skill="subsection-writer",
+        workspace=tmp_path,
+        outputs=["sections/sections_manifest.jsonl"],
+    )
+    assert not any(issue.code == "template_residue_above_threshold" for issue in bootstrap_issues)
+
+    (tmp_path / "sections" / "h3_bodies.refined.ok").touch()
+    certified_issues = check_unit_outputs(
+        skill="subsection-writer",
+        workspace=tmp_path,
+        outputs=["sections/sections_manifest.jsonl", "sections/h3_bodies.refined.ok"],
+    )
+    assert any(issue.code == "template_residue_above_threshold" for issue in certified_issues)
+
+
+def test_pipeline_auditor_rechecks_template_residue_in_entire_merged_draft(tmp_path: Path) -> None:
+    from tooling.quality_gate import check_unit_outputs
+
+    _write_template_provenance(tmp_path)
+    output = tmp_path / "output"
+    output.mkdir(exist_ok=True)
+    (output / "AUDIT_REPORT.md").write_text("# Audit\n\n- Status: PASS\n", encoding="utf-8")
+    (output / "DRAFT.md").write_text(
+        "# Draft\n\n"
+        "## Abstract\n\n"
+        "A central finding is that many reported gains depend as much on evaluation design and "
+        "experimental assumptions as on the nominal methodology itself.\n",
+        encoding="utf-8",
+    )
+
+    issues = check_unit_outputs(
+        skill="pipeline-auditor",
+        workspace=tmp_path,
+        outputs=["output/AUDIT_REPORT.md"],
+    )
+
+    assert [issue.code for issue in issues] == ["template_residue_above_threshold"]
+
+
+def test_template_residue_rejects_v2_template_skill_drift(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    relpath = "sections/S3_1.md"
+    section_path = tmp_path / relpath
+    section_path.parent.mkdir(parents=True)
+    section_path.write_text(
+        "Retrieval metrics answer different questions, so comparisons must identify the user task "
+        "and the failure mode that each measure is intended to expose.\n",
+        encoding="utf-8",
+    )
+    lock_path = tmp_path / ".harness" / "harness.lock.json"
+    lock_payload = json.loads(lock_path.read_text(encoding="utf-8"))
+    skills = lock_payload["skills"]
+    skills["front-matter-writer"]["implementation_sha256"] = "0" * 64
+    lock_path.write_text(
+        json.dumps({"schema": "harness-lock.v2", "skills": skills}),
+        encoding="utf-8",
+    )
+
+    issues = check_subsection_template_residue(workspace=tmp_path, relpaths=[relpath])
+
+    assert [issue.code for issue in issues] == [
+        "template_residue_implementation_lock_mismatch"
+    ]
+    assert "front-matter-writer" in issues[0].message
+
+
+def test_template_residue_scorecard_records_whole_draft_measurement(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    draft_path = REPO_ROOT / "examples" / "course-paper-pilot" / "DRAFT.md"
+    scorecard = build_template_residue_scorecard(
+        workspace=tmp_path,
+        documents=[("output/DRAFT.md", draft_path.read_text(encoding="utf-8"))],
+        scope="entire merged reader-facing draft",
+    )
+
+    assert validate_scorecard(scorecard, schema=SCORECARD_SCHEMA) == []
+    assert scorecard["verdict"] == "FAIL"
+    assert scorecard["measurement"]["matched_sentence_count"] == 96
+    assert scorecard["measurement"]["sentence_count"] == 140
+    assert scorecard["asset_selection"]["status"] == "PASS"
+    assert scorecard["implementation_lock"]["status"] == "PASS"
+    assert len(scorecard["measurement"]["template_assets"]) == 4
+    assert scorecard["measurement"]["examples"][0]["section_owner_skill"] == (
+        "front-matter-writer"
+    )
+
+
+def test_pipeline_auditor_writes_template_residue_scorecard(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    draft = tmp_path / "output" / "DRAFT.md"
+    draft.parent.mkdir(parents=True, exist_ok=True)
+    draft.write_text(
+        "# Draft\n\n## Abstract\n\n"
+        "A central finding is that many reported gains depend as much on evaluation design and "
+        "experimental assumptions as on the nominal methodology itself.\n",
+        encoding="utf-8",
+    )
+    script = REPO_ROOT / ".codex" / "skills" / "pipeline-auditor" / "scripts" / "run.py"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--workspace",
+            str(tmp_path),
+            "--outputs",
+            "output/AUDIT_REPORT.md;output/TEMPLATE_RESIDUE_SCORECARD.json",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    payload = json.loads(
+        (tmp_path / "output" / "TEMPLATE_RESIDUE_SCORECARD.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert validate_scorecard(payload, schema=SCORECARD_SCHEMA) == []
+    assert payload["measurement"]["matched_sentence_count"] == 1
+    assert payload["scope"] == "entire merged reader-facing draft"
+
+
+def test_writer_selfloop_invokes_shared_strict_sections_checker() -> None:
+    source = (
+        REPO_ROOT / ".codex" / "skills" / "writer-selfloop" / "scripts" / "run.py"
+    ).read_text(encoding="utf-8")
+
+    assert "from tooling.quality_gate import QualityIssue, _check_sections_manifest" in source
+    assert "section_issues = _check_sections_manifest(workspace, [manifest_rel])" in source
 
 
 def test_delivery_request_normalizes_to_reader_facing_subject_and_title() -> None:
@@ -149,6 +488,10 @@ def test_survey_literature_completion_check_does_not_crash(tmp_path: Path) -> No
 def test_evidence_selfloop_is_a_mandatory_prewrite_gate(tmp_path: Path) -> None:
     spec = PipelineSpec.load(REPO_ROOT / "pipelines" / "arxiv-survey.pipeline.md")
     assert "evidence-selfloop" in spec.quality_contract["completion_policy"]["required_checks"]
+    assert spec.quality_contract["writing_policy"] == {
+        "template_residue_max_ratio": 0.10,
+        "template_literal_min_chars": 24,
+    }
 
     workspace = tmp_path / "survey"
     outline = workspace / "outline"

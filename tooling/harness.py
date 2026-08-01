@@ -234,6 +234,7 @@ class _WorkspaceInspectionSnapshot:
     required_completion_checks: tuple[str, ...]
     declared_unit_output_paths: tuple[str, ...]
     failure_ledger_entries: tuple[dict[str, Any], ...]
+    evaluation_ledger_entries: tuple[dict[str, Any], ...]
     ledger_integrity: dict[str, Any]
     recent_reports: tuple[dict[str, str], ...]
 
@@ -388,6 +389,7 @@ def _collect_workspace_inspection_snapshot(
         ensure_run_state,
         inspect_doing_attempt_integrity,
         inspect_run_integrity,
+        read_jsonl_with_errors,
         run_identity,
     )
 
@@ -511,6 +513,15 @@ def _collect_workspace_inspection_snapshot(
         required_completion_checks=required_completion_checks,
         declared_unit_output_paths=declared_unit_output_paths,
         failure_ledger_entries=(tuple(_failure_ledger_entries(workspace)) if include_deep_audit else ()),
+        evaluation_ledger_entries=(
+            tuple(
+                read_jsonl_with_errors(
+                    workspace / ".harness" / "evaluations" / "ledger.jsonl"
+                )[0]
+            )
+            if include_deep_audit
+            else ()
+        ),
         ledger_integrity=ledger_integrity,
         recent_reports=tuple(_recent_report_records(workspace)),
     )
@@ -780,6 +791,74 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
         _validate_attempt_summary(payload.get("attempts"), issues=issues)
     if "workflow_acceptance" in payload:
         _validate_workflow_acceptance_summary(payload.get("workflow_acceptance"), issues=issues)
+    if "quality_observations" in payload:
+        observations = _validate_object_field(payload, key="quality_observations", issues=issues)
+        if observations is not None:
+            residue = observations.get("template_residue")
+            if not isinstance(residue, dict):
+                issues.append("`quality_observations.template_residue` must be an object")
+            else:
+                status = residue.get("status")
+                if status not in {"RECORDED", "UNAVAILABLE", "INVALID"}:
+                    issues.append(
+                        "`quality_observations.template_residue.status` must be RECORDED, INVALID, or UNAVAILABLE"
+                    )
+                if not isinstance(residue.get("evaluator_id"), str):
+                    issues.append(
+                        "`quality_observations.template_residue.evaluator_id` must be a string"
+                    )
+                if status == "INVALID":
+                    invalid_reasons = residue.get("invalid_reasons")
+                    if not isinstance(invalid_reasons, list) or not invalid_reasons or not all(
+                        isinstance(item, str) for item in invalid_reasons
+                    ):
+                        issues.append(
+                            "`quality_observations.template_residue.invalid_reasons` must be a non-empty list of strings"
+                        )
+                if status == "RECORDED":
+                    for key in (
+                        "evaluation_id",
+                        "attempt_id",
+                        "unit_id",
+                        "verdict",
+                        "scorecard_path",
+                        "selection_status",
+                        "implementation_lock_status",
+                    ):
+                        if not isinstance(residue.get(key), str):
+                            issues.append(
+                                f"`quality_observations.template_residue.{key}` must be a string"
+                            )
+                    for key in (
+                        "matched_sentence_count",
+                        "sentence_count",
+                        "template_asset_count",
+                    ):
+                        value = residue.get(key)
+                        if not isinstance(value, int) or isinstance(value, bool):
+                            issues.append(
+                                f"`quality_observations.template_residue.{key}` must be an integer"
+                            )
+                    for key in ("matched_sentence_ratio", "max_ratio"):
+                        value = residue.get(key)
+                        if not isinstance(value, (int, float)) or isinstance(value, bool):
+                            issues.append(
+                                f"`quality_observations.template_residue.{key}` must be a number"
+                            )
+                    drifted = residue.get("drifted_skills")
+                    if not isinstance(drifted, list) or not all(
+                        isinstance(item, str) for item in drifted
+                    ):
+                        issues.append(
+                            "`quality_observations.template_residue.drifted_skills` must be a list of strings"
+                        )
+                    selected_assets = residue.get("selected_assets")
+                    if not isinstance(selected_assets, list) or not all(
+                        isinstance(item, str) for item in selected_assets
+                    ):
+                        issues.append(
+                            "`quality_observations.template_residue.selected_assets` must be a list of strings"
+                        )
 
     integrity = payload.get("ledger_integrity")
     if integrity is not None:
@@ -1308,6 +1387,178 @@ def build_run_audit_payload(*, workspace: Path, repo_root: Path) -> tuple[int, d
     return _build_run_audit_payload_from_snapshot(snapshot)
 
 
+def _template_residue_observation(records: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    evaluator_id = "template-residue-scorecard.v1"
+    record = next(
+        (
+            item
+            for item in reversed(records)
+            if str(item.get("evaluator_id") or "") == evaluator_id
+        ),
+        None,
+    )
+    if record is None:
+        return {"status": "UNAVAILABLE", "evaluator_id": evaluator_id}
+
+    invalid_reasons: list[str] = []
+    for key in ("evaluation_id", "attempt_id", "unit_id", "scorecard_path"):
+        if not isinstance(record.get(key), str) or not str(record.get(key) or "").strip():
+            invalid_reasons.append(f"{key} must be a non-empty string")
+    verdict = record.get("verdict")
+    if verdict not in {"PASS", "FAIL"}:
+        invalid_reasons.append("verdict must be PASS or FAIL")
+    raw_dimensions = record.get("dimensions")
+    if not isinstance(raw_dimensions, list):
+        invalid_reasons.append("dimensions must be a list")
+        raw_dimensions = []
+    dimensions = {
+        str(item.get("id") or ""): item
+        for item in raw_dimensions
+        if isinstance(item, dict)
+    }
+    measurement = dimensions.get("template_residue_limit")
+    provenance = dimensions.get("template_source_provenance")
+    if not isinstance(measurement, dict):
+        invalid_reasons.append("missing template_residue_limit dimension")
+        measurement = {}
+    if not isinstance(provenance, dict):
+        invalid_reasons.append("missing template_source_provenance dimension")
+        provenance = {}
+
+    integer_fields = ("matched_sentence_count", "sentence_count", "template_asset_count")
+    for key in integer_fields:
+        value = measurement.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            invalid_reasons.append(f"template_residue_limit.{key} must be a non-negative integer")
+    matched = measurement.get("matched_sentence_count")
+    sentence_count = measurement.get("sentence_count")
+    asset_count = measurement.get("template_asset_count")
+    if isinstance(sentence_count, int) and not isinstance(sentence_count, bool) and sentence_count <= 0:
+        invalid_reasons.append("template_residue_limit.sentence_count must be greater than zero")
+    if isinstance(asset_count, int) and not isinstance(asset_count, bool) and asset_count <= 0:
+        invalid_reasons.append("template_residue_limit.template_asset_count must be greater than zero")
+    if (
+        isinstance(matched, int)
+        and not isinstance(matched, bool)
+        and isinstance(sentence_count, int)
+        and not isinstance(sentence_count, bool)
+        and matched > sentence_count
+    ):
+        invalid_reasons.append("matched_sentence_count cannot exceed sentence_count")
+
+    for key in ("matched_sentence_ratio", "max_ratio"):
+        value = measurement.get(key)
+        if (
+            not isinstance(value, (int, float))
+            or isinstance(value, bool)
+            or not 0 <= float(value) <= 1
+        ):
+            invalid_reasons.append(f"template_residue_limit.{key} must be a number from 0 to 1")
+    ratio = measurement.get("matched_sentence_ratio")
+    max_ratio = measurement.get("max_ratio")
+    if (
+        isinstance(matched, int)
+        and not isinstance(matched, bool)
+        and isinstance(sentence_count, int)
+        and not isinstance(sentence_count, bool)
+        and sentence_count > 0
+        and isinstance(ratio, (int, float))
+        and not isinstance(ratio, bool)
+        and abs(float(ratio) - (matched / sentence_count)) > 0.000001
+    ):
+        invalid_reasons.append("matched_sentence_ratio does not match sentence counts")
+
+    selection_status = provenance.get("selection_status")
+    implementation_lock_status = provenance.get("implementation_lock_status")
+    provenance_statuses = {"PASS", "UNAVAILABLE", "INVALID", "LEGACY_UNVERIFIED", "DRIFT"}
+    if selection_status not in provenance_statuses - {"DRIFT"}:
+        invalid_reasons.append("template_source_provenance.selection_status is invalid")
+    if implementation_lock_status not in provenance_statuses:
+        invalid_reasons.append("template_source_provenance.implementation_lock_status is invalid")
+    selected_assets = provenance.get("selected_assets")
+    if not isinstance(selected_assets, list) or not selected_assets or not all(
+        isinstance(item, str) and item.strip() for item in selected_assets
+    ):
+        invalid_reasons.append("template_source_provenance.selected_assets must be a non-empty string list")
+        selected_assets = []
+    if (
+        isinstance(asset_count, int)
+        and not isinstance(asset_count, bool)
+        and len(selected_assets) != asset_count
+    ):
+        invalid_reasons.append("template_asset_count does not match selected_assets")
+    drifted_skills = provenance.get("drifted_skills")
+    if not isinstance(drifted_skills, list) or not all(
+        isinstance(item, str) for item in drifted_skills
+    ):
+        invalid_reasons.append("template_source_provenance.drifted_skills must be a string list")
+        drifted_skills = []
+
+    measurement_expected = (
+        "PASS"
+        if isinstance(ratio, (int, float))
+        and not isinstance(ratio, bool)
+        and isinstance(max_ratio, (int, float))
+        and not isinstance(max_ratio, bool)
+        and float(ratio) <= float(max_ratio)
+        else "FAIL"
+    )
+    provenance_expected = (
+        "PASS"
+        if selection_status == "PASS" and implementation_lock_status == "PASS"
+        else "FAIL"
+    )
+    if measurement.get("status") != measurement_expected:
+        invalid_reasons.append("template_residue_limit.status contradicts its metrics")
+    if provenance.get("status") != provenance_expected:
+        invalid_reasons.append("template_source_provenance.status contradicts provenance evidence")
+    expected_verdict = (
+        "PASS"
+        if measurement_expected == "PASS" and provenance_expected == "PASS"
+        else "FAIL"
+    )
+    if verdict != expected_verdict:
+        invalid_reasons.append("verdict contradicts the two critical dimensions")
+    expected_score = (
+        (50 if measurement_expected == "PASS" else 0)
+        + (50 if provenance_expected == "PASS" else 0)
+    )
+    if record.get("score") != expected_score:
+        invalid_reasons.append("score contradicts the two critical dimensions")
+    if record.get("pass_score") != 100:
+        invalid_reasons.append("pass_score must be 100 for template-residue-scorecard.v1")
+
+    if invalid_reasons:
+        return {
+            "status": "INVALID",
+            "evaluator_id": evaluator_id,
+            "evaluation_id": str(record.get("evaluation_id") or ""),
+            "attempt_id": str(record.get("attempt_id") or ""),
+            "unit_id": str(record.get("unit_id") or ""),
+            "scorecard_path": str(record.get("scorecard_path") or ""),
+            "invalid_reasons": invalid_reasons,
+        }
+
+    return {
+        "status": "RECORDED",
+        "evaluator_id": evaluator_id,
+        "evaluation_id": str(record.get("evaluation_id") or ""),
+        "attempt_id": str(record.get("attempt_id") or ""),
+        "unit_id": str(record.get("unit_id") or ""),
+        "verdict": str(verdict),
+        "scorecard_path": str(record.get("scorecard_path") or ""),
+        "matched_sentence_count": matched,
+        "sentence_count": sentence_count,
+        "matched_sentence_ratio": ratio,
+        "max_ratio": max_ratio,
+        "template_asset_count": asset_count,
+        "selection_status": selection_status,
+        "implementation_lock_status": implementation_lock_status,
+        "selected_assets": selected_assets,
+        "drifted_skills": drifted_skills,
+    }
+
+
 def _workflow_acceptance_summary(snapshot: _WorkspaceInspectionSnapshot) -> dict[str, Any]:
     required_skills = tuple(snapshot.required_completion_checks)
     event_acceptance_by_attempt = snapshot.ledger_integrity.get(
@@ -1424,6 +1675,25 @@ def _build_run_audit_payload_from_snapshot(
     issues = list(snapshot.audit_issues)
     manifests = list(snapshot.manifests)
     target_records = list(snapshot.target_artifacts)
+    residue_observation = _template_residue_observation(
+        snapshot.evaluation_ledger_entries
+    )
+    if residue_observation["status"] == "INVALID":
+        issues.append(
+            HarnessIssue(
+                "ERROR",
+                "invalid_template_residue_evaluation",
+                (
+                    "The latest template-residue Evaluation is internally inconsistent: "
+                    + "; ".join(residue_observation["invalid_reasons"][:3])
+                ),
+                remediation_category="repair_evaluation_provenance",
+                next_action=(
+                    "Rerun pipeline-auditor through the executor so a fresh, valid template-residue "
+                    "scorecard is committed to the Evaluation ledger."
+                ),
+            )
+        )
     workflow_acceptance = _workflow_acceptance_summary(snapshot)
     run_state = _run_state_record(
         unit_status=snapshot.unit_status,
@@ -1463,6 +1733,9 @@ def _build_run_audit_payload_from_snapshot(
         "run_state": run_state,
         "unit_status": snapshot.unit_status,
         "workflow_acceptance": workflow_acceptance,
+        "quality_observations": {
+            "template_residue": residue_observation
+        },
         "target_artifacts": target_records,
         "unit_output_manifests": {
             "count": len(manifests),
@@ -1558,6 +1831,33 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
         if uncovered:
             lines.append("- Uncovered required Skills: " + ", ".join(f"`{item}`" for item in uncovered))
         lines.append(f"- Evidence basis: `{acceptance.get('evidence_basis') or 'unknown'}`")
+
+    observations = payload.get("quality_observations") or {}
+    residue = observations.get("template_residue") or {}
+    lines.extend(["", "## Quality observations", "", "### Template residue"])
+    if residue.get("status") == "INVALID":
+        lines.append("- Latest `template-residue-scorecard.v1` Evaluation: `INVALID`")
+        lines.extend(
+            f"- Invalid evidence: {reason}"
+            for reason in residue.get("invalid_reasons") or []
+        )
+    elif residue.get("status") != "RECORDED":
+        lines.append("- No `template-residue-scorecard.v1` Evaluation has been recorded for this Run")
+    else:
+        lines.append(f"- Verdict: `{residue.get('verdict') or 'UNKNOWN'}`")
+        lines.append(
+            "- Whole-draft literal residue: "
+            f"{residue.get('matched_sentence_count', 0)}/{residue.get('sentence_count', 0)} = "
+            f"{float(residue.get('matched_sentence_ratio') or 0.0):.1%} "
+            f"(limit <= {float(residue.get('max_ratio') or 0.0):.0%})"
+        )
+        lines.append(f"- Run-selected template assets: {residue.get('template_asset_count', 0)}")
+        lines.append(f"- Asset selection: `{residue.get('selection_status') or 'UNKNOWN'}`")
+        lines.append(
+            "- Writer implementation lock: "
+            f"`{residue.get('implementation_lock_status') or 'UNKNOWN'}`"
+        )
+        lines.append(f"- Scorecard: `{residue.get('scorecard_path') or 'unknown'}`")
 
     attempts = payload.get("attempts") or {}
     lines.extend(["", "## Attempt execution"])
@@ -1899,12 +2199,18 @@ def _build_improvement_payload_from_sources(
     entries = list(failure_ledger_entries) if failure_ledger_entries is not None else _failure_ledger_entries(workspace)
     failures = _failure_ledger_records(workspace, entries=entries)
     repair_history = _failure_repair_history(workspace, entries=entries)
-    suggestions = _improvement_suggestion_records(
+    diagnostic_suggestions = _improvement_suggestion_records(
         workspace=workspace,
         doctor_payload=doctor_payload,
         run_audit_payload=audit_payload,
     )
-    suggestions.extend(_failure_suggestion_records(workspace=workspace, failures=failures, offset=len(suggestions)))
+    failure_suggestions = _failure_suggestion_records(
+        workspace=workspace,
+        failures=failures,
+    )
+    suggestions = [*failure_suggestions, *diagnostic_suggestions]
+    for index, suggestion in enumerate(suggestions, start=1):
+        suggestion["id"] = f"S{index:03d}"
     from tooling.run_state import latest_evaluation
 
     evaluation = latest_evaluation(workspace, verdict="PASS")
@@ -2324,7 +2630,7 @@ def _improvement_suggestion_records(
 
 
 def _failure_suggestion_records(
-    *, workspace: Path, failures: list[dict[str, Any]], offset: int
+    *, workspace: Path, failures: list[dict[str, Any]]
 ) -> list[dict[str, str]]:
     records: list[dict[str, str]] = []
     latest_by_fingerprint: dict[str, dict[str, Any]] = {}
@@ -2342,7 +2648,7 @@ def _failure_suggestion_records(
         failure_type = str(failure.get("failure_type") or "unclassified_failure")
         records.append(
             {
-                "id": f"S{offset + len(records) + 1:03d}",
+                "id": f"S{len(records) + 1:03d}",
                 "source_report": "failure_ledger",
                 "observed_problem": str(failure.get("observable_failure") or failure_type),
                 "evidence": (

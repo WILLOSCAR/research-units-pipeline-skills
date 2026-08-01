@@ -126,40 +126,6 @@ def _snippet_grounding_issue(
     return "" if normalized_snippet and normalized_snippet in normalized_source else "content"
 
 
-def check_tutorial_spec(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    out_rel = outputs[0] if outputs else "output/TUTORIAL_SPEC.md"
-    path = workspace / out_rel
-    if not path.exists():
-        return [QualityIssue(code="missing_tutorial_spec", message=f"`{out_rel}` does not exist.")]
-    text = path.read_text(encoding="utf-8", errors="ignore")
-
-    issues: list[QualityIssue] = []
-    if has_placeholder_markers(text):
-        issues.append(
-            QualityIssue(
-                code="tutorial_spec_placeholders",
-                message="Tutorial spec contains placeholder markers (TODO/TBD/FIXME); fill target audience/prereqs/objectives/running example.",
-            )
-        )
-
-    low = text.lower()
-    required = [
-        ("audience", "受众"),
-        ("prereq", "先修"),
-        ("objective", "学习目标"),
-        ("running example", "运行示例"),
-    ]
-    missing = [en for en, zh in required if (en not in low and zh not in text)]
-    if missing:
-        issues.append(
-            QualityIssue(
-                code="tutorial_spec_missing_sections",
-                message=f"Tutorial spec is missing key sections: {', '.join(missing)}.",
-            )
-        )
-    return issues
-
-
 def check_source_manifest(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     from collections import Counter
 

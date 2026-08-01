@@ -19,7 +19,7 @@ runtime.
 | `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_decision` | Machine-readable human and Harness interventions; Checkpoint approvals include a `checkpoint-review-basis.v1` Artifact fingerprint bundle |
 | `artifact-record.v1` | `.harness/artifacts.jsonl` | `tooling.run_state.register_artifacts` | Versioned Artifact provenance and hashes |
 | `failure-record.v1` | `.harness/failures/ledger.jsonl` | `tooling.run_state` | Append-only Failure opening and resolution records |
-| `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | `tooling.run_state.record_evaluation` | Append-only Workflow scorecards, repair surfaces, and optional efficiency metrics |
+| `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | `tooling.run_state.record_evaluation` | Append-only projection of Workflow scorecard verdicts, dimensions, repair surfaces, and optional efficiency metrics; complete scorecards remain Artifacts |
 | `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | `tooling.harness.write_unit_manifest` | Per-Attempt output contract, Artifact hashes, Completion phase (`PREPARED` or final status), executed Skill fingerprint, and additive Workflow-acceptance evidence |
 
 The JSONL ledgers are append-only. `run.json` and `effective.json` are current
@@ -92,6 +92,15 @@ manual Attempts remain valid with runtime fields unavailable. When telemetry is
 present, the terminal Event carries the same normalized record; reconciliation
 preserves it and Run Audit reports malformed or divergent copies.
 
+Current v2 reports may also include
+`quality_observations.template_residue`, a projection of the latest
+`template-residue-scorecard.v1` Evaluation. It exposes the measured whole-draft
+ratio, threshold, Run-selected asset count, asset-selection status, writer
+implementation-lock status, and scorecard path. The projection validates count,
+ratio, dimension, provenance, and verdict consistency before reporting
+`RECORDED`; contradictory evidence is reported as `INVALID`. Historical v2
+reports without this additive projection remain valid.
+
 `run-audit.v2` requires a `workflow_acceptance` projection. It
 joins the active Workflow's `required_checks` to current UNITS and matching
 acceptance records in both the DONE Manifest and committed Completion Event.
@@ -146,10 +155,28 @@ local unless a future reproducibility contract requires them.
 | Schema | Path | Producer | Purpose |
 |---|---|---|---|
 | `sections-manifest.v1` | `sections/sections_manifest.jsonl` | `subsection-writer`, then `argument-selfloop` | Current section paths, ownership metadata, citation blocks, byte counts, and SHA-256 fingerprints used by the final merge freshness gate |
+| `template-residue-measurement.v1` | Nested in `output/TEMPLATE_RESIDUE_SCORECARD.json`; historical snapshots may embed it in `run-summary.json` | `tooling.quality_checks.template_residue` | English/CJK sentence counts, literal-fragment matches, selected asset hashes, and heading-aware examples; a historical snapshot may explicitly use a candidate-bank set when Run selection was not retained |
+| `template-residue-scorecard.v1` | `output/TEMPLATE_RESIDUE_SCORECARD.json`; Completion projects its verdict and dimensions into `.harness/evaluations/ledger.jsonl` | `pipeline-auditor` via `tooling.quality_checks.template_residue` | Whole-draft residue threshold plus Run-selected asset provenance and fail-closed v2 implementation-lock verification for the three owning Skills |
 
 The final argument snapshot refreshes this manifest after all H3 mutators.
 `section-merger` refuses an explicitly supplied manifest when a required section
 is missing or its bytes/hash no longer match.
+
+`template-residue-measurement.v1` removes Markdown headings and citation
+markers, splits the entire reader-facing draft into English or CJK sentences,
+retains the nearest heading and responsible writer Skill for each example, and
+compares them case-insensitively with fixed template fragments at or above the
+configured literal-length floor. Earlier H3-only checks use the same
+implementation to fail sooner. A current Run records its selected front-matter
+asset paths and hashes in `output/FRONT_MATTER_CONTEXT.json`;
+`template-residue-scorecard.v1`
+also compares the three template-owning Skill implementations with
+`harness.lock.json`. Missing selection evidence, missing or legacy locks, and
+implementation drift fail closed. The scorecard keeps counts, ratio, threshold,
+asset hashes, localized examples, and lock evidence. The Evaluation ledger keeps
+only the common verdict-and-dimensions projection. It is an acceptance signal,
+not an authorship, originality, or semantic-quality classifier. The 10% limit is an
+initial policy target with no completed passing Run yet.
 
 ## `paper-review` Evidence
 

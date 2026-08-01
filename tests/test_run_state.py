@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import subprocess
 import sys
@@ -34,6 +35,31 @@ UNIT_FIELDS = [
     "depends_on",
     "owner",
 ]
+
+
+def _write_front_template_context(workspace: Path) -> None:
+    asset = (
+        REPO_ROOT
+        / ".codex"
+        / "skills"
+        / "front-matter-writer"
+        / "assets"
+        / "front_matter_templates.json"
+    )
+    relpath = str(asset.relative_to(REPO_ROOT))
+    context_path = workspace / "output" / "FRONT_MATTER_CONTEXT.json"
+    context_path.parent.mkdir(parents=True, exist_ok=True)
+    context_path.write_text(
+        json.dumps(
+            {
+                "template_assets": [relpath],
+                "template_asset_sha256": {
+                    relpath: hashlib.sha256(asset.read_bytes()).hexdigest()
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
@@ -441,6 +467,136 @@ def test_invalid_declared_scorecard_blocks_success_and_is_not_recorded(tmp_path:
     assert failures[-1]["failure_type"] == "semantic_quality_gate_failed"
 
 
+def test_failed_attempt_does_not_record_stale_declared_scorecard(tmp_path: Path) -> None:
+    from tooling.scorecards import build_dimension, finalize_scorecard
+
+    repo_root = tmp_path / "repo"
+    workspace = tmp_path / "run"
+    skill = "stale-scorecard-skill"
+    scorecard_rel = "output/STALE_SCORECARD.json"
+    _write_units(workspace / "UNITS.csv", skill=skill, outputs=scorecard_rel)
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    scorecard_path = workspace / scorecard_rel
+    scorecard_path.parent.mkdir(parents=True, exist_ok=True)
+    scorecard_path.write_text(
+        json.dumps(
+            finalize_scorecard(
+                schema="stale-scorecard.v1",
+                workflow="fixture",
+                dimensions=[
+                    build_dimension(
+                        "quality",
+                        "Quality",
+                        passed=True,
+                        partial=False,
+                        evidence="Old evidence.",
+                        repair_surface=[scorecard_rel],
+                    )
+                ],
+                pass_score=100,
+                critical_dimensions={"quality"},
+                counts={},
+                limitations=[],
+            )
+        ),
+        encoding="utf-8",
+    )
+    script = repo_root / ".codex" / "skills" / skill / "scripts" / "run.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("raise SystemExit(2)\n", encoding="utf-8")
+
+    result = run_one_unit(workspace=workspace, repo_root=repo_root)
+
+    assert result.status == "BLOCKED"
+    assert "was not created or refreshed" in result.message
+    assert _jsonl(workspace / ".harness" / "evaluations" / "ledger.jsonl") == []
+    failures = _jsonl(workspace / ".harness" / "failures" / "ledger.jsonl")
+    assert failures[-1]["failure_type"] == "stale_scorecard_output"
+
+
+def test_failed_pipeline_auditor_attempt_records_template_residue_evaluation(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "survey-residue"
+    workspace.mkdir()
+    rows = [
+        {
+            "unit_id": "U095",
+            "title": "Front matter",
+            "type": "WRITE",
+            "skill": "front-matter-writer",
+            "status": "SKIP",
+            "owner": "CODEX",
+        },
+        {
+            "unit_id": "U096",
+            "title": "Chapter leads",
+            "type": "WRITE",
+            "skill": "chapter-lead-writer",
+            "status": "SKIP",
+            "owner": "CODEX",
+        },
+        {
+            "unit_id": "U100",
+            "title": "Subsections",
+            "type": "WRITE",
+            "skill": "subsection-writer",
+            "status": "SKIP",
+            "owner": "CODEX",
+        },
+        {
+            "unit_id": "U109",
+            "title": "Audit",
+            "type": "QA",
+            "skill": "pipeline-auditor",
+            "inputs": "output/DRAFT.md",
+            "outputs": (
+                "output/AUDIT_REPORT.md;"
+                "output/TEMPLATE_RESIDUE_SCORECARD.json"
+            ),
+            "checkpoint": "C5",
+            "status": "TODO",
+            "owner": "CODEX",
+        },
+    ]
+    with (workspace / "UNITS.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
+        writer.writeheader()
+        writer.writerows({key: row.get(key, "") for key in UNIT_FIELDS} for row in rows)
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n",
+        encoding="utf-8",
+    )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    draft = workspace / "output" / "DRAFT.md"
+    draft.parent.mkdir(parents=True)
+    draft.write_text(
+        "# Draft\n\n## Abstract\n\n"
+        "A central finding is that many reported gains depend as much on evaluation design and "
+        "experimental assumptions as on the nominal methodology itself.\n",
+        encoding="utf-8",
+    )
+    _write_front_template_context(workspace)
+
+    result = run_one_unit(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert result.unit_id == "U109"
+    assert result.status == "BLOCKED"
+    evaluations = _jsonl(workspace / ".harness" / "evaluations" / "ledger.jsonl")
+    assert len(evaluations) == 1
+    assert evaluations[0]["evaluator_id"] == "template-residue-scorecard.v1"
+    assert evaluations[0]["verdict"] == "FAIL"
+    dimensions = {
+        record["id"]: record for record in evaluations[0]["dimensions"]
+    }
+    assert dimensions["template_residue_limit"]["matched_sentence_ratio"] == 1.0
+    assert dimensions["template_source_provenance"]["selection_status"] == "PASS"
+    assert (
+        dimensions["template_source_provenance"]["implementation_lock_status"]
+        == "PASS"
+    )
+
+
 def test_quality_report_write_error_becomes_durable_completion_failure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -556,8 +712,75 @@ def test_retries_preserve_attempt_and_failure_history(tmp_path: Path) -> None:
     assert exit_code == 2
     assert improvement["source_reports"]["failure_ledger"]["record_count"] == 2
     assert len(failure_suggestions) == 1
+    assert improvement["suggestions"][0]["source_report"] == "failure_ledger"
+    assert ".codex/skills/skill-without-script/SKILL.md" in improvement["suggestions"][0][
+        "repair_surface"
+    ]
     assert "missing_skill_adapter" in failure_suggestions[0]["evidence"]
     assert validate_improvement_payload(improvement) == []
+
+
+def test_improvement_prioritizes_attempt_failure_over_derived_symptoms_from_composed_reports(
+    tmp_path: Path,
+) -> None:
+    import tooling.harness as harness
+
+    workspace = tmp_path / "run"
+    workspace.mkdir()
+    doctor_payload = {
+        "schema": "workspace-doctor.v2",
+        "generated_at": "2026-08-01T00:00:00+00:00",
+        "verdict": "ATTENTION",
+        "exit_code": 2,
+        "harness_issues": [
+            {
+                "level": "ERROR",
+                "code": "missing_target_artifact",
+                "message": "Target artifact `output/SNAPSHOT.md` is missing.",
+                "remediation_category": "repair_run_artifacts",
+                "next_action": "Restore the target artifact.",
+            }
+        ],
+    }
+    audit_payload = {
+        "schema": "run-audit.v2",
+        "verdict": "ATTENTION",
+        "exit_code": 2,
+        "pipeline": "research-brief",
+        "harness_issues": [],
+    }
+    failures = (
+        {
+            "record_type": "opened",
+            "status": "open",
+            "failure_id": "F001",
+            "fingerprint": "script-failed-u010",
+            "failure_type": "script_failed",
+            "severity": "high",
+            "unit_id": "U010",
+            "attempt_id": "A001",
+            "observable_failure": "arxiv-search exited non-zero",
+            "causal_behavior": "Repair the retrieval adapter or its network input.",
+            "harness_mechanism": "Scripted Unit attempt",
+            "repair_surface": [".codex/skills/arxiv-search/scripts/run.py"],
+        },
+    )
+
+    exit_code, payload = harness._build_improvement_payload_from_sources(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+        doctor_result=(2, doctor_payload),
+        audit_result=(2, audit_payload),
+        failure_ledger_entries=failures,
+    )
+
+    assert exit_code == 2
+    assert [item["source_report"] for item in payload["suggestions"]] == [
+        "failure_ledger",
+        "doctor",
+    ]
+    assert [item["id"] for item in payload["suggestions"]] == ["S001", "S002"]
+    assert payload["suggestions"][0]["repair_surface"] == ".codex/skills/arxiv-search/scripts/run.py"
 
 
 def test_scripted_retries_record_execution_metrics_and_audit_summary(tmp_path: Path) -> None:

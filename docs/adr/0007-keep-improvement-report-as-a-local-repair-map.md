@@ -36,6 +36,12 @@ The report maps blocking defects as:
 source evidence -> observed problem -> upstream interface -> repair surface -> validation command
 ```
 
+Open Failure-ledger records are ordered before Doctor and Run Audit symptoms.
+An Attempt failure is direct execution evidence, while missing downstream
+Artifacts are often consequences of that failure. The remaining suggestions
+retain their source order and all records receive stable sequential IDs after
+the sources are combined.
+
 It may also project non-blocking headroom from dimensions in the latest passing
 Workflow scorecard. These `quality_opportunities` identify existing repair
 surfaces but do not change the Improvement verdict or invent a new quality

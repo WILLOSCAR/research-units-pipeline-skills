@@ -261,7 +261,6 @@ def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_pat
         "transition-weaver",
         "tutorial-context-pack",
         "tutorial-selfloop",
-        "tutorial-spec",
         "writer-context-pack",
         "writer-selfloop",
     }

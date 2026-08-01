@@ -344,7 +344,10 @@ does not use those descriptive deltas as a quality verdict.
 `run-audit.v2` requires cross-ledger Workflow acceptance coverage and uses
 distinct `PASS`, `IN_PROGRESS`, `INCOMPLETE`, and `ATTENTION` verdicts. Only
 `PASS` exits zero, so Improvement and Artifact Pack cannot promote an unfinished
-Run into a success signal. Historical v1 reports remain readable.
+Run into a success signal. Its additive quality observations project the latest
+recorded Survey template-residue scorecard without turning that Workflow-local
+measure into a universal research-quality claim. Historical v1 reports remain
+readable.
 
 ## 8. Evidence And Artifact Provenance
 

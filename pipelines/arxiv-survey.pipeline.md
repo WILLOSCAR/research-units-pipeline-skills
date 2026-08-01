@@ -53,6 +53,7 @@ target_artifacts:
   - sections/abstract.md
   - sections/S1.md
   - sections/S2.md
+  - output/FRONT_MATTER_CONTEXT.json
   - sections/discussion.md
   - sections/conclusion.md
   - output/QUALITY_GATE.md
@@ -75,6 +76,7 @@ target_artifacts:
   - output/CITATION_BUDGET_REPORT.md
   - output/CITATION_INJECTION_REPORT.md
   - output/AUDIT_REPORT.md
+  - output/TEMPLATE_RESIDUE_SCORECARD.json
   - output/CONTRACT_REPORT.md
 default_checkpoints: [C0,C1,C2,C3,C4,C5]
 units_template: templates/UNITS.arxiv-survey.csv
@@ -141,6 +143,9 @@ quality_contract:
       - argument-selfloop
       - pipeline-auditor
       - artifact-contract-auditor
+  writing_policy:
+    template_residue_max_ratio: 0.10
+    template_literal_min_chars: 24
   citation_policy:
     unique_hard_floor: 150
     unique_recommended: 165
@@ -260,7 +265,7 @@ stages:
     mode: prose_allowed
     required_skills: [front-matter-writer, chapter-lead-writer, subsection-writer, writer-selfloop, style-harmonizer, opener-variator, section-logic-polisher, paragraph-curator, evaluation-anchor-checker, argument-selfloop, transition-weaver, section-merger, post-merge-voice-gate, citation-diversifier, citation-injector, draft-polisher, global-reviewer, pipeline-auditor, artifact-contract-auditor]
     optional_skills: [prose-writer, subsection-polisher, redundancy-pruner, terminology-normalizer, limitation-weaver, latex-scaffold, latex-compile-qa]
-    produces: [outline/transitions.md, sections/sections_manifest.jsonl, sections/h3_bodies.refined.ok, sections/paragraphs_curated.refined.ok, sections/style_harmonized.refined.ok, sections/opener_varied.refined.ok, sections/abstract.md, sections/S1.md, sections/S2.md, sections/discussion.md, sections/conclusion.md, output/WRITER_SELFLOOP_TODO.md, output/EVAL_ANCHOR_REPORT.md, output/ARGUMENT_SELFLOOP_TODO.md, output/SECTION_ARGUMENT_SUMMARIES.jsonl, output/ARGUMENT_SKELETON.md, output/PARAGRAPH_CURATION_REPORT.md, output/FRONT_MATTER_REPORT.md, output/CHAPTER_LEADS_REPORT.md, output/SECTION_LOGIC_REPORT.md, output/MERGE_REPORT.md, output/DRAFT.md, output/POST_MERGE_VOICE_REPORT.md, output/CITATION_BUDGET_REPORT.md, output/CITATION_INJECTION_REPORT.md, output/GLOBAL_REVIEW.md, output/AUDIT_REPORT.md, output/CONTRACT_REPORT.md]
+    produces: [outline/transitions.md, sections/sections_manifest.jsonl, sections/h3_bodies.refined.ok, sections/paragraphs_curated.refined.ok, sections/style_harmonized.refined.ok, sections/opener_varied.refined.ok, sections/abstract.md, sections/S1.md, sections/S2.md, sections/discussion.md, sections/conclusion.md, output/WRITER_SELFLOOP_TODO.md, output/EVAL_ANCHOR_REPORT.md, output/ARGUMENT_SELFLOOP_TODO.md, output/SECTION_ARGUMENT_SUMMARIES.jsonl, output/ARGUMENT_SKELETON.md, output/PARAGRAPH_CURATION_REPORT.md, output/FRONT_MATTER_REPORT.md, output/FRONT_MATTER_CONTEXT.json, output/CHAPTER_LEADS_REPORT.md, output/SECTION_LOGIC_REPORT.md, output/MERGE_REPORT.md, output/DRAFT.md, output/POST_MERGE_VOICE_REPORT.md, output/CITATION_BUDGET_REPORT.md, output/CITATION_INJECTION_REPORT.md, output/GLOBAL_REVIEW.md, output/AUDIT_REPORT.md, output/TEMPLATE_RESIDUE_SCORECARD.json, output/CONTRACT_REPORT.md]
 ---
 
 # Pipeline: Survey And Research Report
@@ -334,6 +339,16 @@ numeric claims, template leakage, voice consistency, and profile-specific
 density. Tables are reader-facing Artifacts; planning indexes and optional
 visual specifications remain internal unless the contract explicitly promotes
 them.
+
+The deterministic writer scripts may create provisional bootstrap prose, but
+the CODEX-owned writing Units are responsible for rewriting it before
+acceptance. The final auditor measures the entire draft against the
+writer-template assets selected for that Run (four fixed banks plus an optional
+front-matter domain overlay), verifies the recorded asset hashes and their
+owning Skill implementations against the v2 Run lock, and emits
+`output/TEMPLATE_RESIDUE_SCORECARD.json`. The 10% limit is
+an initial policy target; no completed passing Run has validated attainability
+yet, so it remains an enforced but explicitly unproven threshold.
 
 The Workflow-declared completion checks are mandatory in normal execution.
 `--strict` adds registered diagnostic checks that are not already part of the

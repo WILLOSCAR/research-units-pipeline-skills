@@ -321,7 +321,6 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "transition-weaver": survey_planning.check_transitions,
     "tutorial-context-pack": source_tutorial_checks.check_tutorial_context_packs,
     "tutorial-selfloop": source_tutorial_checks.check_tutorial_selfloop_report,
-    "tutorial-spec": source_tutorial_checks.check_tutorial_spec,
     "writer-context-pack": survey_planning.check_writer_context_packs,
     "writer-selfloop": survey_writing.check_writer_selfloop,
 }

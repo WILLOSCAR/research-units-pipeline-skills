@@ -605,11 +605,14 @@ def main() -> int:
     if not projection:
         raise SystemExit(f'Missing or invalid front-matter projection asset: {projection_asset_path}')
 
+    selected_template_assets = [template_asset_path]
     domain_id = _detect_domain(workspace)
     if domain_id:
+        overlay_asset_path = package_root / 'assets' / 'domain_templates' / f'{domain_id}.json'
         overlay = _load_domain_overlay(domain_id)
         if overlay:
             template_bank = _merge_template_bank(template_bank, overlay)
+            selected_template_assets.append(overlay_asset_path)
 
     chapter_contexts = _chapter_contexts(outline, chapter_briefs, intro_id=intro_id, related_id=related_id, projection=projection)
     values = _global_values(
@@ -692,6 +695,13 @@ def main() -> int:
         'reference_pack': contract.get('reference_pack') or [],
         'asset_pack': (contract.get('asset_pack') or []) + ['assets/front_matter_context_projection.json'],
         'template_asset': 'assets/front_matter_templates.json',
+        'template_assets': [
+            str(path.relative_to(repo_root)) for path in selected_template_assets
+        ],
+        'template_asset_sha256': {
+            str(path.relative_to(repo_root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in selected_template_assets
+        },
         'projection_asset': 'assets/front_matter_context_projection.json',
         'voice_hygiene': {
             'forbid_pipeline_voice': True,

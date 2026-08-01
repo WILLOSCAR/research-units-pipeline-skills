@@ -29,6 +29,7 @@ This skill is analysis-only. It does not edit content. For all survey-family pro
 ## Outputs
 
 - `output/AUDIT_REPORT.md`
+- `output/TEMPLATE_RESIDUE_SCORECARD.json`
 
 ## What it checks (deterministic)
 
@@ -54,6 +55,17 @@ Course-paper targets:
 - Citation health (if `citations/ref.bib` exists): undefined keys, duplicates, basic formatting red flags.
 - Citation-shape hard gate: no adjacent citation blocks (`[@a] [@b]`) and no duplicate keys inside one block (`[@a; @a]`). Mid-sentence citation ratio is >=20% for `course_paper` and >=30% for `survey`/`deep`.
 - Citation scope (if `outline/evidence_bindings.jsonl` exists): citations used per H3 should stay within the bound evidence set.
+- Whole-draft deterministic template residue: split English and CJK reader-facing prose, compare each sentence with fixed fragments from the template assets selected for this Run, and reject above the Workflow limit.
+- Template source provenance: require `output/FRONT_MATTER_CONTEXT.json` to record the selected front-matter assets and hashes, then require the three template-owning Skill implementations to match `.harness/harness.lock.json`; missing provenance, legacy locks, and repository drift block acceptance.
+
+The JSON scorecard records the measured ratio, counts, threshold, selected asset
+hashes, heading-aware examples, and implementation-lock result. During normal
+Harness execution, Completion projects its verdict and dimensions into
+`.harness/evaluations/ledger.jsonl`, including failed Attempts, so Run Audit can
+expose the latest measurement instead of reducing it to PASS/FAIL. The scorecard
+file remains the complete evidence object; the ledger is intentionally smaller.
+The current 10% limit is an initial policy target and has not yet been validated
+by a completed passing Run.
 
 ## How to use the report (routing table)
 
@@ -85,6 +97,9 @@ Common FAIL families -> responsible stage/skill:
 - Intro/Related Work too thin / too few cites
   - Fix: rewrite the corresponding `sections/S<sec_id>.md` front-matter file via `writer-selfloop` (front-matter path) using dense positioning + method paragraph.
 
+- Whole-draft template residue above the Workflow limit
+  - Fix: use each scorecard example's heading, section kind, section owner, and template owner to locate the responsible front matter, chapter lead, or H3 region; rewrite its source section, regenerate the merged draft, and rerun the auditor. Do not weaken or rename template assets to make an existing Run pass.
+
 ## Prevention guidance (what upstream writers should do)
 
 If you want the auditor to PASS *without* a heavy polish loop:
@@ -105,7 +120,7 @@ If you want the auditor to PASS *without* a heavy polish loop:
 - `--workspace <dir>`
 - `--unit-id <U###>` (optional; for logs)
 - `--inputs <semicolon-separated>` (rare override; prefer defaults)
-- `--outputs <semicolon-separated>` (rare override; default writes `output/AUDIT_REPORT.md`)
+- `--outputs <semicolon-separated>` (rare override; defaults write `output/AUDIT_REPORT.md` and `output/TEMPLATE_RESIDUE_SCORECARD.json`)
 - `--checkpoint <C#>` (optional)
 
 ### Examples

@@ -126,6 +126,7 @@ def main() -> int:
 
     from tooling.common import atomic_write_text, load_yaml, parse_semicolon_list, read_jsonl
     from tooling.quality_gate import _citation_target, _draft_profile, _pipeline_profile, survey_citation_policy
+    from tooling.quality_checks.template_residue import build_template_residue_scorecard
 
     workspace = Path(args.workspace).resolve()
 
@@ -135,7 +136,10 @@ def main() -> int:
         "outline/evidence_bindings.jsonl",
         "citations/ref.bib",
     ]
-    outputs = parse_semicolon_list(args.outputs) or ["output/AUDIT_REPORT.md"]
+    outputs = parse_semicolon_list(args.outputs) or [
+        "output/AUDIT_REPORT.md",
+        "output/TEMPLATE_RESIDUE_SCORECARD.json",
+    ]
 
     draft_rel = next((p for p in inputs if p.endswith("output/DRAFT.md") or p.endswith("DRAFT.md")), "output/DRAFT.md")
     outline_rel = next((p for p in inputs if p.endswith("outline/outline.yml") or p.endswith("outline.yml")), "outline/outline.yml")
@@ -143,6 +147,10 @@ def main() -> int:
     bib_rel = next((p for p in inputs if p.endswith("citations/ref.bib") or p.endswith("ref.bib")), "citations/ref.bib")
 
     out_rel = outputs[0] if outputs else "output/AUDIT_REPORT.md"
+    residue_rel = next(
+        (path for path in outputs if path.upper().endswith("TEMPLATE_RESIDUE_SCORECARD.JSON")),
+        "output/TEMPLATE_RESIDUE_SCORECARD.json",
+    )
 
     draft_path = workspace / draft_rel
     outline_path = workspace / outline_rel
@@ -153,6 +161,15 @@ def main() -> int:
     warnings: list[str] = []
 
     if not draft_path.exists() or draft_path.stat().st_size == 0:
+        residue_scorecard = build_template_residue_scorecard(
+            workspace=workspace,
+            documents=[],
+            scope="entire merged reader-facing draft",
+        )
+        atomic_write_text(
+            workspace / residue_rel,
+            json.dumps(residue_scorecard, ensure_ascii=False, indent=2) + "\n",
+        )
         blocking.append(f"missing draft: `{draft_rel}`")
         report = "\n".join([
             "# Audit report",
@@ -166,6 +183,28 @@ def main() -> int:
         return 2
 
     draft = draft_path.read_text(encoding="utf-8", errors="ignore")
+    residue_scorecard = build_template_residue_scorecard(
+        workspace=workspace,
+        documents=[(draft_rel, draft)],
+        scope="entire merged reader-facing draft",
+    )
+    atomic_write_text(
+        workspace / residue_rel,
+        json.dumps(residue_scorecard, ensure_ascii=False, indent=2) + "\n",
+    )
+    residue_measurement = residue_scorecard["measurement"]
+    residue_policy = residue_scorecard["policy"]
+    residue_selection = residue_scorecard["asset_selection"]
+    residue_lock = residue_scorecard["implementation_lock"]
+    if residue_scorecard["verdict"] != "PASS":
+        blocking.append(
+            "template residue scorecard failed "
+            f"({residue_measurement['matched_sentence_count']}/{residue_measurement['sentence_count']} = "
+            f"{float(residue_measurement['matched_sentence_ratio']):.1%}; "
+            f"limit <= {float(residue_policy['max_ratio']):.0%}; "
+            f"asset selection={residue_selection['status']}; "
+            f"implementation lock={residue_lock['status']})"
+        )
 
     profile = _pipeline_profile(workspace)
     draft_profile = _draft_profile(workspace)
@@ -709,12 +748,21 @@ def main() -> int:
         f"- Bib: `{bib_rel}` (entries={len(bib_keys)})",
         f"- Draft profile: `{draft_profile}`",
         f"- Citation target policy: `{citation_target}`",
+        f"- Template residue scorecard: `{residue_rel}`",
         "",
         "## Summary",
         f"- Unique citations in draft: {len(cited)}",
         f"- Markdown tables in draft: {table_n}",
         f"- Outline H3 expected: {len(set(expected.values())) if expected else 0}",
         f"- Draft H3 found: {len(found)}",
+        (
+            f"- Whole-draft template residue: {residue_measurement['matched_sentence_count']}/"
+            f"{residue_measurement['sentence_count']} = "
+            f"{float(residue_measurement['matched_sentence_ratio']):.1%} "
+            f"(limit <= {float(residue_policy['max_ratio']):.0%})"
+        ),
+        f"- Template asset selection: {residue_selection['status']}",
+        f"- Writer implementation lock: {residue_lock['status']}",
         "",
     ]
 
