@@ -32,6 +32,8 @@ Purpose: reduce C5 “hollow writing” by giving the writer a **single, per-sub
 - `assets/paper_voice_palette.json`
 - `assets/source_text_hygiene.json`
 - `assets/context_pack_policy.json`
+- repo-wide `assets/limitation-signals.json` — shared polarity rules used before
+  a sentence can become a limitation hook
 
 ## Outputs
 

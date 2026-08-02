@@ -187,6 +187,38 @@ def test_standalone_doctor_skips_deep_ledger_integrity_scan(monkeypatch, tmp_pat
     assert payload["schema"] == "doctor-report.v1"
 
 
+def test_run_audit_loads_the_pinned_pipeline_snapshot_without_live_lookup(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    import tooling.harness as harness
+    import tooling.common as common
+
+    workspace = tmp_path / "snapshot-run"
+    result = run_command(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "arxiv-survey-latex",
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+    monkeypatch.setattr(
+        common,
+        "resolve_pipeline_spec_path",
+        lambda **_: (_ for _ in ()).throw(AssertionError("live Pipeline lookup must not run")),
+    )
+
+    snapshot = harness._collect_workspace_inspection_snapshot(
+        workspace=workspace,
+        repo_root=REPO_ROOT,
+    )
+
+    assert snapshot.pipeline_name == "arxiv-survey-latex"
+
+
 def test_doctor_points_blocked_units_to_repair_reports(tmp_path: Path) -> None:
     workspace = tmp_path / "ws"
     write_units(
@@ -922,8 +954,12 @@ def test_run_audit_summarizes_verified_workflow_acceptance(
     assert acceptance["verified_unit_count"] == len(required_skills)
     assert acceptance["unverified_done_unit_count"] == 0
     assert acceptance["uncovered_required_skills"] == []
+    kernel_lock = payload["ledger_integrity"]["kernel_lock"]
+    assert kernel_lock["status"] == "PASS"
+    assert kernel_lock["matched_file_count"] == kernel_lock["current_file_count"]
     assert "## Workflow acceptance" in result.stdout
     assert "Coverage status: `PASS`" in result.stdout
+    assert "Harness Kernel lock: `PASS`" in result.stdout
     assert validate_run_audit_payload(payload) == []
 
 
@@ -964,6 +1000,15 @@ def test_run_audit_payload_validator_reports_schema_drift() -> None:
             "issue_count": 0,
             "ledger_record_counts": {},
             "issues": [],
+            "kernel_lock": {
+                "status": "UNKNOWN",
+                "locked_file_count": -1,
+                "current_file_count": True,
+                "matched_file_count": 3,
+                "missing_paths": "tooling/run_state.py",
+                "unexpected_paths": [1],
+                "drifted_paths": [],
+            },
             "compatibility": {
                 "mode": 1,
                 "recorded_completion_protocol": "unversioned",
@@ -993,6 +1038,11 @@ def test_run_audit_payload_validator_reports_schema_drift() -> None:
     assert "`attempts.process_metrics.total_elapsed_ms` must be a number" in issues
     assert "`ledger_integrity.compatibility.mode` must be a string" in issues
     assert "`ledger_integrity.compatibility.legacy_evidence_gap_codes[1]` must be a string" in issues
+    assert "`ledger_integrity.kernel_lock.status` must be one of: DRIFT, NOT_APPLICABLE, PASS" in issues
+    assert "`ledger_integrity.kernel_lock.locked_file_count` must be a non-negative integer" in issues
+    assert "`ledger_integrity.kernel_lock.current_file_count` must be a non-negative integer" in issues
+    assert "`ledger_integrity.kernel_lock.missing_paths` must be a list of strings" in issues
+    assert "`ledger_integrity.kernel_lock.unexpected_paths` must be a list of strings" in issues
 
 
 def test_audit_reports_missing_target_artifacts(tmp_path: Path) -> None:

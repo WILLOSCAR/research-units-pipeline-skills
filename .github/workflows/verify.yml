@@ -21,6 +21,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Install system test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends latexmk poppler-utils texlive-xetex
+
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:

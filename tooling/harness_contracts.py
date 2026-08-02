@@ -28,6 +28,7 @@ HARNESS_DOC_ENTRYPOINTS = {
     "docs/adr/0017-bind-completion-acceptance-to-recovery-and-audit.md": "Completion-acceptance ADR",
     "docs/adr/0018-snapshot-pipeline-contracts-inside-each-run.md": "Pipeline-snapshot ADR",
     "docs/adr/0019-bind-checkpoint-approval-to-reviewed-artifacts.md": "Checkpoint review-basis ADR",
+    "docs/adr/0020-fail-closed-on-active-run-kernel-drift.md": "active Run Kernel-drift ADR",
 }
 
 HARNESS_README_LINKS = (
@@ -103,6 +104,7 @@ HARNESS_LOCAL_CHECKS = (
 )
 
 HARNESS_KERNEL_PATHS = (
+    "assets/limitation-signals.json",
     "scripts/pipeline.py",
     "tooling/common.py",
     "tooling/completion.py",
@@ -116,6 +118,7 @@ HARNESS_KERNEL_PATHS = (
     "tooling/quality_reporting.py",
     "tooling/run_state.py",
     "tooling/scorecards.py",
+    "tooling/source_text_hygiene.py",
     "tooling/brief_evaluation.py",
     "tooling/checkpoint_brief.py",
     "tooling/evidence_review_evaluation.py",
@@ -269,7 +272,7 @@ PIPELINE_TAXONOMY_REQUIRED_TERMS = (
 )
 
 PIPELINE_TAXONOMY_ROW_REQUIREMENTS = (
-    ("Survey", "`arxiv-survey`", "`Executable`", "bounded-report pilot"),
+    ("Survey", "`arxiv-survey`", "`Executable`", "Completed outcome pilot"),
     ("Survey", "`arxiv-survey-latex`", "`Executable variant`", "audited 10-page PDF"),
     ("Orientation", "`research-brief`", "`Executable`", "Completed outcome pilot"),
     ("Review", "`paper-review`", "`Executable`", "Scored fixture proof"),

@@ -1,0 +1,41 @@
+{
+  "schema": "limitation-signal-policy.v1",
+  "purpose": "Identify evidence-backed limitations without treating improvements that reduce a failure as failures themselves.",
+  "negative_signal_pattern": "(?i)\\b(?:limit\\w*|challeng\\w*|risk\\w*|unsafe|secur\\w*|attack\\w*|threat\\w*|fail\\w*|fragil\\w*|uncertain\\w*|open\\s+problem\\w*|caveat\\w*|downside\\w*|obstacle\\w*|bottleneck\\w*|gap\\w*|disconnect\\w*|domain\\s+shift|sim-?to-?real|generalization\\s+(?:gap|challenge|limit)|hinder\\w*|cost\\w*|complexit\\w*|partial\\s+observability|manual\\s+annotation|latency|hallucinat\\w*|restrict\\w*|error\\w*|degrad\\w*|outdated|contradict\\w*|unreliable|insufficient\\w*|out-of-distribution|ood|poor\\s+instruction\\s+following)\\b|受限|局限|风险|挑战|失败|不可靠|不足|错误|过时|矛盾",
+  "negative_override_patterns": [
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:\\w+\\s+){0,2}(?:reduce|lower|decrease|minimi[sz]e|mitigate|prevent|avoid|eliminate|correct|resolve|address|overcome|fix|remove|close|narrow|bridge)\\w*\\s+(?:\\w+[ -]?){0,4}(?:errors?|risks?|failures?|limitations?|challenges?|gaps?|latency(?:\\s+bottlenecks?)?|costs?|complexity|hallucinations?|degradation|attacks?|threats?|outdated\\s+(?:information|sources?|evidence)|contradictory\\s+(?:answers?|information|sources?|evidence))\\b",
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:(?:achieve|deliver|report|show|yield)\\w*\\s+(?:\\d+(?:\\.\\d+)?%?\\s+)?(?:fewer|lower|reduced)\\s+(?:errors?|risks?|failures?|hallucinations?)|(?:make\\s+)?error\\s+rates?\\s+(?:drop|fall|decrease|decline|improve)\\w*)\\b",
+    "(?i)\\berror\\s+rates?\\s+(?:(?:does?|did|has|have|had)\\s+not|cannot|can't|doesn't|didn't|fails?\\s+to|failed\\s+to)\\s+(?:drop|fall|decrease|decline|improve)\\w*\\b",
+    "(?i)\\b(?:is|are|was|were|remains?|becomes?)\\s+not\\s+(?:robust|resilient|tolerant)\\s+(?:to|against)\\s+(?:domain\\s+shift|out-of-distribution(?:\\s+inputs?)?|ood(?:\\s+inputs?)?|attacks?|threats?|noise|perturbations?)\\b",
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:improve|enhance|strengthen|increase|provide)\\w*\\s+(?:\\w+\\s+){0,2}secur\\w*(?:\\s+against\\s+(?:attacks?|threats?))?\\b",
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:maintain|achieve|deliver)\\w*\\s+(?:(?:strong|high|competitive|improved)\\s+)?(?:performance|accuracy|robustness)\\s+(?:on|under|for)\\s+(?:domain\\s+shift|out-of-distribution(?:\\s+inputs?)?|ood(?:\\s+inputs?)?)\\b",
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:detect|identify|flag|filter)\\w*(?:\\s+out)?\\s+(?:\\w+[ -]?){0,3}(?:errors?|attacks?|threats?|outdated\\s+(?:information|sources?|evidence)|contradictory\\s+(?:answers?|information|sources?|evidence))\\b",
+    "(?i)\\b(?:is|are|was|were|remains?|becomes?)\\s+not\\s+(?:fully\\s+)?secure\\s+(?:to|against)\\s+(?:attacks?|threats?)\\b",
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:improve|enhance|strengthen|increase)\\w*\\s+(?:\\w+\\s+){0,2}(?:robustness|resilience|reliability)\\s+(?:under|to|against)\\s+(?:domain\\s+shift|out-of-distribution(?:\\s+inputs?)?|ood(?:\\s+inputs?)?|attacks?|threats?)\\b",
+    "(?i)\\b(?:(?:does?|did|can|could|will|would|has|have|had)\\s+not|cannot|can't|couldn't|doesn't|didn't|fails?\\s+to|failed\\s+to|unable\\s+to)\\s+(?:have|maintain|achieve|deliver)\\w*\\s+(?:\\w+\\s+){0,2}low\\s+latency\\b",
+    "(?:未能|无法|不能|没有)\\s*(?:降低|减少|缓解|避免|消除|纠正|解决|修复)[^，。；]{0,24}(?:错误|风险|失败|局限|挑战|差距|延迟|成本|幻觉|过时|矛盾)"
+  ],
+  "neutralization_patterns": [
+    "(?i)\\b(?:this|the)\\s+(?:year(?:'s)?\\s+)?challenge\\s+(?:introduces?|includes?|features?|uses?|asks?|invites?|requires?)\\b",
+    "(?i)\\b(?:shared|benchmark|competition|track)\\s+challenge\\b",
+    "(?i)\\bchalleng\\w*\\s+(?:task|tasks|benchmark|benchmarks|environment|environments|setting|settings)\\b",
+    "(?i)\\bcost[-\\s]?effectiv(?:e|eness|ely)\\b",
+    "(?i)\\b(?:lower|reduced?|decreased?|minimal|optimal)\\s+(?:computational\\s+)?costs?\\b",
+    "(?i)\\b(?:narrowing|closing|bridging)\\s+(?:a|the)?\\s*gap\\b",
+    "(?i)\\b(?:reduce[sd]?|lower(?:s|ed)?|decreas(?:e|es|ed)|minimi[sz](?:e|es|ed)|mitigat(?:e|es|ed)|prevent(?:s|ed)?|avoid(?:s|ed)?|eliminat(?:e|es|ed)|correct(?:s|ed)?|resolv(?:e|es|ed)|address(?:es|ed)?|overcom(?:e|es|ed)|fix(?:es|ed)?|filter(?:s|ed)?(?:\\s+out)?|remove(?:s|d)?|refresh(?:es|ed)?|close(?:s|d)?|narrow(?:s|ed)?|bridg(?:e|es|ed))\\s+(?:\\w+[ -]?){0,3}(?:errors?|risks?|failures?|limitations?|challenges?|gaps?|latency(?:\\s+bottlenecks?)?|costs?|complexity|hallucinations?|degradation|attacks?|threats?|outdated\\s+(?:information|sources?|evidence)|contradictory\\s+(?:answers?|information|sources?|evidence))\\b",
+    "(?i)\\b(?:errors?|risks?|failures?|limitations?|challenges?|gaps?|latency(?:\\s+bottlenecks?)?|costs?|complexity|hallucinations?|degradation|attacks?|threats?)\\s+(?:is|are|was|were|has\\s+been|have\\s+been)\\s+(?:reduced|lowered|decreased|minimized|mitigated|prevented|avoided|eliminated|corrected|resolved|addressed|fixed|removed)\\b",
+    "(?i)\\b(?:achiev(?:e|es|ed)|deliver(?:s|ed)?|report(?:s|ed)?)\\s+(?:an?\\s+)?(?:lower|reduced|decreased)\\s+error\\s+rate\\b",
+    "(?i)\\b(?:reports?|records?|measures?|observes?|achieves?|yields?|has)\\s+(?:an?\\s+)?error\\s+rates?\\s+(?:of|at)\\s+\\d+(?:\\.\\d+)?%?\\b",
+    "(?i)\\berror\\s+rates?\\s+(?:drop(?:s|ped)?|fall(?:s|fell)?|decreas(?:e|es|ed)|declin(?:e|es|ed)|improv(?:e|es|ed))\\s+(?:by|to)\\s+\\d+(?:\\.\\d+)?%?\\b",
+    "(?i)\\b(?:achiev(?:e|es|ed)|deliver(?:s|ed)?|report(?:s|ed)?|show(?:s|ed)?|yield(?:s|ed)?)\\s+(?:\\d+(?:\\.\\d+)?%?\\s+)?(?:fewer|lower|reduced)\\s+(?:errors?|risks?|failures?|hallucinations?)\\b",
+    "(?i)\\b(?:detects?|detected|identifies?|identified|flags?|flagged|filters?|filtered)(?:\\s+out)?\\s+(?:\\w+[ -]?){0,3}(?:errors?|outdated\\s+(?:information|sources?|evidence)|contradictory\\s+(?:answers?|information|sources?|evidence))\\b",
+    "(?i)\\b(?:robust|resilient|insensitive|tolerant)\\s+(?:to|against)\\s+(?:(?:outdated|contradictory|noisy)\\s+(?:information|sources?|evidence|answers?)|domain\\s+shift|out-of-distribution(?:\\s+inputs?)?|ood(?:\\s+inputs?)?|attacks?|threats?|noise|perturbations?)\\b",
+    "(?i)\\b(?:improv(?:e|es|ed)|enhanc(?:e|es|ed)|strengthen(?:s|ed)?|increas(?:e|es|ed)|provid(?:e|es|ed))\\s+(?:\\w+\\s+){0,2}secur\\w*(?:\\s+against\\s+(?:attacks?|threats?))?\\b",
+    "(?i)\\b(?:achiev(?:e|es|ed)|deliver(?:s|ed)?|report(?:s|ed)?|show(?:s|ed)?|maintain(?:s|ed)?)\\s+(?:(?:strong|high|competitive|improved)\\s+)(?:performance|accuracy|robustness)\\s+(?:on|under|for)\\s+(?:domain\\s+shift|out-of-distribution(?:\\s+inputs?)?|ood(?:\\s+inputs?)?)\\b",
+    "(?i)\\b(?:is|are|was|were|remains?)\\s+(?:fully\\s+)?secure\\s+(?:to|against)\\s+(?:attacks?|threats?)\\b",
+    "(?i)\\b(?:attack|adversarial)\\s+success\\s+rates?\\s+(?:drop(?:s|ped)?|fall(?:s|fell)?|decreas(?:e|es|ed)|declin(?:e|es|ed))\\s+(?:by|to)\\s+\\d+(?:\\.\\d+)?%?\\b",
+    "(?i)\\b(?:improv(?:e|es|ed)|enhanc(?:e|es|ed)|strengthen(?:s|ed)?|increas(?:e|es|ed))\\s+(?:\\w+\\s+){0,2}(?:robustness|resilience|reliability)\\s+(?:under|to|against)\\s+(?:domain\\s+shift|out-of-distribution(?:\\s+inputs?)?|ood(?:\\s+inputs?)?|attacks?|threats?)\\b",
+    "(?i)\\b(?:has|have|had|achiev(?:e|es|ed)|deliver(?:s|ed)?|maintain(?:s|ed)?|offer(?:s|ed)?)\\s+(?:very\\s+)?low\\s+latency\\b",
+    "降低(?:了)?[^，。；]{0,20}(?:错误|风险|延迟|成本)|减少(?:了)?[^，。；]{0,20}(?:错误|风险|失败)|(?:修复|纠正|缓解|解决|避免)(?:了)?[^，。；]{0,20}(?:错误|过时|矛盾|风险|问题)"
+  ]
+}

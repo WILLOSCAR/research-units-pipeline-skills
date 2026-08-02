@@ -40,6 +40,12 @@ For comparison cards specifically:
 - if one side sanitizes away, drop the card and let upstream evidence repair the asymmetry
 - benchmark inventories belong in protocol metadata, not in a comparison highlight
 
+Limitation polarity is a separate shared boundary. The repository-wide
+`assets/limitation-signals.json` decides whether a sentence carries an
+unresolved constraint after positive or resolved-result signals are removed;
+negated repair failures remain constraints, while neutral metrics do not. Do
+not duplicate that logic in this Skill's local hygiene asset.
+
 ## Ranking rule
 
 When multiple candidate snippets are available, prefer:

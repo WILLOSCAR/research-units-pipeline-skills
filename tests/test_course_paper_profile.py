@@ -11,6 +11,8 @@ import os
 import re
 from pathlib import Path
 
+import pytest
+
 from scripts.pipeline import _auto_pick_pipeline
 from tooling.pipeline_spec import PipelineSpec
 from tooling.common import (
@@ -124,6 +126,15 @@ def test_course_paper_pilot_records_measured_template_residue_lower_bound() -> N
     assert summary["matched_sentence_count"] == 96
     assert summary["matched_sentence_ratio"] == 0.685714
     assert len(summary["template_assets"]) == 5
+    assert len(summary["repair_items"]) == 96
+    assert {
+        "path",
+        "heading",
+        "sentence",
+        "template_asset",
+        "template_owner_skill",
+        "literal_fragment",
+    } <= summary["repair_items"][0].keys()
 
     h3_summary = measure_template_residue(
         documents=[
@@ -187,6 +198,76 @@ def test_template_residue_gate_accepts_prose_without_literal_asset_fragments(tmp
     )
 
     assert check_subsection_template_residue(workspace=tmp_path, relpaths=[relpath]) == []
+
+
+def test_front_matter_writer_blocks_unedited_bootstrap_before_completion(
+    tmp_path: Path,
+) -> None:
+    from tooling.quality_gate import check_unit_outputs
+
+    _write_template_provenance(tmp_path)
+    outputs = [
+        "sections/abstract.md",
+        "sections/S1.md",
+        "sections/S2.md",
+        "sections/discussion.md",
+        "sections/conclusion.md",
+        "output/FRONT_MATTER_REPORT.md",
+        FRONT_MATTER_CONTEXT_PATH,
+    ]
+    for relpath in outputs[:5]:
+        path = tmp_path / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("A reader-facing sentence grounded in cited evidence.\n", encoding="utf-8")
+    (tmp_path / "sections" / "abstract.md").write_text(
+        "Recent research on agent evaluation now spans multiple methodological families, "
+        "task settings, and evaluation regimes, yet those threads are still often compared "
+        "under mismatched protocols.\n",
+        encoding="utf-8",
+    )
+    report = tmp_path / "output" / "FRONT_MATTER_REPORT.md"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text("# Front matter report\n\n- Status: PASS\n", encoding="utf-8")
+
+    issues = check_unit_outputs(
+        skill="front-matter-writer",
+        workspace=tmp_path,
+        outputs=outputs,
+    )
+
+    assert "template_residue_above_threshold" in {issue.code for issue in issues}
+
+
+def test_front_matter_writer_accepts_agent_authored_prose(tmp_path: Path) -> None:
+    from tooling.quality_gate import check_unit_outputs
+
+    _write_template_provenance(tmp_path)
+    outputs = [
+        "sections/abstract.md",
+        "sections/S1.md",
+        "sections/S2.md",
+        "sections/discussion.md",
+        "sections/conclusion.md",
+        "output/FRONT_MATTER_REPORT.md",
+        FRONT_MATTER_CONTEXT_PATH,
+    ]
+    for index, relpath in enumerate(outputs[:5], start=1):
+        path = tmp_path / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            f"Evaluation layer {index} links a named failure to a target-domain decision and "
+            "reports the evidence boundary explicitly.\n",
+            encoding="utf-8",
+        )
+    report = tmp_path / "output" / "FRONT_MATTER_REPORT.md"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text("# Front matter report\n\n- Status: PASS\n", encoding="utf-8")
+
+    assert check_unit_outputs(
+        skill="front-matter-writer",
+        workspace=tmp_path,
+        outputs=outputs,
+    ) == []
 
 
 def test_template_residue_gate_fails_closed_without_run_provenance(tmp_path: Path) -> None:
@@ -351,6 +432,11 @@ def test_template_residue_scorecard_records_whole_draft_measurement(tmp_path: Pa
     assert scorecard["measurement"]["examples"][0]["section_owner_skill"] == (
         "front-matter-writer"
     )
+    assert len(scorecard["measurement"]["repair_items"]) == 96
+    assert any(
+        "demonstrates attainability for that Run" in limitation
+        for limitation in scorecard["limitations"]
+    )
 
 
 def test_pipeline_auditor_writes_template_residue_scorecard(tmp_path: Path) -> None:
@@ -388,7 +474,152 @@ def test_pipeline_auditor_writes_template_residue_scorecard(tmp_path: Path) -> N
     )
     assert validate_scorecard(payload, schema=SCORECARD_SCHEMA) == []
     assert payload["measurement"]["matched_sentence_count"] == 1
+    assert len(payload["measurement"]["repair_items"]) == 1
+    assert payload["measurement"]["repair_items"][0]["heading"] == "Abstract"
     assert payload["scope"] == "entire merged reader-facing draft"
+
+
+def test_pipeline_auditor_blocks_pipeline_voice_for_course_papers(tmp_path: Path) -> None:
+    _write_template_provenance(tmp_path)
+    output = tmp_path / "output"
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "DRAFT.md").write_text(
+        "# Draft\n\n## Abstract\n\n"
+        "Because the evidence available in this run is abstract-level, the analysis keeps "
+        "its conclusions bounded.\n",
+        encoding="utf-8",
+    )
+    citations = tmp_path / "citations"
+    citations.mkdir(parents=True, exist_ok=True)
+    (citations / "ref.bib").write_text(
+        "@article{Example2026, title={Example}, author={Example, Ada}, year={2026}}\n",
+        encoding="utf-8",
+    )
+    script = REPO_ROOT / ".codex" / "skills" / "pipeline-auditor" / "scripts" / "run.py"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--workspace",
+            str(tmp_path),
+            "--outputs",
+            "output/AUDIT_REPORT.md;output/TEMPLATE_RESIDUE_SCORECARD.json",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    report = (output / "AUDIT_REPORT.md").read_text(encoding="utf-8")
+    assert result.returncode == 2
+    blocking_section = report.split("## Blocking issues", 1)[1].split("## Warnings", 1)[0]
+    assert "pipeline voice ('this run')" in blocking_section
+
+
+def test_pipeline_auditor_allows_domain_pipeline_language_in_course_papers(
+    tmp_path: Path,
+) -> None:
+    _write_template_provenance(tmp_path)
+    output = tmp_path / "output"
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "DRAFT.md").write_text(
+        "# Draft\n\n## Abstract\n\n"
+        "This pipeline carries retrieved passages through a reranking stage. "
+        "A manufacturing quality gate rejects damaged samples before assembly.\n",
+        encoding="utf-8",
+    )
+    script = REPO_ROOT / ".codex" / "skills" / "pipeline-auditor" / "scripts" / "run.py"
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--workspace",
+            str(tmp_path),
+            "--outputs",
+            "output/AUDIT_REPORT.md;output/TEMPLATE_RESIDUE_SCORECARD.json",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    report = (output / "AUDIT_REPORT.md").read_text(encoding="utf-8")
+    blocking_section = report.split("## Blocking issues", 1)[1].split("## Warnings", 1)[0]
+    assert "pipeline voice" not in blocking_section
+
+
+def test_pipeline_auditor_blocks_ambiguous_pipeline_terms_with_harness_context(
+    tmp_path: Path,
+) -> None:
+    _write_template_provenance(tmp_path)
+    output = tmp_path / "output"
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "DRAFT.md").write_text(
+        "# Draft\n\n## Abstract\n\n"
+        "This pipeline completed checkpoint C2 before writer Unit U060 ran.\n",
+        encoding="utf-8",
+    )
+    script = REPO_ROOT / ".codex" / "skills" / "pipeline-auditor" / "scripts" / "run.py"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--workspace",
+            str(tmp_path),
+            "--outputs",
+            "output/AUDIT_REPORT.md;output/TEMPLATE_RESIDUE_SCORECARD.json",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    report = (output / "AUDIT_REPORT.md").read_text(encoding="utf-8")
+    blocking_section = report.split("## Blocking issues", 1)[1].split("## Warnings", 1)[0]
+    assert result.returncode == 2
+    assert "pipeline voice (Harness context)" in blocking_section
+
+
+def test_front_matter_voice_lint_allows_domain_terms_but_blocks_harness_leaks() -> None:
+    module = _load_skill_script("front-matter-writer")
+    contract = json.loads(
+        (
+            REPO_ROOT
+            / ".codex"
+            / "skills"
+            / "front-matter-writer"
+            / "assets"
+            / "front_matter_contract.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    module._lint_reader_facing(
+        label="abstract",
+        text=(
+            "This pipeline carries retrieved passages through a reranking stage, and a "
+            "manufacturing quality gate rejects damaged samples."
+        ),
+        contract=contract,
+    )
+
+    with pytest.raises(SystemExit, match="run-local narration"):
+        module._lint_reader_facing(
+            label="abstract",
+            text="This run retains enough evidence for the final paper.",
+            contract=contract,
+        )
+    with pytest.raises(SystemExit, match="pipeline narration"):
+        module._lint_reader_facing(
+            label="abstract",
+            text="This pipeline completed checkpoint C2 before Unit U060 ran.",
+            contract=contract,
+        )
 
 
 def test_writer_selfloop_invokes_shared_strict_sections_checker() -> None:
@@ -488,6 +719,7 @@ def test_survey_literature_completion_check_does_not_crash(tmp_path: Path) -> No
 def test_evidence_selfloop_is_a_mandatory_prewrite_gate(tmp_path: Path) -> None:
     spec = PipelineSpec.load(REPO_ROOT / "pipelines" / "arxiv-survey.pipeline.md")
     assert "evidence-selfloop" in spec.quality_contract["completion_policy"]["required_checks"]
+    assert "front-matter-writer" in spec.quality_contract["completion_policy"]["required_checks"]
     assert spec.quality_contract["writing_policy"] == {
         "template_residue_max_ratio": 0.10,
         "template_literal_min_chars": 24,
@@ -1699,6 +1931,15 @@ def test_evidence_draft_rejects_named_challenges_and_positive_cost_results_as_li
         "These findings suggest that RAG evaluation should include multi-stage failure analysis."
     )
     genuine_limit = "Existing benchmarks fail under temporal corpus shift."
+    contradiction_limit = (
+        "This approach can introduce errors when sources contain outdated or contradictory information."
+    )
+    reduced_errors = (
+        "The proposed reranker reduces retrieval errors by 37% on three benchmarks."
+    )
+    corrected_sources = (
+        "The model corrects outdated information and reduces contradictory answers."
+    )
     rows = module._limitations_from_notes(
         ["P001"],
         notes_by_pid={
@@ -1713,6 +1954,9 @@ def test_evidence_draft_rejects_named_challenges_and_positive_cost_results_as_li
                     lower_cost,
                     recommendation,
                     genuine_limit,
+                    contradiction_limit,
+                    reduced_errors,
+                    corrected_sources,
                 ],
             }
         },
@@ -1720,13 +1964,307 @@ def test_evidence_draft_rejects_named_challenges_and_positive_cost_results_as_li
     )
     bullets = [str(row.get("bullet") or "") for row in rows]
     assert genuine_limit in bullets
+    assert contradiction_limit in bullets
     assert named_challenge not in bullets
     assert positive_cost not in bullets
     assert lower_cost not in bullets
     assert recommendation not in bullets
+    assert reduced_errors not in bullets
+    assert corrected_sources not in bullets
     assert module._sanitize_source_text(
         "Existing metrics are unable to distinguish retrieval,reasoning, or grounding failures."
     ) == "Existing metrics are unable to distinguish retrieval, reasoning, or grounding failures."
+
+
+def test_evidence_draft_does_not_turn_improvements_into_limitations() -> None:
+    module = _load_skill_script("evidence-draft")
+    positive_results = [
+        "The proposed reranker reduces retrieval errors by 37% on three benchmarks.",
+        "The model corrects outdated information and reduces contradictory answers.",
+        "Error rates drop by 37% after reranking.",
+        "The method detects contradictory information before generation.",
+        "The system achieves 20% fewer hallucinations on NQ.",
+        "The method is robust to domain shift.",
+        "The system improves security against attacks.",
+        "The model achieves strong performance on out-of-distribution inputs.",
+        "The guard prevents attacks before they reach the model.",
+        "The scheduler eliminates latency bottlenecks in the serving path.",
+        "The system is secure against attacks.",
+        "Attack success rate drops by 40% after hardening.",
+        "The method improves robustness under domain shift.",
+        "The system has low latency.",
+    ]
+
+    rows = module._limitations_from_notes(
+        ["P001"],
+        notes_by_pid={
+            "P001": {
+                "paper_id": "P001",
+                "title": "Repairing Retrieval Failures",
+                "bibkey": "Repair2026",
+                "evidence_level": "fulltext",
+                "limitations": positive_results,
+            }
+        },
+        cite_keys=["Repair2026"],
+    )
+
+    assert rows == []
+
+
+def test_evidence_draft_keeps_negated_failures_without_metric_false_positives() -> None:
+    module = _load_skill_script("evidence-draft")
+    unresolved = "The reranker does not reduce hallucinations under temporal corpus shift."
+
+    rows = module._limitations_from_notes(
+        ["P001"],
+        notes_by_pid={
+            "P001": {
+                "paper_id": "P001",
+                "title": "Retrieval Under Shift",
+                "bibkey": "Shift2026",
+                "evidence_level": "fulltext",
+                "limitations": [
+                    "The evaluation reports an error rate of 2.1% on NQ.",
+                    unresolved,
+                ],
+            }
+        },
+        cite_keys=["Shift2026"],
+    )
+
+    assert [str(row.get("bullet") or "") for row in rows] == [unresolved]
+
+
+def test_paper_notes_extracts_concrete_failure_sentence_from_abstract() -> None:
+    module = _load_skill_script("paper-notes")
+    abstract = (
+        "Retrieval grounding can improve answers in high-stakes domains. "
+        "Yet, this approach can introduce errors when source documents contain outdated or "
+        "contradictory information. "
+        "The study compares five models on medical queries."
+    )
+
+    limitations = module._infer_limitations(
+        evidence_level="abstract",
+        mapped_sections=["5.2"],
+        abstract=abstract,
+    )
+
+    assert limitations == [
+        "Abstract-level evidence only: validate assumptions, evaluation protocol, and failure cases in the full paper before relying on this as key evidence.",
+        "Yet, this approach can introduce errors when source documents contain outdated or contradictory information.",
+    ]
+
+
+def test_paper_notes_does_not_extract_resolved_failures_as_limitations() -> None:
+    module = _load_skill_script("paper-notes")
+    abstract = (
+        "The proposed reranker reduces retrieval errors by 37% on three benchmarks. "
+        "The model also corrects outdated information and reduces contradictory answers. "
+        "Error rates drop by 37% after reranking. "
+        "The verifier detects contradictory information before generation. "
+        "The system achieves 20% fewer hallucinations on NQ. "
+        "The method is robust to domain shift. "
+        "The system improves security against attacks. "
+        "The model achieves strong performance on out-of-distribution inputs. "
+        "The guard prevents attacks before they reach the model. "
+        "The scheduler eliminates latency bottlenecks in the serving path. "
+        "The system is secure against attacks. "
+        "Attack success rate drops by 40% after hardening. "
+        "The method improves robustness under domain shift. "
+        "The system has low latency."
+    )
+
+    limitations = module._infer_limitations(
+        evidence_level="abstract",
+        mapped_sections=["4.1"],
+        abstract=abstract,
+    )
+
+    assert limitations == [
+        "Abstract-level evidence only: validate assumptions, evaluation protocol, and failure cases in the full paper before relying on this as key evidence."
+    ]
+
+
+def test_paper_notes_prefers_unresolved_negation_over_neutral_error_metrics() -> None:
+    module = _load_skill_script("paper-notes")
+    unresolved = "The method does not address the generalization gap under domain shift."
+    abstract = (
+        "The evaluation reports an error rate of 2.1% on NQ. "
+        f"{unresolved}"
+    )
+
+    limitations = module._infer_limitations(
+        evidence_level="abstract",
+        mapped_sections=["4.1"],
+        abstract=abstract,
+    )
+
+    assert limitations == [
+        "Abstract-level evidence only: validate assumptions, evaluation protocol, and failure cases in the full paper before relying on this as key evidence.",
+        unresolved,
+    ]
+
+
+def test_paper_notes_keeps_negated_detection_after_positive_clause_cleanup() -> None:
+    module = _load_skill_script("paper-notes")
+    unresolved = "The method does not detect contradictory information before generation."
+    abstract = (
+        "The verifier detects contradictory information in the main benchmark. "
+        f"{unresolved}"
+    )
+
+    limitations = module._infer_limitations(
+        evidence_level="abstract",
+        mapped_sections=["4.1"],
+        abstract=abstract,
+    )
+
+    assert limitations == [
+        "Abstract-level evidence only: validate assumptions, evaluation protocol, and failure cases in the full paper before relying on this as key evidence.",
+        unresolved,
+    ]
+
+
+def test_paper_notes_prefers_persistent_attack_risk_over_positive_security_results() -> None:
+    module = _load_skill_script("paper-notes")
+    unresolved = "Attack success rate remains high under adaptive prompting."
+    abstract = (
+        "The system is secure against attacks in the base evaluation. "
+        "Attack success rate drops by 40% after hardening. "
+        "The method improves robustness under domain shift. "
+        "The system has low latency. "
+        f"{unresolved}"
+    )
+
+    limitations = module._infer_limitations(
+        evidence_level="abstract",
+        mapped_sections=["4.1"],
+        abstract=abstract,
+    )
+
+    assert limitations == [
+        "Abstract-level evidence only: validate assumptions, evaluation protocol, and failure cases in the full paper before relying on this as key evidence.",
+        unresolved,
+    ]
+
+
+def test_writer_context_pack_uses_polarity_aware_limitation_signals() -> None:
+    module = _load_skill_script("writer-context-pack")
+
+    assert module._has_negative_limit_signal(
+        "This approach can introduce errors when sources contain outdated information."
+    )
+    assert not module._has_negative_limit_signal(
+        "The proposed reranker reduces retrieval errors by 37% on three benchmarks."
+    )
+    assert not module._has_negative_limit_signal(
+        "The model corrects outdated information and reduces contradictory answers."
+    )
+    assert not module._has_negative_limit_signal(
+        "The evaluation reports an error rate of 2.1% on NQ."
+    )
+    assert not module._has_negative_limit_signal(
+        "The verifier detects errors caused by stale evidence before generation."
+    )
+    assert not module._has_negative_limit_signal(
+        "Error rates drop by 37% after reranking."
+    )
+    assert not module._has_negative_limit_signal(
+        "The method detects contradictory information before generation."
+    )
+    assert not module._has_negative_limit_signal(
+        "The system achieves 20% fewer hallucinations on NQ."
+    )
+    assert not module._has_negative_limit_signal(
+        "The method is robust to domain shift."
+    )
+    assert not module._has_negative_limit_signal(
+        "The system improves security against attacks."
+    )
+    assert not module._has_negative_limit_signal(
+        "The model achieves strong performance on out-of-distribution inputs."
+    )
+    assert not module._has_negative_limit_signal(
+        "The guard prevents attacks before they reach the model."
+    )
+    assert not module._has_negative_limit_signal(
+        "The scheduler eliminates latency bottlenecks in the serving path."
+    )
+    assert not module._has_negative_limit_signal(
+        "The system is secure against attacks."
+    )
+    assert not module._has_negative_limit_signal(
+        "Attack success rate drops by 40% after hardening."
+    )
+    assert not module._has_negative_limit_signal(
+        "The method improves robustness under domain shift."
+    )
+    assert not module._has_negative_limit_signal(
+        "The system has low latency."
+    )
+    assert module._has_negative_limit_signal(
+        "The reranker does not reduce hallucinations under temporal corpus shift."
+    )
+    assert module._has_negative_limit_signal(
+        "The method does not address the generalization gap under domain shift."
+    )
+    assert module._has_negative_limit_signal(
+        "Error rates remain high under domain shift."
+    )
+    assert module._has_negative_limit_signal(
+        "Hallucinations persist after retrieval."
+    )
+    assert module._has_negative_limit_signal(
+        "Error rates do not drop under temporal shift."
+    )
+    assert module._has_negative_limit_signal(
+        "The system does not achieve fewer hallucinations on adversarial prompts."
+    )
+    assert module._has_negative_limit_signal(
+        "The method is not robust to domain shift."
+    )
+    assert module._has_negative_limit_signal(
+        "The system does not improve security against attacks."
+    )
+    assert module._has_negative_limit_signal(
+        "The model fails to maintain strong performance on out-of-distribution inputs."
+    )
+    assert module._has_negative_limit_signal(
+        "The method does not detect contradictory information before generation."
+    )
+    assert module._has_negative_limit_signal(
+        "The guard does not prevent attacks against the model."
+    )
+    assert module._has_negative_limit_signal(
+        "The system is not secure against attacks."
+    )
+    assert module._has_negative_limit_signal(
+        "The method does not improve robustness under domain shift."
+    )
+    assert module._has_negative_limit_signal(
+        "Attack success rate remains high under adaptive prompting."
+    )
+    assert module._has_negative_limit_signal(
+        "The system does not have low latency under load."
+    )
+
+
+def test_shared_limitation_policy_scripts_keep_standalone_help_portable(
+    tmp_path: Path,
+) -> None:
+    for skill_name in ("evidence-draft", "paper-notes", "writer-context-pack"):
+        script = REPO_ROOT / ".codex" / "skills" / skill_name / "scripts" / "run.py"
+        result = subprocess.run(
+            [sys.executable, "-S", str(script), "--help"],
+            cwd=tmp_path,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, f"{skill_name}: {result.stderr or result.stdout}"
 
 
 def test_writer_does_not_repeat_the_same_evidence_as_fact_and_limit() -> None:
@@ -2226,6 +2764,48 @@ def test_course_paper_latex_keeps_compact_table_whole_without_forced_pages() -> 
     assert "(continued)" not in compact
     assert r"\clearpage" not in compact
     assert compact.count(r"\begin{table}[H]") == 1
+
+
+def test_course_paper_latex_scaffold_uses_compact_page_geometry(tmp_path: Path) -> None:
+    script = REPO_ROOT / ".codex" / "skills" / "latex-scaffold" / "scripts" / "run.py"
+    asset = (
+        REPO_ROOT
+        / ".codex"
+        / "skills"
+        / "latex-scaffold"
+        / "assets"
+        / "layout_profiles.json"
+    )
+    policy = json.loads(asset.read_text(encoding="utf-8"))
+    course_layout = policy["profiles"]["course_paper"]
+    skill_text = (
+        REPO_ROOT / ".codex" / "skills" / "latex-scaffold" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    assert course_layout["margin"] == "0.9in"
+    assert "assets/layout_profiles.json" in skill_text
+    assert "0.9in" in skill_text
+    output = tmp_path / "output"
+    output.mkdir(parents=True)
+    (output / "DRAFT.md").write_text(
+        "# Compact Report\n\n## Introduction\n\nA concise evidence-backed report.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "queries.md").write_text(
+        "- draft_profile: course_paper\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--workspace", str(tmp_path)],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    tex = (tmp_path / "latex" / "main.tex").read_text(encoding="utf-8")
+    assert rf"\usepackage[a4paper,margin={course_layout['margin']}]{{geometry}}" in tex
 
 
 def test_numeric_hygiene_rewrites_to_standalone_caveat() -> None:

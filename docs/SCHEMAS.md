@@ -11,7 +11,7 @@ runtime.
 | `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
 | `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
 | `harness-lock.v1` | `.harness/harness.lock.json` | historical Runs | Git revision and hashes for the checkout-resident Pipeline, Units, Skill implementations, and Kernel; retained for compatibility |
-| `harness-lock.v2` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | v1 identity plus a Workspace-local, path-preserving Pipeline contract snapshot and hash manifest for variant inheritance |
+| `harness-lock.v2` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | v1 identity plus a Workspace-local, path-preserving Pipeline contract snapshot and a complete current-Kernel hash manifest; active mutation fails closed on either boundary's drift |
 | `workspace-invocation-lock.v1` | `.harness/invocation.lock` | `tooling.run_state.workspace_invocation_lock` | Diagnostic owner metadata for the process-scoped Workspace command lock |
 | `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
 | `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history, including Completion prepare/commit/recovery stages |
@@ -58,6 +58,13 @@ Events. A v1 PREPARED transaction may be migrated only when current acceptance
 checks pass again; the migrated evidence records its source protocol. Failed
 revalidation becomes a durable `acceptance_recovery_failed` Failure and a
 `BLOCKED` Unit. Unversioned historical locks are never silently upgraded.
+
+The `kernel` object in a v2 lock is an execution boundary, not only descriptive
+metadata. Existing active Runs refuse `run-one`, `run`, `approve`, and `mark`
+when any current `HARNESS_KERNEL_PATHS` entry is missing, unexpected, malformed,
+or hash-mismatched. Read-only inspection remains available. Run Audit exposes a
+`ledger_integrity.kernel_lock` status; completed Runs retain their historical
+verdict even when the executing checkout has since changed.
 
 ## Harness Reports
 
@@ -175,8 +182,11 @@ also compares the three template-owning Skill implementations with
 implementation drift fail closed. The scorecard keeps counts, ratio, threshold,
 asset hashes, localized examples, and lock evidence. The Evaluation ledger keeps
 only the common verdict-and-dimensions projection. It is an acceptance signal,
-not an authorship, originality, or semantic-quality classifier. The 10% limit is an
-initial policy target with no completed passing Run yet.
+not an authorship, originality, or semantic-quality classifier. The 10% limit is
+an initial policy target. One current-contract retained-Artifact replay passes
+31/31 checks at 0/226 (0.0%), establishing attainability for that Artifact set
+but not fresh retrieval, autonomous execution, or calibration across topics and
+profiles.
 
 ## `paper-review` Evidence
 

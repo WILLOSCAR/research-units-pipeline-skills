@@ -88,6 +88,69 @@ def check_writer_selfloop(workspace: Path, outputs: list[str]) -> list[QualityIs
     ]
 
 
+def check_front_matter_writer(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
+    """Reject provisional front-matter bootstrap prose before U095 can commit.
+
+    The final whole-draft auditor remains authoritative. This earlier check
+    gives the CODEX-owned writer Unit the same repair boundary as H3 drafting,
+    so deterministic front matter is rewritten and provenance-committed before
+    downstream merge Units consume it.
+    """
+
+    report_rel = next(
+        (item for item in outputs if item.endswith("FRONT_MATTER_REPORT.md")),
+        "output/FRONT_MATTER_REPORT.md",
+    )
+    report_path = workspace / report_rel
+    issues: list[QualityIssue] = []
+    if not report_path.is_file() or report_path.stat().st_size <= 0:
+        issues.append(
+            QualityIssue(
+                code="missing_front_matter_report",
+                message=f"`{report_rel}` is missing or empty.",
+            )
+        )
+    elif not re.search(
+        r"(?im)^\s*(?:[-*]\s*)?(?:status\s*:\s*)?PASS\s*$",
+        report_path.read_text(encoding="utf-8", errors="ignore"),
+    ):
+        issues.append(
+            QualityIssue(
+                code="front_matter_report_not_pass",
+                message=f"`{report_rel}` is not PASS.",
+            )
+        )
+
+    prose_relpaths = [
+        item
+        for item in outputs
+        if item.startswith("sections/") and item.endswith(".md")
+    ] or [
+        "sections/abstract.md",
+        "sections/S1.md",
+        "sections/S2.md",
+        "sections/discussion.md",
+        "sections/conclusion.md",
+    ]
+    missing = [relpath for relpath in prose_relpaths if not (workspace / relpath).is_file()]
+    if missing:
+        issues.append(
+            QualityIssue(
+                code="front_matter_files_missing",
+                message="Missing front-matter prose: " + ", ".join(missing),
+            )
+        )
+    documents = [
+        (relpath, (workspace / relpath).read_text(encoding="utf-8", errors="ignore"))
+        for relpath in prose_relpaths
+        if (workspace / relpath).is_file()
+    ]
+    issues.extend(
+        check_template_residue_documents(workspace=workspace, documents=documents)
+    )
+    return issues
+
+
 def check_eval_anchor_report(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
     out_rel = outputs[0] if outputs else "output/EVAL_ANCHOR_REPORT.md"
     path = workspace / out_rel

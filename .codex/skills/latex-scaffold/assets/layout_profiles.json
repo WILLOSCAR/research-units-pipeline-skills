@@ -1,0 +1,18 @@
+{
+  "schema": "latex-layout-profiles.v1",
+  "profiles": {
+    "default": {
+      "margin": "1in",
+      "show_table_of_contents": true,
+      "split_large_tables": true,
+      "compact_bibliography": false
+    },
+    "course_paper": {
+      "margin": "0.9in",
+      "show_table_of_contents": false,
+      "split_large_tables": false,
+      "compact_bibliography": true,
+      "rationale": "Keep an A4 bounded report within its declared page range without shrinking the 11pt body text."
+    }
+  }
+}

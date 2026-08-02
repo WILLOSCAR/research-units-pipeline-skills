@@ -299,7 +299,10 @@ def main() -> int:
     packs_pat = r"(?i)\bevidence\s+packs?\b"
     packs_n = len(re.findall(packs_pat, draft))
     if packs_n:
-        warnings.append(f"pipeline jargon evidence pack(s) appears in prose ({packs_n}x); rewrite as survey methodology or remove")
+        blocking.append(
+            f"pipeline voice ('evidence pack') appears in prose ({packs_n}x); "
+            "rewrite as research evidence or remove"
+        )
 
 
     # Bib health.
@@ -381,14 +384,22 @@ def main() -> int:
     template_family_details: list[tuple[str, int, list[str]]] = []
     family_counts: dict[str, int] = {}
 
-    def _add_family(label: str, pat: str, *, warn_at: int) -> None:
+    def _add_family(
+        label: str,
+        pat: str,
+        *,
+        warn_at: int,
+        block_at: int | None = None,
+    ) -> None:
         n = len(re.findall(pat, draft))
         if not n:
             return
         family_counts[label] = n
         exs = _examples(draft, pat, max_examples=3)
         template_family_details.append((label, n, exs))
-        if n >= int(warn_at):
+        if block_at is not None and n >= int(block_at):
+            blocking.append(f"template phrase family is forbidden ({n}×): {label}")
+        elif n >= int(warn_at):
             warnings.append(f"template phrase family repeated ({n}×): {label}")
 
     # Common generator-voice families.
@@ -426,6 +437,40 @@ def main() -> int:
         "pipeline voice ('this run')",
         r"(?i)\bthis\s+run\b",
         warn_at=1,
+        block_at=1,
+    )
+    _add_family(
+        "pipeline voice ('this pipeline')",
+        r"(?i)\bthis\s+pipeline\b",
+        warn_at=1,
+    )
+    _add_family(
+        "pipeline voice ('this workspace')",
+        r"(?i)\bthis\s+workspace\b",
+        warn_at=1,
+        block_at=1,
+    )
+    _add_family(
+        "pipeline terminology ('this stage')",
+        r"(?i)\bthis\s+stage\b",
+        warn_at=1,
+    )
+    _add_family(
+        "pipeline terminology ('quality gate')",
+        r"(?i)\bquality\s+gate\b",
+        warn_at=1,
+    )
+    harness_anchor = (
+        r"(?:checkpoint\s+C\d+|unit\s+U\d+|harness(?:\s+(?:lock|kernel))?|"
+        r"attempt\s+ledger|locked\s+contract|template\s+residue|workspace)"
+    )
+    ambiguous_pipeline_term = r"(?:this\s+(?:pipeline|stage)|quality\s+gate)"
+    _add_family(
+        "pipeline voice (Harness context)",
+        rf"(?i)(?:\b{ambiguous_pipeline_term}\b[^.!?\n]{{0,160}}\b{harness_anchor}\b|"
+        rf"\b{harness_anchor}\b[^.!?\n]{{0,160}}\b{ambiguous_pipeline_term}\b)",
+        warn_at=1,
+        block_at=1,
     )
 
     _add_family(

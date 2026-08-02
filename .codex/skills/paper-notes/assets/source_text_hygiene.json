@@ -183,7 +183,6 @@
     "(?i)^large\\s+policies\\s+pretrained\\s+on\\s+diverse\\s+robot\\s+datasets\\b.*\\byet\\b",
     "(?i)^we\\s+experimentally\\s+confirm\\s+that\\s+our\\s+dreaming\\s+model\\s+enables\\s+robot\\s+learning\\s+of\\s+policies\\s+that\\s+transfer\\s+to\\s+the\\s+real-world\\b"
   ],
-  "limitation_keep_pattern": "(?i)\\b(?:limit\\w*|challeng\\w*|gap\\w*|fragil\\w*|bottleneck\\w*|uncertain\\w*|underexplored|cost\\w*|scarce|lack\\w*|missing|constrain\\w*|restrict\\w*|partial\\s+observability|real-world\\s+deployment|negative\\s+transfer|failure\\w*|ood|out-of-distribution)\\b",
   "limitation_drop_patterns": [
     "(?i)^we\\s+deploy\\b",
     "(?i)^we\\s+also\\s+devise\\b",

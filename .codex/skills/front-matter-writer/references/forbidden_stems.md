@@ -26,12 +26,16 @@ Avoid:
 Never leak into reader-facing prose:
 - `pipeline-goal sentence`
 - `pipeline-spanning narration`
-- `workspace`
-- `unit`
-- `quality gate`
+- `this run` / `this workspace`
+- Harness-bound `Unit U...`, `checkpoint C...`, `attempt ledger`, or `quality gate`
 - `evidence pack`
 - `writer context pack`
 - `stage C2/C3/C4/C5`
+
+Domain terms are not forbidden by themselves. A paper may legitimately discuss
+a data pipeline, unit of analysis, processing stage, or domain quality gate.
+Treat them as internal leakage only when the sentence ties them to the Harness
+anchors above.
 
 ## Slot phrases
 

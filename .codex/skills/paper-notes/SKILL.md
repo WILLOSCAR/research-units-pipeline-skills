@@ -27,6 +27,8 @@ Machine-readable assets:
 - `assets/note_schema.json` — JSONL record schema for validation
 - `assets/evidence_tags.json` — evidence bank tagging categories (extensible without code changes)
 - `assets/source_text_hygiene.json` — note-field source sentence cleanup policy
+- repo-wide `assets/limitation-signals.json` — shared polarity rules for
+  distinguishing unresolved constraints from resolved failures or improvements
 
 ## Script Boundary
 

@@ -91,8 +91,9 @@ Use `scripts/run.py` as a helper only:
 - the mandatory `pipeline-auditor` measures the entire merged draft and writes a
   scorecard whose verdict and dimensions the Harness projects into the
   evaluation ledger
-- the current 10% limit is an initial policy target; no completed passing Run has
-  yet established that the end-to-end Workflow can attain it
+- the current 10% limit is an initial policy target; a published current-contract
+  replay measures 0/226 residue for one retained Artifact set, while clean
+  from-scratch and cross-topic reproduction remain open
 - if the marker predates a writer input or the writer script, it is stale and the next run removes it before regenerating bootstrap prose
 
 ## Quick Start

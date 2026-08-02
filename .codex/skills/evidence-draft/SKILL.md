@@ -27,6 +27,8 @@ Machine-readable assets:
 - `assets/evidence_pack_schema.json`
 - `assets/evidence_policy.json`
 - `assets/source_text_hygiene.json`
+- repo-wide `assets/limitation-signals.json` — shared polarity rules that keep
+  resolved failures and positive improvements out of limitation slots
 
 ## Inputs
 
@@ -73,6 +75,9 @@ Keep these stable:
 Current mode is reference-first with deterministic compatibility:
 - `assets/evidence_policy.json` defines pack thresholds and sparse-evidence routing
 - `assets/evidence_pack_schema.json` documents/validates the stable pack shape
+- `assets/source_text_hygiene.json` owns this Skill's wrapper cleanup, while the
+  repo-wide `assets/limitation-signals.json` owns limitation polarity across
+  `paper-notes`, `evidence-draft`, and `writer-context-pack`
 - `scripts/run.py` still materializes the existing JSONL + Markdown outputs, but no longer pads sparse sections with generic caution prose
 
 ## Quick Start

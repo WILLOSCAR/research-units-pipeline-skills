@@ -81,8 +81,10 @@ merged draft, verifies selected asset hashes and the three template-owning Skill
 implementations against the v2 Run lock, and emits a full scorecard. Completion
 projects its verdict and dimensions into the evaluation ledger. A
 passing ratio is a literal-overlap lower bound, not proof of authorship or
-originality. The 10% limit is an initial policy target that no completed passing
-Run has yet validated.
+originality. The 10% limit is an initial policy target. A published
+current-contract replay passes 31/31 checks at 0/226 residue for one retained
+Artifact set; fresh retrieval, autonomous execution, and cross-topic calibration
+remain open.
 
 The boundary is the evidence base. This path is appropriate when research
 papers are the primary sources. It is not currently a market-intelligence,

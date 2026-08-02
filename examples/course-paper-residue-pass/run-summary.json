@@ -1,0 +1,156 @@
+{
+  "schema": "completed-run-evidence.v1",
+  "captured_at": "2026-08-02T12:32:57+08:00",
+  "workflow": "arxiv-survey-latex",
+  "profile": "course_paper",
+  "goal": "Write an 8-10 page course paper on how retrieval-augmented generation systems should be evaluated, with a final PDF.",
+  "source_mode": "retained_online_arxiv_artifact_revalidation",
+  "run_state": "COMPLETED",
+  "completion_protocol": "recoverable-provenance.v2",
+  "repository": {
+    "revision": "8c0cf7ddb71617e66d6583a4438a8f457c99191a",
+    "dirty": true
+  },
+  "kernel_lock": {
+    "verdict": "PASS",
+    "locked_files": 35,
+    "current_files": 35,
+    "matched_files": 35,
+    "drifted_files": 0
+  },
+  "units": {
+    "total": 49,
+    "done": 49,
+    "active": 0
+  },
+  "workflow_acceptance": {
+    "verdict": "PASS",
+    "locked_required_checks": 31,
+    "covered_required_checks": 31,
+    "verified_required_units": 31,
+    "done_without_acceptance_evidence": 0,
+    "evidence_basis": "DONE Manifest plus committed Completion Event acceptance",
+    "contract_note": "The immutable Pipeline snapshot includes the current front-matter-writer gate and all 31 required checks."
+  },
+  "attempts": {
+    "started": 49,
+    "finished": 49,
+    "open": 0,
+    "succeeded": 49,
+    "failed_retryable": 0,
+    "waiting_human": 0,
+    "extra_attempts": 0,
+    "retry_units": 0,
+    "process_mode": 1,
+    "manual_mode": 48
+  },
+  "retrieval": {
+    "provider": "arxiv_api",
+    "raw_records": 320,
+    "deduplicated_records": 320,
+    "core_papers": 48,
+    "evidence_boundary": "Predominantly abstract-level metadata for one RAG-evaluation topic."
+  },
+  "artifact_audit": {
+    "verdict": "PASS",
+    "target_artifacts_present": 75,
+    "target_artifacts_missing": 0,
+    "harness_errors": 0,
+    "harness_warnings": 0,
+    "ledger_integrity_issues": 0,
+    "unit_output_manifests": 49
+  },
+  "writing_audit": {
+    "verdict": "PASS",
+    "unique_citations": 24,
+    "bibliography_entries": 48,
+    "outline_h3_expected": 6,
+    "draft_h3_found": 6
+  },
+  "writing_provenance": {
+    "schema": "template-residue-measurement.v1",
+    "measurement_scope": "examples/course-paper-residue-pass/DRAFT.md",
+    "measurement_scope_description": "Entire merged reader-facing draft",
+    "template_assets": [
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json"
+    ],
+    "template_asset_sha256": {
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json": "f14ff99f69d233ca825dbe2fb41aebbb191c67d387882abde13350631b271f02",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json": "85ea675a7d1cad3471187cbe71b9aea90a01b4cfe1a56146f0561c79ec370963",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json": "859c546d1b99960e7ab665281f2468fc2d556b5ccc1153e6cd194c8f9070170f",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json": "0143a81c1d58f6aaf7f725ceb330bd3b1c66c73fa5e008ff7ac75a0d4e7bd1b4"
+    },
+    "writer_implementation_sha256": {
+      "front-matter-writer": "4a4ee668b9e3834f1bf9db43c0665d0c46612bf77b52ef5396ede16572ffa050",
+      "chapter-lead-writer": "8e9e853a9945995a0ab63e7db2ea0fbf37ebf4fd4e9843dc752807b6bdabfeb0",
+      "subsection-writer": "55147478cc2dba4fe45eea1000066db6a1742dd423c1a3f239846b5412d1d07d"
+    },
+    "min_literal_chars": 24,
+    "sentence_count": 226,
+    "matched_sentence_count": 0,
+    "matched_sentence_ratio": 0.0,
+    "workflow_limit": 0.1,
+    "gate_verdict": "PASS",
+    "asset_selection_verdict": "PASS",
+    "implementation_lock_verdict": "PASS",
+    "interpretation": "A reproducible lower bound on literal deterministic-template residue, not an authorship or originality classifier.",
+    "threshold_validation": "One completed Run under the current 31-check contract demonstrates attainability for this Artifact set; clean-revision, from-scratch, cross-topic, and cross-profile reproduction remains open."
+  },
+  "delivery": {
+    "format": "PDF",
+    "compile_verdict": "SUCCESS",
+    "pages": 10,
+    "page_size": "A4",
+    "requested_pages": "8-10"
+  },
+  "files": {
+    "README.md": {
+      "sha256": "49010a8d06e629c9754ea4b9929f2a310b1f6c3758dc63a35ed06aee60749be1"
+    },
+    "RUN_AUDIT_EXCERPT.md": {
+      "sha256": "c3248723d74d759efdd135906e7325ac5206d8b1e3c84e8839b9a6fda02e61a9"
+    },
+    "GOAL.md": {
+      "sha256": "6266b3e87629405c279d777cf8e47ac9e1edf4b1045c8e511a7b384c42d2ae0b"
+    },
+    "UNITS.csv": {
+      "sha256": "dea8d56e3281a8a0e6f93f1420b2f7f67a4e2ede35d5b04184ed3a67b7ad82c9"
+    },
+    "DRAFT.md": {
+      "sha256": "049469625e01845302719f4f5acd43fa47dd496c448550fbd5df89b7689fc841"
+    },
+    "main.tex": {
+      "sha256": "6f1bcee12add18c7a406d7eff5db7e59690157c49df824f70a1acfd5f893a423"
+    },
+    "references.bib": {
+      "sha256": "167937062d2272f4ff39704b754512dceaa5346d7c247293ec8e83fbfb14046e"
+    },
+    "paper.pdf": {
+      "sha256": "6ca1714736f89ccdbb64246b6612a1ad9e7a9f726c618bfb0692d5be069b494c"
+    },
+    "AUDIT_REPORT.md": {
+      "sha256": "c4257476de1f18e327bcd90fd6cc8b330702421c482a2f75a434759b8a7569ac"
+    },
+    "TEMPLATE_RESIDUE_SCORECARD.json": {
+      "sha256": "36991c04b0f8acd32a0473cdca0b5cbefcb23a8c153253f4ca59eb0690034b38"
+    },
+    "CONTRACT_REPORT.md": {
+      "sha256": "3930c81c92dac492d711c228c798e8be74cb69a2dc500c4121694ccd8948b454"
+    },
+    "LATEX_BUILD_REPORT.md": {
+      "sha256": "395c71a8bc6371fbbed44c226c74f972dad09fff0bce7e7ccf8fff8f74a66b78"
+    }
+  },
+  "limitations": [
+    "single topic and one course-paper profile",
+    "predominantly abstract-level evidence",
+    "no held-out expert evaluator or semantic-quality comparison",
+    "one current-contract passing Run proves attainability for this Artifact set but does not calibrate the 10% threshold across topics or profiles",
+    "48 manual-mode Attempts revalidate retained Artifacts and one process Attempt runs the final auditor, so this is not autonomous-execution or fresh-retrieval evidence",
+    "the Run lock records a dirty worktree, so clean-revision reproduction remains open",
+    "the public snapshot omits the complete private operational ledger"
+  ]
+}

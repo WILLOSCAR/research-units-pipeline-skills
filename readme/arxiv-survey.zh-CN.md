@@ -70,8 +70,9 @@ topic -> retrieval -> structure -> evidence -> long-form draft -> optional PDF
 检查器。强制的 `pipeline-auditor` 会测量整份合并稿、校验已选资产哈希，并对照 v2 Run
 Lock 校验 3 个模板所属 Skill implementation，再生成完整 Scorecard。Completion 只把
 Verdict 与 Dimensions 投影到 Evaluation Ledger。通过该比例只说明字面
-重合下界合格，不能证明作者身份或原创性。10% 是初始政策目标，目前还没有完成态 PASS Run
-证明它可达。
+重合下界合格，不能证明作者身份或原创性。10% 是初始政策目标；一条公开的当前合同
+Artifact 重放以 31/31 检查和 0/226 残留通过，证明该 Artifact 集可达，但新鲜检索、
+自动执行与跨主题校准仍未完成。
 
 判断边界看证据来源：这条路径适合“研究论文是主要来源”的任务；目前不适合市场情报、
 实时网页监控、实验报告或单一材料读后感。快速入门用 `research-brief`，单篇论文评审用

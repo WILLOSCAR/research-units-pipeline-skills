@@ -27,5 +27,11 @@ If raw source wrappers stay in `evidence_snippets`, later packs and writing stag
 
 ## Boundary
 
-The hygiene policy belongs in `assets/source_text_hygiene.json`.
-`scripts/run.py` should only apply it deterministically and do the smallest necessary artifact-name repair after stripping wrappers.
+Wrapper cleanup belongs in this Skill's `assets/source_text_hygiene.json`.
+Limitation polarity belongs in the repository-wide
+`assets/limitation-signals.json`, shared with `paper-notes` and
+`writer-context-pack`. The shared policy preserves negated unresolved failures
+but removes neutral metric statements and positive repair results; do not copy
+its regexes into this package.
+`scripts/run.py` should apply both policies deterministically and do the
+smallest necessary artifact-name repair after stripping wrappers.

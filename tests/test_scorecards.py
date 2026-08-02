@@ -220,6 +220,7 @@ def test_quality_gate_registry_is_explicit_and_dispatchable(monkeypatch, tmp_pat
         "evidence-auditor",
         "evidence-selfloop",
         "extraction-form",
+        "front-matter-writer",
         "global-reviewer",
         "idea-brief",
         "idea-direction-generator",

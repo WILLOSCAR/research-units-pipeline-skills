@@ -21,6 +21,16 @@ This is a deterministic conversion step; prose quality should already be address
 
 - `latex/main.tex` (and any required LaTeX support files)
 
+## Layout policy
+
+The machine-readable layout contract lives in `assets/layout_profiles.json`.
+The default profile uses a 1in A4 margin, includes a table of contents, and may
+split large tables. The bounded `course_paper` profile uses a documented 0.9in
+A4 margin, omits the table of contents, keeps a compact table whole when
+possible, and sets only the bibliography in `\small`. Body text remains 11pt.
+This profile is intended to respect an explicit page range, not to manufacture
+substantive completeness by shrinking the paper.
+
 ## Workflow
 
 1. Create `latex/` directory if missing.
@@ -51,6 +61,8 @@ This is a deterministic conversion step; prose quality should already be address
 ### Notes
 
 - The generated `latex/main.tex` includes a table of contents (tocdepth=2) for readability.
+- The `course_paper` profile omits that table of contents according to
+  `assets/layout_profiles.json`; other profiles include it by default.
 - Language default: the scaffold uses `article` (English-looking front matter). If the draft contains CJK characters, it switches to `ctexart` so the PDF renders correctly.
 - Conversion rules (high level):
   - Headings `##/###/####` → `\section/\subsection/\subsubsection` (strips leading numeric prefixes like `1.2`).

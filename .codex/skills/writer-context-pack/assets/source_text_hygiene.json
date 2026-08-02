@@ -24,7 +24,6 @@
   "named_artifact_pattern": "(?i)^(?:here,\\s*)?(?:we|the authors)\\s+(?:introduce|present|propose|develop|describe)\\s+([A-Z][A-Za-z0-9][^,.;:]{0,120}),\\s+(.*)$",
   "generic_self_narration_pattern": "(?i)^(?:(?:here,\\s*)?(?:we|our)\\s+(?:(?:also|broadly|comprehensively)\\s+)?(?:introduce|present|propose|develop|describe|compare|conduct|discuss|summarize|review|explore|analyze|evaluate|study|design|build|construct|divide)|our\\s+(?:approach|method|framework|pipeline|system|model)\\s+(?:facilitates?|enables?|allows?|uses?))\\b",
   "study_self_narration_pattern": "(?i)^(?:this|our)\\s+(?:survey|paper|work|study|article)\\b",
-  "negative_limit_pattern": "(?i)\\b(?:limit\\w*|challeng\\w*|risk\\w*|unsafe|fail\\w*|fragil\\w*|gap\\w*|bottleneck\\w*|latency|cost\\w*|complexit\\w*|domain\\s+shift|out-of-distribution|ood|partial\\s+observability|generalization\\s+(?:gap|limit|challenge)|poor\\s+instruction|hinder\\w*|constrain\\w*|restrict\\w*)\\b",
   "generic_meta_pattern": "(?i)\\b(?:survey|review|overview|taxonomy|history|landscape|main contribution is a detailed breakdown)\\b",
   "generic_summary_patterns": [
     "(?i)^benchmarks? are crucial for evaluating progress\\b",

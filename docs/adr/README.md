@@ -30,6 +30,7 @@ the decision should guide future contributors and agents across runs.
 | [0017](0017-bind-completion-acceptance-to-recovery-and-audit.md) | Bind Completion acceptance to recovery and Audit | accepted |
 | [0018](0018-snapshot-pipeline-contracts-inside-each-run.md) | Snapshot Pipeline contracts inside each Run | accepted |
 | [0019](0019-bind-checkpoint-approval-to-reviewed-artifacts.md) | Bind Checkpoint approval to reviewed Artifacts | accepted |
+| [0020](0020-fail-closed-on-active-run-kernel-drift.md) | Fail closed on active Run Kernel drift | accepted |
 
 ## ADR Format Contract
 

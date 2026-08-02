@@ -46,7 +46,7 @@ unbounded self-modification. Distinguish these two operations:
 | Term | Canonical meaning |
 |---|---|
 | Workspace | Directory containing the human-readable project files and machine-readable ledger for one Run. It is a storage boundary, not a Workflow. |
-| Revision lock | `harness-lock.v2` record that binds a Run to repository identity, a Workspace-local Pipeline snapshot bundle, Unit template, Skill implementations, Kernel hashes, and Completion Protocol. It supports reproducibility and drift detection; it is not the Invocation lock. |
+| Revision lock | `harness-lock.v2` record that binds a Run to repository identity, a Workspace-local Pipeline snapshot bundle, Unit template, Skill implementations, Kernel hashes, and Completion Protocol. Active v2 mutation fails closed on Pipeline or Kernel drift; inspection remains available and skips reconciliation under drift. It is not the Invocation lock. |
 | Invocation lock | Process-scoped local mutex that serializes complete Harness commands against one Workspace. It is distinct from the Harness revision lock and is not a distributed worker lease. |
 | Unit | Logical step declared in `UNITS.csv`, with an owner, dependencies, inputs, outputs, and acceptance rule. |
 | Attempt | One concrete execution of a Unit. A retry creates another Attempt and preserves earlier history. Process-owned Attempts carry local crash-recovery metadata; manual Attempts may span commands. |
@@ -55,7 +55,7 @@ unbounded self-modification. Distinguish these two operations:
 | Artifact | Durable input, intermediate output, report, manifest, scorecard, or deliverable produced or consumed by a Run. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and related provenance. It is not necessarily a portable archive. |
 | Decision | Append-only record of an explicit human or Harness intervention. A Checkpoint approval also records which Artifact versions were reviewed, so later edits invalidate stale authorization. |
-| Audit | Bounded inspection of Run state, cross-ledger integrity, Artifact coverage, provenance, implementation freshness, or declared quality contracts. It may reconcile machine projections before reading them, but does not alter research content or Decisions. |
+| Audit | Bounded inspection of Run state, cross-ledger integrity, Artifact coverage, provenance, implementation freshness, or declared quality contracts. It may reconcile recoverable projections only for a current matching Run; under identity or Kernel drift it reads the evidence in place. It does not alter research content or Decisions. |
 | Failure | Durable record of an observable defect, its causal behavior, and the repair surface that owns it. |
 | Evaluation | Append-only Workflow-local scorecard result attached to a Run Attempt, including verdict, dimensions, repair surfaces, and optional efficiency metrics. |
 | Project Memory | Human-approved durable knowledge in ADRs, vocabulary, tests, validation rules, and accepted architecture constraints. |

@@ -131,6 +131,7 @@ quality_contract:
       - evidence-selfloop
       - anchor-sheet
       - writer-context-pack
+      - front-matter-writer
       - subsection-writer
       - writer-selfloop
       - evaluation-anchor-checker
@@ -342,13 +343,16 @@ them.
 
 The deterministic writer scripts may create provisional bootstrap prose, but
 the CODEX-owned writing Units are responsible for rewriting it before
-acceptance. The final auditor measures the entire draft against the
+acceptance. Front matter now receives the same residue check at its owning Unit
+boundary, so an unedited bootstrap cannot commit and flow silently into merge.
+The final auditor measures the entire draft against the
 writer-template assets selected for that Run (four fixed banks plus an optional
 front-matter domain overlay), verifies the recorded asset hashes and their
 owning Skill implementations against the v2 Run lock, and emits
-`output/TEMPLATE_RESIDUE_SCORECARD.json`. The 10% limit is
-an initial policy target; no completed passing Run has validated attainability
-yet, so it remains an enforced but explicitly unproven threshold.
+`output/TEMPLATE_RESIDUE_SCORECARD.json`. The 10% limit remains an initial policy
+target. A passing scorecard establishes attainability only for the Artifact set
+and immutable contract recorded by that Run; clean from-scratch reproduction
+and cross-topic calibration require separate evidence.
 
 The Workflow-declared completion checks are mandatory in normal execution.
 `--strict` adds registered diagnostic checks that are not already part of the

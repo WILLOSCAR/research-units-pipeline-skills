@@ -63,5 +63,11 @@ Especially for `key_results` and `limitations`, drop or rewrite:
 
 ## Boundary
 
-The cleanup policy belongs in `assets/source_text_hygiene.json`.
-`run.py` should apply it deterministically during note inference and backfill.
+Wrapper cleanup belongs in this Skill's `assets/source_text_hygiene.json`.
+Limitation polarity belongs in the repository-wide
+`assets/limitation-signals.json`, shared with `evidence-draft` and
+`writer-context-pack`. It keeps negated unresolved failures while excluding
+neutral error metrics and successful repairs; do not maintain a second
+negative-signal regex here.
+`run.py` should apply both policies deterministically during note inference and
+backfill.

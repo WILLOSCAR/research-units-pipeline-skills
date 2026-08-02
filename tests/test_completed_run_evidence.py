@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = REPO_ROOT / "examples" / "course-paper-pilot"
 BRIEF_SNAPSHOT = REPO_ROOT / "examples" / "research-brief-harness-proof"
 REAL_BRIEF_SNAPSHOT = REPO_ROOT / "examples" / "research-brief-real-source-proof"
+RESIDUE_PASS_SNAPSHOT = REPO_ROOT / "examples" / "course-paper-residue-pass"
 
 
 def _sha256(path: Path) -> str:
@@ -105,6 +106,118 @@ def test_course_paper_snapshot_exposes_the_completed_unit_plan() -> None:
     assert {row["status"] for row in rows} == {"DONE"}
     assert rows[0]["skill"] == "workspace-init"
     assert rows[-1]["skill"] == "artifact-contract-auditor"
+
+
+def test_course_paper_residue_pass_snapshot_is_complete_and_hash_consistent() -> None:
+    from tooling.quality_checks.template_residue import measure_template_residue
+
+    summary = json.loads((RESIDUE_PASS_SNAPSHOT / "run-summary.json").read_text(encoding="utf-8"))
+    scorecard = json.loads(
+        (RESIDUE_PASS_SNAPSHOT / "TEMPLATE_RESIDUE_SCORECARD.json").read_text(encoding="utf-8")
+    )
+
+    assert summary["schema"] == "completed-run-evidence.v1"
+    assert summary["workflow"] == "arxiv-survey-latex"
+    assert summary["source_mode"] == "retained_online_arxiv_artifact_revalidation"
+    assert summary["run_state"] == "COMPLETED"
+    assert summary["completion_protocol"] == "recoverable-provenance.v2"
+    assert summary["repository"] == {
+        "revision": "8c0cf7ddb71617e66d6583a4438a8f457c99191a",
+        "dirty": True,
+    }
+    assert summary["units"] == {"total": 49, "done": 49, "active": 0}
+    assert summary["kernel_lock"] == {
+        "verdict": "PASS",
+        "locked_files": 35,
+        "current_files": 35,
+        "matched_files": 35,
+        "drifted_files": 0,
+    }
+    assert summary["workflow_acceptance"]["verdict"] == "PASS"
+    assert summary["workflow_acceptance"]["locked_required_checks"] == 31
+    assert summary["workflow_acceptance"]["covered_required_checks"] == 31
+    assert summary["workflow_acceptance"]["verified_required_units"] == 31
+    assert summary["workflow_acceptance"]["done_without_acceptance_evidence"] == 0
+    assert summary["attempts"] == {
+        "started": 49,
+        "finished": 49,
+        "open": 0,
+        "succeeded": 49,
+        "failed_retryable": 0,
+        "waiting_human": 0,
+        "extra_attempts": 0,
+        "retry_units": 0,
+        "process_mode": 1,
+        "manual_mode": 48,
+    }
+    assert summary["artifact_audit"]["verdict"] == "PASS"
+    assert summary["artifact_audit"]["target_artifacts_present"] == 75
+    assert summary["artifact_audit"]["target_artifacts_missing"] == 0
+    assert summary["artifact_audit"]["ledger_integrity_issues"] == 0
+    assert summary["delivery"]["pages"] == 10
+    assert summary["delivery"]["page_size"] == "A4"
+
+    provenance = summary["writing_provenance"]
+    assert provenance["schema"] == "template-residue-measurement.v1"
+    assert provenance["sentence_count"] == 226
+    assert provenance["matched_sentence_count"] == 0
+    assert provenance["matched_sentence_ratio"] == 0.0
+    assert provenance["workflow_limit"] == 0.1
+    assert provenance["gate_verdict"] == "PASS"
+    assert provenance["asset_selection_verdict"] == "PASS"
+    assert provenance["implementation_lock_verdict"] == "PASS"
+
+    assert scorecard["schema"] == "template-residue-scorecard.v1"
+    assert scorecard["verdict"] == "PASS"
+    assert scorecard["score"] == 100
+    assert scorecard["measurement"]["sentence_count"] == 226
+    assert scorecard["measurement"]["matched_sentence_count"] == 0
+    assert scorecard["measurement"]["matched_sentence_ratio"] == 0.0
+    assert scorecard["policy"]["max_ratio"] == 0.1
+    assert scorecard["asset_selection"]["status"] == "PASS"
+    assert scorecard["implementation_lock"]["status"] == "PASS"
+
+    asset_paths = tuple(REPO_ROOT / relpath for relpath in scorecard["measurement"]["template_assets"])
+    measurement = measure_template_residue(
+        documents=[("DRAFT.md", (RESIDUE_PASS_SNAPSHOT / "DRAFT.md").read_text(encoding="utf-8"))],
+        asset_paths=asset_paths,
+        min_literal_chars=scorecard["measurement"]["min_literal_chars"],
+    )
+    assert measurement["sentence_count"] == 226
+    assert measurement["matched_sentence_count"] == 0
+    assert measurement["matched_sentence_ratio"] == 0.0
+
+    draft = (RESIDUE_PASS_SNAPSHOT / "DRAFT.md").read_text(encoding="utf-8")
+    assert not re.search(
+        r"(?i)\b(?:this run|this workspace|quality gate)\b|\bthis\s+(?:pipeline|stage)\b",
+        draft,
+    )
+
+    for relpath, digest in provenance["template_asset_sha256"].items():
+        assert _sha256(REPO_ROOT / relpath) == digest
+    for relative_path, metadata in summary["files"].items():
+        artifact = RESIDUE_PASS_SNAPSHOT / relative_path
+        assert artifact.is_file(), relative_path
+        assert _sha256(artifact) == metadata["sha256"], relative_path
+
+    assert (RESIDUE_PASS_SNAPSHOT / "paper.pdf").read_bytes().startswith(b"%PDF-")
+
+
+def test_course_paper_residue_pass_snapshot_exposes_done_plan_without_private_ids() -> None:
+    with (RESIDUE_PASS_SNAPSHOT / "UNITS.csv").open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert len(rows) == 49
+    assert {row["status"] for row in rows} == {"DONE"}
+    assert rows[0]["skill"] == "workspace-init"
+    assert rows[-1]["skill"] == "artifact-contract-auditor"
+
+    for path in RESIDUE_PASS_SNAPSHOT.rglob("*"):
+        if not path.is_file() or path.suffix not in {".md", ".json", ".csv", ".tex", ".bib"}:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        assert "/Users/" not in text, path
+        assert not re.search(r"\b(?:run|goal|attempt)_[0-9a-f]{8,}\b", text), path
 
 
 def test_research_brief_harness_proof_is_complete_and_hash_consistent() -> None:

@@ -153,7 +153,7 @@ retrieval, or expert-level judgment.
 | Run State | `tooling/run_state.py` functions | Run identity, initial revision lock, Workspace invocation lock, append-only ledgers, reconciliation, and cross-ledger integrity |
 | Completion Protocol | `commit_unit_completion(...)` | Required outputs, Workflow-mandatory acceptance checks, recomputed scorecard consistency, acceptance evidence, two-phase Manifest, successful Attempt, Artifact registration, and DONE projection |
 | Executor | `run_one_unit(...)` | Unit selection, Skill process dispatch, pre-completion failures, and delegation to the Completion Protocol |
-| Harness reports | `tooling/harness.py` builders | Standalone Doctor uses a shallow reconciled snapshot; Audit, diagnosis, and Artifact-index views share the deeper snapshot |
+| Harness reports | `tooling/harness.py` builders | Standalone Doctor uses a shallow snapshot; Audit, diagnosis, and Artifact-index views share the deeper snapshot; reconciliation runs only for a current matching Run, never while diagnosing lock drift |
 | Quality registry | `tooling/quality_gate.py` | Stable Skill-to-check dispatch, Workflow-mandatory completion checks, and additional strict diagnostics |
 | Quality domains | `tooling/quality_checks/` | Workflow-family semantic checks for survey, review, ideation, tutorial, and delivery Artifacts |
 | Scorecard kernel | `tooling/scorecards.py` | Shared policy loading, scoring, failure projection, validation, rendering, and persistence |
@@ -272,10 +272,14 @@ unit-template hash, each referenced Skill's complete implementation-directory
 hash (including scripts, assets, and references), and deterministic Kernel
 hashes. Runtime policy is loaded from the pinned snapshot. Missing or modified
 snapshot files fail closed instead of silently switching an old Run to the
-current checkout's contract. Historical v1 locks remain readable but do not
-claim this snapshot guarantee. The local CLI does not know the model/provider
-parameters, so it records that they were not captured instead of inventing
-them.
+current checkout's contract. Before an active v2 Run executes a Unit or accepts
+a mutation, every current Kernel path must also match its pinned digest;
+otherwise the command exits before creating an Attempt. Doctor and Audit remain
+available, and completed Runs remain interpretable under their original
+contract. Historical v1 locks remain readable but do not claim these snapshot
+or execution-boundary guarantees. The local CLI does not know the
+model/provider parameters, so it records that they were not captured instead
+of inventing them.
 
 Each successful Unit manifest additionally fingerprints the Skill directory
 that executed that Attempt. If the implementation later changes, `doctor`
@@ -344,10 +348,12 @@ does not use those descriptive deltas as a quality verdict.
 `run-audit.v2` requires cross-ledger Workflow acceptance coverage and uses
 distinct `PASS`, `IN_PROGRESS`, `INCOMPLETE`, and `ATTENTION` verdicts. Only
 `PASS` exits zero, so Improvement and Artifact Pack cannot promote an unfinished
-Run into a success signal. Its additive quality observations project the latest
-recorded Survey template-residue scorecard without turning that Workflow-local
-measure into a universal research-quality claim. Historical v1 reports remain
-readable.
+Run into a success signal. Audit loads the immutable Pipeline snapshot pinned by
+the Run rather than the mutable live contract, so later policy changes cannot
+retroactively add or remove acceptance requirements. Its additive quality
+observations project the latest recorded Survey template-residue scorecard
+without turning that Workflow-local measure into a universal research-quality
+claim. Historical v1 reports remain readable.
 
 ## 8. Evidence And Artifact Provenance
 
@@ -457,6 +463,7 @@ The same candidate must not be allowed to rewrite the currently implemented
 mechanisms that judge it:
 
 ```text
+assets/limitation-signals.json
 scripts/pipeline.py
 tooling/common.py
 tooling/checkpoint_brief.py
@@ -472,6 +479,7 @@ tooling/quality_reporting.py
 tooling/quality_checks/**
 tooling/run_state.py
 tooling/scorecards.py
+tooling/source_text_hygiene.py
 tooling/brief_evaluation.py
 tooling/evidence_review_evaluation.py
 tooling/idea_evaluation.py
@@ -483,14 +491,18 @@ The exact file inventory is defined once as `HARNESS_KERNEL_PATHS` in
 `tooling/harness_contracts.py`. Run initialization hashes every existing path
 from that contract into `.harness/harness.lock.json`; readiness validation uses
 the same inventory, so the documented protection boundary and the executable
-lock cannot silently diverge.
+lock cannot silently diverge. Active v2 mutations now fail closed when that
+manifest differs from the executing checkout. This is an execution-integrity
+boundary for one local Run, not permission isolation for a future candidate
+system.
 
 When promotion is implemented, its schema validators, Artifact provenance,
 permission and budget enforcement, held-out fixtures, and rollback rules must
 join the protected Kernel before candidates can rely on them.
 
-Today this is a documented architecture rule, not a security sandbox. A real
-candidate system must enforce it through process and filesystem permissions.
+Today Kernel drift is enforced at the local Run mutation boundary, but this is
+not a security sandbox. A real candidate system must additionally enforce
+process and filesystem permissions.
 
 ## 12. Current Maturity: Implementation And Evidence Snapshot
 
@@ -508,8 +520,8 @@ scale.
 | Run recovery | Durable IDs, Events, Attempts, acceptance-aware prepared-transaction recovery, v1 PREPARED migration, and stale-state interruption records | First local implementation; key crash windows tested |
 | Workspace serialization | Non-blocking process-scoped lock across all local Workspace commands; owner-crash release tested | First local implementation; distributed leases absent |
 | Inspection composition | Standalone Doctor uses a shallow snapshot; composed Doctor, Audit, Improvement, and Artifact index share one deep snapshot | Landed; Artifact hashing retains a distinct pass |
-| Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Implemented; refreshed public v2 proof remains open |
-| Ledger integrity | `run-audit.v2` checks cross-ledger identities, references, completion evidence, acceptance coverage, and hashes; only a complete verified Run can PASS | First local implementation; targeted tests |
+| Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Implemented; Survey has a public current-contract replay, while clean-revision and other-Workflow proofs remain open |
+| Ledger integrity | `run-audit.v2` checks cross-ledger identities, references, completion evidence, acceptance coverage, Kernel status, and hashes against the pinned Pipeline snapshot; only a complete verified Run can PASS | Targeted tests plus one published 31-check Survey replay with zero integrity issues |
 | Implementation freshness | per-Attempt Skill fingerprints and stale-DONE diagnosis | First implementation |
 | Mechanical failure diagnosis | Doctor, errors, Failure ledger, blocking repair map, and non-blocking scorecard headroom | Implemented; applied repair is not yet a first-class transaction |
 | Contract evaluation | `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review` scorecards feed one Evaluation ledger; no diverse expert-scored corpus | Implementation landed; external research-quality evidence open |
@@ -518,7 +530,7 @@ scale.
 | `idea-brainstorm` proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | `Scored fixture proof` |
 | `evidence-review` proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | `Scored fixture proof` |
 | `source-tutorial` delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | `Compiled delivery proof` |
-| Bounded-report delivery | [Historical 49-Unit course-paper snapshot](../examples/course-paper-pilot/README.md), captured Artifact audit, 10-page PDF | `arxiv-survey`: `Completed outcome pilot`; `arxiv-survey-latex`: `Compiled delivery proof`; current v2 proof open |
+| Bounded-report delivery | [Historical 68.6% residue baseline](../examples/course-paper-pilot/README.md) plus [current-contract 0/226 PASS snapshot](../examples/course-paper-residue-pass/README.md), 49 completed Units, 31/31 checks, 35/35 Kernel paths, zero ledger issues, and a 10-page PDF | `arxiv-survey`: `Completed outcome pilot`; `arxiv-survey-latex`: `Compiled delivery proof`; fresh retrieval, clean-revision reproduction, autonomy, repetition, and expert quality open |
 | Bounded Self-Harness | Architecture described; external evaluator absent | Not implemented |
 
 ## 13. Current Proof Strategy

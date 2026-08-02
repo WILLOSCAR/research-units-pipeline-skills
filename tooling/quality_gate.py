@@ -280,6 +280,7 @@ _QUALITY_CHECKS: dict[str, QualityCheck] = {
     "evidence-selfloop": survey_planning.check_evidence_selfloop,
     "evidence-auditor": paper_review_checks.check_evidence_audit,
     "extraction-form": _check_extraction_form,
+    "front-matter-writer": survey_writing.check_front_matter_writer,
     "global-reviewer": survey_writing.check_global_review,
     "idea-brief": research_idea_checks.check_idea_brief,
     "idea-direction-generator": research_idea_checks.check_direction_pool,

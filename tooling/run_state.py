@@ -47,6 +47,7 @@ HARNESS_DIR = ".harness"
 GOAL_SCHEMA = "goal-spec.v2"
 RUN_SCHEMA = "run-state.v1"
 LOCK_SCHEMA = "harness-lock.v2"
+RUN_PLAN_SCHEMA = "run-plan.v1"
 EVENT_SCHEMA = "run-event.v1"
 ATTEMPT_SCHEMA = "unit-attempt.v1"
 ARTIFACT_SCHEMA = "artifact-record.v1"
@@ -93,6 +94,209 @@ MUTABLE_PROJECTION_PATHS = {
 
 class ConcurrentInvocationError(RuntimeError):
     """Raised when another process already owns the Workspace mutation boundary."""
+
+
+class RevisionLockDriftError(RuntimeError):
+    """Raised when an active Run no longer matches its pinned Harness Kernel."""
+
+
+def _durable_run_evidence_files(workspace: Path) -> tuple[Path, ...]:
+    harness_dir = workspace / HARNESS_DIR
+    if not harness_dir.is_dir():
+        return ()
+    return tuple(
+        path
+        for path in harness_dir.rglob("*")
+        if path.is_file()
+        and path.relative_to(harness_dir).as_posix() != "invocation.lock"
+        and not path.relative_to(harness_dir).as_posix().startswith("tmp/")
+    )
+
+
+def workspace_has_durable_run_evidence(workspace: Path) -> bool:
+    """Return whether a Workspace already contains evidence owned by a Run."""
+
+    return bool(_durable_run_evidence_files(workspace))
+
+
+def _run_identity_differences(workspace: Path) -> tuple[bool, list[str], list[str]]:
+    """Return durable-evidence presence plus missing and inconsistent identity paths."""
+
+    harness_dir = workspace / HARNESS_DIR
+    durable_files = _durable_run_evidence_files(workspace)
+    if not durable_files:
+        return False, [], []
+
+    missing: list[str] = []
+    drifted: list[str] = []
+
+    def label(relpath: str) -> str:
+        return f"{HARNESS_DIR}/{relpath}"
+
+    def require_file(relpath: str) -> Path | None:
+        path = harness_dir / relpath
+        if not path.is_file():
+            missing.append(label(relpath))
+            return None
+        return path
+
+    run_path = require_file("run.json")
+    lock_path = require_file("harness.lock.json")
+    goal_path = require_file("goal.json")
+    run = _read_json_object(run_path) if run_path else {}
+    lock = _read_json_object(lock_path) if lock_path else {}
+    goal = _read_json_object(goal_path) if goal_path else {}
+
+    run_id = str(run.get("run_id") or "")
+    goal_id = str(run.get("goal_id") or "")
+    if (
+        str(run.get("schema") or "") != RUN_SCHEMA
+        or not run_id
+        or not goal_id
+    ) and run_path:
+        drifted.append(label("run.json"))
+    if (
+        str(lock.get("schema") or "") != LOCK_SCHEMA
+        or not run_id
+        or str(lock.get("run_id") or "") != run_id
+    ) and lock_path:
+        drifted.append(label("harness.lock.json"))
+    if (
+        str(goal.get("schema") or "") != GOAL_SCHEMA
+        or not run_id
+        or str(goal.get("run_id") or "") != run_id
+        or not goal_id
+        or str(goal.get("goal_id") or "") != goal_id
+        or str(goal.get("workflow") or "") != str(run.get("workflow") or "")
+    ) and goal_path:
+        drifted.append(label("goal.json"))
+
+    for relpath in ("plan/planned.json", "plan/effective.json"):
+        path = require_file(relpath)
+        payload = _read_json_object(path) if path else {}
+        if path and (
+            str(payload.get("schema") or "") != RUN_PLAN_SCHEMA
+            or not run_id
+            or str(payload.get("run_id") or "") != run_id
+        ):
+            drifted.append(label(relpath))
+
+    for relpath in (
+        "events.jsonl",
+        "attempts.jsonl",
+        "artifacts.jsonl",
+        "decisions.jsonl",
+        "failures/ledger.jsonl",
+        "evaluations/ledger.jsonl",
+    ):
+        path = require_file(relpath)
+        if path is None:
+            continue
+        records, malformed_lines = read_jsonl_with_errors(path)
+        if malformed_lines or any(
+            not run_id or str(record.get("run_id") or "") != run_id
+            for record in records
+        ):
+            drifted.append(label(relpath))
+
+    return True, sorted(set(missing)), sorted(set(drifted))
+
+
+def inspect_kernel_lock(*, workspace: Path, repo_root: Path | None = None) -> dict[str, Any]:
+    """Validate an existing Run lock against the executing repository.
+
+    Read-only tools can still interpret historical locks. Mutation fails closed
+    for every Workspace with durable Run evidence unless its v2 Run, Goal,
+    lock, plans, ledgers, and current Kernel agree. This prevents missing,
+    corrupted, downgraded, cross-Run, or stale identity from becoming a bypass.
+    """
+
+    root = (repo_root or Path(__file__).resolve().parents[1]).resolve()
+    lock_path = workspace / HARNESS_DIR / "harness.lock.json"
+    has_run_evidence, identity_missing, identity_drifted = (
+        _run_identity_differences(workspace)
+    )
+    if not has_run_evidence:
+        return {
+            "status": "NOT_APPLICABLE",
+            "locked_file_count": 0,
+            "current_file_count": 0,
+            "matched_file_count": 0,
+            "missing_paths": [],
+            "unexpected_paths": [],
+            "drifted_paths": [],
+        }
+
+    lock = _read_json_object(lock_path)
+    lock_schema = str(lock.get("schema") or "")
+
+    if lock_schema != LOCK_SCHEMA:
+        return {
+            "status": "DRIFT",
+            "locked_file_count": 0,
+            "current_file_count": sum(
+                1 for relpath in HARNESS_KERNEL_PATHS if (root / relpath).is_file()
+            ),
+            "matched_file_count": 0,
+            "missing_paths": identity_missing,
+            "unexpected_paths": [],
+            "drifted_paths": identity_drifted,
+        }
+
+    raw_kernel = lock.get("kernel")
+    kernel = raw_kernel if isinstance(raw_kernel, dict) else {}
+    current_paths = {
+        relpath for relpath in HARNESS_KERNEL_PATHS if (root / relpath).is_file()
+    }
+    locked_paths = {
+        str(relpath)
+        for relpath, digest in kernel.items()
+        if isinstance(relpath, str) and isinstance(digest, str)
+    }
+    missing_paths = sorted({*identity_missing, *(current_paths - locked_paths)})
+    unexpected_paths = sorted(locked_paths - current_paths)
+    drifted_paths: list[str] = list(identity_drifted)
+    matched_file_count = 0
+    for relpath in sorted(current_paths & locked_paths):
+        expected = str(kernel.get(relpath) or "").strip().lower()
+        if re.fullmatch(r"[0-9a-f]{64}", expected) and _file_sha256(root / relpath) == expected:
+            matched_file_count += 1
+        else:
+            drifted_paths.append(relpath)
+
+    status = "PASS"
+    drifted_paths = sorted(set(drifted_paths))
+    if not isinstance(raw_kernel, dict) or missing_paths or unexpected_paths or drifted_paths:
+        status = "DRIFT"
+    return {
+        "status": status,
+        "locked_file_count": len(locked_paths),
+        "current_file_count": len(current_paths),
+        "matched_file_count": matched_file_count,
+        "missing_paths": missing_paths,
+        "unexpected_paths": unexpected_paths,
+        "drifted_paths": drifted_paths,
+    }
+
+
+def require_current_kernel_lock(*, workspace: Path, repo_root: Path | None = None) -> None:
+    """Refuse active execution when the pinned Harness Kernel has drifted."""
+
+    inspection = inspect_kernel_lock(workspace=workspace, repo_root=repo_root)
+    if inspection["status"] != "DRIFT":
+        return
+    affected = [
+        *inspection["missing_paths"],
+        *inspection["unexpected_paths"],
+        *inspection["drifted_paths"],
+    ]
+    preview = ", ".join(f"`{path}`" for path in affected[:6]) or "the v2 Kernel manifest"
+    suffix = " ..." if len(affected) > 6 else ""
+    raise RevisionLockDriftError(
+        "Harness Kernel drift detected for this Run: "
+        f"{preview}{suffix}. Start a new Run under the current revision; "
+        "do not continue an existing Run across Kernel implementations."
+    )
 
 
 @contextmanager
@@ -1923,7 +2127,7 @@ def inspect_doing_attempt_integrity(
     return issues
 
 
-def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
+def inspect_run_integrity(workspace: Path, *, repo_root: Path | None = None) -> dict[str, Any]:
     """Check referential integrity across the durable Run evidence ledgers."""
 
     harness_dir = workspace / HARNESS_DIR
@@ -1933,6 +2137,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         return {
             "enabled": False,
             "run_id": "",
+            "kernel_lock": inspect_kernel_lock(workspace=workspace, repo_root=repo_root),
             "ledger_record_counts": {},
             "attempt_summary": _summarize_attempt_records(()),
             "completion_acceptance_by_attempt": {},
@@ -1942,6 +2147,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         }
 
     run_id = str(run.get("run_id") or "")
+    kernel_lock = inspect_kernel_lock(workspace=workspace, repo_root=repo_root)
     issues: list[dict[str, str]] = []
     seen_issues: set[tuple[str, str]] = set()
 
@@ -1951,6 +2157,19 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
             return
         seen_issues.add(key)
         issues.append({"level": level, "code": code, "message": message})
+
+    if kernel_lock["status"] == "DRIFT" and str(run.get("state") or "").upper() != "COMPLETED":
+        affected = [
+            *kernel_lock["missing_paths"],
+            *kernel_lock["unexpected_paths"],
+            *kernel_lock["drifted_paths"],
+        ]
+        add(
+            "ERROR",
+            "harness_kernel_drift",
+            "Active Run no longer matches its pinned Harness Kernel: "
+            + (", ".join(affected) if affected else "invalid v2 Kernel manifest"),
+        )
 
     protocols = lock.get("protocols") if isinstance(lock.get("protocols"), dict) else {}
     recorded_completion_protocol = str(protocols.get("completion") or "unversioned")
@@ -2226,6 +2445,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
         if str(manifest.get("status") or "").upper() == "DONE":
             done_manifests_by_unit.setdefault(str(manifest.get("unit_id") or ""), []).append(manifest)
 
+    declared_done_outputs: set[tuple[str, str]] = set()
     for unit_id, row in units.items():
         if str(row.get("status") or "").strip().upper() != "DONE":
             continue
@@ -2257,6 +2477,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
             relpath = raw_path.strip().lstrip("?").strip()
             if not relpath:
                 continue
+            declared_done_outputs.add((unit_id, relpath))
             candidates = [
                 artifact
                 for artifact in ledgers["artifacts"]
@@ -2265,13 +2486,47 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
             ]
             if not candidates:
                 add("ERROR", "done_output_unregistered", f"DONE Unit `{unit_id}` output `{relpath}` has no Artifact record from a successful Attempt.")
-                continue
-            latest = candidates[-1]
-            path = workspace / relpath
-            if relpath not in MUTABLE_PROJECTION_PATHS and path.exists() and str(latest.get("sha256") or ""):
-                current_sha = str(_path_fingerprint(path).get("sha256") or "")
-                if current_sha != str(latest.get("sha256") or ""):
-                    add("ERROR", "artifact_hash_mismatch", f"Current `{relpath}` no longer matches its latest successful Artifact record.")
+
+    # A reader-facing Artifact may have several declared producer/mutator Units
+    # (for example section-merger -> citation-injector -> draft-polisher). Each
+    # Unit still needs its own Manifest and matching Artifact record above, but
+    # immutability must compare the current path with the latest successful
+    # record across the whole Run. Comparing with every earlier producer makes
+    # a legitimate downstream rewrite indistinguishable from post-completion
+    # drift and prevents a naturally completed Run from auditing cleanly.
+    done_unit_ids = {
+        unit_id
+        for unit_id, row in units.items()
+        if str(row.get("status") or "").strip().upper() == "DONE"
+    }
+    successful_attempt_ids = {
+        attempt_id
+        for attempt_ids in successful_by_unit.values()
+        for attempt_id in attempt_ids
+    }
+    latest_successful_artifact_by_path: dict[str, dict[str, Any]] = {}
+    for artifact in ledgers["artifacts"]:
+        relpath = str(artifact.get("path") or "").strip()
+        if (
+            relpath
+            and str(artifact.get("attempt_id") or "") in successful_attempt_ids
+            and str(artifact.get("unit_id") or "") in done_unit_ids
+            and (str(artifact.get("unit_id") or ""), relpath) in declared_done_outputs
+        ):
+            latest_successful_artifact_by_path[relpath] = artifact
+
+    for relpath, latest in latest_successful_artifact_by_path.items():
+        path = workspace / relpath
+        expected_sha = str(latest.get("sha256") or "")
+        if relpath in MUTABLE_PROJECTION_PATHS or not path.exists() or not expected_sha:
+            continue
+        current_sha = str(_path_fingerprint(path).get("sha256") or "")
+        if current_sha != expected_sha:
+            add(
+                "ERROR",
+                "artifact_hash_mismatch",
+                f"Current `{relpath}` no longer matches its latest successful Artifact record.",
+            )
 
     for ledger_name in ("decisions", "failures", "evaluations"):
         for record in ledgers[ledger_name]:
@@ -2319,6 +2574,7 @@ def inspect_run_integrity(workspace: Path) -> dict[str, Any]:
     return {
         "enabled": True,
         "run_id": run_id,
+        "kernel_lock": kernel_lock,
         "ledger_record_counts": {name: len(records) for name, records in ledgers.items()},
         "attempt_summary": _summarize_attempt_records(ledgers["attempts"]),
         "completion_acceptance_by_attempt": {

@@ -36,8 +36,8 @@ held-out evaluation.
 
 | Family | Workflow | Contract | Unit template | Primary Artifacts | Contract status | Proof state | Open boundary |
 |---|---|---|---|---|---|---|---|
-| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md`, `output/TEMPLATE_RESIDUE_SCORECARD.json` | `Executable` | `Completed outcome pilot` | Historical bounded-report pilot has 96/140 whole-draft matches (68.6%) and 49/90 H3 matches (54.4%), so it fails the current 10% whole-draft gate; current v2 evidence, threshold attainability, actor/revision attribution, and general-Survey diversity open |
-| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `output/TEMPLATE_RESIDUE_SCORECARD.json`, `latex/main.pdf` | `Executable variant` | `Compiled delivery proof` | Same historical snapshot produced an audited 10-page PDF, but does not prove free-form model writing, portability, or repetition |
+| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md`, `output/TEMPLATE_RESIDUE_SCORECARD.json` | `Executable` | `Completed outcome pilot` | Current-contract Artifact replay passes at 0/226 residue (0.0%), with 49/49 Units, 31/31 required checks, 75/75 targets, 35/35 Kernel paths, and zero ledger issues; historical 96/140 failure remains diagnostic, while fresh retrieval, autonomous execution, cross-topic calibration, clean-revision reproduction, and expert quality remain open |
+| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `output/TEMPLATE_RESIDUE_SCORECARD.json`, `latex/main.pdf` | `Executable variant` | `Compiled delivery proof` | The same current-contract replay produces an audited 10-page PDF; from-scratch portability, repetition, and semantic expert review remain open |
 | Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Completed outcome pilot` | One online arXiv Run; cross-topic relevance and reading-path usefulness open |
 | Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md`, scorecard | `Executable` | `Scored fixture proof` | Real-manuscript and expert comparison open |
 | Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md`, scorecard | `Executable` | `Scored fixture proof` | Retrieval completeness and validity judgment open |
@@ -86,18 +86,20 @@ All Survey profiles default to `evidence_mode=abstract`. A Goal can request
 `fulltext` when methods, results, or limitations must be grounded beyond the
 abstract, at higher execution cost.
 
-Reference evidence: the
-[bounded-report pilot snapshot](../examples/course-paper-pilot/README.md) is a
-course-paper instance with 49 completed Units, a passing target-Artifact audit,
-and a 10-page PDF for an 8-10 page Goal. It does not contain the current v2
-ledger and acceptance bundle; the current five-candidate-bank `template-residue-measurement.v1`
-measure is 96/140 whole-draft matches (68.6%) and 49/90 H3 matches (54.4%),
-above the current 10% writing limit. No completed PASS Run has yet established
-that threshold's attainability, and the historical Run did not retain which
-optional domain overlay it selected. The next proof is
-a current-protocol Run that passes this gate, followed by repetition across
-unrelated topics and report genres with measured model, token, retry, latency,
-and quality data.
+Reference evidence is intentionally paired. The
+[historical bounded-report snapshot](../examples/course-paper-pilot/README.md)
+measures 96/140 whole-draft matches (68.6%) and 49/90 H3 matches (54.4%), above
+the current 10% writing limit, and remains a failure baseline without current
+v2 ledgers. The separate
+[current-protocol residue-PASS snapshot](../examples/course-paper-residue-pass/README.md)
+measures 0/226 (0.0%), verifies 31/31 checks from its immutable Run contract,
+matches 35/35 Kernel paths, reports zero ledger-integrity issues, and compiles a
+10-page PDF. This establishes attainability for one retained Artifact set. The
+Run lock records a dirty worktree; 48 manual Attempts revalidate retained
+Artifacts and one process Attempt runs the final auditor, so fresh retrieval,
+autonomous authorship, and clean-revision reproduction remain open. Later proof
+should use unrelated topics and report genres with measured model, token, retry,
+latency, rewrite-effort, and expert-quality data.
 
 ## Scored Contract Surfaces
 
@@ -113,7 +115,7 @@ join each scorecard exercises.
 | `research-brief` | core-set paper -> grounded theme and briefing pointer -> reading path | Structure, grounding, compactness, and pointer integrity, not broad topic completeness |
 | `idea-brainstorm` | explicit C2 focus/exclusion Decision -> literature signal -> filtered direction -> screening -> shortlist -> memo | Trace-chain integrity, shortlist consistency, actionability, scored diversity, and kill criteria, not novelty proof |
 | `evidence-review` | candidate ID -> protocol clause -> screening decision -> unique extraction/bias row -> bounded synthesis pointer | Complete candidate coverage, bias documentation, bounded conclusions, and pointer integrity, not exhaustive retrieval or causal validity |
-| Survey family | whole draft -> Run-selected writer-template assets -> recorded asset hashes + locked writer implementations -> measured literal overlap | Reproducible lower bound and source-provenance evidence, not authorship, originality, or semantic quality; 10% target not yet validated by a completed PASS Run |
+| Survey family | whole draft -> Run-selected writer-template assets -> recorded asset hashes + locked writer implementations -> measured literal overlap | Reproducible lower bound and source-provenance evidence, not authorship, originality, or semantic quality; one 0/226 PASS establishes attainability, not cross-topic calibration |
 
 ## Evidence Gaps
 

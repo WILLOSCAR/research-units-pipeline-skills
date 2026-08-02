@@ -25,7 +25,7 @@ backup artifacts.
 | Delivery | 10-page A4 PDF for an 8-10 page Goal |
 | Whole-draft template residue | `template-residue-measurement.v1`: 96/140 sentences (68.6%) across five current candidate writer-template banks |
 | H3 early-check scope | 49/90 sentences (54.4%) |
-| Current whole-draft gate | Workflow limit: <=10%; verdict: FAIL; no completed PASS Run has validated attainability |
+| Current whole-draft gate | Workflow limit: <=10%; verdict for this draft: FAIL; a later current-protocol Run passes at 0/226 |
 | Actor/revision trace | Not retained in this historical snapshot |
 | Optional domain-overlay selection | Not retained; the five-bank historical screen does not claim every bank was selected by this Run |
 
@@ -74,8 +74,12 @@ to attribute the remaining prose to a model or human. The included draft's
 historical snapshot would fail the current writing gate. It must not be read as
 proof of free-form model writing or prose quality. It does not prove cross-topic quality, retrieval completeness,
 scientific truth, expert agreement, or measured token efficiency.
-No completed passing Run has yet established that the 10% policy target is
-attainable; the threshold is enforced but still awaits empirical calibration.
+At this snapshot's capture time, no completed passing Run had established that
+the 10% policy target was attainable. A later
+[`course-paper-residue-pass`](../course-paper-residue-pass/README.md) Run passes
+at 0/226 (0.0%). That result establishes one-Run attainability; repeated-topic
+calibration remains open. The historical `run-summary.json` preserves the
+capture-time statement rather than being rewritten retroactively.
 The full local Workspace remains outside version control because it contains
 operational logs, Attempts, manifests, build by-products, and backup files that
 are useful for diagnosis but noisy for repository users.

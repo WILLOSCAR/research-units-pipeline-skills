@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 import socket
 import subprocess
 import sys
@@ -1023,36 +1022,14 @@ class SourceTutorialPipelineTests(unittest.TestCase):
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"
         self.assertTrue(script.exists(), f"missing script: {script}")
 
-        xelatex = shutil.which("xelatex")
-        self.assertIsNotNone(xelatex, "xelatex is required for the local PDF fixture")
-
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp)
             pdf_dir = workspace / "pdfsrc"
             pdf_dir.mkdir(parents=True, exist_ok=True)
-            tex_path = pdf_dir / "mini.tex"
-            tex_path.write_text(
-                "\n".join(
-                    [
-                        r"\documentclass{article}",
-                        r"\begin{document}",
-                        "Robot learning starts from data, actions, and feedback.",
-                        r"\end{document}",
-                        "",
-                    ]
-                ),
-                encoding="utf-8",
+            pdf_path = pdf_dir / "course-paper.pdf"
+            pdf_path.write_bytes(
+                (REPO_ROOT / "examples" / "course-paper-pilot" / "paper.pdf").read_bytes()
             )
-            proc = subprocess.run(
-                [xelatex, "-interaction=nonstopmode", "-halt-on-error", tex_path.name],
-                cwd=str(pdf_dir),
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            self.assertEqual(proc.returncode, 0, msg=proc.stderr or proc.stdout)
-            pdf_path = pdf_dir / "mini.pdf"
-            self.assertTrue(pdf_path.exists())
 
             (workspace / "sources").mkdir(parents=True, exist_ok=True)
             (workspace / "sources" / "manifest.yml").write_text(
@@ -1078,7 +1055,7 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             )
             self.assertEqual(ingest.returncode, 0, msg=ingest.stderr or ingest.stdout)
             text = (workspace / "sources" / "normalized" / "pdf-demo.md").read_text(encoding="utf-8")
-            self.assertIn("Robot learning starts from data", text)
+            self.assertIn("Evaluating Retrieval-Augmented Generation Systems", text)
 
     def test_source_ingest_docs_site_local_server_succeeds(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"

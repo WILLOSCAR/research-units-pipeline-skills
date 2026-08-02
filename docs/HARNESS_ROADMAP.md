@@ -64,8 +64,10 @@ evidence snapshots:
 - repeat `evidence-review` and compare protocol execution with human screening
   and extraction judgments;
 - repeat bounded Survey reports across course, seminar, and technical-report
-  prompts; retain whole-draft residue scorecards, measure rewrite effort, and
-  calibrate the initial 10% policy only after at least one completed passing Run;
+  prompts; the first completed current-contract Artifact replay establishes
+  per-Artifact attainability, so repeat retrieval and execution from a clean
+  revision, retain whole-draft residue scorecards, measure rewrite effort, and
+  calibrate the initial 10% policy across unrelated Runs;
 - strengthen `source-tutorial` source-to-module and module-to-slide grounding.
 
 Each retained case should include Goal, locked Workflow revision, final
@@ -108,7 +110,8 @@ allowing the Harness to rewrite itself in place.
 
 1. cluster durable Failure and Evaluation records;
 2. propose one candidate change in an isolated worktree;
-3. protect kernel paths and enforce policy allowlists;
+3. isolate candidates with process/filesystem permissions and policy
+   allowlists beyond the landed per-Run Kernel-drift guard;
 4. replay the target failure;
 5. run historical regression and held-out cases;
 6. compare quality, cost, latency, and stability;

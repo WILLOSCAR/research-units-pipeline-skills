@@ -1,0 +1,139 @@
+{
+  "schema": "template-residue-scorecard.v1",
+  "generated_at": "2026-08-02T12:32:43",
+  "workflow": "arxiv-survey-latex",
+  "verdict": "PASS",
+  "score": 100,
+  "pass_score": 100,
+  "critical_dimensions": [
+    "template_residue_limit",
+    "template_source_provenance"
+  ],
+  "failed_critical_dimensions": [],
+  "counts": {
+    "sentences": 226,
+    "matched_sentences": 0,
+    "template_assets": 4,
+    "literal_fragments": 324,
+    "drifted_skills": 0
+  },
+  "dimensions": [
+    {
+      "id": "template_residue_limit",
+      "label": "Literal template residue",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "0/226 sentences (0.0%) match fixed fragments from 4 Run-selected template assets; limit <= 10%.",
+      "repair_surface": [
+        "output/DRAFT.md",
+        ".codex/skills/front-matter-writer",
+        ".codex/skills/chapter-lead-writer",
+        ".codex/skills/subsection-writer"
+      ],
+      "matched_sentence_count": 0,
+      "sentence_count": 226,
+      "matched_sentence_ratio": 0.0,
+      "max_ratio": 0.1,
+      "template_asset_count": 4
+    },
+    {
+      "id": "template_source_provenance",
+      "label": "Template source provenance",
+      "status": "PASS",
+      "score": 4,
+      "max_score": 4,
+      "evidence": "Run-selected assets: PASS; template-owning Skill implementations: PASS; drifted=0.",
+      "repair_surface": [
+        "output/FRONT_MATTER_CONTEXT.json",
+        ".harness/harness.lock.json",
+        "tooling/quality_checks/template_residue.py"
+      ],
+      "selection_status": "PASS",
+      "implementation_lock_status": "PASS",
+      "selected_assets": [
+        ".codex/skills/front-matter-writer/assets/front_matter_templates.json",
+        ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json",
+        ".codex/skills/subsection-writer/assets/paragraph_job_templates.json",
+        ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json"
+      ],
+      "drifted_skills": []
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "Literal-fragment matching is a reproducible lower bound, not an authorship or originality classifier.",
+    "The 10% limit is an initial policy target; a passing Run demonstrates attainability for that Run, not calibration across topics or profiles."
+  ],
+  "scope": "entire merged reader-facing draft",
+  "measurement": {
+    "schema": "template-residue-measurement.v1",
+    "method": "Case-insensitive English/CJK sentence match against fixed template fragments after Markdown headings and citation markers are removed.",
+    "min_literal_chars": 24,
+    "template_assets": [
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json"
+    ],
+    "template_asset_sha256": {
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json": "f14ff99f69d233ca825dbe2fb41aebbb191c67d387882abde13350631b271f02",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json": "85ea675a7d1cad3471187cbe71b9aea90a01b4cfe1a56146f0561c79ec370963",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json": "859c546d1b99960e7ab665281f2468fc2d556b5ccc1153e6cd194c8f9070170f",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json": "0143a81c1d58f6aaf7f725ceb330bd3b1c66c73fa5e008ff7ac75a0d4e7bd1b4"
+    },
+    "template_string_count": 320,
+    "literal_fragment_count": 324,
+    "sentence_count": 226,
+    "matched_sentence_count": 0,
+    "matched_sentence_ratio": 0.0,
+    "matched_literal_fragment_count": 0,
+    "missing_assets": [],
+    "examples": [],
+    "repair_items": []
+  },
+  "policy": {
+    "max_ratio": 0.1,
+    "min_literal_chars": 24
+  },
+  "asset_selection": {
+    "status": "PASS",
+    "context_path": "output/FRONT_MATTER_CONTEXT.json",
+    "asset_paths": [
+      ".codex/skills/front-matter-writer/assets/front_matter_templates.json",
+      ".codex/skills/chapter-lead-writer/assets/lead_block_compatibility_defaults.json",
+      ".codex/skills/subsection-writer/assets/paragraph_job_templates.json",
+      ".codex/skills/subsection-writer/assets/bootstrap_paragraph_templates.json"
+    ],
+    "issues": []
+  },
+  "implementation_lock": {
+    "status": "PASS",
+    "checked": true,
+    "lock_path": ".harness/harness.lock.json",
+    "skills": [
+      {
+        "skill": "front-matter-writer",
+        "expected_implementation_sha256": "4a4ee668b9e3834f1bf9db43c0665d0c46612bf77b52ef5396ede16572ffa050",
+        "current_implementation_sha256": "4a4ee668b9e3834f1bf9db43c0665d0c46612bf77b52ef5396ede16572ffa050",
+        "current_file_count": 17,
+        "matches": true
+      },
+      {
+        "skill": "chapter-lead-writer",
+        "expected_implementation_sha256": "8e9e853a9945995a0ab63e7db2ea0fbf37ebf4fd4e9843dc752807b6bdabfeb0",
+        "current_implementation_sha256": "8e9e853a9945995a0ab63e7db2ea0fbf37ebf4fd4e9843dc752807b6bdabfeb0",
+        "current_file_count": 9,
+        "matches": true
+      },
+      {
+        "skill": "subsection-writer",
+        "expected_implementation_sha256": "55147478cc2dba4fe45eea1000066db6a1742dd423c1a3f239846b5412d1d07d",
+        "current_implementation_sha256": "55147478cc2dba4fe45eea1000066db6a1742dd423c1a3f239846b5412d1d07d",
+        "current_file_count": 15,
+        "matches": true
+      }
+    ],
+    "drifted_skills": []
+  }
+}

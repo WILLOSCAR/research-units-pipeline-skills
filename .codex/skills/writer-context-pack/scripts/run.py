@@ -106,19 +106,6 @@ _GENERIC_SELF_NARRATION_RE = _compile_hygiene_pattern(
     r"(?i)^(?:here,\s*)?(?:we|our)\s+(?:(?:also|broadly|comprehensively)\s+)?(?:introduce|present|propose|develop|describe|compare|conduct|discuss|summarize|review|explore|analyze|evaluate|study|design|build|construct|divide)\b",
 )
 _STUDY_SELF_NARRATION_RE = _compile_hygiene_pattern("study_self_narration_pattern", r"(?i)^(?:this|our)\s+(?:survey|paper|work|study|article)\b")
-_NEGATIVE_LIMIT_RE = _compile_hygiene_pattern(
-    "negative_limit_pattern",
-    r"(?i)\b(?:limit\w*|challeng\w*|risk\w*|unsafe|fail\w*|fragil\w*|gap\w*|bottleneck\w*|latency|cost\w*|complexit\w*|domain\s+shift|out-of-distribution|ood|partial\s+observability|generalization\s+(?:gap|limit|challenge)|poor\s+instruction|hinder\w*|constrain\w*|restrict\w*)\b",
-)
-_EVENT_CHALLENGE_RE = re.compile(
-    r"(?i)\b(?:this|the)\s+(?:year(?:'s)?\s+)?challenge\s+"
-    r"(?:introduces?|includes?|features?|uses?|asks?|invites?|requires?)\b|"
-    r"\b(?:shared|benchmark|competition|track)\s+challenge\b"
-)
-_POSITIVE_COST_RE = re.compile(
-    r"(?i)\bcost[-\s]?effectiv(?:e|eness|ely)\b|"
-    r"\b(?:lower|reduced?|decreased?|minimal|optimal)\s+(?:computational\s+)?costs?\b"
-)
 _GENERIC_META_RE = _compile_hygiene_pattern(
     "generic_meta_pattern",
     r"(?i)\b(?:survey|review|overview|taxonomy|history|landscape|main contribution is a detailed breakdown)\b",
@@ -126,9 +113,10 @@ _GENERIC_META_RE = _compile_hygiene_pattern(
 
 
 def _has_negative_limit_signal(text: str) -> bool:
-    candidate = _POSITIVE_COST_RE.sub("", str(text or ""))
-    candidate = _EVENT_CHALLENGE_RE.sub("", candidate)
-    return bool(_NEGATIVE_LIMIT_RE.search(candidate))
+    # main() establishes the checkout import path before this policy is used.
+    from tooling.source_text_hygiene import has_limitation_signal
+
+    return has_limitation_signal(text)
 _EVIDENCE_POLICY_DISCLAIMER_RE = re.compile(
     r"(?i)\b(?:abstract(?:-|\s+)(?:only|level)\s+evidence|title(?:-|\s+)only\s+evidence|"
     r"verify\s+evaluation\s+protocol.*full\s+paper|claims?\s+remain\s+provisional\s+under\s+abstract)\b"

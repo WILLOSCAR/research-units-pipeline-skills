@@ -8,8 +8,10 @@
 One local Workspace stores mutable projections and append-only Run ledgers in
 ordinary files. Two commands could otherwise select the same Unit, append
 conflicting Attempt or Event records, reconcile the same interruption twice, or
-write incompatible report snapshots. Commands such as Doctor and Status also
-reconcile state before reading it, so they are not strictly read-only.
+write incompatible report snapshots. Commands such as Doctor and Status may
+also reconcile a valid current Run before reading it, so they are not strictly
+read-only. Inspection skips reconciliation when Run identity or Kernel lock is
+drifted.
 
 ## Decision
 

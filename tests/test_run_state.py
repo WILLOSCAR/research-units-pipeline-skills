@@ -234,6 +234,201 @@ def test_pipeline_contract_snapshot_fails_closed_after_tampering(tmp_path: Path)
     assert "pipeline_snapshot_dependency_hash_mismatch" in codes
 
 
+def test_run_refuses_to_execute_after_harness_kernel_lock_drift(tmp_path: Path) -> None:
+    workspace = tmp_path / "run"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    lock["kernel"]["tooling/run_state.py"] = "0" * 64
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+
+    result = _run(
+        "scripts/pipeline.py",
+        "run-one",
+        "--workspace",
+        str(workspace),
+    )
+
+    assert result.returncode == 2
+    assert "Harness Kernel drift" in (result.stderr or result.stdout)
+    assert _jsonl(workspace / ".harness" / "attempts.jsonl") == []
+
+
+@pytest.mark.parametrize("lock_failure", ["missing", "malformed", "unknown_schema"])
+@pytest.mark.parametrize(
+    "command",
+    [
+        ("run-one",),
+        ("run", "--max-steps", "1"),
+        ("approve", "--checkpoint", "C2"),
+        ("mark", "--unit-id", "U001", "--status", "DONE", "--note", "unsafe mutation"),
+    ],
+)
+def test_current_run_mutations_fail_closed_without_a_valid_harness_lock(
+    tmp_path: Path,
+    lock_failure: str,
+    command: tuple[str, ...],
+) -> None:
+    workspace = tmp_path / "run"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+
+    lock_path = workspace / ".harness" / "harness.lock.json"
+    if lock_failure == "missing":
+        lock_path.unlink()
+    elif lock_failure == "malformed":
+        lock_path.write_text("{not-json\n", encoding="utf-8")
+    else:
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock["schema"] = "harness-lock.future"
+        lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+
+    result = _run(
+        "scripts/pipeline.py",
+        command[0],
+        "--workspace",
+        str(workspace),
+        *command[1:],
+    )
+
+    assert result.returncode == 2
+    assert "Harness Kernel drift" in (result.stderr or result.stdout)
+    assert _jsonl(workspace / ".harness" / "attempts.jsonl") == []
+    assert UnitsTable.load(workspace / "UNITS.csv").rows[0]["status"] == "TODO"
+
+
+@pytest.mark.parametrize(
+    "identity_failure",
+    ["malformed_run", "missing_run_and_lock", "downgraded_lock"],
+)
+@pytest.mark.parametrize(
+    "command",
+    [
+        ("run-one",),
+        ("run", "--max-steps", "1"),
+        ("approve", "--checkpoint", "C2"),
+        ("mark", "--unit-id", "U001", "--status", "DONE", "--note", "unsafe mutation"),
+    ],
+)
+def test_current_run_mutations_fail_closed_on_identity_file_bypass_attempts(
+    tmp_path: Path,
+    identity_failure: str,
+    command: tuple[str, ...],
+) -> None:
+    workspace = tmp_path / "run"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+
+    harness = workspace / ".harness"
+    run_path = harness / "run.json"
+    lock_path = harness / "harness.lock.json"
+    if identity_failure == "malformed_run":
+        run_path.write_text("{not-json\n", encoding="utf-8")
+    elif identity_failure == "missing_run_and_lock":
+        run_path.unlink()
+        lock_path.unlink()
+    else:
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock["schema"] = "harness-lock.v1"
+        lock["protocols"]["completion"] = "recoverable-provenance.v1"
+        lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+
+    result = _run(
+        "scripts/pipeline.py",
+        command[0],
+        "--workspace",
+        str(workspace),
+        *command[1:],
+    )
+
+    assert result.returncode == 2
+    assert "Harness Kernel drift" in (result.stderr or result.stdout)
+    assert _jsonl(harness / "attempts.jsonl") == []
+    assert UnitsTable.load(workspace / "UNITS.csv").rows[0]["status"] == "TODO"
+
+
+@pytest.mark.parametrize(
+    "identity_failure",
+    ["run_schema", "lock_run_id", "goal_run_id", "goal_id", "event_run_id"],
+)
+def test_current_run_mutation_fails_closed_on_cross_file_identity_mismatch(
+    tmp_path: Path,
+    identity_failure: str,
+) -> None:
+    workspace = tmp_path / "run"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+
+    harness = workspace / ".harness"
+    run_path = harness / "run.json"
+    lock_path = harness / "harness.lock.json"
+    goal_path = harness / "goal.json"
+    if identity_failure == "run_schema":
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        run["schema"] = "run-state.future"
+        run_path.write_text(json.dumps(run, indent=2) + "\n", encoding="utf-8")
+    elif identity_failure == "lock_run_id":
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock["run_id"] = "run_other"
+        lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+    elif identity_failure in {"goal_run_id", "goal_id"}:
+        goal = json.loads(goal_path.read_text(encoding="utf-8"))
+        goal["run_id" if identity_failure == "goal_run_id" else "goal_id"] = (
+            "run_other" if identity_failure == "goal_run_id" else "goal_other"
+        )
+        goal_path.write_text(json.dumps(goal, indent=2) + "\n", encoding="utf-8")
+    else:
+        events_path = harness / "events.jsonl"
+        events = _jsonl(events_path)
+        events[0]["run_id"] = "run_other"
+        events_path.write_text(
+            "\n".join(json.dumps(event) for event in events) + "\n",
+            encoding="utf-8",
+        )
+
+    result = _run(
+        "scripts/pipeline.py",
+        "run-one",
+        "--workspace",
+        str(workspace),
+    )
+
+    assert result.returncode == 2
+    assert "Harness Kernel drift" in (result.stderr or result.stdout)
+    assert _jsonl(harness / "attempts.jsonl") == []
+    assert UnitsTable.load(workspace / "UNITS.csv").rows[0]["status"] == "TODO"
+
+
 def test_pipeline_contract_snapshot_rejects_human_lock_projection_drift(tmp_path: Path) -> None:
     from tooling.common import load_workspace_pipeline_spec
     from tooling.run_state import inspect_run_integrity
@@ -955,6 +1150,50 @@ def test_doctor_reconciliation_recovers_stale_doing_before_reporting(tmp_path: P
     }
     assert finishes[attempt_id]["status"] == "INTERRUPTED"
     assert payload["run_identity"]["state"] == "BLOCKED"
+
+
+@pytest.mark.parametrize("inspection", ["doctor", "audit"])
+def test_inspection_does_not_reconcile_durable_state_under_identity_drift(
+    tmp_path: Path,
+    inspection: str,
+) -> None:
+    from tooling.harness import build_doctor_payload
+
+    workspace = tmp_path / "run"
+    initialized = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+    )
+    assert initialized.returncode == 0, initialized.stderr or initialized.stdout
+
+    harness = workspace / ".harness"
+    run_path = harness / "run.json"
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    run["updated_at"] = "must-not-be-reconciled"
+    run["last_event_seq"] = -99
+    run_path.write_text(json.dumps(run, indent=2) + "\n", encoding="utf-8")
+    (harness / "harness.lock.json").unlink()
+    before = {
+        str(path.relative_to(harness)): path.read_bytes()
+        for path in harness.rglob("*")
+        if path.is_file() and path.name != "invocation.lock"
+    }
+
+    if inspection == "doctor":
+        build_doctor_payload(workspace=workspace, repo_root=REPO_ROOT)
+    else:
+        build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+
+    after = {
+        str(path.relative_to(harness)): path.read_bytes()
+        for path in harness.rglob("*")
+        if path.is_file() and path.name != "invocation.lock"
+    }
+    assert after == before
 
 
 def test_reconciliation_repairs_attempt_started_before_event_append(
@@ -2356,6 +2595,80 @@ def test_run_audit_detects_current_artifact_hash_drift(tmp_path: Path) -> None:
     assert "artifact_hash_mismatch" in {issue["code"] for issue in audit["harness_issues"]}
 
 
+def test_run_audit_accepts_latest_successful_shared_artifact_mutation(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "run"
+    units_path = workspace / "UNITS.csv"
+    units_path.parent.mkdir(parents=True, exist_ok=True)
+    with units_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=UNIT_FIELDS)
+        writer.writeheader()
+        writer.writerows(
+            [
+                {
+                    "unit_id": "U010",
+                    "title": "Create draft",
+                    "type": "WRITE",
+                    "skill": "first-writer",
+                    "outputs": "output/result.md",
+                    "checkpoint": "C1",
+                    "status": "TODO",
+                    "owner": "CODEX",
+                },
+                {
+                    "unit_id": "U020",
+                    "title": "Polish draft",
+                    "type": "WRITE",
+                    "skill": "second-writer",
+                    "outputs": "output/result.md",
+                    "checkpoint": "C1",
+                    "status": "TODO",
+                    "depends_on": "U010",
+                    "owner": "CODEX",
+                },
+            ]
+        )
+    (workspace / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    output = workspace / "output" / "result.md"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("first accepted version\n", encoding="utf-8")
+    first = _run(
+        "scripts/pipeline.py",
+        "mark",
+        "--workspace",
+        str(workspace),
+        "--unit-id",
+        "U010",
+        "--status",
+        "DONE",
+        "--note",
+        "first writer accepted",
+    )
+    assert first.returncode == 0, first.stderr or first.stdout
+
+    output.write_text("second accepted version\n", encoding="utf-8")
+    second = _run(
+        "scripts/pipeline.py",
+        "mark",
+        "--workspace",
+        str(workspace),
+        "--unit-id",
+        "U020",
+        "--status",
+        "DONE",
+        "--note",
+        "downstream writer accepted",
+    )
+    assert second.returncode == 0, second.stderr or second.stdout
+
+    _, audit = build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+
+    assert "artifact_hash_mismatch" not in {
+        issue["code"] for issue in audit["harness_issues"]
+    }
+
+
 def test_run_audit_detects_manifest_artifact_hash_disagreement(tmp_path: Path) -> None:
     workspace = tmp_path / "run"
     _write_units(workspace / "UNITS.csv")
@@ -3107,6 +3420,95 @@ def test_pipeline_preflight_does_not_create_invalid_workspace_paths(tmp_path: Pa
     assert not (REPO_ROOT / ".harness").exists()
 
 
+@pytest.mark.parametrize("command", ["init", "kickoff"])
+@pytest.mark.parametrize("replacement_pipeline", ["research-brief", "paper-review"])
+def test_workspace_initialization_refuses_to_reuse_durable_run_evidence(
+    tmp_path: Path,
+    command: str,
+    replacement_pipeline: str,
+) -> None:
+    workspace = tmp_path / "existing-run"
+    created = _run(
+        "scripts/pipeline.py",
+        "init",
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        "research-brief",
+        "--goal",
+        "preserve this Run",
+    )
+    assert created.returncode == 0, created.stderr or created.stdout
+    before = {
+        str(path.relative_to(workspace)): path.read_bytes()
+        for path in workspace.rglob("*")
+        if path.is_file() and path.name != "invocation.lock"
+    }
+
+    args = [
+        "scripts/pipeline.py",
+        command,
+        "--workspace",
+        str(workspace),
+        "--pipeline",
+        replacement_pipeline,
+        "--overwrite",
+        "--overwrite-units",
+    ]
+    if command == "init":
+        args.extend(["--goal", "attempted replacement"])
+    else:
+        args.extend(["--topic", "attempted replacement"])
+    result = _run(*args)
+
+    after = {
+        str(path.relative_to(workspace)): path.read_bytes()
+        for path in workspace.rglob("*")
+        if path.is_file() and path.name != "invocation.lock"
+    }
+    assert result.returncode != 0
+    assert "already contains durable Run evidence" in result.stderr
+    assert after == before
+
+
+@pytest.mark.parametrize("command", ["init", "kickoff"])
+def test_workspace_initialization_rechecks_run_evidence_after_acquiring_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    command: str,
+) -> None:
+    from argparse import Namespace
+    from contextlib import contextmanager
+
+    import scripts.pipeline as pipeline_cli
+
+    workspace = tmp_path / "stale-preflight"
+
+    @contextmanager
+    def inject_competing_run(**_: object):
+        harness = workspace / ".harness"
+        harness.mkdir(parents=True, exist_ok=True)
+        (harness / "events.jsonl").write_text(
+            '{"schema":"run-event.v1","run_id":"run_competing"}\n',
+            encoding="utf-8",
+        )
+        yield {}
+
+    monkeypatch.setattr(pipeline_cli, "workspace_invocation_lock", inject_competing_run)
+    args = Namespace(
+        cmd=command,
+        workspace=str(workspace),
+        pipeline="research-brief",
+        topic="competing initialization",
+    )
+
+    with pytest.raises(SystemExit, match="already contains durable Run evidence"):
+        pipeline_cli._dispatch_with_workspace_lock(args)
+
+    assert not (workspace / "PIPELINE.lock.md").exists()
+    assert not (workspace / "UNITS.csv").exists()
+
+
 def test_workspace_invocation_lock_rejects_concurrent_commands(tmp_path: Path) -> None:
     from tooling.run_state import workspace_invocation_lock
 
@@ -3122,8 +3524,6 @@ def test_workspace_invocation_lock_rejects_concurrent_commands(tmp_path: Path) -
     assert created.returncode == 0, created.stderr or created.stdout
 
     commands = [
-        ("scripts/pipeline.py", "init", "--workspace", str(workspace), "--pipeline", "research-brief"),
-        ("scripts/pipeline.py", "kickoff", "--topic", "locked topic", "--workspace", str(workspace)),
         ("scripts/pipeline.py", "run-one", "--workspace", str(workspace)),
         ("scripts/pipeline.py", "run", "--workspace", str(workspace)),
         ("scripts/pipeline.py", "doctor", "--workspace", str(workspace)),
@@ -3158,16 +3558,6 @@ def test_workspace_invocation_lock_rejects_concurrent_commands(tmp_path: Path) -
         ),
         ("-m", "tooling.product_cli", "evidence", "inspect", "--workspace", str(workspace)),
         ("-m", "tooling.product_cli", "improve", "diagnose", "--workspace", str(workspace)),
-        (
-            "-m",
-            "tooling.product_cli",
-            "goal",
-            "create",
-            "--topic",
-            "locked topic",
-            "--workspace",
-            str(workspace),
-        ),
     ]
 
     with workspace_invocation_lock(workspace=workspace, operation="test.owner"):
@@ -3176,6 +3566,49 @@ def test_workspace_invocation_lock_rejects_concurrent_commands(tmp_path: Path) -
     assert all(result.returncode == 2 for result in blocked_results)
     assert all("Workspace is busy" in result.stderr for result in blocked_results)
     assert all("operation=test.owner" in result.stderr for result in blocked_results)
+
+    initialization_workspace = tmp_path / "locked-initialization"
+    initialization_commands = [
+        (
+            "scripts/pipeline.py",
+            "init",
+            "--workspace",
+            str(initialization_workspace),
+            "--pipeline",
+            "research-brief",
+        ),
+        (
+            "scripts/pipeline.py",
+            "kickoff",
+            "--topic",
+            "locked topic",
+            "--workspace",
+            str(initialization_workspace),
+        ),
+        (
+            "-m",
+            "tooling.product_cli",
+            "goal",
+            "create",
+            "--topic",
+            "locked topic",
+            "--workspace",
+            str(initialization_workspace),
+        ),
+    ]
+    with workspace_invocation_lock(
+        workspace=initialization_workspace,
+        operation="test.initialization-owner",
+    ):
+        initialization_results = [
+            _run(*command) for command in initialization_commands
+        ]
+    assert all(result.returncode == 2 for result in initialization_results)
+    assert all("Workspace is busy" in result.stderr for result in initialization_results)
+    assert all(
+        "operation=test.initialization-owner" in result.stderr
+        for result in initialization_results
+    )
     lock_metadata = json.loads((workspace / ".harness" / "invocation.lock").read_text(encoding="utf-8"))
     assert lock_metadata["schema"] == "workspace-invocation-lock.v1"
     assert lock_metadata["operation"] == "test.owner"

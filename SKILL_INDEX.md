@@ -4,6 +4,17 @@
 >
 > 读法建议：先按“目标工作流”定位，再按“阶段/职责”找 skill；如果你要改 skill 本身，而不是运行它，先读 `SKILLS_STANDARD.md`。
 
+## 0. 一句话调用
+
+在 Codex 或 Claude Code 中，可以直接从交付目标开始：
+
+```text
+使用 research-brief 梳理机器人测试时自适应，并告诉我优先读什么。
+使用 paper-review 评审我附上的论文，确保每条主要意见都能追溯到原文。
+使用 arxiv-survey-latex 写一篇 8-10 页的 RAG 评测课程论文，并生成 PDF。
+使用 source-tutorial 把 sources/manifest.yml 中的资料做成面向高级软件工程师的教程。
+```
+
 ## 1. 快速选路
 
 | 你现在想做什么 | 优先看哪条流程 | 关键 skills |

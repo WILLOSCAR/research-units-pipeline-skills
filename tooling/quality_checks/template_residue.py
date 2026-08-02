@@ -258,6 +258,12 @@ def measure_template_residue(
         "matched_literal_fragment_count": len(matched_fragments),
         "missing_assets": missing_assets,
         "examples": matches[:8],
+        # Keep the complete, file-addressable repair surface in the scorecard.
+        # The Evaluation ledger only projects aggregate metrics, so this does
+        # not inflate normal Run inspection output.  A writer can now repair
+        # every matched sentence without reverse-engineering the template
+        # banks or repeatedly rerunning the gate to discover the next sample.
+        "repair_items": matches,
     }
 
 
@@ -547,8 +553,8 @@ def build_template_residue_scorecard(
         limitations=[
             "Literal-fragment matching is a reproducible lower bound, not an authorship or originality classifier.",
             (
-                f"The {float(policy['max_ratio']):.0%} limit is an initial policy target and has not "
-                "yet been validated by a completed passing Run."
+                f"The {float(policy['max_ratio']):.0%} limit is an initial policy target; a passing "
+                "Run demonstrates attainability for that Run, not calibration across topics or profiles."
             ),
         ],
     )

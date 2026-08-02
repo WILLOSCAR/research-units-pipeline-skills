@@ -1,290 +1,235 @@
 # Research Harness
 
-Turn a research goal into a reviewable deliverable while preserving the
-sources, decisions, intermediate artifacts, and execution evidence behind it.
+[![Repository verification](https://github.com/WILLOSCAR/research-units-pipeline-skills/actions/workflows/verify.yml/badge.svg)](https://github.com/WILLOSCAR/research-units-pipeline-skills/actions/workflows/verify.yml)
 
-Research Harness is an end-to-end **Auto Research Design System** built from
-two complementary parts:
+**Research should leave a trail, not just an answer.**
 
-- **Skills** perform bounded research transformations such as retrieval,
-  extraction, comparison, synthesis, review, and writing.
-- **Harness** organizes those Skills into recoverable Workflows, checks their
-  artifacts, records what happened, and locates the next repair when a Run
-  fails.
+A long research task can produce a polished PDF and still leave basic questions
+unanswered: Which sources support this paragraph? What changed after the last
+failure? Can the work resume tomorrow without reconstructing a chat? What did
+`PASS` actually verify?
+
+Research Harness turns a research goal into a file-first, recoverable Run. It
+organizes focused Skills into explicit Workflows, preserves intermediate
+Artifacts and decisions, checks observable contracts, and points failures back
+to the smallest repair surface.
 
 ```text
 Goal -> Run -> Evidence -> Improve
 ```
 
-The project does not claim to be an autonomous scientist. It makes long-form
-research work observable and correctable so a user or agent can deliver, audit,
-resume, and improve it without reconstructing the whole process from chat
-history.
+It is not an autonomous-scientist claim. It is infrastructure for making
+agent-assisted research inspectable, resumable, and honest about what has—and
+has not—been proven.
 
-## Choose The Outcome
+## See A Run In Five Minutes
 
-Users choose a Workflow by the result they need. The internal Skills and Units
-remain implementation details until inspection or repair is necessary.
-
-| Desired result | Workflow | Starting point | Main deliverable |
-|---|---|---|---|
-| Understand a topic and decide what to read | `research-brief` | topic | `output/SNAPSHOT.md` |
-| Review one paper or manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
-| Synthesize studies under an explicit protocol | `evidence-review` | review question, then an approved protocol | `output/SYNTHESIS.md` |
-| Write a literature survey or bounded research report | `arxiv-survey` | topic and delivery constraints | `output/DRAFT.md` |
-| Deliver the same Survey path as LaTeX and PDF | `arxiv-survey-latex` | topic and delivery constraints | `latex/main.pdf` |
-| Develop literature-grounded research directions | `idea-brainstorm` | topic and scope | `output/REPORT.md` |
-| Turn an existing source set into a tutorial | `source-tutorial` | source pack and audience | tutorial, article PDF, slides |
-
-`graduate-paper` remains a research-stage Chinese thesis path. It contains
-useful Skills but is not part of the seven executable Pipeline contracts.
-
-The input boundaries are deliberate. `research-brief`, the Survey family, and
-`idea-brainstorm` can begin from a topic. `paper-review` requires a manuscript;
-`source-tutorial` requires a local source pack and audience; `evidence-review`
-turns a review question into a protocol and stops for approval before retrieval.
-The Harness names a missing prerequisite instead of silently replacing it with
-invented context.
-
-## Start A Run
-
-The CLI currently runs from a source checkout, requires Python 3.10+, and uses
-[uv](https://docs.astral.sh/uv/). `uv run` installs the declared Python
-dependencies, including PDF manuscript extraction. Source Tutorial PDF ingest
-also requires `pdftotext`; LaTeX/PDF delivery requires the TeX tools named by
-the selected Workflow's compile checks plus either Poppler's `pdfinfo` or the
-optional `PyMuPDF` package for page-count acceptance. Goal-seeded Workflows can
-then start:
+Research Harness currently runs from a source checkout with Python 3.10+ and
+[uv](https://docs.astral.sh/uv/):
 
 ```bash
+git clone https://github.com/WILLOSCAR/research-units-pipeline-skills.git
+cd research-units-pipeline-skills
+uv sync --locked
+
 uv run rh goal create \
   --goal "Understand test-time adaptation for robotics and decide what to read" \
   --workflow research-brief \
   --workspace workspaces/robot-adaptation
 
 uv run rh run start --workspace workspaces/robot-adaptation
+```
+
+The Run advances until it finishes or reaches an unmet prerequisite. For
+`research-brief`, inspect the paper set, taxonomy, outline, and C2 review block,
+then continue:
+
+```bash
 uv run rh run status --workspace workspaces/robot-adaptation
 uv run rh run approve --workspace workspaces/robot-adaptation --checkpoint C2
 uv run rh run resume --workspace workspaces/robot-adaptation
 uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-`run start` advances until the next unmet prerequisite. For `research-brief`,
-inspect the core paper set, taxonomy, outline, and C2 review block before
-approving C2; only the currently active Checkpoint can be approved. The
-approval is bound to the reviewed Artifact hashes, so changing those files
-invalidates stale authorization. `run resume` then continues from the persisted
-Unit ledger. The completed Run contains a readable brief and structured
-scorecard. `evidence inspect` writes both the Run Audit and Artifact Pack, with
-optional portable excerpts. A failed contract can be diagnosed with:
+The Workspace now contains the readable deliverable and its evidence trail:
+
+```text
+GOAL.md                  requested outcome and constraints
+UNITS.csv                explicit plan and current Unit state
+DECISIONS.md             human checkpoints and choices
+papers/ + outline/       research evidence and intermediate structure
+output/                  deliverable, scorecards, audits, repair reports
+.harness/                Run identity, Attempts, Events, hashes, provenance
+```
+
+If a contract fails, ask the Harness where repair belongs:
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
 ```
 
-For input-owned Workflows, prepare the Workspace before resuming:
+## Choose The Deliverable
 
-```bash
-# Single-manuscript review
-uv run rh goal create --goal "Review this manuscript" --workflow paper-review --workspace workspaces/review
-mkdir -p workspaces/review/inputs
-cp /path/to/manuscript.pdf workspaces/review/inputs/manuscript.pdf
-uv run rh run start --workspace workspaces/review
+Users choose a Workflow by outcome; Skills and Units stay implementation
+details until inspection or repair is necessary.
 
-# Fixed-source tutorial: the first start scaffolds sources/manifest.yml and blocks
-uv run rh goal create --goal "Teach this source set to new team members" --workflow source-tutorial --workspace workspaces/tutorial
-uv run rh run start --workspace workspaces/tutorial
-# Replace the generated manifest entry with real webpage, PDF, Markdown, repo, docs-site, or transcript locators.
-uv run rh run resume --workspace workspaces/tutorial
+| You want to… | Workflow | Required starting point | Main deliverable |
+|---|---|---|---|
+| Understand a topic and decide what to read | `research-brief` | topic | `output/SNAPSHOT.md` |
+| Review one paper or manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
+| Synthesize studies under an approved protocol | `evidence-review` | review question | `output/SYNTHESIS.md` |
+| Write a literature survey or bounded report | `arxiv-survey` | topic and delivery constraints | `output/DRAFT.md` |
+| Deliver that Survey as LaTeX and PDF | `arxiv-survey-latex` | topic and delivery constraints | `latex/main.pdf` |
+| Develop literature-grounded research directions | `idea-brainstorm` | topic and scope | `output/REPORT.md` |
+| Turn a fixed source set into a tutorial | `source-tutorial` | source pack and audience | tutorial, article PDF, slides |
 
-# Evidence review: the Workflow writes the protocol, then stops for C1 approval
-uv run rh goal create --goal "Determine which interventions improve retrieval faithfulness" --workflow evidence-review --workspace workspaces/evidence-review
-uv run rh run start --workspace workspaces/evidence-review
-uv run rh run approve --workspace workspaces/evidence-review --checkpoint C1
-uv run rh run resume --workspace workspaces/evidence-review
-```
-
-Workflows that require an existing manuscript, source pack, or human decision
-stop at that prerequisite and name it. `evidence-review` creates its own
-protocol and pauses before retrieval so the user can approve or revise it.
-These Workflows can also be invoked naturally from Codex:
+In Codex or Claude Code, the activation surface is deliberately one sentence:
 
 ```text
-Use paper-review to review this manuscript. Keep every major concern traceable to the paper.
-```
-
-```text
+Use research-brief to map test-time adaptation for robotics and tell me what to read first.
+Use paper-review to review the attached manuscript and trace every major concern to the paper.
 Use arxiv-survey-latex to write an 8-10 page course paper on RAG evaluation and produce a PDF.
+Use source-tutorial to turn sources/manifest.yml into a tutorial for senior software engineers.
 ```
 
-## One End-To-End System
+`graduate-paper` remains a research-stage Chinese thesis path, not one of the
+seven executable Pipeline contracts.
+
+Input boundaries are intentional. `paper-review` will not invent a manuscript;
+`source-tutorial` will not invent a source pack; `evidence-review` writes a
+protocol and pauses for approval before retrieval. See the
+[usage guides](readme/README.en.md) for those setup paths.
+
+## What Changes When Research Becomes A Run
+
+Without a Harness, a research agent usually leaves a final answer and a long
+conversation. With Research Harness, each transition has an inspectable owner:
 
 ```mermaid
 flowchart LR
-    G["Goal"] --> W["Workflow choice"]
-    W --> P["Pipeline contract"]
-    P --> R["Recoverable Run"]
-    R --> U["Units"]
-    U --> S["Research and control Skills"]
-    S --> A["Artifacts and deliverable"]
-    A --> C["Completion and scorecards"]
-    C --> E["Evidence"]
-    E --> I["Improve diagnosis"]
-    I --> O["Human or agent applies bounded repair"]
-    O -. "rerun affected Units" .-> R
-
-    H["Harness kernel"] --- R
-    H --- C
+    G["Goal"] --> W["Workflow"]
+    W --> P["Pinned Pipeline contract"]
+    P --> U["Recoverable Units"]
+    U --> A["Research Artifacts"]
+    A --> C["Completion checks"]
+    C --> E["Run Evidence"]
+    E --> D["Bounded diagnosis"]
+    D -. "repair and rerun" .-> U
 ```
 
-The layers have distinct responsibilities:
+Three mechanisms make that trail useful:
 
-- **Workflow:** the user-selectable research path for one outcome.
-- **Pipeline contract:** implements that Workflow through stages, required
-  Skills, target Artifacts, checkpoints, and mandatory acceptance checks.
-- **Workspace:** stores one Run as human-readable files plus a machine ledger.
-- **Unit:** declares one step, its dependencies, inputs, outputs, owner, and
-  acceptance rule.
-- **Skill:** performs one bounded research or control capability.
-- **Artifact:** preserves a research input, intermediate result, scorecard,
-  report, or final deliverable.
-- **Harness kernel:** owns Run identity, scheduling, Attempts, Completion,
-  recovery, provenance, reconciliation, Audit, and failure attribution.
+1. **The contract is pinned.** `harness-lock.v2` snapshots the selected Pipeline
+   and hashes its inheritance bundle, Skill implementations, and Harness Kernel.
+   An active Run fails closed if the Pipeline or Kernel drifts; it cannot silently
+   continue under different rules.
+2. **Completion is evidence-backed.** A `DONE` cell alone is not success. The
+   Attempt, required outputs, Artifact hashes, Workflow checks, Manifest, and
+   Completion Event must agree.
+3. **Failure has an address.** Doctor, Audit, scorecards, and the Failure ledger
+   distinguish an observable defect from its owning repair surface. Improvement
+   diagnoses; it does not rewrite the Harness in place.
 
-When a new Run starts, `harness-lock.v2` copies the selected Pipeline contract
-and its local variant dependencies into the Workspace and hashes that snapshot.
-A later repository change therefore cannot silently redefine an existing Run;
-missing or altered contract evidence blocks execution and Audit.
+Human checkpoints use the same discipline. Approval is bound to the reviewed
+Artifact hashes, so changing an approved outline, scope, or protocol revokes the
+stale authorization.
 
-Every scripted Unit, manual semantic Unit, and approved checkpoint passes
-through the same Completion Protocol before it becomes `DONE`. Normal execution
-enforces the Workflow's mandatory checks. `--strict` adds diagnostics that the
-Workflow has not made mandatory; it is not the only checked mode.
-Each mandatory result is retained with Completion evidence, so Run Audit can
-show verified, pending, blocked, skipped, and legacy-unverified acceptance
-coverage without reconstructing the Run from prose logs.
+## What A PASS Means
 
-## Evidence And Quality
+Research Harness separates three claims that are easy to blur:
 
-The system keeps two evidence scopes:
+| Layer | A PASS establishes | It does not establish |
+|---|---|---|
+| Execution integrity | Attempts, state, Manifests, hashes, and provenance agree | that the answer is good |
+| Contract acceptance | required Artifacts satisfy observable Workflow checks | scientific truth or exhaustive retrieval |
+| Research quality | usefulness and correctness on realistic inputs | validity beyond the evaluated cases |
 
-- **Research Evidence** supports or qualifies the content of the deliverable.
-- **Run Evidence** explains what executed, which Artifacts changed, and which
-  checks passed.
+The repository implements the first two layers. The third needs repeated Runs,
+held-out evaluation, and expert judgment. Reports use qualified evidence rather
+than turning every green check into a research-quality claim.
 
-It also separates three quality claims:
+## The Survey Failure That Shaped The Gate
 
-| Layer | What a PASS means |
-|---|---|
-| Execution integrity | Attempts, state, Manifests, hashes, and provenance agree |
-| Contract acceptance | Required Artifacts satisfy observable Workflow checks |
-| Research quality | The result is useful, correct, and sufficiently complete on realistic inputs under expert or held-out evaluation |
+The Survey writer can bootstrap provisional prose from structured evidence packs
+and versioned templates. Early versions completed the delivery path but left too
+much of that scaffold in the paper: the historical course-paper sample matches
+template fragments in **96/140 sentences (68.6%)**.
 
-The Harness implements the first two layers. The third requires repeated Runs
-and external judgment. A scorecard does not prove scientific truth, novelty, or
-exhaustive retrieval.
+That failure is now a contract, not a warning:
 
-## Survey As A Report Engine
+- `front-matter-writer` checks the abstract, introduction, related work,
+  discussion, and conclusion before merge;
+- `subsection-writer` and `writer-selfloop` check H3 prose;
+- `pipeline-auditor` checks the whole merged draft, selected asset hashes, and
+  the three template-owning Skill implementations;
+- pipeline voice such as “this run” is blocking reader-facing residue;
+- the whole-draft limit is <=10%.
 
-The Survey family supports full literature surveys and bounded, literature-
-grounded deliverables such as course papers, course reports, seminar reports,
-short literature reviews, and focused technical landscape reports. Users state
-the intended outcome, length, evidence depth, and format in the Goal. The
-Workflow selects the internal delivery profile; users do not need to edit
-profile keys.
+The current published replay completes all 49 Units under the current contract:
 
-The current Survey writer has an explicit generation boundary. Its reference
-scripts can deterministically bootstrap missing section prose from structured
-writer packs and the current versioned template assets. That bootstrap is
-provisional. `sections/h3_bodies.refined.ok` is an attestation that the prose is
-ready for acceptance, not proof of who reviewed it. Once the marker exists, the
-mandatory `subsection-writer` check derives fixed fragments from the template
-assets recorded for that Run and rejects it when more than 10% of H3 sentences
-retain a literal fragment. `writer-selfloop` invokes the same shared strict
-section checker while producing its report. The mandatory `pipeline-auditor`
-then measures the entire merged draft, verifies the selected front-matter asset
-hashes and the three template-owning Skill implementations against
-`harness-lock.v2`, and writes `output/TEMPLATE_RESIDUE_SCORECARD.json`. The
-Completion Protocol projects its verdict and dimensions into the evaluation
-ledger; the scorecard file retains the full measurement and localized examples.
-This measure is a reproducible lower bound on deterministic template residue,
-not proof of model authorship, originality, or publication quality. The 10%
-limit is an initial policy target; no completed passing Run has yet demonstrated
-that it is attainable.
+| Evidence | Result |
+|---|---:|
+| Required Workflow checks | 31/31 PASS |
+| Target Artifacts | 75/75 present |
+| Harness Kernel lock | 35/35 matched |
+| Ledger integrity issues | 0 |
+| Template residue | 0/226 sentences (0.0%) |
+| PDF delivery | 10 pages |
 
-Use `research-brief` for orientation, `paper-review` for one manuscript,
-`evidence-review` for protocol-driven synthesis, and `source-tutorial` for a
-fixed source pack. Use the Survey family when the deliverable requires finding,
-comparing, synthesizing, and citing multiple papers. See the
-[Survey guide](readme/arxiv-survey.md) for concrete Goals and evidence modes.
+This proves attainability for one retained Artifact set. It does not prove
+authorship, semantic originality, autonomous generation, cross-topic
+calibration, or expert paper quality. The Run used manual Artifact revalidation
+and a dirty worktree; a clean, from-scratch reproduction remains open. Inspect
+the [current-contract evidence](examples/course-paper-residue-pass/README.md)
+and the [historical failure baseline](examples/course-paper-pilot/README.md).
 
-## Current Proof Boundary
+## Published Evidence
 
-- `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review`
-  have Workflow-local scorecards and failure, repair, and rerun tests. Their
-  critical joins reject shallow novelty surfaces, an ungrounded Brief scope,
-  theme bullets without valid paper pointers or two-paper coverage,
-  broken ideation trace/shortlist consistency, protocol or extraction gaps,
-  incomplete bias records, and lexically overconfident conclusions while preserving explicit negation.
-- the Survey family has a mandatory prewrite evidence loop: subsection briefs,
-  evidence bindings, and evidence drafts must cover the same subsection IDs,
-  and malformed gap fields or unresolved blocking evidence stop writing.
-- `research-brief` has a completed real-source arXiv pilot in addition to a
-  deterministic Harness proof.
-- `source-tutorial` has a strict local-source delivery test through article and
-  slide PDF compilation; its context packs must preserve the exact approved
-  module-source coverage and rejoin successful ingest, provenance, snippets,
-  and visible Source notes.
-- the Survey family has one completed bounded-report pilot with an audited
-  10-page PDF. Against five current candidate banks under
-  `template-residue-measurement.v1`, 96 of
-  140 draft sentences (68.6%) contain a literal fragment. The H3-only early-check
-  scope remains 49 of 90 (54.4%), while the front-matter subset is 41 of 41. The
-  snapshot therefore fails the current 10% limit and remains historical delivery
-  evidence; it does not retain the optional domain-overlay selection or an
-  actor/revision trace that could attribute the remaining prose to a model or
-  human.
-- cross-topic stability, expert comparison, measured model-token benchmarks,
-  and automatic Harness candidate promotion remain open.
+The repository publishes curated evidence rather than private Workspaces:
 
-The published `research-brief` snapshots were captured under
-`recoverable-provenance.v1`. The course-paper snapshot does not contain the
-current `.harness` ledgers or a `run-audit.v2` bundle. These remain outcome and
-historical Run evidence, not current v2 cross-ledger acceptance proofs;
-refreshing public v2 Runs is an explicit Roadmap item.
+| Snapshot | What it demonstrates | Boundary |
+|---|---|---|
+| [`course-paper-residue-pass`](examples/course-paper-residue-pass/README.md) | current v2 contract acceptance, 0/226 residue, 10-page PDF | manual replay, dirty revision, one topic |
+| [`course-paper-pilot`](examples/course-paper-pilot/README.md) | completed delivery and a reproducible 68.6% failure baseline | historical contract; fails the current writing gate |
+| [`research-brief-real-source-proof`](examples/research-brief-real-source-proof/README.md) | one live-arXiv briefing delivery | historical v1 protocol, one topic |
+| [`research-brief-harness-proof`](examples/research-brief-harness-proof/README.md) | deterministic recovery and Audit evidence | synthetic sources, historical v1 protocol |
 
-Published snapshots are deliberately narrow:
+Scorecard fixtures and failure-repair regressions cover `paper-review`,
+`idea-brainstorm`, `evidence-review`, and `source-tutorial`. Cross-topic
+stability, measured model-token benchmarks, expert comparison, and automatic
+Harness-candidate promotion remain open.
 
-- [`research-brief` Harness proof](examples/research-brief-harness-proof/README.md)
-- [Real-source `research-brief` proof](examples/research-brief-real-source-proof/README.md)
-- [Course-paper delivery proof](examples/course-paper-pilot/README.md)
+## Runtime Requirements
 
-## Maintainer Path
+- Python 3.10+ and `uv` for the CLI;
+- `pdftotext` for Source Tutorial PDF ingestion;
+- `latexmk`, XeLaTeX, BibTeX, and `pdfinfo` for LaTeX/PDF delivery.
 
-Validate the repository before changing maturity claims:
+The Python package declares `PyYAML` and `pypdf`; maintainer dependencies are in
+the `test` extra. GitHub Actions installs the same TeX/Poppler boundary used by
+the PDF tests.
+
+## Maintainer Verification
+
+Run the same checks as `.github/workflows/verify.yml`:
 
 ```bash
-uv run python scripts/validate_repo.py --strict
-uv run python scripts/readiness_audit.py --strict
-uv run python scripts/audit_skills.py --fail-on WARN
-uv run python scripts/audit_workflow_context.py
-uv run --extra test ruff check .
-uv run --extra test python -m pytest -q
+uv run --locked python scripts/validate_repo.py --strict
+uv run --locked python scripts/readiness_audit.py --strict
+uv run --locked python scripts/audit_skills.py --fail-on WARN
+uv run --locked python scripts/audit_workflow_context.py
+uv run --locked --extra test ruff check .
+uv run --locked --extra test python -m pytest -q
 ```
 
-`.github/workflows/verify.yml` automates these repository-maintainer checks on
-pull requests and `main`. It is CI for the codebase, not a user-facing Research
-Workflow.
-
-When extending a Workflow, update its contract under `pipelines/`, align the
-matching `templates/UNITS.*.csv`, implement the owned capability under
-`.codex/skills/`, and add a completed Run or failure-repair regression before
-raising its proof state.
+When extending a Workflow, keep its Pipeline contract, Unit template, owned
+Skills, tests, and evidence claim aligned. Do not raise a proof state without a
+completed Run or a failure-repair regression that supports it.
 
 ## Documentation
 
-- [Auto Research architecture](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
-- [Workflow catalog and maturity](docs/PIPELINE_TAXONOMY.md)
+- [Architecture](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
+- [Workflow catalog and proof states](docs/PIPELINE_TAXONOMY.md)
 - [Canonical project language](docs/PROJECT_LANGUAGE.md)
 - [Roadmap](docs/HARNESS_ROADMAP.md)
 - [Current readiness](docs/HARNESS_READINESS.md)
@@ -292,7 +237,7 @@ raising its proof state.
 - [Architecture decisions](docs/adr/)
 - [Detailed usage guides](readme/README.en.md)
 
-[Chinese README](README.zh-CN.md)
+[中文 README](README.zh-CN.md)
 
 ## Star History
 

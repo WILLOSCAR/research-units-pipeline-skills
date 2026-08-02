@@ -14,6 +14,14 @@ SCHEMA_PATH = ASSETS_DIR / "evidence_pack_schema.json"
 SOURCE_HYGIENE_PATH = ASSETS_DIR / "source_text_hygiene.json"
 
 
+def _shared_limitation_signal(text: str) -> bool:
+    # Keep the script's standalone `--help` path independent of an editable
+    # package install; main() adds the repository root before execution.
+    from tooling.source_text_hygiene import has_limitation_signal
+
+    return has_limitation_signal(text)
+
+
 def _load_optional_json_asset(path: Path) -> dict[str, Any]:
     if not path.exists() or path.stat().st_size <= 0:
         return {}
@@ -1559,46 +1567,11 @@ def _limitations_from_notes(
     and summaries, not pad sparse packs with generic caution bullets.
     """
 
-    limit_re = re.compile(
-        r"(?i)\b(?:"
-        r"limit\w*|challeng\w*|risk\w*|unsafe|secur\w*|attack\w*|threat\w*|fail\w*|fragil\w*|uncertain\w*|"
-        r"open\s+problem\w*|future\s+work|caveat\w*|downside\w*|obstacle\w*|bottleneck\w*|gap\w*|disconnect\w*|"
-        r"domain\s+shift|sim-?to-?real|generalization\s+(?:gap|challenge)|hinder\w*|cost\w*|complexit\w*|"
-        r"partial\s+observability|manual\s+annotation|latency|hallucinat\w*|restrict\w*|out-of-distribution|ood|"
-        r"cascading\s+error\w*|poor\s+instruction\s+following"
-        r")\b|受限|局限|风险|挑战|失败|安全"
-    )
-    strong_negative_re = re.compile(
-        r"(?i)\b(?:"
-        r"limit\w*|risk\w*|unsafe|fail\w*|fragil\w*|gap\w*|disconnect\w*|bottleneck\w*|"
-        r"latency|cost\w*|complexit\w*|hallucinat\w*|domain\s+shift|manual\s+annotation|restrict\w*|"
-        r"out-of-distribution|ood|partial\s+observability|poor\s+instruction\s+following|cascading\s+error\w*"
-        r")\b|受限|局限|风险|失败|安全"
-    )
     solution_re = re.compile(
         r"(?i)^(?:to address|addressing|to overcome|we address|we mitigate|we solve|to tackle|"
         r"we introduce|we present|we propose|towards this end|in this work,\s+we(?:\s+close)?|"
         r"to unify these observations|to facilitate this|we close this gap|motivated by these limitations|"
         r"(?:these|the)\s+findings\s+(?:suggest|indicate)\s+that\b.*\bshould\b)"
-    )
-    remedy_phrase_re = re.compile(
-        r"(?i)\b(?:we introduce|we present|we propose|we close this gap|bridges?\s+(?:a|the)\s+key\s+gap)\b"
-    )
-    positive_result_re = re.compile(
-        r"(?i)\b(?:outperform\w*|surpass\w*|superior\w*|state-of-the-art|sota|achiev\w*|excelling?|strong\s+results?)\b"
-    )
-    positive_gap_re = re.compile(r"(?i)\b(?:narrowing|closing|bridging)\s+the\s+gap\b")
-    positive_challenge_re = re.compile(
-        r"(?i)\bchalleng\w*\s+(?:task|tasks|benchmark|benchmarks|environment|environments|setting|settings)\b"
-    )
-    event_challenge_re = re.compile(
-        r"(?i)\b(?:this|the)\s+(?:year(?:'s)?\s+)?challenge\s+"
-        r"(?:introduces?|includes?|features?|uses?|asks?|invites?|requires?)\b|"
-        r"\b(?:shared|benchmark|competition|track)\s+challenge\b"
-    )
-    positive_cost_re = re.compile(
-        r"(?i)\bcost[-\s]?effectiv(?:e|eness|ely)\b|"
-        r"\b(?:lower|reduced?|decreased?|minimal|optimal)\s+(?:computational\s+)?costs?\b"
     )
     solution_tail_re = re.compile(
         r"(?i)[,;:]\s*(?:we|the authors)\s+(?:introduce|present|propose|develop|devise|design)\b"
@@ -1625,7 +1598,7 @@ def _limitations_from_notes(
         if not m:
             return s
         head = s[: m.start()].strip(" ,;:")
-        if not head or not strong_negative_re.search(head):
+        if not head or not _shared_limitation_signal(head):
             return s
         if head.lower().startswith("because "):
             head = head[8:].strip()
@@ -1637,23 +1610,11 @@ def _limitations_from_notes(
 
     def is_caveat_sentence(text: str) -> bool:
         s = re.sub(r"\s+", " ", str(text or "").strip())
-        signal_text = positive_cost_re.sub("", s)
-        signal_text = event_challenge_re.sub("", signal_text)
-        if not s or not limit_re.search(signal_text):
+        if not s or not _shared_limitation_signal(s):
             return False
         if _GENERIC_EVIDENCE_RE.search(s) and _snippet_specificity_score(s) < 2:
             return False
         if solution_re.search(s):
-            return False
-        if remedy_phrase_re.search(s) and not strong_negative_re.search(signal_text):
-            return False
-        if positive_challenge_re.search(s) and not strong_negative_re.search(signal_text):
-            return False
-        if positive_gap_re.search(s):
-            return False
-        if positive_result_re.search(s) and not strong_negative_re.search(signal_text):
-            return False
-        if not strong_negative_re.search(signal_text) and _snippet_specificity_score(s) < 2:
             return False
         return True
 

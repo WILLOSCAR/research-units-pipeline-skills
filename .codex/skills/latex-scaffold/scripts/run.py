@@ -1,9 +1,29 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
+
+
+LAYOUT_POLICY_PATH = Path(__file__).resolve().parents[1] / "assets" / "layout_profiles.json"
+
+
+def _layout_profile(profile: str) -> dict[str, object]:
+    payload = json.loads(LAYOUT_POLICY_PATH.read_text(encoding="utf-8"))
+    if payload.get("schema") != "latex-layout-profiles.v1":
+        raise ValueError(f"Unsupported LaTeX layout policy: {payload.get('schema')!r}")
+    profiles = payload.get("profiles")
+    if not isinstance(profiles, dict) or not isinstance(profiles.get("default"), dict):
+        raise ValueError("LaTeX layout policy is missing the default profile")
+    selected = dict(profiles["default"])
+    override = profiles.get(str(profile or "").strip())
+    if isinstance(override, dict):
+        selected.update(override)
+    if not str(selected.get("margin") or "").strip():
+        raise ValueError("LaTeX layout profile is missing margin")
+    return selected
 
 
 def main() -> int:
@@ -57,9 +77,13 @@ def main() -> int:
         raise SystemExit(f"Missing input: {workspace / 'output' / 'DRAFT.md'} or {workspace / 'output' / 'TUTORIAL.md'}")
 
     md = draft_path.read_text(encoding="utf-8", errors="ignore")
-    compact_course_paper = _draft_profile(workspace) == "course_paper"
+    draft_profile = _draft_profile(workspace)
+    layout = _layout_profile(draft_profile)
     title = _read_first_h1(md) or research_title_from_request(_read_goal(workspace)) or "Survey"
-    body = _markdown_to_latex(md, split_large_tables=not compact_course_paper)
+    body = _markdown_to_latex(
+        md,
+        split_large_tables=bool(layout.get("split_large_tables", True)),
+    )
     use_ctex = _has_cjk(md)
     bib_path = workspace / "citations" / "ref.bib"
     include_bibliography = bib_path.exists() and _has_real_bib_entries(bib_path)
@@ -76,7 +100,7 @@ def main() -> int:
             ("" if use_ctex else r"\usepackage{fontspec}"),
             r"\usepackage{newunicodechar}",
             r"\newunicodechar{π}{\ensuremath{\pi}}",
-            r"\usepackage[a4paper,margin=1in]{geometry}",
+            rf"\usepackage[a4paper,margin={layout['margin']}]{{geometry}}",
             r"\usepackage{hyperref}",
             r"\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}",
             r"\usepackage{enumitem}",
@@ -100,15 +124,19 @@ def main() -> int:
             r"\begin{document}",
             r"\maketitle",
             "",
-            *([] if compact_course_paper else [r"\tableofcontents", r"\newpage", ""]),
+            *(
+                [r"\tableofcontents", r"\newpage", ""]
+                if bool(layout.get("show_table_of_contents", True))
+                else []
+            ),
             body.strip(),
             "",
             *(
                 [
-                    *([r"{\small"] if compact_course_paper else []),
+                    *([r"{\small"] if bool(layout.get("compact_bibliography")) else []),
                     r"\bibliographystyle{plainnat}",
                     r"\bibliography{../citations/ref}",
-                    *([r"}"] if compact_course_paper else []),
+                    *([r"}"] if bool(layout.get("compact_bibliography")) else []),
                 ]
                 if include_bibliography
                 else []

@@ -478,13 +478,21 @@ def _render_job_graph(
 
 
 def _lint_reader_facing(*, label: str, text: str, contract: dict[str, Any]) -> None:
+    harness_anchor = (
+        r'(?:checkpoint\s+C\d+|unit\s+U\d+|harness(?:\s+(?:lock|kernel))?|'
+        r'attempt\s+ledger|locked\s+contract|template\s+residue|workspace)'
+    )
+    ambiguous_pipeline_term = r'(?:(?:this|across\s+the)\s+pipeline|quality\s+gate)'
     checks = [
-        (r'(?i)\bthis pipeline\b', 'pipeline narration'),
-        (r'(?i)\bacross the pipeline\b', 'pipeline narration'),
-        (r'(?i)\bworkspace\b', 'workspace narration'),
+        (
+            rf'(?i)(?:\b{ambiguous_pipeline_term}\b[^.!?\n]{{0,160}}\b{harness_anchor}\b|'
+            rf'\b{harness_anchor}\b[^.!?\n]{{0,160}}\b{ambiguous_pipeline_term}\b)',
+            'pipeline narration',
+        ),
+        (r'(?i)\bthis\s+workspace\b', 'workspace narration'),
         (r'(?i)\bstage\s*C\d+\b', 'stage narration'),
         (r'(?i)\bapprove\s+C\d+\b', 'approval narration'),
-        (r'(?i)\bfor this run\b', 'run-local narration'),
+        (r'(?i)\b(?:for\s+)?this\s+run\b', 'run-local narration'),
         (r'(?i)\bthis review\b', 'deictic review narration'),
         (r'(?i)\bthis survey\b', 'deictic survey narration'),
         (r'(?i)\bthe introduction therefore asks\b', 'planner-talk opener'),

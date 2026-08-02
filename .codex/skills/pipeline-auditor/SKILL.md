@@ -47,7 +47,11 @@ Course-paper targets:
 - Paper voice anti-patterns:
   - narration templates (`This subsection ...`, `In this subsection ...`)
   - slide navigation (`Next, we move ...`, `We now turn to ...`)
-  - pipeline voice (`this run`, “pipeline/stage/workspace” in prose)
+  - unmistakable pipeline voice (`this run`, `this workspace`)
+  - ambiguous terms such as `this pipeline`, `this stage`, and `quality gate`
+    block only when the same sentence contains a Harness anchor such as a
+    checkpoint, Unit ID, Harness lock, attempt ledger, or template residue;
+    ordinary subject-matter uses remain non-blocking warnings
 - Evidence-policy disclaimer spam: repeated “abstract-only/title-only/provisional” boilerplate inside H3 bodies.
 - Meta survey-guidance phrasing: `survey synthesis/comparisons should ...`.
 - Synthesis stem repetition: repeated `Taken together, ...` and similar high-signal generator stems.
@@ -64,8 +68,10 @@ Harness execution, Completion projects its verdict and dimensions into
 `.harness/evaluations/ledger.jsonl`, including failed Attempts, so Run Audit can
 expose the latest measurement instead of reducing it to PASS/FAIL. The scorecard
 file remains the complete evidence object; the ledger is intentionally smaller.
-The current 10% limit is an initial policy target and has not yet been validated
-by a completed passing Run.
+The current 10% limit is an initial policy target. The published Survey replay
+completes the current 31-check contract at 0/226 residue, establishing
+attainability for one retained Artifact set. Clean from-scratch execution,
+unrelated topics, and cross-profile calibration remain open.
 
 ## How to use the report (routing table)
 

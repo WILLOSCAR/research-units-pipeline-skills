@@ -32,6 +32,7 @@ from tooling.run_state import (
     checkpoint_approval_status,
     ensure_run_state,
     finish_attempt,
+    require_current_kernel_lock,
     record_failure,
     record_decision,
     revoke_checkpoint_approval,
@@ -111,6 +112,7 @@ def run_one_unit(
     if not units_path.exists():
         return RunResult(unit_id=None, status="ERROR", message=f"Missing {units_path}")
 
+    require_current_kernel_lock(workspace=workspace, repo_root=repo_root)
     ensure_run_state(workspace=workspace, repo_root=repo_root, recover_stale_doing=True)
     table = UnitsTable.load(units_path)
     _reopen_stale_checkpoint_units(workspace=workspace, table=table)

@@ -1,249 +1,215 @@
 # Research Harness
 
-把一个研究目标转成可复核的交付物，同时保留背后的来源、决策、中间产物与执行证据。
+[![Repository verification](https://github.com/WILLOSCAR/research-units-pipeline-skills/actions/workflows/verify.yml/badge.svg)](https://github.com/WILLOSCAR/research-units-pipeline-skills/actions/workflows/verify.yml)
 
-Research Harness 是一套端到端的 **Auto Research Design System**，由两部分组成：
+**研究不应该只留下答案，还应该留下答案是怎么来的。**
 
-- **Skills** 完成有边界的研究转换，例如检索、提取、比较、综合、评审与写作。
-- **Harness** 把 Skills 组织成可恢复的 Workflows，检查产物、记录执行过程，
-  并在 Run 失败时定位下一个修复位置。
+一个长研究任务即使交付了漂亮的 PDF，仍可能回答不了几个基本问题：这一段由哪些来源
+支撑？上一次失败后改了什么？明天能否从断点继续，而不是重新翻聊天记录？报告里的
+`PASS` 到底验证了哪一层？
+
+Research Harness 把研究目标变成一次文件优先、可恢复的 Run。它把有边界的 Skills
+组织成明确的 Workflows，保存中间 Artifacts 与决策，用可观测合同验收结果，并把失败
+定位到最小修复面。
 
 ```text
 Goal -> Run -> Evidence -> Improve
 ```
 
-这个项目不宣称自己是“全自主科学家”。它要解决的是：让长链条研究任务可观察、
-可恢复、可审计、可修复，而不需要每次都从聊天记录里重建整个过程。
+它不宣称自己是“自主科学家”。它提供的是一套基础设施，让 Agent 协助的研究过程
+可检查、可续跑，也能诚实区分“已经证明”和“尚未证明”。
 
-## 先选交付结果
+## 五分钟看懂一次 Run
 
-用户根据想得到的结果选 Workflow。除非需要检查或修复，内部 Skills 与 Units 不必
-成为用户的心智负担。
-
-| 想得到的结果 | Workflow | 起点 | 主要交付物 |
-|---|---|---|---|
-| 快速理解一个主题并决定先读什么 | `research-brief` | topic | `output/SNAPSHOT.md` |
-| 评审一篇论文或 manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
-| 在明确 protocol 下综合多项研究 | `evidence-review` | Review 问题，再人工批准 Protocol | `output/SYNTHESIS.md` |
-| 写文献 Survey 或有边界的研究报告 | `arxiv-survey` | topic 与交付约束 | `output/DRAFT.md` |
-| 把同一条 Survey 路径交付为 LaTeX 与 PDF | `arxiv-survey-latex` | topic 与交付约束 | `latex/main.pdf` |
-| 形成有文献依据的研究方向 | `idea-brainstorm` | topic 与 scope | `output/REPORT.md` |
-| 把已有资料转成教程 | `source-tutorial` | source pack 与受众 | 教程、Article PDF、Slides |
-
-`graduate-paper` 仍是中文毕业论文的 research-stage 路径。它有可用 Skills，但不属于
-当前 7 条可执行 Workflow Contract。
-
-不同 Workflow 的输入边界不能互换。`research-brief`、Survey 家族与
-`idea-brainstorm` 可以从 topic 开始；`paper-review` 必须有 manuscript；
-`source-tutorial` 必须有本地 source pack 与受众信息；`evidence-review` 会先把 Review
-问题写成 Protocol，并在检索前停下来等待批准。缺少前置材料时，Harness 会明确指出，
-而不是用臆造上下文替代。
-
-## 启动一次 Run
-
-当前 CLI 从源码 checkout 中运行，需要 Python 3.10+，并使用
-[uv](https://docs.astral.sh/uv/)。`uv run` 会安装已声明的 Python 依赖，包括论文 PDF
-解析；Source Tutorial 摄取 PDF 还需要 `pdftotext`，LaTeX/PDF 交付则需要对应 Workflow
-编译检查所列的 TeX 工具，以及用于页数验收的 Poppler `pdfinfo` 或可选 `PyMuPDF`
-包。准备好这些依赖后，可以直接从 Goal 启动：
+Research Harness 当前从源码 checkout 运行，需要 Python 3.10+ 与
+[uv](https://docs.astral.sh/uv/)：
 
 ```bash
+git clone https://github.com/WILLOSCAR/research-units-pipeline-skills.git
+cd research-units-pipeline-skills
+uv sync --locked
+
 uv run rh goal create \
   --goal "理解机器人中的测试时自适应，并决定优先阅读什么" \
   --workflow research-brief \
   --workspace workspaces/robot-adaptation
 
 uv run rh run start --workspace workspaces/robot-adaptation
+```
+
+Run 会一直推进到完成或遇到未满足的前置条件。对于 `research-brief`，检查论文集合、
+taxonomy、outline 与 C2 review block 后继续：
+
+```bash
 uv run rh run status --workspace workspaces/robot-adaptation
 uv run rh run approve --workspace workspaces/robot-adaptation --checkpoint C2
 uv run rh run resume --workspace workspaces/robot-adaptation
 uv run rh evidence inspect --workspace workspaces/robot-adaptation --excerpt
 ```
 
-`run start` 会推进到下一个尚未满足的前置条件。对于 `research-brief`，先检查 core
-paper set、taxonomy、outline 与 C2 review block，再批准 C2；只有当前活跃的 Checkpoint
-可以被批准。批准会绑定所审阅 Artifact 的 Hash，材料变化后旧批准自动失效。
-`run resume` 会从持久化的 Unit ledger 继续执行。完成后的 Run 包含人类可读的 Brief
-与机器可读的 Scorecard；`evidence inspect` 会同时写出 Run Audit 与 Artifact Pack，
-并可生成便携 excerpt。如果 Contract 失败，可以运行：
+Workspace 同时保存人类可读的结果和机器可核验的过程：
+
+```text
+GOAL.md                  目标与约束
+UNITS.csv                显式计划与当前 Unit 状态
+DECISIONS.md             人工 Checkpoint 与选择
+papers/ + outline/       Research Evidence 与中间结构
+output/                  交付物、Scorecards、Audits、修复报告
+.harness/                Run 身份、Attempts、Events、Hashes、Provenance
+```
+
+合同失败时，不必盲猜整条链路：
 
 ```bash
 uv run rh improve diagnose --workspace workspaces/robot-adaptation
 ```
 
-对于由用户提供输入的 Workflow，先把材料放进 Workspace，再继续：
+## 先选你要的交付物
 
-```bash
-# 单篇 Manuscript 评审
-uv run rh goal create --goal "评审这篇论文" --workflow paper-review --workspace workspaces/review
-mkdir -p workspaces/review/inputs
-cp /path/to/manuscript.pdf workspaces/review/inputs/manuscript.pdf
-uv run rh run start --workspace workspaces/review
+用户按结果选择 Workflow；只有需要检查或修复时，Skills 与 Units 才进入视野。
 
-# 固定资料包教程：第一次 start 会生成 sources/manifest.yml 并阻塞
-uv run rh goal create --goal "把这组资料教给新成员" --workflow source-tutorial --workspace workspaces/tutorial
-uv run rh run start --workspace workspaces/tutorial
-# 将示例项替换为真实网页、PDF、Markdown、Repo、Docs Site 或 Transcript Locator。
-uv run rh run resume --workspace workspaces/tutorial
+| 你想要…… | Workflow | 必需起点 | 主要交付物 |
+|---|---|---|---|
+| 理解一个主题并决定先读什么 | `research-brief` | topic | `output/SNAPSHOT.md` |
+| 评审一篇论文或 manuscript | `paper-review` | manuscript | `output/REVIEW.md` |
+| 在已批准的 Protocol 下综合研究 | `evidence-review` | Review 问题 | `output/SYNTHESIS.md` |
+| 写文献 Survey 或有边界的报告 | `arxiv-survey` | topic 与交付约束 | `output/DRAFT.md` |
+| 把 Survey 交付为 LaTeX 与 PDF | `arxiv-survey-latex` | topic 与交付约束 | `latex/main.pdf` |
+| 形成有文献依据的研究方向 | `idea-brainstorm` | topic 与 scope | `output/REPORT.md` |
+| 把固定资料包转成教程 | `source-tutorial` | source pack 与受众 | 教程、Article PDF、Slides |
 
-# Evidence Review：Workflow 先生成 Protocol，再停在 C1 等待批准
-uv run rh goal create --goal "判断哪些干预能提升检索忠实度" --workflow evidence-review --workspace workspaces/evidence-review
-uv run rh run start --workspace workspaces/evidence-review
-uv run rh run approve --workspace workspaces/evidence-review --checkpoint C1
-uv run rh run resume --workspace workspaces/evidence-review
-```
-
-需要已有 Manuscript、Source Pack 或人工决策的 Workflow 会在对应前置条件处停下并说明
-缺什么。`evidence-review` 会自行生成 Protocol，并在检索前暂停，让用户批准或修改，
-而不是要求用户预先提供 Protocol。也可以在 Codex 中用自然语言调用：
+在 Codex 或 Claude Code 中，调用入口就是一句自然语言：
 
 ```text
-使用 paper-review 评审这篇论文，确保每条主要意见都能追溯到原文。
-```
-
-```text
+使用 research-brief 梳理机器人测试时自适应，并告诉我优先读什么。
+使用 paper-review 评审我附上的论文，确保每条主要意见都能追溯到原文。
 使用 arxiv-survey-latex 写一篇 8-10 页的 RAG 评测课程论文，并生成 PDF。
+使用 source-tutorial 把 sources/manifest.yml 中的资料做成面向高级软件工程师的教程。
 ```
 
-## 一套端到端系统
+`graduate-paper` 仍是研究阶段的中文毕业论文路径，不属于当前七条可执行 Pipeline。
+
+输入边界是有意设计的：`paper-review` 不会臆造 manuscript，`source-tutorial` 不会
+臆造 source pack，`evidence-review` 会先写 Protocol，并在检索前等待批准。具体准备方式
+见[中文使用导航](readme/README.zh-CN.md)。
+
+## 研究任务变成 Run 后，发生了什么
+
+没有 Harness 时，Agent 往往只留下最终答案和一段很长的对话。Research Harness 给每次
+转换一个可检查的负责人：
 
 ```mermaid
 flowchart LR
-    G["Goal"] --> W["Workflow choice"]
-    W --> P["Pipeline contract"]
-    P --> R["Recoverable Run"]
-    R --> U["Units"]
-    U --> S["Research and control Skills"]
-    S --> A["Artifacts and deliverable"]
-    A --> C["Completion and scorecards"]
-    C --> E["Evidence"]
-    E --> I["Improve diagnosis"]
-    I --> O["Human or agent applies bounded repair"]
-    O -. "rerun affected Units" .-> R
-
-    H["Harness kernel"] --- R
-    H --- C
+    G["Goal"] --> W["Workflow"]
+    W --> P["Pinned Pipeline contract"]
+    P --> U["Recoverable Units"]
+    U --> A["Research Artifacts"]
+    A --> C["Completion checks"]
+    C --> E["Run Evidence"]
+    E --> D["Bounded diagnosis"]
+    D -. "repair and rerun" .-> U
 ```
 
-每一层的职责不同：
+这条证据链依靠三件事成立：
 
-- **Workflow**：用户为目标选择的研究路径。
-- **Pipeline Contract**：用阶段、必需 Skills、目标 Artifacts、Checkpoints 与强制验收
-  实现该 Workflow。
-- **Workspace**：保存一次 Run 的人类可读文件与机器 Ledger。
-- **Unit**：定义一个步骤的依赖、输入、输出、Owner 与 Acceptance。
-- **Skill**：执行一个有边界的研究或控制能力。
-- **Artifact**：保存研究输入、中间结果、Scorecard、Report 或最终交付物。
-- **Harness Kernel**：管理 Run 身份、调度、Attempts、Completion、恢复、provenance、
-  reconciliation、Audit 与失败定位。
+1. **合同会被锁定。** `harness-lock.v2` 快照化所选 Pipeline，并记录 Variant、Skill
+   implementations 与 Harness Kernel 的 Hash。活跃 Run 遇到 Pipeline 或 Kernel 漂移时
+   fail closed，不会在新规则下悄悄续跑。
+2. **Completion 必须有证据。** `UNITS.csv` 里手改一个 `DONE` 不等于成功；Attempt、
+   必需输出、Artifact Hash、Workflow 检查、Manifest 与 Completion Event 必须一致。
+3. **失败有地址。** Doctor、Audit、Scorecard 与 Failure Ledger 把可观测缺陷路由到
+   对应修复面。Improve 负责诊断，不会原地改写 Harness。
 
-新 Run 启动时，`harness-lock.v2` 会把选中的 Pipeline Contract 及其本地 Variant
-依赖复制到 Workspace 并记录 Hash。仓库之后的改动不会静默重定义旧 Run；合同快照
-缺失或被修改时，执行与 Audit 会显式阻断。
+人工 Checkpoint 也遵循同一原则。批准会绑定当时审阅的 Artifact Hash；Scope、Outline
+或 Protocol 改变后，旧授权自动失效。
 
-脚本 Unit、人工语义 Unit 与已批准 Checkpoint 都要通过同一套 Completion Protocol，
-才能成为 `DONE`。普通执行会强制运行 Workflow 声明的最低验收；`--strict` 只追加
-尚未被 Workflow 提升为强制项的诊断，它不是“是否检查”的总开关。
-每项强制验收结果都会随 Completion 证据持久化，因此 Run Audit 可以直接展示已验证、
-待执行、阻塞、跳过与旧版未验证的覆盖状态，不需要从 prose log 反推整次运行。
+## 一个 PASS 到底意味着什么
 
-## 证据与质量
+Research Harness 把常被混在一起的三种判断分开：
 
-系统保留两种证据：
+| 层级 | PASS 证明 | 不证明 |
+|---|---|---|
+| 执行完整性 | Attempts、State、Manifests、Hashes 与 Provenance 一致 | 答案本身优秀 |
+| 合同验收 | 必需 Artifacts 满足可观测 Workflow 检查 | 科学真理或穷尽性检索 |
+| 研究质量 | 真实输入上的有用性、正确性与充分性 | 超出评测案例的普遍有效性 |
 
-- **Research Evidence** 支撑或限定交付物中的研究内容。
-- **Run Evidence** 说明执行了什么、哪些 Artifacts 发生了变化、哪些检查通过。
+当前仓库实现前两层。第三层需要重复 Runs、held-out 评测与专家判断。一个绿色 Scorecard
+不会被包装成科学正确性或原创性证明。
 
-同时，质量判断被分成三层：
+## 一次失败如何变成真正的门禁
 
-| 层级 | PASS 的含义 |
-|---|---|
-| 执行完整性 | Attempts、State、Manifests、Hashes 与 provenance 一致 |
-| 契约验收 | 必需 Artifacts 满足可观测的 Workflow 检查 |
-| 研究质量 | 结果在真实输入上的有用性、正确性与充分性，并经专家或 held-out 评估 |
+Survey Writer 可以根据结构化 Evidence Pack 与带版本的模板生成 provisional prose。
+早期版本虽然走通了 PDF 交付，却把大量 scaffold 留在正文中：历史课程论文样本的
+**140 句中有 96 句命中模板（68.6%）**。
 
-Harness 当前实现前两层。第三层需要重复 Runs 与外部判断。Scorecard 不能证明科学
-真理、研究新颖性或穷尽性检索。
+现在，这个问题不再只是 Warning：
 
-## 把 Survey 当成研究报告引擎
+- `front-matter-writer` 在合并前检查摘要、引言、相关工作、讨论与结论；
+- `subsection-writer` 与 `writer-selfloop` 检查 H3 正文；
+- `pipeline-auditor` 检查整份合并稿、已选资产 Hash 与三个模板所属 Skill；
+- “this run” 一类 pipeline voice 在读者正文中属于阻断项；
+- 全稿残留上限为 10%。
 
-Survey 家族既能交付完整文献综述，也能交付有边界、以文献为主要证据的课程论文、
-课程报告、研讨课报告、短文献评述与技术现状报告。用户只需在 Goal 中说明用途、篇幅、
-证据深度与格式；Workflow 自行选择内部 delivery profile。
+当前公开重放在现行合同下完成了全部 49 个 Units：
 
-当前 Survey Writer 有一条明确的生成边界：参考脚本可以根据结构化 Writer Pack 与带版本的
-当前模板资产，为缺失 Section 确定性生成 bootstrap prose。但这只是待审初稿。
-`sections/h3_bodies.refined.ok` 只表示正文已提交验收，不能证明由谁审阅。Marker 存在后，
-强制的 `subsection-writer` 检查会从该 Run 已记录的 Writer 模板资产提取固定片段；H3 正文中
-命中片段的句子超过 10% 时，Run 不能通过。`writer-selfloop` 生成报告时会调用同一个共享的
-严格 Section 检查器。随后，强制的 `pipeline-auditor` 会测量整份合并稿、对照
-`output/FRONT_MATTER_CONTEXT.json` 校验实际选择的 Front Matter 模板及哈希，再对照
-`harness-lock.v2` 校验 3 个模板所属 Skill implementation，并写入
-`output/TEMPLATE_RESIDUE_SCORECARD.json`。Completion Protocol 只把 Verdict 与 Dimensions
-投影到 Evaluation Ledger；完整计量与带 Heading 的定位样例保留在 Scorecard 文件中。
-该指标只是可复现的确定性模板残留下界，不能证明模型作者身份、原创性
-或发表质量。10% 是初始政策目标，目前还没有完成态 PASS Run 证明它可达。
+| 证据 | 结果 |
+|---|---:|
+| Workflow 必选检查 | 31/31 PASS |
+| Target Artifacts | 75/75 存在 |
+| Harness Kernel lock | 35/35 匹配 |
+| Ledger integrity issues | 0 |
+| 模板残留 | 0/226 句（0.0%） |
+| PDF 交付 | 10 页 |
 
-快速理解 topic 用 `research-brief`，单篇评审用 `paper-review`，按 Protocol 综合用
-`evidence-review`，固定资料包转教程用 `source-tutorial`。当交付物需要检索、比较、
-综合并引用多篇论文时，选 Survey 家族。详见 [Survey 使用说明](readme/arxiv-survey.zh-CN.md)。
+这证明 10% 门槛对这一组保留 Artifact 可达，但不证明作者身份、语义原创性、全自动生成、
+跨主题校准或专家论文质量。该 Run 使用人工 Artifact 复核，并从 dirty worktree 启动；
+干净 revision 上从头复现仍未完成。详见[当前合同证据](examples/course-paper-residue-pass/README.md)
+与[历史失败基线](examples/course-paper-pilot/README.md)。
 
-## 当前证据边界
+## 已公开的证据
 
-- `paper-review`、`research-brief`、`idea-brainstorm` 与 `evidence-review` 已有 Workflow-local
-  Scorecard 与 Failure -> Repair -> Rerun 测试；关键 Join 会拒绝过浅的 Novelty Surface、
-  未落到核心论文的 Brief Scope、缺少有效论文指针或两篇论文覆盖的主题条目、断裂的
-  Ideation Trace/Shortlist、一致性不足的 Protocol 与
-  Extraction、缺失的 Bias 记录，以及词法上过度确定的结论；明确否定这些强结论的学术表达不会被误杀。
-- Survey 家族已有强制的写作前 Evidence Loop：Subsection Brief、Evidence Binding 与
-  Evidence Draft 必须覆盖完全相同的 Subsection ID；Gap 字段格式错误或仍有阻塞证据时，
-  不允许进入写作。
-- `research-brief` 除可重复的 Harness 证明外，还有一条完成的真实 arXiv 来源 pilot。
-- `source-tutorial` 已通过从本地 Source 到 Article PDF 与 Slides PDF 的严格交付测试；
-  Context Pack 必须保留已批准的 Module-Source Coverage，并重新连接成功 Ingest、
-  Provenance、Snippet 与正文可见的 Source Notes。
-- Survey 家族已有一条完成的有界报告 pilot，包含已审计的 10 页 PDF；按 5 个当前候选
-  模板库的 `template-residue-measurement.v1` 计算，全稿 140 句中有 96 句命中（68.6%）；H3
-  早期检查范围仍为 90 句中 49 句（54.4%），Front Matter 子集为 41/41。因此该
-  快照不满足当前 10% 门槛，只能作为历史交付证据；它没有保留可选 Domain Overlay 的
-  实际选择记录，也没有保留 actor/revision trace，
-  无法把其余正文归因到模型或人工。
-- 跨 topic 稳定性、专家对比、真实 model-token benchmark 与 Harness candidate 自动晋升尚未完成。
+仓库发布经过裁剪的证据包，而不是包含私人日志的完整 Workspace：
 
-已公开的 `research-brief` 快照运行于 `recoverable-provenance.v1`；课程论文快照没有包含
-当前 `.harness` ledgers 或 `run-audit.v2` bundle。它们仍是有效的交付物与历史 Run 证据，
-但不冒充当前 v2 的跨 ledger acceptance 证明；重新发布公开 v2 Run 已进入 Roadmap。
+| 快照 | 能证明什么 | 边界 |
+|---|---|---|
+| [`course-paper-residue-pass`](examples/course-paper-residue-pass/README.md) | 当前 v2 合同验收、0/226 残留、10 页 PDF | 人工重放、dirty revision、单一 topic |
+| [`course-paper-pilot`](examples/course-paper-pilot/README.md) | 完成交付与可复现的 68.6% 失败基线 | 历史合同；不通过当前写作门禁 |
+| [`research-brief-real-source-proof`](examples/research-brief-real-source-proof/README.md) | 一次真实 arXiv Brief 交付 | 历史 v1、单一 topic |
+| [`research-brief-harness-proof`](examples/research-brief-harness-proof/README.md) | 可重复的恢复与 Audit 证据 | 合成来源、历史 v1 |
 
-公开证据快照保持有边界：
+`paper-review`、`idea-brainstorm`、`evidence-review` 与 `source-tutorial` 还有 Scorecard
+fixture 和 Failure-Repair 回归。跨 topic 稳定性、真实 model-token benchmark、专家对比
+与 Harness candidate 自动晋升仍是开放问题。
 
-- [`research-brief` Harness 证明](examples/research-brief-harness-proof/README.md)
-- [真实来源 `research-brief` 证明](examples/research-brief-real-source-proof/README.md)
-- [课程论文交付证明](examples/course-paper-pilot/README.md)
+## 运行依赖
 
-## 维护者路径
+- Python 3.10+ 与 `uv`；
+- Source Tutorial PDF 摄取需要 `pdftotext`；
+- LaTeX/PDF 交付需要 `latexmk`、XeLaTeX、BibTeX 与 `pdfinfo`。
 
-提高成熟度声明前，先运行：
+Python 包声明了 `PyYAML` 与 `pypdf`；维护者依赖位于 `test` extra。GitHub Actions 安装
+与 PDF 测试相同的 TeX/Poppler 边界。
+
+## 维护者验证
+
+运行与 `.github/workflows/verify.yml` 相同的检查：
 
 ```bash
-uv run python scripts/validate_repo.py --strict
-uv run python scripts/readiness_audit.py --strict
-uv run python scripts/audit_skills.py --fail-on WARN
-uv run python scripts/audit_workflow_context.py
-uv run --extra test ruff check .
-uv run --extra test python -m pytest -q
+uv run --locked python scripts/validate_repo.py --strict
+uv run --locked python scripts/readiness_audit.py --strict
+uv run --locked python scripts/audit_skills.py --fail-on WARN
+uv run --locked python scripts/audit_workflow_context.py
+uv run --locked --extra test ruff check .
+uv run --locked --extra test python -m pytest -q
 ```
 
-`.github/workflows/verify.yml` 会在 Pull Request 与 `main` 上自动运行这些仓库维护检查。
-它是代码库 CI，不是用户侧 Research Workflow。
-
-扩展 Workflow 时，先修改 `pipelines/` 中的 Contract，对齐 `templates/UNITS.*.csv`，
-再在 `.codex/skills/` 实现对应能力。只有在补充 Completed Run 或 Failure-Repair 回归证据后，
-才提高 Proof State。
+扩展 Workflow 时，需要同时对齐 Pipeline Contract、Unit Template、所属 Skills、测试与
+证据声明。没有 Completed Run 或 Failure-Repair 回归，不应提高 Proof State。
 
 ## 文档
 
 - [Auto Research 架构](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
-- [Workflow Catalog 与成熟度](docs/PIPELINE_TAXONOMY.md)
+- [Workflow Catalog 与 Proof State](docs/PIPELINE_TAXONOMY.md)
 - [统一项目语言](docs/PROJECT_LANGUAGE.md)
 - [Roadmap](docs/HARNESS_ROADMAP.md)
 - [当前 Readiness](docs/HARNESS_READINESS.md)

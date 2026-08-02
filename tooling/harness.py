@@ -11,10 +11,10 @@ from tooling.common import (
     UnitsTable,
     atomic_write_text,
     ensure_dir,
+    load_workspace_pipeline_spec,
     now_iso_seconds,
     parse_semicolon_list,
     pipeline_cli_command,
-    resolve_pipeline_spec_path,
 )
 
 
@@ -378,16 +378,20 @@ def _collect_workspace_inspection_snapshot(
     repo_root: Path,
     include_deep_audit: bool = True,
 ) -> _WorkspaceInspectionSnapshot:
-    """Read and reconcile facts shared by the requested inspection views.
+    """Read facts shared by the requested inspection views.
 
     Doctor needs contract and implementation-freshness checks but not the full
     cross-ledger integrity pass. Audit, Improvement, and Artifact Pack share the
-    deeper snapshot so composed inspection does that work only once.
+    deeper snapshot so composed inspection does that work only once. A valid
+    current Run may first reconcile recoverable projections; drifted identity
+    is inspected in place so Doctor/Audit cannot mutate the evidence they are
+    being asked to diagnose.
     """
 
     from tooling.run_state import (
         ensure_run_state,
         inspect_doing_attempt_integrity,
+        inspect_kernel_lock,
         inspect_run_integrity,
         read_jsonl_with_errors,
         run_identity,
@@ -395,7 +399,11 @@ def _collect_workspace_inspection_snapshot(
 
     workspace = workspace.resolve()
     repo_root = repo_root.resolve()
-    if (workspace / ".harness" / "run.json").exists():
+    if (
+        (workspace / ".harness" / "run.json").exists()
+        and inspect_kernel_lock(workspace=workspace, repo_root=repo_root)["status"]
+        != "DRIFT"
+    ):
         ensure_run_state(
             workspace=workspace,
             repo_root=repo_root,
@@ -445,7 +453,9 @@ def _collect_workspace_inspection_snapshot(
         if next_row is not None:
             next_runnable = _next_runnable_record(next_row)
 
-    spec = _load_locked_pipeline_spec(workspace=workspace, repo_root=repo_root) if include_deep_audit else None
+    # Deep Audit must read the immutable Pipeline snapshot pinned into the Run,
+    # never the mutable repository contract.
+    spec = load_workspace_pipeline_spec(workspace) if include_deep_audit else None
     required_completion_checks = _required_completion_checks_from_spec(spec)
     target_records: list[dict[str, Any]] = []
     target_issues: list[HarnessIssue] = []
@@ -474,7 +484,9 @@ def _collect_workspace_inspection_snapshot(
                 HarnessIssue("ERROR", "missing_target_artifact", f"Target artifact `{relpath}` is missing")
             )
 
-    ledger_integrity = inspect_run_integrity(workspace) if include_deep_audit else {}
+    ledger_integrity = (
+        inspect_run_integrity(workspace, repo_root=repo_root) if include_deep_audit else {}
+    )
     ledger_issues: list[HarnessIssue] = []
     for record in ledger_integrity.get("issues") or []:
         if not isinstance(record, dict):
@@ -875,6 +887,8 @@ def validate_run_audit_payload(payload: dict[str, Any]) -> list[str]:
                 issues.append("`ledger_integrity.ledger_record_counts` must be an object")
             if not isinstance(integrity.get("issues"), list):
                 issues.append("`ledger_integrity.issues` must be a list")
+            if "kernel_lock" in integrity:
+                _validate_kernel_lock(integrity.get("kernel_lock"), issues=issues)
             if "compatibility" in integrity:
                 _validate_ledger_compatibility(integrity.get("compatibility"), issues=issues)
 
@@ -1358,6 +1372,49 @@ def _validate_ledger_compatibility(value: Any, *, issues: list[str]) -> None:
                 issues.append(
                     f"`ledger_integrity.compatibility.legacy_evidence_gap_codes[{idx}]` must be a string"
                 )
+
+
+def _validate_kernel_lock(value: Any, *, issues: list[str]) -> None:
+    field_path = "ledger_integrity.kernel_lock"
+    if not isinstance(value, dict):
+        issues.append(f"`{field_path}` must be an object")
+        return
+
+    status = value.get("status")
+    allowed_statuses = {"PASS", "DRIFT", "NOT_APPLICABLE"}
+    if status not in allowed_statuses:
+        issues.append(
+            f"`{field_path}.status` must be one of: {', '.join(sorted(allowed_statuses))}"
+        )
+
+    valid_counts: dict[str, int] = {}
+    for key in ("locked_file_count", "current_file_count", "matched_file_count"):
+        count = value.get(key)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            issues.append(f"`{field_path}.{key}` must be a non-negative integer")
+        else:
+            valid_counts[key] = count
+
+    valid_path_lists: dict[str, list[str]] = {}
+    for key in ("missing_paths", "unexpected_paths", "drifted_paths"):
+        paths = value.get(key)
+        if not isinstance(paths, list) or not all(isinstance(path, str) for path in paths):
+            issues.append(f"`{field_path}.{key}` must be a list of strings")
+        else:
+            valid_path_lists[key] = paths
+
+    matched = valid_counts.get("matched_file_count")
+    current = valid_counts.get("current_file_count")
+    locked = valid_counts.get("locked_file_count")
+    if matched is not None and current is not None and matched > current:
+        issues.append(f"`{field_path}.matched_file_count` must not exceed `current_file_count`")
+    if matched is not None and locked is not None and matched > locked:
+        issues.append(f"`{field_path}.matched_file_count` must not exceed `locked_file_count`")
+    if status == "PASS" and matched is not None and current is not None and locked is not None:
+        if matched != current or matched != locked:
+            issues.append(f"`{field_path}` PASS counts must all be equal")
+        if any(valid_path_lists.get(key) for key in valid_path_lists):
+            issues.append(f"`{field_path}` PASS path-difference lists must be empty")
 
 
 def _validate_numeric_delta(
@@ -1934,6 +1991,27 @@ def render_run_audit_report(payload: dict[str, Any]) -> str:
 
     integrity = payload.get("ledger_integrity") or {}
     lines.extend(["", "## Ledger integrity"])
+    kernel_lock = integrity.get("kernel_lock") or {}
+    if kernel_lock:
+        lines.append(
+            "- Harness Kernel lock: "
+            f"`{kernel_lock.get('status') or 'UNKNOWN'}` "
+            f"({kernel_lock.get('matched_file_count', 0)}/"
+            f"{kernel_lock.get('current_file_count', 0)} current paths matched; "
+            f"{kernel_lock.get('locked_file_count', 0)} locked)"
+        )
+        path_differences = [
+            *(kernel_lock.get("missing_paths") or []),
+            *(kernel_lock.get("unexpected_paths") or []),
+            *(kernel_lock.get("drifted_paths") or []),
+        ]
+        if path_differences:
+            lines.append(
+                "- Kernel differences: "
+                + ", ".join(f"`{path}`" for path in path_differences)
+            )
+    else:
+        lines.append("- Harness Kernel lock: not recorded by this audit version")
     if not integrity.get("enabled"):
         lines.append("- Legacy Workspace: machine-readable Run ledgers are not initialized")
     else:
@@ -3400,21 +3478,6 @@ def _pipeline_lock_fields(path: Path) -> dict[str, str]:
         if key:
             fields[key] = value.strip()
     return fields
-
-
-def _load_locked_pipeline_spec(*, workspace: Path, repo_root: Path):
-    from tooling.pipeline_spec import PipelineSpec
-
-    pipeline_value = _pipeline_lock_fields(workspace / "PIPELINE.lock.md").get("pipeline", "")
-    if not pipeline_value:
-        return None
-    spec_path = resolve_pipeline_spec_path(repo_root=repo_root, pipeline_value=pipeline_value)
-    if spec_path is None:
-        return None
-    try:
-        return PipelineSpec.load(spec_path)
-    except Exception:
-        return None
 
 
 def _current_checkpoint(path: Path) -> str:

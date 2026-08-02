@@ -12,6 +12,13 @@ from typing import Any
 _ASSET_ROOT = Path(__file__).resolve().parents[1] / "assets"
 
 
+def _shared_limitation_signal(text: str) -> bool:
+    # main() establishes the checkout import path before this policy is used.
+    from tooling.source_text_hygiene import has_limitation_signal
+
+    return has_limitation_signal(text)
+
+
 def _load_json_asset(path: Path) -> dict[str, Any]:
     if not path.exists() or path.stat().st_size <= 0:
         return {}
@@ -33,7 +40,6 @@ _RESULT_EVALUATE_WHERE_RE = re.compile(str(_SOURCE_HYGIENE.get("result_evaluate_
 _METHOD_SKIP_PATTERNS = [re.compile(str(x).strip()) for x in (_SOURCE_HYGIENE.get("method_skip_patterns") or []) if str(x).strip()]
 _RESULT_SKIP_PATTERNS = [re.compile(str(x).strip()) for x in (_SOURCE_HYGIENE.get("result_skip_patterns") or []) if str(x).strip()]
 _RESULT_DROP_PATTERNS = [re.compile(str(x).strip()) for x in (_SOURCE_HYGIENE.get("result_drop_patterns") or []) if str(x).strip()]
-_LIMITATION_KEEP_RE = re.compile(str(_SOURCE_HYGIENE.get("limitation_keep_pattern") or r"$^"))
 _LIMITATION_DROP_PATTERNS = [re.compile(str(x).strip()) for x in (_SOURCE_HYGIENE.get("limitation_drop_patterns") or []) if str(x).strip()]
 _RESULT_MALFORMED_COORDINATION_RE = re.compile(
     r"(?i)\b(?:exhibits?|shows?|demonstrates?|reveals?|achieves?)\b[^.]{0,220},\s*(?:confirm|confirms|identify|identifies|show|shows)\b"
@@ -475,11 +481,13 @@ def _infer_limitations(*, evidence_level: str, mapped_sections: list[str], abstr
 
     # Try to capture an explicit limitation cue from the abstract (best-effort, still conservative).
     if abstract:
-        sent = _pick_sentence(
-            abstract,
-            patterns=[
-                r"(?i)\b(limitations?|future work|open problems?|remains (?:an )?open|we (?:leave|defer)|we do not|does not)\b",
-            ],
+        sent = next(
+            (
+                candidate.strip()
+                for candidate in _split_sentences(abstract)
+                if len(candidate.strip()) >= 12 and _shared_limitation_signal(candidate)
+            ),
+            "",
         )
         if sent:
             sent = _sanitize_note_sentence(re.sub(r"\s+", " ", sent).strip(), kind="limitation")
@@ -626,7 +634,7 @@ def _sanitize_note_sentence(text: str, *, kind: str) -> str:
             return s
         if any(p.search(s) for p in _LIMITATION_DROP_PATTERNS):
             return ""
-        if not _LIMITATION_KEEP_RE.search(s):
+        if not _shared_limitation_signal(s):
             return ""
 
     if len(s) < 16:

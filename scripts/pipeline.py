@@ -58,7 +58,10 @@ from tooling.run_state import (
     initialize_run_state,
     open_attempt_for_unit,
     record_human_decision,
+    require_current_kernel_lock,
+    RevisionLockDriftError,
     start_attempt,
+    workspace_has_durable_run_evidence,
     workspace_invocation_lock,
 )
 
@@ -80,15 +83,31 @@ def main() -> int:
     init_p.add_argument("--workspace", required=True, help="Workspace directory")
     init_p.add_argument("--pipeline", required=True, help="Pipeline name or path (e.g., arxiv-survey)")
     init_p.add_argument("--goal", default="", help="Concrete outcome request to persist in GOAL.md and the Run ledger")
-    init_p.add_argument("--overwrite", action="store_true", help="Overwrite existing workspace files")
-    init_p.add_argument("--overwrite-units", action="store_true", help="Overwrite workspace UNITS.csv")
+    init_p.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite non-Run workspace template files; never replaces durable Run evidence",
+    )
+    init_p.add_argument(
+        "--overwrite-units",
+        action="store_true",
+        help="Overwrite UNITS.csv only before durable Run evidence exists",
+    )
 
     kickoff_p = sub.add_parser("kickoff", help="Kick off a pipeline run from a topic (init workspace + draft decisions)")
     kickoff_p.add_argument("--topic", required=True, help="Topic/goal (used to create workspace and seed queries)")
     kickoff_p.add_argument("--pipeline", default="", help="Pipeline name or path (default: auto-pick from topic)")
     kickoff_p.add_argument("--workspace", default="", help="Workspace directory (default: ./workspaces/<slug>/)")
-    kickoff_p.add_argument("--overwrite", action="store_true", help="Overwrite existing workspace files")
-    kickoff_p.add_argument("--overwrite-units", action="store_true", help="Overwrite workspace UNITS.csv")
+    kickoff_p.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite non-Run workspace template files; never replaces durable Run evidence",
+    )
+    kickoff_p.add_argument(
+        "--overwrite-units",
+        action="store_true",
+        help="Overwrite UNITS.csv only before durable Run evidence exists",
+    )
     kickoff_p.add_argument("--run", action="store_true", help="After kickoff, run units until blocked/complete")
     kickoff_p.add_argument("--max-steps", type=int, default=999, help="Maximum units to attempt when using --run")
     kickoff_p.add_argument(
@@ -199,7 +218,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         return _dispatch_with_workspace_lock(args)
-    except ConcurrentInvocationError as exc:
+    except (ConcurrentInvocationError, RevisionLockDriftError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
@@ -210,6 +229,10 @@ def _dispatch_with_workspace_lock(args: argparse.Namespace) -> int:
         return _execute_command(args)
     _preflight_workspace_command(args=args, workspace=workspace)
     with workspace_invocation_lock(workspace=workspace, operation=f"pipeline.{args.cmd}"):
+        if args.cmd in {"init", "kickoff"}:
+            _require_pristine_run_workspace(workspace)
+        elif args.cmd in {"run-one", "run", "approve", "mark"}:
+            require_current_kernel_lock(workspace=workspace, repo_root=REPO_ROOT)
         return _execute_command(args)
 
 
@@ -239,6 +262,8 @@ def _preflight_workspace_command(*, args: argparse.Namespace, workspace: Path) -
             raise SystemExit(f"Workspace not found: {workspace}")
         return
 
+    _require_pristine_run_workspace(workspace)
+
     if args.cmd == "kickoff":
         topic = str(getattr(args, "topic", "") or "").strip()
         if not topic:
@@ -247,6 +272,16 @@ def _preflight_workspace_command(*, args: argparse.Namespace, workspace: Path) -
     else:
         pipeline_name = str(getattr(args, "pipeline", "") or "").strip()
     PipelineSpec.load(_resolve_pipeline_path(REPO_ROOT, pipeline_name))
+
+
+def _require_pristine_run_workspace(workspace: Path) -> None:
+    """Reject Run initialization both before and after acquiring the lock."""
+
+    if workspace_has_durable_run_evidence(workspace):
+        raise SystemExit(
+            f"Workspace already contains durable Run evidence: {workspace}. "
+            "Choose a new Workspace; --overwrite does not replace or migrate an existing Run."
+        )
 
 
 def _execute_command(args: argparse.Namespace) -> int:
