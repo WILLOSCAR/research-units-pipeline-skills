@@ -247,6 +247,16 @@ class SourceTutorialPipelineTests(unittest.TestCase):
         self.assertIn("latex/slides/main.tex", spec.target_artifacts)
         self.assertIn("video", spec.quality_contract["source_policy"]["accepted_source_kinds"])
 
+    def test_repository_verification_installs_latex_scaffold_dependencies(self) -> None:
+        workflow = (REPO_ROOT / ".github" / "workflows" / "verify.yml").read_text(encoding="utf-8")
+
+        self.assertIn("texlive-xetex", workflow)
+        self.assertIn(
+            "texlive-latex-extra",
+            workflow,
+            "latex-scaffold requires newunicodechar.sty from Ubuntu's texlive-latex-extra package",
+        )
+
     def test_tutorial_alias_no_longer_resolves(self) -> None:
         path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="tutorial")
         self.assertIsNone(path)
