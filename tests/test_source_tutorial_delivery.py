@@ -26,9 +26,15 @@ class SourceTutorialDeliveryTests(unittest.TestCase):
         diagnostic = proc.stderr or proc.stdout
         if proc.returncode != expected and "--workspace" in args:
             workspace = Path(args[args.index("--workspace") + 1])
-            quality_report = workspace / "output" / "QUALITY_GATE.md"
-            if quality_report.exists():
-                diagnostic += "\n\n" + quality_report.read_text(encoding="utf-8", errors="ignore")
+            for report_rel in (
+                "output/QUALITY_GATE.md",
+                "output/LATEX_BUILD_REPORT.md",
+                "output/SLIDES_BUILD_REPORT.md",
+            ):
+                report = workspace / report_rel
+                if report.exists():
+                    diagnostic += f"\n\n# Diagnostic: {report_rel}\n\n"
+                    diagnostic += report.read_text(encoding="utf-8", errors="ignore")
         self.assertEqual(proc.returncode, expected, msg=diagnostic)
         return proc
 

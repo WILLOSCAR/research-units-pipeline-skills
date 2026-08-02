@@ -256,6 +256,11 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             workflow,
             "latex-scaffold requires newunicodechar.sty from Ubuntu's texlive-latex-extra package",
         )
+        self.assertIn(
+            "lmodern",
+            workflow,
+            "XeLaTeX requires the recommended Latin Modern fonts when apt recommendations are disabled",
+        )
 
     def test_tutorial_alias_no_longer_resolves(self) -> None:
         path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="tutorial")

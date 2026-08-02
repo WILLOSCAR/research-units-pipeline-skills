@@ -26,6 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             latexmk \
+            lmodern \
             poppler-utils \
             texlive-latex-extra \
             texlive-xetex
