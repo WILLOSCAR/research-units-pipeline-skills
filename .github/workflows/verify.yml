@@ -28,6 +28,7 @@ jobs:
             latexmk \
             lmodern \
             poppler-utils \
+            texlive-fonts-recommended \
             texlive-latex-extra \
             texlive-xetex
 
