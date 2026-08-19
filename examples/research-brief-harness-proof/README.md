@@ -2,9 +2,11 @@
 
 This directory is a compact evidence snapshot from one completed
 `research-brief` Run under `recoverable-provenance.v1`. It demonstrates the
-historical v1 Completion Protocol and the `Goal -> Run -> Evidence -> Improve`
-product loop without publishing the full local Workspace. The current protocol
-is v2; this snapshot is not a v2 acceptance proof.
+historical v1 Completion Protocol and its historical `Goal -> Run -> Evidence ->
+Improve` loop naming without publishing the full local Workspace. The current
+product model is `Goal -> Run -> Evidence -> Artifact` closed by a
+verify/repair/re-run Loop, and the current protocol is v2; this snapshot is not
+a v2 acceptance proof.
 
 The source records are deterministic synthetic fixtures. This is a Harness
 execution proof, not a claim that online literature retrieval or scientific

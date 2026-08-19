@@ -64,10 +64,10 @@ still made callers coordinate an execution lifecycle.
 
 Resolution: expose a small transition Interface (`open(...).advance(Start/
 Continue/Decide).inspect()`) over one deep module. Keep Unit selection, Attempt
-ownership, Completion, recovery, and evaluator dispatch private. The transitional
-module CLI still carries `case`-prefixed subcommand names; renaming that command
-surface to Loop language is a tracked follow-up, and stable `rh` cutover remains
-gated.
+ownership, Completion, recovery, and evaluator dispatch private. The module CLI
+command surface is already Loop-language (`loop work/show/decide`); the only
+remaining follow-ups are internal identifier cleanup and the stable `rh` cutover,
+which stays gated.
 
 ### 4. A parallel proposition store could become another shallow layer
 
