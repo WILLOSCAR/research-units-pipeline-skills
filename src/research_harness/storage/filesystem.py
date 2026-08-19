@@ -41,7 +41,6 @@ from .errors import (
     ManifestNotFoundError,
     StorageConfigurationError,
     StorageCorruptionError,
-    StorageError,
     StorageIdentityError,
     StorageIOError,
 )

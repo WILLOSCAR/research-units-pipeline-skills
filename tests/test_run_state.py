@@ -2000,7 +2000,6 @@ def test_ensure_run_state_finalizes_prepared_completion_transaction(tmp_path: Pa
     from tooling.run_state import (
         ensure_run_state,
         initialize_run_state,
-        inspect_run_integrity,
         record_completion_stage,
         start_attempt,
     )

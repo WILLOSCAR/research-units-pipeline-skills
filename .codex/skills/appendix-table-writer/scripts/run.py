@@ -173,7 +173,7 @@ def main() -> int:
     sys.path.insert(0, str(repo_root))
 
     from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list
-    from tooling.quality_gate import QualityIssue, _draft_profile, check_unit_outputs, write_quality_report
+    from tooling.quality_gate import _draft_profile, check_unit_outputs, write_quality_report
 
     workspace = Path(args.workspace).resolve()
     course_paper = _draft_profile(workspace) == "course_paper"

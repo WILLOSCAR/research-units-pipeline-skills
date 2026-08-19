@@ -11,7 +11,6 @@ from tooling.common import (
     ensure_dir,
     load_workspace_pipeline_spec,
     pipeline_overridable_query_fields,
-    pipeline_query_default,
     read_jsonl,
 )
 

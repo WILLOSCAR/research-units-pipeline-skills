@@ -55,7 +55,7 @@ test = [
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E9", "F63", "F7", "F82"]
+select = ["E9", "F63", "F7", "F82", "F401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
