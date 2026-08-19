@@ -6,9 +6,9 @@
 
 | column | meaning | rules |
 |---|---|---|
-| `unit_id` | 唯一 ID | `U###`（如 `U001`） |
+| `unit_id` | 唯一 ID | `U` + 至少 3 位数字（如 `U001`、`U1005`） |
 | `title` | 一句话任务 | 建议 ≤ 80 字 |
-| `type` | 类别 | `RETRIEVE/CURATE/STRUCTURE/EVIDENCE/WRITE/CITE/LATEX/QA/META` |
+| `type` | 类别 | `RETRIEVE/CURATE/STRUCTURE/EVIDENCE/WRITE/CITE/LATEX/QA/META/IDEA` |
 | `skill` | skill 名称 | 对应 `.codex/skills/<skill>/` |
 | `inputs` | 输入文件 | `;` 分隔，允许为空 |
 | `outputs` | 输出文件 | `;` 分隔，允许为空；可用 `?` 前缀标记“可选输出”（例如 `?sections/abstract.md`） |

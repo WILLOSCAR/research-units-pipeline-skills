@@ -78,6 +78,12 @@ target_artifacts:
   - output/AUDIT_REPORT.md
   - output/TEMPLATE_RESIDUE_SCORECARD.json
   - output/CONTRACT_REPORT.md
+case_contract:
+  kind: survey
+  views: [output/DRAFT.md]
+  claim_sources: [outline/claim_evidence_matrix.md]
+  evidence_sources: [papers/evidence_bank.jsonl, outline/evidence_bindings.jsonl]
+  decision_sources: [DECISIONS.md]
 default_checkpoints: [C0,C1,C2,C3,C4,C5]
 units_template: templates/UNITS.arxiv-survey.csv
 contract_model: pipeline.frontmatter/v1

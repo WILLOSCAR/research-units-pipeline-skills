@@ -257,6 +257,7 @@ def _preflight_workspace_command(*, args: argparse.Namespace, workspace: Path) -
     """Reject invalid targets before lock metadata can create Workspace paths."""
 
     _ensure_not_repo_root(workspace, REPO_ROOT)
+    _require_no_current_harness_state(workspace)
     if args.cmd not in {"init", "kickoff"}:
         if not workspace.is_dir():
             raise SystemExit(f"Workspace not found: {workspace}")
@@ -281,6 +282,16 @@ def _require_pristine_run_workspace(workspace: Path) -> None:
         raise SystemExit(
             f"Workspace already contains durable Run evidence: {workspace}. "
             "Choose a new Workspace; --overwrite does not replace or migrate an existing Run."
+        )
+
+
+def _require_no_current_harness_state(workspace: Path) -> None:
+    marker = workspace / ".harness-v3"
+    if marker.exists() or marker.is_symlink():
+        raise SystemExit(
+            "Workspace contains current ResearchHarness state (.harness-v3); "
+            "the legacy pipeline CLI will not inspect or mutate it. Use "
+            "`uv run python -m research_harness run ...`."
         )
 
 

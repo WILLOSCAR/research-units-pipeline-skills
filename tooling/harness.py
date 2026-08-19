@@ -2328,7 +2328,7 @@ def _build_improvement_payload_from_sources(
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
-        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
+        "artifact_interface_standard": "CONTEXT.md",
         "source_reports": source_reports,
         "repair_history": repair_history,
         "suggestions": suggestions,
@@ -2526,7 +2526,7 @@ def _build_artifact_pack_payload_from_sources(
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
-        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
+        "artifact_interface_standard": "CONTEXT.md",
         "source_reports": {
             "doctor": _source_report_record(doctor_payload),
             "run_audit": _source_report_record(audit_payload),

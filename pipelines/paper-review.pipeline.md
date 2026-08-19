@@ -27,6 +27,12 @@ target_artifacts:
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
   - output/CONTRACT_REPORT.md
+case_contract:
+  kind: review
+  views: [output/REVIEW.md]
+  claim_sources: [output/CLAIMS.jsonl]
+  evidence_sources: [output/EVIDENCE_AUDIT.jsonl, output/NOVELTY_MATRIX.tsv]
+  decision_sources: [DECISIONS.md]
 default_checkpoints: [C0,C1,C2,C3]
 units_template: templates/UNITS.paper-review.csv
 contract_model: pipeline.frontmatter/v1
