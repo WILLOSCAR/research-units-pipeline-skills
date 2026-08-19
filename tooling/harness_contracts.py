@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 HARNESS_DOC_ENTRYPOINTS = {
-    "CONTEXT.md": "canonical Case language",
+    "CONTEXT.md": "canonical language",
     "docs/AUTO_RESEARCH_DESIGN_SYSTEM.md": "Research Harness architecture",
     "docs/PIPELINE_TAXONOMY.md": "Recipe catalog",
     "docs/PROJECT_LANGUAGE.md": "implementation-language map",
@@ -33,7 +33,8 @@ HARNESS_DOC_ENTRYPOINTS = {
     "docs/adr/0021-introduce-v2-deep-modules-without-reinterpreting-v2-runs.md": "typed deep-module migration ADR",
     "docs/adr/0022-own-v3-local-run-execution-behind-one-engine.md": "local engine ownership ADR",
     "docs/adr/0023-expose-one-versionless-research-harness-interface.md": "versionless Interface ADR",
-    "docs/adr/0024-make-the-case-the-product-object.md": "Case product-object ADR",
+    "docs/adr/0024-make-the-case-the-product-object.md": "superseded Case product-object ADR",
+    "docs/adr/0025-make-the-self-correcting-run-the-product-object.md": "self-correcting Run product-object ADR",
 }
 
 HARNESS_README_LINKS = (
