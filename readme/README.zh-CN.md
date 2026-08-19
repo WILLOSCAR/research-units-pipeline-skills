@@ -6,11 +6,11 @@
 
 这页是当前 workflow 地图的轻量导航页。完整项目说明在仓库根目录 README。
 
-产品侧统一使用 `Goal -> Run -> Evidence -> Improve`；下面的 Workflows 定义一次 Run 内部的研究工作。
+产品模型是 `Goal -> Run -> Evidence -> Artifact`，由一个 verify/repair/re-run 的 Loop 闭合：harness 校验每一圈，所以一个 Run 只有在收敛之后才被信任。下面的 Workflows 只是当前私有 Recipe 实现；Run 与 Unit 都是内部执行细节。
 
 现在请直接使用最新 workflow 名称。旧别名已经不再参与当前路由。
 
-## 可执行 Workflows
+## 当前 Recipe 实现
 
 | 使用路径 | 用来做什么 | 默认交付物 | 说明 |
 |---|---|---|---|

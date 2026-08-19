@@ -6,11 +6,11 @@
 
 このページは現在の workflow マップを素早く見るための軽量ナビゲーションです。詳細な説明はルートの README にあります。
 
-製品インターフェースは `Goal -> Run -> Evidence -> Improve` です。以下の workflow は Run 内部の研究作業を定義します。
+製品モデルは `Goal -> Run -> Evidence -> Artifact` で、verify/repair/re-run の Loop で閉じます。harness が各パスを verify するため、Run は収束して初めて信頼されます。以下の workflow は現在の非公開 Recipe 実装で、Run と Unit は内部詳細です。
 
 現在の workflow 名をそのまま使ってください。旧 alias 名はアクティブなルーティングから外れています。
 
-## Executable Workflows
+## 現在の Recipe 実装
 
 | 使うパス | 主な用途 | 既定の成果物 | ガイド |
 |---|---|---|---|

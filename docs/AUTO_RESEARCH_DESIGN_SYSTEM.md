@@ -1,590 +1,302 @@
-# Auto Research Design System
+# Research Loop Architecture
 
-This document describes the internal architecture behind the public product
-loop:
+Research Harness keeps a bounded body of research work inspectable, replayable,
+and correctable while the Goal, Evidence, and human Decisions change. The unit
+of trust is the Loop, not the answer.
 
 ```text
-Goal -> Run -> Evidence -> Improve
+Research should be easy to challenge, not merely easy to read.
 ```
 
-The repository combines research Skills, deterministic control Skills, and a
-file-first Harness kernel. It is designed to turn a research request into an
-inspectable end-to-end delivery process, not merely a sequence of prompts.
+The canonical language is [`CONTEXT.md`](../CONTEXT.md). The product-object
+decision is [ADR 0025](adr/0025-make-the-self-correcting-run-the-product-object.md),
+which supersedes the earlier framing.
+
+**Tagline: a research loop that engineers its own evidence.**
 
 ## 1. System Thesis
 
-Long research tasks fail in predictable ways: context disappears, intermediate
-decisions are overwritten, evidence becomes detached from claims, retries hide
-their history, and output defects are described without locating their cause.
-
-The system addresses those failures through four design invariants:
-
-1. Every meaningful Run has a durable identity, a Workspace-local Pipeline
-   contract snapshot, an initial Harness revision lock, serialized local
-   Workspace commands, and per-Attempt implementation fingerprints.
-2. Every Unit transition that claims progress leaves addressable Artifacts,
-   an explicit Decision, or durable Attempt/Failure evidence.
-3. Human-readable files are operator projections; machine-readable ledgers
-   preserve history, and Audit detects disagreement between them.
-4. Improvement starts from observed evidence and is constrained to an explicit repair surface.
-
-This is the practical meaning of Harness in this project: it constrains how
-project Skills are selected, executed, observed, resumed, audited, and
-improved without embedding research judgment inside the deterministic runtime.
-
-## 2. Two Views Of One System
-
-### Product view
-
-The user should only need four concepts.
-
-| Stage | Contract |
-|---|---|
-| Goal | Outcome, constraints, workflow choice, success criteria |
-| Run | Recoverable execution with visible progress and human checkpoints |
-| Evidence | Research Evidence supports the deliverable; Run Evidence supports its execution and checks |
-| Improve | Diagnosis and repair routing for the current Run; bounded Harness candidates remain future work |
-
-### Internal view
-
-The implementation keeps the existing project vocabulary:
+A polished report is insufficient when a reader cannot tell how it was produced,
+cannot reproduce it, and cannot see the checks it survived. We do not claim a
+result is scientifically true; we prove it was produced correctly, reproducibly,
+and without letting the model grade itself. The product therefore centers one
+small object:
 
 ```text
-GoalSpec
-  -> Workflow / Pipeline contract
-  -> Workspace / Run ledger
-  -> Units / Attempts
-  -> Skills / Context / Retrieval
-  -> Artifacts / Evidence
-  -> Doctor / Audit / Failure attribution
-  -> Run-local repair
+Goal -> Run -> Evidence -> Artifact,  closed by a verify/repair/re-run Loop
 ```
 
-The product view compresses this chain; it does not replace it.
+A Run is not an execution transcript to be trusted on sight, and an Artifact is
+not a claim of correctness. The harness may use skills, a Run DAG, repair
+cycles, quality checks, and recovery privately, but callers coordinate none of
+them. The causal spine is deliberate: **verify** is the soul, the **harness** is
+the external referee that performs verify, and the **self-correcting Loop** is
+the shape that spine takes. The word is self-*correct*, never self-evolve.
 
-## 3. Architecture
+## 2. Domain Shape
+
+```mermaid
+flowchart LR
+    G["Goal"] --> R["Run"]
+    R --> E["Evidence"]
+    E -->|"verify / repair / re-run"| R
+    R --> A["Artifact"]
+    A --> PP["proof pack"]
+    D["Decision"] -->|"reviewed exact Run state"| R
+```
+
+A Goal is a bounded request plus its constraints — the target a Run converges
+toward, not a promise about the truth of the result. Evidence is a
+content-addressed intermediate produced by one step and consumed by the next; it
+faces inward, feeds the next step, and enables reproduction and local repair. An
+Artifact is a reader-facing deliverable plus its proof pack; it faces the reader.
+Both are reproducible. The model omits a universal ontology, a single confidence
+score, and any autonomous promotion of the agent itself.
+
+## 3. The Loop
+
+Trust is a converged fixed point, not a switch. A step is not trusted until the
+Loop stops finding new faults; repair is bounded and local, and stopping is a
+decision about marginal gain, not a fixed pass target. The Loop is real code:
+the `*-selfloop` skill family (for example `writer-selfloop`, `evidence-selfloop`,
+`deliverable-selfloop`, `tutorial-selfloop`, `argument-selfloop`) scores an
+intermediate or deliverable, emits a deterministic scorecard, and produces a
+bounded repair plan that the harness re-runs.
 
 ```mermaid
 flowchart TB
-    subgraph Product["Product Surface"]
-        G["Goal"] --> R["Run"] --> E["Evidence"] --> I["Improve"]
-        I -. "repair current run" .-> R
-    end
-
-    subgraph Execution["Execution Plane"]
-        WF["Pipeline contract"] --> WS["Workspace"]
-        WS --> U["Unit plan"]
-        U --> AT["Attempts"]
-        AT --> SK["Research and control Skills"]
-        SK --> AR["Artifacts"]
-        AR --> CP["Completion Protocol"]
-    end
-
-    subgraph State["State And Evidence Plane"]
-        GS["goal.json"]
-        RS["run.json"]
-        HL["harness.lock.json"]
-        EV["events.jsonl"]
-        AP["attempts.jsonl"]
-        DS["decisions.jsonl + review basis"]
-        AF["artifacts.jsonl"]
-        FL["failures/ledger.jsonl"]
-        EL["evaluations/ledger.jsonl"]
-    end
-
-    subgraph Quality["Quality Interpretation"]
-        Q1["Execution integrity"]
-        Q2["Contract acceptance"]
-        XR["Repeated runs + expert / held-out review"]
-        Q3["External research-quality judgment"]
-        Q1 --> Q2
-        Q2 -. "eligible for evaluation" .-> XR --> Q3
-    end
-
-    subgraph Control["External Control Plane - Deferred"]
-        CE["Candidate evaluation"]
-        HE["Held-out suites"]
-        PR["Promotion and rollback"]
-    end
-
-    R --> WF
-    CP --> E
-    WS --> GS
-    AT --> EV
-    AT --> AP
-    WS --> DS
-    AR --> AF
-    AR --> EL
-    HL --> RS
-    CP --> Q1
-    WF --> Q2
-    AR --> XR
-    FL --> I
-    I -. "future candidate" .-> CE
-    HE --> CE --> PR
+    S["step produces Evidence"] --> V{"harness verify"}
+    V -->|"new fault + positive marginal gain"| RP["bounded local repair"]
+    RP --> S
+    V -->|"scorecard, evidence, artifacts agree"| ADM["admit step out of the Loop"]
 ```
 
-The Execution and State planes exist in the current codebase. The External
-Control Plane is an architectural constraint and roadmap item; candidate
-evaluation and promotion are not implemented today.
+Bounded stopping is the intended discipline: repair while marginal gain is
+positive, then stop. This is grounded in external work used as evidence, not
+slogan. Ungrounded recursive self-refinement does not converge — it produces
+fluent restatement, not correctness (the Mirror Loop result) — so verification
+must come from outside the model's own text. And verify–repair loops that trust
+a noisy verifier can raise reported pass rates while lowering true validity (the
+VRR-Stop result), so stopping must be bounded rather than run to a fixed target.
 
-### Quality interpretation
+## 4. The Harness As Referee
 
-The Harness separates three claims that are easy to blur:
+The harness is the deterministic executor that performs verify. It is the one
+part of the system we can point at line-by-line in code, and it never trusts a
+self-reported verdict:
 
-1. **Execution integrity:** the Unit has a successful Attempt, declared
-   Artifacts, consistent Manifests, and recoverable provenance.
-2. **Contract acceptance:** the active Workflow's mandatory checks and declared
-   scorecard conditions pass at the Completion boundary.
-3. **Research quality:** the result is relevant, correct, sufficiently complete,
-   and useful on realistic inputs under expert or held-out evaluation.
+1. it **recomputes** scorecards rather than reading a model-declared PASS;
+2. it admits a step out of the Loop only when its required-check Evidence,
+   recomputed scorecard, and matching Artifacts and manifest all agree;
+3. it marks a human Decision **stale** when the reviewed inputs it was bound to
+   change;
+4. it replays a Run deterministically from content-addressed inputs.
 
-The first two layers are machine-observable today. The third is an empirical
-program, not a boolean supplied by the kernel. A contract-acceptance PASS must
-therefore never be narrated as proof of novelty, scientific truth, exhaustive
-retrieval, or expert-level judgment.
+A Decision is the human's turn to verify inside the Loop — an explicit judgment
+over the exact Run state reviewed. The current engine binds approval to reviewed
+Artifact hashes; if they change, the Decision becomes stale. Codes such as `C2`,
+checkboxes, and internal step IDs are private compatibility details, not the
+human-facing question.
 
-## 4. Module Responsibilities
+## 5. Three Pillars
 
-| Module | Interface | Implementation responsibility |
+The product is the *combination* of three real, code-grounded parts.
+
+| Pillar | What it is | Where it lives |
 |---|---|---|
-| Product CLI | `rh goal/run/evidence/improve` | Maps user stages to existing pipeline operations |
-| Pipeline adapter | `scripts/pipeline.py` commands | Workspace setup, execution commands, audit commands, human transitions |
-| Run State | `tooling/run_state.py` functions | Run identity, initial revision lock, Workspace invocation lock, append-only ledgers, reconciliation, and cross-ledger integrity |
-| Completion Protocol | `commit_unit_completion(...)` | Required outputs, Workflow-mandatory acceptance checks, recomputed scorecard consistency, acceptance evidence, two-phase Manifest, successful Attempt, Artifact registration, and DONE projection |
-| Executor | `run_one_unit(...)` | Unit selection, Skill process dispatch, pre-completion failures, and delegation to the Completion Protocol |
-| Harness reports | `tooling/harness.py` builders | Standalone Doctor uses a shallow snapshot; Audit, diagnosis, and Artifact-index views share the deeper snapshot; reconciliation runs only for a current matching Run, never while diagnosing lock drift |
-| Quality registry | `tooling/quality_gate.py` | Stable Skill-to-check dispatch, Workflow-mandatory completion checks, and additional strict diagnostics |
-| Quality domains | `tooling/quality_checks/` | Workflow-family semantic checks for survey, review, ideation, tutorial, and delivery Artifacts |
-| Scorecard kernel | `tooling/scorecards.py` | Shared policy loading, scoring, failure projection, validation, rendering, and persistence |
-| Workflow evaluators | `tooling/*_evaluation.py` | Workflow-local dimensions and Evidence semantics behind the shared scorecard envelope |
-| Research Skills | `.codex/skills/<skill>/SKILL.md` and optional scripts | Retrieval, extraction, synthesis, review, and writing transformations |
-| Control Skills | deterministic scripts under `.codex/skills/` | Checkpoints, manifests, scorecards, local quality gates, and delivery checks |
-| Pipeline contracts | `pipelines/*.pipeline.md` | Workflow stages, required skills, checkpoints, target artifacts |
-| Unit plans | `templates/UNITS.*.csv` | Dependency graph, inputs, outputs, acceptance, owner, status |
+| Loop | `verify -> repair -> re-run`; trust is a converged fixed point | `*-selfloop` skills + the harness repair cycle |
+| Graph | every Run is a DAG with content-addressed nodes, giving reproduction and local repair | execution DAG plus a content graph layer |
+| Skills | producer skills make content, prover skills check it | the skill catalog below |
 
-The current product CLI is a convenience adapter, not a universal input form.
-`rh goal create` materializes the Goal and Workflow Workspace. Topic-seeded
-paths can proceed directly; `paper-review` and `source-tutorial` still require
-their manuscript or source set through the Workspace or Codex interaction.
-`evidence-review` is different: it generates the Protocol from the review
-question, then blocks before retrieval until the user approves or revises it.
+Graph is the engine, not the pitch. There are two layers: the **execution DAG**
+(steps with content-addressed inputs and outputs) and a **content graph**
+(structures such as `concept-graph`, `claim-evidence-matrix`, and
+`novelty-matrix` produced *inside* skills). Producer skills and prover skills are
+complementary halves of one Loop, not competing stories.
 
-`rh run start` is valid only while a Run remains `PLANNED`. `rh run resume`
-first reconciles persisted state and then re-enters the same scheduler. The two
-commands share execution mechanics but have different lifecycle preconditions.
+## 6. Product Interface
 
-The Run State module is intentionally deep: callers record a transition while
-the module owns IDs, timestamps, event sequence, JSONL append behavior, hashes,
-snapshot projection, reconciliation, and referential-integrity checks. The
-Completion Protocol is the single commit boundary shared by scripted execution,
-manual completion, and checkpoint approval. This creates locality for recovery
-and provenance logic that was previously spread across the CLI, executor,
-status log, and manifests.
+The public interface owns creation, continuation, bounded faults, meaningful
+stops, inspection, and one state authority. It does not expose workflow
+selection, step scheduling, attempt choreography, completion phases, process
+ownership, or evaluator dispatch.
 
-## 5. Workspace Contract
+```python
+from research_harness import Loop, Start, Continue, Decide
 
-The workspace serves two readers.
-
-```text
-workspaces/<run>/
-├── GOAL.md                   human goal view
-├── PIPELINE.lock.md          human pipeline view
-├── UNITS.csv                 operator-visible plan and compatibility status
-├── STATUS.md                 human progress view
-├── CHECKPOINTS.md            acceptance checkpoints
-├── DECISIONS.md              human sign-off view
-├── output/                   intermediate and final deliverables
-└── .harness/                 machine-readable run ledger
-    ├── goal.json
-    ├── run.json
-    ├── harness.lock.json
-    ├── contracts/pipelines/       immutable Pipeline snapshot bundle
-    ├── invocation.lock
-    ├── events.jsonl
-    ├── attempts.jsonl
-    ├── decisions.jsonl
-    ├── artifacts.jsonl
-    ├── failures/ledger.jsonl
-    ├── evaluations/ledger.jsonl
-    └── plan/
-        ├── planned.json
-        └── effective.json
+run = Loop.open(workspace, repository=repository)
+started   = run.advance(Start(goal=goal, kind=kind))
+continued = run.advance(Continue())
+decided   = run.advance(Decide())
+inspection = run.inspect()
 ```
 
-The current compatibility rule is:
+The source-checkout module CLI exposes the same transition under the `loop`
+command group:
 
-- `UNITS.csv` remains the scheduler plan and compatibility projection. Use the
-  Pipeline adapter for status transitions; a hand-edited `DONE` value is not
-  Completion evidence.
-- `PIPELINE.lock.md` remains the human Workflow projection; under
-  `harness-lock.v2` it must resolve to the same source contract as the pinned
-  machine lock or execution fails closed.
-- `STATUS.md` remains a concise human projection.
-- `.harness/events.jsonl` and `.harness/attempts.jsonl` preserve history that must not be overwritten.
-- `.harness/run.json` is the current machine snapshot.
-- `planned.json` preserves the initial unit plan; `effective.json` records accepted operator changes.
+```bash
+uv run python -m research_harness loop work \
+  --workspace workspaces/example \
+  --goal "Which manuscript claims lack adequate support?" \
+  --kind review \
+  --repository .
 
-One outer CLI or product operation owns `.harness/invocation.lock` for the full
-Workspace transaction. A second local command fails immediately; an owner crash
-releases the operating-system lock automatically. Doctor, Status, Audit,
-Evidence inspection, and Improvement diagnosis participate because they may
-reconcile projections or materialize reports. Internal Python mutation helpers
-assume this outer boundary and must not invoke another CLI command for the same
-Workspace.
+uv run python -m research_harness loop show \
+  --workspace workspaces/example --details
 
-Preflight validation runs before lock metadata is created, so an invalid
-Workspace path or Pipeline cannot leave a partial Workspace behind. Automated
-Attempts record a local owner PID and host. A later inspection or Run command
-may interrupt a `DOING` Attempt only when that recorded process is gone; manual
-Attempts are allowed to remain open across commands.
-
-If a legacy or hand-edited `DOING` projection has no unique open Attempt, the
-Harness reports an integrity error and leaves it unchanged. Recovery never
-invents ownership evidence merely to make the scheduler move again.
-
-A human Checkpoint is authorized only when its readable checkbox, append-only
-Decision record, and `checkpoint-review-basis.v1` fingerprints all agree with
-the current review Artifacts. A checkbox edited by itself cannot pass
-Completion, and changing an approved outline, protocol, or scope invalidates
-the stale authorization. Before another Unit runs, the Harness reopens that
-Checkpoint, clears its readable approval, and invalidates dependent Unit
-projections; PREPARED recovery and Audit enforce the same review basis.
-
-This first implementation remains single-process. The invocation lock prevents
-local command interleaving; it is not a worker lease or multi-host coordination
-protocol. Heartbeats and distributed scheduling remain deferred until there is
-a real multi-worker runtime.
-
-## 6. Run Identity And Reproducibility
-
-Each new workspace receives:
-
-- `goal_id`: identity of the requested outcome;
-- `run_id`: identity of this execution;
-- `attempt_id`: identity of each concrete Unit execution;
-- `artifact_id`: identity of each registered output version;
-- `failure_id`: identity of each durable failure record.
-
-`harness-lock.v2` records the Git revision and dirty state, source Pipeline
-hash, Workspace-local Pipeline snapshot and inheritance-bundle hashes,
-unit-template hash, each referenced Skill's complete implementation-directory
-hash (including scripts, assets, and references), and deterministic Kernel
-hashes. Runtime policy is loaded from the pinned snapshot. Missing or modified
-snapshot files fail closed instead of silently switching an old Run to the
-current checkout's contract. Before an active v2 Run executes a Unit or accepts
-a mutation, every current Kernel path must also match its pinned digest;
-otherwise the command exits before creating an Attempt. Doctor and Audit remain
-available, and completed Runs remain interpretable under their original
-contract. Historical v1 locks remain readable but do not claim these snapshot
-or execution-boundary guarantees. The local CLI does not know the
-model/provider parameters, so it records that they were not captured instead
-of inventing them.
-
-Each successful Unit manifest additionally fingerprints the Skill directory
-that executed that Attempt. If the implementation later changes, `doctor`
-reports the DONE Unit as stale and identifies the earliest replay boundary.
-Older manifests without this additive field remain inspectable.
-
-## 7. Event And Attempt Semantics
-
-The first event vocabulary includes:
-
-```text
-run.created
-run.planned
-run.waiting_human
-run.completed
-evaluation.recorded
-unit.attempt.started
-unit.attempt.succeeded
-unit.attempt.failed
-unit.attempt.interrupted
-unit.completion.prepared
-unit.completion.committed
-unit.completion.recovered
-artifact.registered
-failure.recorded
-failure.resolved
-decision.recorded
+uv run python -m research_harness loop decide \
+  --workspace workspaces/example --repository .
 ```
 
-Retries receive new `attempt_id` values. A `DOING` state owned by a dead local
-process is recorded as `INTERRUPTED` before another automated Attempt begins.
-Manual Attempts are not treated as stale merely because the command that opened
-them has exited. Earlier Attempts are preserved rather than overwritten by a
-later result.
+`work` creates and advances when a Goal is supplied; without it, it continues
+the current Run. `show` is read-only. `decide` handles the single pending
+Decision only after its checked review basis exists in the Workspace. The stable
+`rh` executable has not cut over; it retains legacy mutation until behavioral
+conformance and quality gates pass. The module CLI is the current migration
+surface, not evidence of a Loop-native write model. The read and write JSON
+carry the frozen machine-contract schema names `research-harness.case-result/v1`
+and `research-harness.case-inspection/v1`, which are not renamed.
 
-Finished scripted Attempts may carry an additive `execution` record containing
-the adapter path, measured subprocess time, captured stdout/stderr character
-counts, and the durable log path when one exists. Run Audit aggregates these
-records with retry, terminal-status, and execution-mode counts. This is local
-adapter telemetry, not a model Token estimate: manual and legacy Attempts remain
-valid without it, and model/provider metrics stay nullable until measured by an
-appropriate runtime.
+The read and write shapes are described by machine contracts, kept verbatim:
+`research-harness.case-result/v1` and `research-harness.case-inspection/v1`.
 
-Completion is a recoverable provenance transaction rather than a status-cell
-update. The Harness first validates outputs, mandatory Workflow invariants, and
-any declared scorecard. It then writes a `PREPARED` Manifest, records the
-prepared Event, finishes the Attempt and registers Artifacts, finalizes the
-Manifest as `DONE`, and only then projects the Unit as `DONE`. Reconciliation
-can finish a valid prepared transaction or restore a missing DONE projection
-from a successful Attempt plus matching Manifest and current hashes. If a
-process stops after writing the PREPARED Manifest but before appending its
-prepared Event, reconciliation first reconstructs that Event only when Run,
-Unit, latest Attempt, Skill, declared outputs, and hashes all agree. An older
-Attempt's prepared evidence cannot finalize over a newer Attempt.
+## 7. Private Execution
 
-The Run lock records this contract as
-`protocols.completion = recoverable-provenance.v2`. A recognized v1 PREPARED
-transaction can migrate only after current Workflow acceptance passes again;
-failed reconstruction becomes a durable Failure and a BLOCKED Unit. A lock
-without any protocol marker is audited as `legacy_unversioned`:
-compatibility-sensitive gaps are identified for interpretation, but remain
-errors. Run Audit Diff can compare
-retry and measured adapter-runtime summaries when both audits expose them; it
-does not use those descriptive deltas as a quality verdict.
-
-`run-audit.v2` requires cross-ledger Workflow acceptance coverage and uses
-distinct `PASS`, `IN_PROGRESS`, `INCOMPLETE`, and `ATTENTION` verdicts. Only
-`PASS` exits zero, so Improvement and Artifact Pack cannot promote an unfinished
-Run into a success signal. Audit loads the immutable Pipeline snapshot pinned by
-the Run rather than the mutable live contract, so later policy changes cannot
-retroactively add or remove acceptance requirements. Its additive quality
-observations project the latest recorded Survey template-residue scorecard
-without turning that Workflow-local measure into a universal research-quality
-claim. Historical v1 reports remain readable.
-
-## 8. Evidence And Artifact Provenance
-
-The current common evidence layer is artifact-level:
-
-- Unit manifests record declared outputs and file hashes.
-- `artifacts.jsonl` records output versions against Run, Unit, and Attempt IDs.
-- Run Audit checks target-artifact coverage and referential integrity across
-  Run identity, Events, Attempts, Manifests, Artifacts, Decisions, Failures,
-  Evaluations, and DONE Units.
-- Artifact index produces a reviewable handoff manifest; it is not a portable archive.
-
-Workflow-specific evidence remains heterogeneous. Survey and tutorial paths
-already contain structured source and citation records. `paper-review` now has
-a local machine-joinable chain across `CLAIMS.jsonl`,
-`EVIDENCE_AUDIT.jsonl`, `NOVELTY_MATRIX.tsv`, the final review, and its
-scorecard. Claim and Gap IDs must be unique, and novelty Completion requires at
-least five unique related works. This is a Workflow-local contract, not yet a
-global evidence graph.
-
-Accordingly, `rh evidence inspect` currently audits Run Evidence and indexes
-Workflow-local research Artifacts. A normalized cross-Workflow research-evidence
-view is not implemented and should not be inferred from the umbrella command.
-
-The intended review model is:
-
-```text
-Source <- Evidence <- Claim-Evidence Link -> Claim -> Review finding
+```mermaid
+flowchart TB
+    UI["Product Interface"] --> RM["Run module"]
+    RM --> WS["private workflow selection"]
+    WS --> EN["current local engine"]
+    EN --> ST[".harness-v3 state authority"]
+    RM --> PJ["Run inspection projection"]
+    RM --> EV["evaluation adapters"]
+    RM --> LA["legacy read-only adapter"]
+    LA --> LH["legacy .harness evidence"]
 ```
 
-The `paper-review` fixture proof implements this model with stable Claim and Gap IDs. The
-next design question is which fields survive repeated Runs and genuinely apply
-to another Workflow.
+Real seams exist for the multiple workflow adapters, the multiple evaluation
+adapters, and the current/legacy inspection adapters. Remote execution and a
+generic store interface remain hypothetical until a second supported adapter
+exists. LaTeX/PDF is an export-adapter target, but `arxiv-survey-latex` remains a
+migration implementation. No adapter may advance canonical state independently.
 
-`research-brief` now provides the second local evaluator. It checks briefing
-structure, compactness, reading-path quality, and whether every paper pointer
-resolves to `papers/core_set.csv`. `idea-brainstorm` provides the third: it
-checks the signal-to-shortlist trace, lead-direction actionability and
-diversity, whether literature anchors resolve to the core set, and whether C2
-focus and hard-exclusion Decisions actually constrain direction generation.
-`evidence-review` provides the fourth: it checks protocol operability,
-one decision per candidate, unique extraction coverage, bias fields, and
-synthesis pointers. `source-tutorial` joins manifest, index, provenance, local
-source paths, module coverage, and the current tutorial body at Completion. All
-four scorecard evaluators append `run-evaluation.v1` records to the same Run
-ledger while keeping their semantic schemas local.
-Optional model, token, cost, and latency fields remain empty until a runtime
-adapter can measure them reliably.
+For a current Run Workspace, `.harness-v3/state.json` is the sole mutable
+authority. It stays Run-shaped because this phase changes the public object
+without reinterpreting execution history. The state and event shapes are pinned
+by machine contracts kept verbatim: `goal-spec.v2`, `run-state.v1`,
+`harness-lock.v1`, `harness-lock.v2`, `run-event.v1`, `unit-attempt.v1`,
+`run-decision.v1`, `checkpoint-review-basis.v1`, `artifact-record.v1`,
+`failure-record.v1`, `run-evaluation.v1`, and `unit-output-manifest.v1`.
 
-## 9. Failure Attribution
+Step snapshots, completion manifests, Artifact hashes, execution snapshots,
+process metadata, Markdown, reports, deliverables, and Run inspection are
+Evidence or projections. None is another state authority. A Workspace containing
+legacy `.harness` is inspection-only through the interface: it can be summarized
+without a live repository but is never silently upgraded or mixed with
+`.harness-v3` state, and the `workflow-snapshot/v1` and `workflow-snapshot/v2`
+snapshot contracts remain read-only there.
 
-The failure ledger uses four explicit fields:
+## 8. Skills And Workflows
 
-```text
-Observable Failure
-  -> Causal Behavior
-  -> Harness Mechanism
-  -> Repair Surface
-```
+Producer skills make content; prover skills check it. A workflow is a private
+composition of skills whose intermediates are Evidence and whose deliverable plus
+proof pack is the Artifact.
 
-This prevents vague recommendations such as “improve the prompt.” Mechanical
-failures such as missing adapters, missing outputs, script exits, quality-gate
-failures, and interrupted attempts are recorded now. `paper-review` also records
-`semantic_quality_gate_failed` when its declared scorecard fails, including the
-specific structured artifact or Skill contract that should be repaired.
-Successful completion resolves only the Failure types that the succeeding path
-explicitly reverified; an unrelated open Failure cannot disappear merely
-because the same Unit later returned exit code zero.
-
-## 10. Improve Has Two Meanings
-
-These operations must remain separate.
-
-### Run-local diagnosis implemented; repair convention documented
-
-- rerun or unblock a Unit;
-- add missing evidence;
-- change a human decision;
-- repair an artifact or skill output;
-- regenerate audit and Artifact index.
-
-### Harness evolution: deferred
-
-- create a candidate change to Skills, Pipelines, or Policies;
-- replay the target failure;
-- run regression and held-out evaluation;
-- compare quality, cost, latency, and stability;
-- request human-approved promotion.
-
-The current `improve` command writes the diagnostic repair map. A person or
-Agent applies the named Run-local repair and reruns affected Units; applied
-repair is not yet a first-class transaction of its own, and the command does
-not mutate the Workspace or promote the Harness.
-
-## 11. Evolvable Policy And Protected Kernel
-
-The future self-improvement loop may propose changes to semantic policy:
-
-```text
-.codex/skills/**
-pipelines/**
-templates/UNITS.*.csv
-future context/retrieval/retry policies
-```
-
-The same candidate must not be allowed to rewrite the currently implemented
-mechanisms that judge it:
-
-```text
-assets/limitation-signals.json
-scripts/pipeline.py
-tooling/common.py
-tooling/checkpoint_brief.py
-tooling/completion.py
-tooling/executor.py
-tooling/harness.py
-tooling/harness_contracts.py
-tooling/ideation.py
-tooling/pipeline_spec.py
-tooling/pipeline_snapshot.py
-tooling/quality_gate.py
-tooling/quality_reporting.py
-tooling/quality_checks/**
-tooling/run_state.py
-tooling/scorecards.py
-tooling/source_text_hygiene.py
-tooling/brief_evaluation.py
-tooling/evidence_review_evaluation.py
-tooling/idea_evaluation.py
-tooling/review_evaluation.py
-tooling/review_protocol.py
-```
-
-The exact file inventory is defined once as `HARNESS_KERNEL_PATHS` in
-`tooling/harness_contracts.py`. Run initialization hashes every existing path
-from that contract into `.harness/harness.lock.json`; readiness validation uses
-the same inventory, so the documented protection boundary and the executable
-lock cannot silently diverge. Active v2 mutations now fail closed when that
-manifest differs from the executing checkout. This is an execution-integrity
-boundary for one local Run, not permission isolation for a future candidate
-system.
-
-When promotion is implemented, its schema validators, Artifact provenance,
-permission and budget enforcement, held-out fixtures, and rollback rules must
-join the protected Kernel before candidates can rely on them.
-
-Today Kernel drift is enforced at the local Run mutation boundary, but this is
-not a security sandbox. A real candidate system must additionally enforce
-process and filesystem permissions.
-
-## 12. Current Maturity: Implementation And Evidence Snapshot
-
-System rows below describe implementation readiness in ordinary language.
-Workflow rows quote the canonical proof states defined in
-`docs/PIPELINE_TAXONOMY.md`; this table does not introduce another maturity
-scale.
-
-| Area | Current evidence | Interpretation |
+| Requested outcome | Current workflow | Maturity |
 |---|---|---|
-| Pipeline contracts | Seven executable Pipelines and Unit templates | Executable contracts; proof varies by Workflow |
-| Pipeline reproducibility | `harness-lock.v2` snapshots the selected Pipeline plus local variant dependencies and fails closed on hash drift | First local implementation; historical v1 Runs remain compatibility evidence |
-| Project Skills | Broad research, review, tutorial, writing, and control capability | Uneven by Workflow |
-| Completion integrity | Shared v2 two-phase Completion Protocol, cross-ledger acceptance evidence, recomputed scorecard consistency, and mandatory Workflow checks for scripted, manual, default, and strict completion | First local implementation; key paths tested |
-| Run recovery | Durable IDs, Events, Attempts, acceptance-aware prepared-transaction recovery, v1 PREPARED migration, and stale-state interruption records | First local implementation; key crash windows tested |
-| Workspace serialization | Non-blocking process-scoped lock across all local Workspace commands; owner-crash release tested | First local implementation; distributed leases absent |
-| Inspection composition | Standalone Doctor uses a shallow snapshot; composed Doctor, Audit, Improvement, and Artifact index share one deep snapshot | Landed; Artifact hashing retains a distinct pass |
-| Artifact provenance | Unit Manifests, hashes, Artifact ledger, index, and current immutable-output checks | Implemented; Survey has a public current-contract replay, while clean-revision and other-Workflow proofs remain open |
-| Ledger integrity | `run-audit.v2` checks cross-ledger identities, references, completion evidence, acceptance coverage, Kernel status, and hashes against the pinned Pipeline snapshot; only a complete verified Run can PASS | Targeted tests plus one published 31-check Survey replay with zero integrity issues |
-| Implementation freshness | per-Attempt Skill fingerprints and stale-DONE diagnosis | First implementation |
-| Mechanical failure diagnosis | Doctor, errors, Failure ledger, blocking repair map, and non-blocking scorecard headroom | Implemented; applied repair is not yet a first-class transaction |
-| Contract evaluation | `paper-review`, `research-brief`, `idea-brainstorm`, and `evidence-review` scorecards feed one Evaluation ledger; no diverse expert-scored corpus | Implementation landed; external research-quality evidence open |
-| `paper-review` proof | Realistic fixture completes scorecard failure, repair, rerun, audit, and pack | `Scored fixture proof`; real-manuscript/expert comparison open |
-| `research-brief` proof | [Versioned synthetic Harness snapshot](../examples/research-brief-harness-proof/README.md), [online arXiv snapshot](../examples/research-brief-real-source-proof/README.md), plus pointer failure/repair coverage | `Completed outcome pilot`; cross-topic and expert comparison open |
-| `idea-brainstorm` proof | Realistic fixture covers bounded defaults plus anchor failure, repair, and rerun | `Scored fixture proof` |
-| `evidence-review` proof | Realistic fixture covers protocol-to-synthesis pointer failure, repair, and rerun | `Scored fixture proof` |
-| `source-tutorial` delivery | Local-source fixture compiles article and Beamer PDFs under strict gates | `Compiled delivery proof` |
-| Bounded-report delivery | [Historical 68.6% residue baseline](../examples/course-paper-pilot/README.md) plus [current-contract 0/226 PASS snapshot](../examples/course-paper-residue-pass/README.md), 49 completed Units, 31/31 checks, 35/35 Kernel paths, zero ledger issues, and a 10-page PDF | `arxiv-survey`: `Completed outcome pilot`; `arxiv-survey-latex`: `Compiled delivery proof`; fresh retrieval, clean-revision reproduction, autonomy, repetition, and expert quality open |
-| Bounded Self-Harness | Architecture described; external evaluator absent | Not implemented |
+| Orient to a topic | `research-brief` | Executable |
+| Review one manuscript | `paper-review` | Executable |
+| Synthesize under a protocol | `evidence-review` | Executable |
+| Survey a literature | `arxiv-survey` | Executable |
+| Generate grounded directions | `idea-brainstorm` | Executable |
+| Teach from fixed sources | `source-tutorial` | Executable |
+| Render a survey as LaTeX/PDF | `arxiv-survey-latex` | Executable variant |
+| Long-form graduate manuscript | `graduate-paper` | Research-stage |
 
-## 13. Current Proof Strategy
+Workflow-local sidecars stay valid compatibility contracts; they are not a
+normalized cross-workflow content schema. `graduate-paper` remains research-stage.
 
-`paper-review` is the first fixture-scale vertical proof because it naturally exposes
-the system's main claims: traceability, evidence discipline, failure diagnosis,
-human intervention, and semantic evaluation.
+## 9. Quality Without Overclaiming
 
-The fixture proof now contains:
+There are three quality layers, and we claim only the first two. A scorecard
+PASS is a contract signal, never a truth claim.
 
-1. a pinned Goal and Run;
-2. claim and evidence artifacts;
-3. a final review whose major findings are traceable;
-4. attempt, artifact, and failure history;
-5. doctor, run audit, improvement report, and Artifact index;
-6. a semantic rubric and scorecard;
-7. at least one documented repair-and-rerun example.
+| Layer | Question | Current interpretation |
+|---|---|---|
+| Execution integrity | Did private execution commit consistently? | Attempts, Events, Manifests, hashes, and recovery agree |
+| Contract acceptance | Did required Artifacts satisfy observable checks? | Workflow checks and recomputed scorecards pass |
+| Research quality | Is the result useful and correct enough? | Requires repeated realistic Runs, held-out evidence, or expert review — NOT claimed |
 
-This exercises the local Harness loop under a realistic fixture; it does not
-prove expert agreement, cross-manuscript stability, or autonomous Harness evolution. Candidate
-worktrees, held-out evaluation, promotion, dashboards, and model-weight
-experiments still require a broader completed-run corpus.
+A PASS in one layer is not evidence for another. The Run projection preserves the
+qualifier rather than merging layers into one badge or score. The `ARTIFACT_PACK`
+proof pack is positioned as an instance of the emerging reproducible-provenance
+standard (the direction of Rollout Cards / TRACER), not a new schema and not a
+validity certificate.
 
-`research-brief` is the adjacent proof that the Harness protocol is not tied to
-review-specific Claims. It uses a smaller Workflow-local scorecard and a
-reduced retrieval/core-set budget, then enters the same Evaluation and Failure
-history. Its real-source pilot demonstrates the online arXiv path and a concrete
-artifact-mediated improvement loop, while also showing that a passing delivery
-scorecard does not resolve lexical-ranking or expert-relevance questions.
+## 10. Current Maturity
 
-`idea-brainstorm` proves that the same protocol can supervise an open-ended
-research judgment task without pretending to solve novelty automatically. Its
-scorecard checks whether literature signals remain traceable through screening
-into a small, falsifiable, discussion-ready lead set.
+The current engine has durable local execution, recovery, checkpoint review
+bases, Artifact provenance, workflow acceptance, legacy read-only inspection, and
+multi-workflow simulations. The interface is a transitional projection over those
+capabilities, reported through `harness-readiness-audit.v2` (with
+`harness-readiness-audit.v1` retained as historical evidence about its own
+checkout).
 
-`evidence-review` proves that the Harness can supervise a heavier evidence
-chain without reducing quality to file presence. Its scorecard joins protocol
-clauses, screening decisions, extraction rows, and synthesis pointers. This is
-an execution and traceability proof, not evidence that the retrieval pool is
-exhaustive or that the conclusions are scientifically correct.
+| Current workflow | Proof state | Open boundary |
+|---|---|---|
+| `arxiv-survey` | `Completed outcome pilot` | Retained-Artifact replay passes 0/226 residue and 31/31 checks; fresh retrieval, cross-topic calibration, and expert quality remain open |
+| `arxiv-survey-latex` | `Compiled delivery proof` | One audited 10-page PDF; exporter migration and from-scratch portability remain open |
+| `research-brief` | `Completed outcome pilot` | Current-engine public proof and expert usefulness remain open |
+| `paper-review` | `Scored fixture proof` | Real-manuscript and expert comparison remain open |
+| `evidence-review` | `Scored fixture proof` | Retrieval completeness and validity judgment remain open |
+| `idea-brainstorm` | `Scored fixture proof` | Novelty judgment and cross-topic stability remain open |
+| `source-tutorial` | `Compiled delivery proof` | Mixed-source grounding depth remains open |
+| `graduate-paper` | `Design and Skills only` | End-to-end execution remains open |
 
-## 14. Drift Judgment
+These are contract or fixture claims, not product-wide research-quality evidence.
+Cross-workflow normalized content, a Loop-native store, stable `rh` cutover,
+remote execution, portable research-object export, and product-wide research
+quality remain open. Current proof labels describe fixtures or retained Runs; none
+establishes general scientific validity.
 
-The project direction has not moved away from its original Skills and research
-Pipeline foundation. The change is a clarification of product hierarchy:
+## 11. Migration Gates
 
-- Skills remain reusable research and control capabilities.
-- Pipelines remain internal execution contracts for user-facing Workflows.
-- Workspaces remain durable execution containers.
-- Harness becomes the state, evidence, recovery, and improvement discipline.
-- `Goal -> Run -> Evidence -> Improve` becomes the user-facing product model.
+### Phase 1: read-only Run projection
 
-The direction is still aligned with the original repository: Skills perform
-bounded work, Pipelines compose them, and the Harness makes execution durable
-and inspectable. The main remaining risk is overgeneralizing a small set of
-fixture proofs and one bounded-report pilot into cross-Workflow scientific
-maturity.
+- expose the Python Run interface and the transitional module CLI;
+- delegate mutation to the existing `.harness-v3` engine;
+- project Loop language without fabricating normalized content;
+- preserve every executable workflow behavior and Decision semantics;
+- measure reproducibility, correction cost, runtime, and reviewer usefulness;
+- keep stable `rh` on its legacy path.
+
+### Phase 2: Loop-native write model
+
+Only after the gates pass:
+
+- introduce immutable Run revisions and content-addressed Evidence records;
+- make workflows private adapters and render all deliverables from one revision;
+- move `arxiv-survey-latex` behind an export adapter;
+- cut stable `rh` over and freeze legacy mutation;
+- delete superseded compatibility paths.
+
+Required evidence includes: staleness marks all affected outputs with under 5%
+false positives; source-lookup and reviewer time improve at least 20%; every
+workflow preserves behavioral conformance and qualified quality results; and
+legacy Workspaces remain byte-identical and read-only. If correction cost or
+reviewer time does not improve across realistic Runs, keep the Run as a
+projection. Migration is replace-not-layer: no third product story, no second
+state authority, and no permanent synchronization layer.
+
+## 12. Positioning And Rejected Shapes
+
+Others evolve the agent — self-evolving agents whose own open problem is
+trustworthy verification. We make each Run verify itself. Self-evolution stays a
+deferred, human-approved Horizon (Roadmap Horizon 5), never an active claim.
+
+Reject a single truth score, sentence-level normalized content storage, a
+graph-first UI as the primary interface, parallel writable state, hypothetical
+remote seams, and autonomous promotion. Reproducible-provenance formats such as
+PROV or RO-Crate may later be export adapters, never the normal interface. The
+Loop, the Graph, and the Skills stay one combined product: an external referee
+making each pass count.
