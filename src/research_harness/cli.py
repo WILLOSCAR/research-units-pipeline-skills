@@ -89,7 +89,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Start a Run or continue it to the next meaningful stop.",
     )
     work.add_argument("--workspace", type=Path, required=True)
-    work.add_argument("--goal", dest="question", help="Research goal for a new Run.")
+    work.add_argument(
+        "--goal",
+        dest="question",
+        metavar="GOAL",
+        help="Research goal for a new Run.",
+    )
     work.add_argument(
         "--kind",
         choices=tuple(kind.value for kind in LoopKind),
