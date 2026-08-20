@@ -1,13 +1,16 @@
 ---
 name: grad-paragraph
 binding: library
-description: |
-  Write one survey-quality paragraph from evidence packs (tension → contrast → evaluation anchor → limitation).
-  **Trigger**: grad paragraph, paragraph micro-structure, argument paragraph, 研究生段落, 论证段落, 对比段, 段落写作.
-  **Use when**: you are drafting `sections/S*.md` (H3 body) and want subsection-specific, evidence-bounded prose instead of templates.
+description: "Write one survey-quality paragraph from evidence packs (tension → contrast → evaluation anchor → limitation)."
 ---
 
 # Grad Paragraph (survey paragraph micro-skill)
+
+## Triggers & routing
+
+- **Trigger**: grad paragraph, paragraph micro-structure, argument paragraph, 研究生段落, 论证段落, 对比段, 段落写作.
+- **Use when**: you are drafting `sections/S*.md` (H3 body) and want subsection-specific, evidence-bounded prose instead of templates.
+
 
 Purpose: produce a **single paragraph** that reads like real survey prose, not “outline expansion”.
 

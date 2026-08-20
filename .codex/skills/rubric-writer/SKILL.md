@@ -1,12 +1,15 @@
 ---
 name: rubric-writer
-description: |
-  Use when `paper-review` has claims plus evidence gaps and needs the final referee-style report.
-  **Trigger**: rubric review, referee report, peer review write-up, 审稿报告, REVIEW.md.
-  **Use when**: `paper-review` pipeline 的最后阶段（C3），已有 `output/CLAIMS.md` + `output/MISSING_EVIDENCE.md`（以及可选 novelty matrix）。
+description: "Use when `paper-review` has claims plus evidence gaps and needs the final referee-style report."
 ---
 
 # Rubric Writer
+
+## Triggers & routing
+
+- **Trigger**: rubric review, referee report, peer review write-up, 审稿报告, REVIEW.md.
+- **Use when**: `paper-review` pipeline 的最后阶段（C3），已有 `output/CLAIMS.md` + `output/MISSING_EVIDENCE.md`（以及可选 novelty matrix）。
+
 
 Transforms review evidence artifacts into the final `paper-review` deliverable.
 

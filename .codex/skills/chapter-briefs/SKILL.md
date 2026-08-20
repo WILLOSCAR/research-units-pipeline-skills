@@ -1,12 +1,15 @@
 ---
 name: chapter-briefs
-description: |
-  Build per-chapter (H2) writing briefs (NO PROSE) so the final survey reads like a paper (chapter leads + cross-H3 coherence) without inflating the ToC.
-  **Trigger**: chapter briefs, H2 briefs, chapter lead plan, section intent, 章节意图, 章节导读, H2 卡片.
-  **Use when**: `outline/outline.yml` + `outline/subsection_briefs.jsonl` exist and you want thicker chapters (fewer headings, more logic).
+description: "Build per-chapter (H2) writing briefs (NO PROSE) so the final survey reads like a paper (chapter leads + cross-H3 coherence) without inflating the ToC."
 ---
 
 # Chapter Briefs (H2 writing cards) [NO PROSE]
+
+## Triggers & routing
+
+- **Trigger**: chapter briefs, H2 briefs, chapter lead plan, section intent, 章节意图, 章节导读, H2 卡片.
+- **Use when**: `outline/outline.yml` + `outline/subsection_briefs.jsonl` exist and you want thicker chapters (fewer headings, more logic).
+
 
 Purpose: turn each **H2 chapter that contains H3 subsections** into a chapter-level writing card so the writer can:
 - add a chapter lead paragraph block (coherence)

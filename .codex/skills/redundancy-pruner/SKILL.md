@@ -1,13 +1,16 @@
 ---
 name: redundancy-pruner
 binding: library
-description: |
-  Remove repeated boilerplate across sections (methodology disclaimers, generic transitions, repeated summaries) while preserving citations and meaning.
-  **Trigger**: redundancy, repetition, boilerplate removal, 去重复, 去套话, 合并重复段落.
-  **Use when**: the draft feels rigid because the same paragraph shape and disclaimer repeats across many subsections.
+description: "Remove repeated boilerplate across sections (methodology disclaimers, generic transitions, repeated summaries) while preserving citations and meaning."
 ---
 
 # Redundancy Pruner
+
+## Triggers & routing
+
+- **Trigger**: redundancy, repetition, boilerplate removal, 去重复, 去套话, 合并重复段落.
+- **Use when**: the draft feels rigid because the same paragraph shape and disclaimer repeats across many subsections.
+
 
 Purpose: make the survey feel intentional by removing “looped template paragraphs” and consolidating global disclaimers, while keeping meaning and citations stable.
 

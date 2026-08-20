@@ -1,12 +1,15 @@
 ---
 name: subsection-writer
-description: |
-  Write survey prose into per-section files under `sections/` so each unit can be QA'd independently before merging.
-  **Trigger**: subsection writer, per-section writing, split sections, sections/, 分小节写, 按章节拆分写作.
-  **Use when**: `Approve C2` is recorded and writer packs exist (`outline/writer_context_packs.jsonl`); you want evidence-bounded drafting without a monolithic one-shot draft.
+description: "Write survey prose into per-section files under `sections/` so each unit can be QA'd independently before merging."
 ---
 
 # Subsection Writer (compatibility router)
+
+## Triggers & routing
+
+- **Trigger**: subsection writer, per-section writing, split sections, sections/, 分小节写, 按章节拆分写作.
+- **Use when**: `Approve C2` is recorded and writer packs exist (`outline/writer_context_packs.jsonl`); you want evidence-bounded drafting without a monolithic one-shot draft.
+
 
 Purpose: write or refine per-section survey prose under `sections/` while keeping the current pipeline contract unchanged.
 

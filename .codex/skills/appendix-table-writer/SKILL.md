@@ -1,12 +1,15 @@
 ---
 name: appendix-table-writer
-description: |
-  Curate reader-facing survey tables for the Appendix (clean layout + high information density), using only in-scope evidence and existing citation keys.
-  **Trigger**: appendix tables, publishable tables, survey tables, reader tables, 附录表格, 可发表表格, 综述表格.
-  **Use when**: you have C4 artifacts (evidence packs + anchor sheet + citations) and want tables that look like a real survey (not internal logs).
+description: "Curate reader-facing survey tables for the Appendix (clean layout + high information density), using only in-scope evidence and existing citation keys."
 ---
 
 # Appendix Table Writer (publishable survey tables)
+
+## Triggers & routing
+
+- **Trigger**: appendix tables, publishable tables, survey tables, reader tables, 附录表格, 可发表表格, 综述表格.
+- **Use when**: you have C4 artifacts (evidence packs + anchor sheet + citations) and want tables that look like a real survey (not internal logs).
+
 
 ## Why this exists
 

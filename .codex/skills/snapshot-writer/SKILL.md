@@ -1,12 +1,15 @@
 ---
 name: snapshot-writer
-description: |
-  Use when a `research-brief` workspace has a small paper set plus outline and needs a compact reader-facing briefing instead of a full survey.
-  **Trigger**: snapshot, literature snapshot, 速览, 48h snapshot, one-page snapshot, SNAPSHOT.md.
-  **Use when**: 你要在 `research-brief` 流程里 24-48h 内交付一个“可读的研究速览”（bullet-first，含关键引用），而不是完整 survey。
+description: "Use when a `research-brief` workspace has a small paper set plus outline and needs a compact reader-facing briefing instead of a full survey."
 ---
 
 # Snapshot Writer
+
+## Triggers & routing
+
+- **Trigger**: snapshot, literature snapshot, 速览, 48h snapshot, one-page snapshot, SNAPSHOT.md.
+- **Use when**: 你要在 `research-brief` 流程里 24-48h 内交付一个“可读的研究速览”（bullet-first，含关键引用），而不是完整 survey。
+
 
 Transforms a small core set plus a bullets-only outline into the final `research-brief` deliverable.
 

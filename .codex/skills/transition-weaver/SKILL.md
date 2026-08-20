@@ -1,12 +1,15 @@
 ---
 name: transition-weaver
-description: |
-  Generate lightweight section/subsection transitions (NO NEW FACTS) to prevent “island” subsections; outputs a transition map that merging/writing can weave in.
-  **Trigger**: transition weaver, weave transitions, coherence, 过渡句, 承接句, 章节连贯性.
-  **Use when**: `outline/subsection_briefs.jsonl` exists and you want coherent flow before/after drafting (typically Stage C5).
+description: "Generate lightweight section/subsection transitions (NO NEW FACTS) to prevent “island” subsections; outputs a transition map that merging/writing can weave in."
 ---
 
 # Transition Weaver (LLM-first; NO NEW FACTS)
+
+## Triggers & routing
+
+- **Trigger**: transition weaver, weave transitions, coherence, 过渡句, 承接句, 章节连贯性.
+- **Use when**: `outline/subsection_briefs.jsonl` exists and you want coherent flow before/after drafting (typically Stage C5).
+
 
 Purpose: produce a small, low-risk “transition map” so adjacent subsections do not read like islands.
 

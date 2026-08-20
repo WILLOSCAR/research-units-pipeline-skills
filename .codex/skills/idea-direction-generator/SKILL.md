@@ -1,12 +1,15 @@
 ---
 name: idea-direction-generator
-description: |
-  Generate a compact pool of discussion-worthy research directions from the signal table, writing `output/trace/IDEA_DIRECTION_POOL.md`.
-  **Trigger**: idea direction pool, brainstorm directions, research directions, 研究方向池, brainstorm pool.
-  **Use when**: you already have a signal table and want a small, non-isomorphic set of candidate directions.
+description: "Generate a compact pool of discussion-worthy research directions from the signal table, writing `output/trace/IDEA_DIRECTION_POOL.md`."
 ---
 
 # Idea Direction Generator
+
+## Triggers & routing
+
+- **Trigger**: idea direction pool, brainstorm directions, research directions, 研究方向池, brainstorm pool.
+- **Use when**: you already have a signal table and want a small, non-isomorphic set of candidate directions.
+
 
 Goal: turn a signal table into a modest pool of discussion-worthy research directions.
 

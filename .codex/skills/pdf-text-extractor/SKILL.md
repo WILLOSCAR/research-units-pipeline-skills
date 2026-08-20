@@ -1,12 +1,15 @@
 ---
 name: pdf-text-extractor
-description: |
-  Download PDFs (when available) and extract plain text to support full-text evidence, writing `papers/fulltext_index.jsonl` and `papers/fulltext/*.txt`.
-  **Trigger**: PDF download, fulltext, extract text, papers/pdfs, 全文抽取, 下载PDF.
-  **Use when**: `queries.md` 设置 `evidence_mode: fulltext`（或你明确需要全文证据）并希望为 paper notes/claims 提供更强 evidence。
+description: "Download PDFs (when available) and extract plain text to support full-text evidence, writing `papers/fulltext_index.jsonl` and `papers/fulltext/*.txt`."
 ---
 
 # PDF Text Extractor
+
+## Triggers & routing
+
+- **Trigger**: PDF download, fulltext, extract text, papers/pdfs, 全文抽取, 下载PDF.
+- **Use when**: `queries.md` 设置 `evidence_mode: fulltext`（或你明确需要全文证据）并希望为 paper notes/claims 提供更强 evidence。
+
 
 Optionally collect **full-text snippets** to deepen evidence beyond abstracts.
 

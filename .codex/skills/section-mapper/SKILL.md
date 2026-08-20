@@ -1,12 +1,15 @@
 ---
 name: section-mapper
-description: |
-  Map papers from the core set to each outline subsection and write `outline/mapping.tsv` with coverage tracking.
-  **Trigger**: section mapper, mapping.tsv, coverage, paper-to-section mapping, 论文映射, 覆盖率.
-  **Use when**: structure 阶段（C2），已有 `papers/core_set.csv` + `outline/outline.yml`，需要确保每小节有足够支持论文再进入 evidence/writing。
+description: "Map papers from the core set to each outline subsection and write `outline/mapping.tsv` with coverage tracking."
 ---
 
 # Section Mapper
+
+## Triggers & routing
+
+- **Trigger**: section mapper, mapping.tsv, coverage, paper-to-section mapping, 论文映射, 覆盖率.
+- **Use when**: structure 阶段（C2），已有 `papers/core_set.csv` + `outline/outline.yml`，需要确保每小节有足够支持论文再进入 evidence/writing。
+
 
 Create a paper→subsection map that supports evidence building and later synthesis.
 

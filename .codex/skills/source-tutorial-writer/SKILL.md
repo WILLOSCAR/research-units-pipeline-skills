@@ -1,15 +1,18 @@
 ---
 name: source-tutorial-writer
-description: |
-  Use when approved tutorial context packs exist and the run needs the final article-first tutorial deliverable.
-  **Trigger**: source tutorial writer, tutorial drafting, 教程正文, 从资料写教程.
-  **Use when**: `source-tutorial` 的 C3，`outline/tutorial_context_packs.jsonl` 已就绪，且 `DECISIONS.md` 已勾选 `Approve C2`。
-  **Skip if**: C2 未批准，或 context packs 还没准备好。
-  **Network**: none.
-  **Guardrail**: 正文必须 reader-first，但不能写出 sources 没支持的内容。
+description: "Use when approved tutorial context packs exist and the run needs the final article-first tutorial deliverable."
 ---
 
 # Source Tutorial Writer
+
+## Triggers & routing
+
+- **Trigger**: source tutorial writer, tutorial drafting, 教程正文, 从资料写教程.
+- **Use when**: `source-tutorial` 的 C3，`outline/tutorial_context_packs.jsonl` 已就绪，且 `DECISIONS.md` 已勾选 `Approve C2`。
+- **Skip if**: C2 未批准，或 context packs 还没准备好。
+- **Network**: none.
+- **Guardrail**: 正文必须 reader-first，但不能写出 sources 没支持的内容。
+
 
 Writes the final tutorial markdown from approved module packs and the locked C2 structure.
 

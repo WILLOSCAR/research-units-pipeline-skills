@@ -1,13 +1,16 @@
 ---
 name: terminology-normalizer
 binding: library
-description: |
-  Normalize terminology across a draft (canonical terms + synonym policy) without changing citations or meaning.
-  **Trigger**: terminology, glossary, consistent terms, 术语统一, 统一叫法, 术语表.
-  **Use when**: the draft has concept drift (same thing called 2–3 names) or global-review flags terminology inconsistency.
+description: "Normalize terminology across a draft (canonical terms + synonym policy) without changing citations or meaning."
 ---
 
 # Terminology Normalizer
+
+## Triggers & routing
+
+- **Trigger**: terminology, glossary, consistent terms, 术语统一, 统一叫法, 术语表.
+- **Use when**: the draft has concept drift (same thing called 2–3 names) or global-review flags terminology inconsistency.
+
 
 Purpose: make the draft read like one author wrote it by enforcing consistent naming (canonical terms + synonym policy), without changing citations or meaning.
 

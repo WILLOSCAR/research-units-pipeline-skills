@@ -1,12 +1,15 @@
 ---
 name: latex-compile-qa
-description: |
-  Compile a LaTeX project and run basic QA (missing refs, bib errors, broken citations), producing `latex/main.pdf` and a build report.
-  **Trigger**: latex compile, build PDF, LaTeX errors, missing refs, 编译PDF, 引用错误.
-  **Use when**: 已有 `latex/main.tex`（通常来自 `latex-scaffold`），需要确认可编译并输出失败原因报告。
+description: "Compile a LaTeX project and run basic QA (missing refs, bib errors, broken citations), producing `latex/main.pdf` and a build report."
 ---
 
 # LaTeX Compile + QA
+
+## Triggers & routing
+
+- **Trigger**: latex compile, build PDF, LaTeX errors, missing refs, 编译PDF, 引用错误.
+- **Use when**: 已有 `latex/main.tex`（通常来自 `latex-scaffold`），需要确认可编译并输出失败原因报告。
+
 
 Compile the LaTeX project and produce a PDF (when the toolchain is available), plus a short build report.
 

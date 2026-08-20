@@ -1,12 +1,15 @@
 ---
 name: novelty-matrix
-description: |
-  Use when `paper-review` needs overlap/delta positioning against provided related work.
-  **Trigger**: novelty matrix, prior-work matrix, overlap/delta, 相关工作对比, 新颖性矩阵.
-  **Use when**: `paper-review` 中评估 novelty/positioning，需要把贡献与相关工作逐项对齐并写出差异点证据。
+description: "Use when `paper-review` needs overlap/delta positioning against provided related work."
 ---
 
 # Novelty Matrix
+
+## Triggers & routing
+
+- **Trigger**: novelty matrix, prior-work matrix, overlap/delta, 相关工作对比, 新颖性矩阵.
+- **Use when**: `paper-review` 中评估 novelty/positioning，需要把贡献与相关工作逐项对齐并写出差异点证据。
+
 
 Transforms a claim ledger plus related-work surface into a novelty positioning table for `paper-review`.
 

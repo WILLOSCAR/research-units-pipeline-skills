@@ -1,12 +1,15 @@
 ---
 name: prose-writer
 binding: library
-description: |
-  Write `output/DRAFT.md` (or `output/SNAPSHOT.md`) from an approved outline and evidence packs, using only verified citation keys from `citations/ref.bib`.
-  **Trigger**: write draft, prose writer, snapshot, survey writing, 写综述, 生成草稿, section-by-section drafting.
+description: "Write `output/DRAFT.md` (or `output/SNAPSHOT.md`) from an approved outline and evidence packs, using only verified citation keys from `citations/ref.bib`."
 ---
 
 # Prose Writer (Evidence-first)
+
+## Triggers & routing
+
+- **Trigger**: write draft, prose writer, snapshot, survey writing, 写综述, 生成草稿, section-by-section drafting.
+
 
 Goal: produce a survey draft that reads like a real paper because it is driven by **evidence packs**, not by outline placeholders.
 

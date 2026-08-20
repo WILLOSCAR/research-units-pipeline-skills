@@ -1,12 +1,15 @@
 ---
 name: outline-refiner
-description: |
-  Planner-pass coverage + redundancy report for an outline+mapping, producing `outline/coverage_report.md` and `outline/outline_state.jsonl`.
-  **Trigger**: planner, dynamic outline, outline refinement, coverage report, 大纲迭代, 覆盖率报告.
-  **Use when**: you have `outline/outline.yml` + `outline/mapping.tsv` and want a verifiable, NO-PROSE planner pass before writing.
+description: "Planner-pass coverage + redundancy report for an outline+mapping, producing `outline/coverage_report.md` and `outline/outline_state.jsonl`."
 ---
 
 # Outline Refiner (Planner pass, NO PROSE)
+
+## Triggers & routing
+
+- **Trigger**: planner, dynamic outline, outline refinement, coverage report, 大纲迭代, 覆盖率报告.
+- **Use when**: you have `outline/outline.yml` + `outline/mapping.tsv` and want a verifiable, NO-PROSE planner pass before writing.
+
 
 Goal: make the outline *auditable* by adding an explicit planner stage that answers:
 - Do we have enough mapped evidence per H3?

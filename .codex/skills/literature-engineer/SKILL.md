@@ -1,12 +1,15 @@
 ---
 name: literature-engineer
-description: |
-  Multi-route literature expansion + metadata normalization for evidence-first surveys.
-  **Trigger**: evidence collector, literature engineer, 文献扩充, 多路召回, snowballing, cited by, references, 元信息增强, provenance.
-  **Use when**: Workflow 需要按锁定的 retrieval policy 扩充候选文献并补齐可追溯 metadata。
+description: "Multi-route literature expansion + metadata normalization for evidence-first surveys."
 ---
 
 # Literature Engineer (evidence collector)
+
+## Triggers & routing
+
+- **Trigger**: evidence collector, literature engineer, 文献扩充, 多路召回, snowballing, cited by, references, 元信息增强, provenance.
+- **Use when**: Workflow 需要按锁定的 retrieval policy 扩充候选文献并补齐可追溯 metadata。
+
 
 Goal: build a **large, verifiable candidate pool** for downstream dedupe/rank, mapping, notes, citations, and drafting.
 

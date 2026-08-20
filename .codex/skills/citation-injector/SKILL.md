@@ -1,11 +1,14 @@
 ---
 name: citation-injector
-description: |
-  APPLIES/consumes a `citation-diversifier` budget report (`output/CITATION_BUDGET_REPORT.md`) to inject *in-scope* citations into an existing draft (NO NEW FACTS), so the run passes the global unique-citation gate without citation dumps.
-  **Trigger**: citation injector, apply citation budget, inject citations, add citations safely, 引用注入, 按预算加引用, 引用增密.
+description: "APPLIES/consumes a `citation-diversifier` budget report (`output/CITATION_BUDGET_REPORT.md`) to inject *in-scope* citations into an existing draft (NO NEW FACTS), so the run passes the global unique-citation gate without citation dumps."
 ---
 
 # Citation Injector (deterministic baseline edits; budget-as-constraints)
+
+## Triggers & routing
+
+- **Trigger**: citation injector, apply citation budget, inject citations, add citations safely, 引用注入, 按预算加引用, 引用增密.
+
 
 Purpose: make the pipeline converge when the draft is:
 - locally citation-dense but **globally under-cited** (too few unique keys), or

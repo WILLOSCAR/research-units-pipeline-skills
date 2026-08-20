@@ -1,12 +1,15 @@
 ---
 name: paper-notes
-description: |
-  Write structured notes for each paper in the core set into `papers/paper_notes.jsonl` (summary/method/results/limitations).
-  **Trigger**: paper notes, structured notes, reading notes, 论文笔记, paper_notes.jsonl.
-  **Use when**: survey 的 evidence 阶段（C3），已有 `papers/core_set.csv`（以及可选 fulltext），需要为后续 claims/citations/writing 准备可引用证据。
+description: "Write structured notes for each paper in the core set into `papers/paper_notes.jsonl` (summary/method/results/limitations)."
 ---
 
 # Paper Notes
+
+## Triggers & routing
+
+- **Trigger**: paper notes, structured notes, reading notes, 论文笔记, paper_notes.jsonl.
+- **Use when**: survey 的 evidence 阶段（C3），已有 `papers/core_set.csv`（以及可选 fulltext），需要为后续 claims/citations/writing 准备可引用证据。
+
 
 Produce consistent, searchable paper notes that later steps (claims, visuals, writing) can reliably synthesize.
 
