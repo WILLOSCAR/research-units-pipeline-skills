@@ -1,5 +1,6 @@
 ---
 name: citation-anchoring
+binding: library
 description: |
   Regression-check citation anchoring (citations stay in the same subsection) to prevent “polish drift” that breaks claim→evidence alignment.
   **Trigger**: citation anchoring, citation drift, regression, cite stability, 引用锚定, 引用漂移.

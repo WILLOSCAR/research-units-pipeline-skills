@@ -1,5 +1,6 @@
 ---
 name: thesis-chapter-reconstructor
+binding: staged
 description: |
   围绕毕业论文主线重构章节：把原论文式叙事改成学位论文式叙事，重写章节目标、内容比重、前后承接与论证方式。
   **Trigger**: 章节重构, chapter reconstructor, 毕业论文主线重构, paper 变 thesis, 章节改写.

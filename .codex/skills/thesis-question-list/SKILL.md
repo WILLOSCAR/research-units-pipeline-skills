@@ -1,5 +1,6 @@
 ---
 name: thesis-question-list
+binding: staged
 description: |
   维护中文毕业论文的 `codex_md/question_list.md`：把本轮问题、边界、优先级、协作方案和验收口径结构化，作为整条 thesis pipeline 的控制面。
   **Trigger**: 毕业论文问题清单, thesis question list, 论文修改清单, 本轮目标, 结构问题梳理, review问题整理.

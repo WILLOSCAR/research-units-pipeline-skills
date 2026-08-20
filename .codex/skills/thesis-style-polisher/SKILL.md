@@ -1,5 +1,6 @@
 ---
 name: thesis-style-polisher
+binding: staged
 description: |
   对中文毕业论文做最终润色与去 AI 味：重点处理章首导言、章末小结、贡献描述、总结与展望中的模板腔、宣传腔与 AI 口癖。
   **Trigger**: 论文润色, thesis style polish, 去 AI 味, 中文论文风格统一, 章首导言润色, 总结展望润色.

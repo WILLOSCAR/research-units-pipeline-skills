@@ -1,5 +1,6 @@
 ---
 name: thesis-workspace-init
+binding: staged
 description: |
   初始化中文毕业论文工作区：检查学校模板与已有材料的放置位置，明确提示当前还缺什么，建立 `codex_md/` / `claude_md/` / `tmp_layout*/` 等中间层目录，并生成材料盘点与初始工作文件。
   **Trigger**: 毕业论文初始化, thesis workspace, 中文毕业论文准备, 模板归位, 材料盘点, 初始化论文工程.

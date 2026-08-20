@@ -1,7 +1,8 @@
 ---
 name: claim-evidence-matrix
+binding: library
 description: |
-  Build a section-by-section claim–evidence matrix (`outline/claim_evidence_matrix.md`) from the outline and paper notes.
+  Seed `outline/claim_evidence_matrix.md` from outline+notes; claim-matrix-rewriter rewrites it later from evidence packs.
   **Trigger**: claim–evidence matrix, evidence mapping, 证据矩阵, 主张-证据对齐.
   **Use when**: 写 prose 之前需要把每个小节的可检验主张与证据来源显式化（outline + paper notes 已就绪）。
   **Skip if**: 缺少 `outline/outline.yml` 或 `papers/paper_notes.jsonl`。

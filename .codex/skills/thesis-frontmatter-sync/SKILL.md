@@ -1,5 +1,6 @@
 ---
 name: thesis-frontmatter-sync
+binding: staged
 description: |
   同步中文毕业论文的非正文部分：摘要、附录、封面、成果、致谢、名单等，确保这些部分与正文口径一致，而不是最后临时补写。
   **Trigger**: 摘要同步, frontmatter sync, 附录同步, 封面检查, 非正文维护, 毕业论文摘要.

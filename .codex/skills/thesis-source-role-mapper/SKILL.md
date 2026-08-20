@@ -1,5 +1,6 @@
 ---
 name: thesis-source-role-mapper
+binding: staged
 description: |
   将中文毕业论文已有材料映射到“毕业论文角色”：把论文、模板、Overleaf 源稿、PDF、图表和实验材料按章节角色、研究问题和证据用途重新归位。
   **Trigger**: 毕业论文材料映射, source role map, paper to chapter, 章节角色映射, 论文归章, 材料归位.

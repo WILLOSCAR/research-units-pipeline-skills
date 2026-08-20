@@ -1,5 +1,6 @@
 ---
 name: prose-writer
+binding: library
 description: |
   Write `output/DRAFT.md` (or `output/SNAPSHOT.md`) from an approved outline and evidence packs, using only verified citation keys from `citations/ref.bib`.
   **Trigger**: write draft, prose writer, snapshot, survey writing, 写综述, 生成草稿, section-by-section drafting.

@@ -1,5 +1,6 @@
 ---
 name: survey-seed-harvest
+binding: library
 description: |
   Identify survey/review papers in a retrieved set and extract taxonomy seeds into `outline/taxonomy.yml` (topics/subtopics/terminology).
   **Trigger**: survey seed harvest, taxonomy seeds, 从 survey 提 taxonomy, bootstrap taxonomy.

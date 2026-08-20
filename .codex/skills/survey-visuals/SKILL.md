@@ -1,5 +1,6 @@
 ---
 name: survey-visuals
+binding: library
 description: |
   Draft non-prose visuals artifacts (timeline, figure specs) for a survey, grounded in evidence and using citation keys from `citations/ref.bib`.
   **Trigger**: survey visuals, timeline, figures, visuals, 图表, 时间线, figure spec.

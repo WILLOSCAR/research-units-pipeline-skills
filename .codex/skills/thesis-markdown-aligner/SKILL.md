@@ -1,5 +1,6 @@
 ---
 name: thesis-markdown-aligner
+binding: staged
 description: |
   在 Markdown 中间层统一毕业论文的主线、术语、符号、指标、图表口径与章节边界，让整篇论文先在中间层收敛成“一篇论文”。
   **Trigger**: markdown 对齐, thesis markdown align, 术语统一, 符号统一, 指标统一, 章节归并.

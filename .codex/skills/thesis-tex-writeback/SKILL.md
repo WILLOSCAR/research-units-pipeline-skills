@@ -1,5 +1,6 @@
 ---
 name: thesis-tex-writeback
+binding: staged
 description: |
   把已经在 Markdown 中间层收敛的中文毕业论文内容回写到 `chapters/*.tex` 与相关交付层文件，保持结构、图表、公式、交叉引用与章节承接一致。
   **Trigger**: tex 回写, thesis tex writeback, md 回 tex, 章节回写, 论文交付层同步.

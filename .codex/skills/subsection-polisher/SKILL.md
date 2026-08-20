@@ -1,5 +1,6 @@
 ---
 name: subsection-polisher
+binding: library
 description: |
   Polish a single H3 unit file under `sections/` into survey-grade prose (de-template + contrast/eval/limitation), without changing citation keys.
   **Trigger**: subsection polisher, per-subsection polish, polish section file, 小节润色, 去模板, 结构化段落.

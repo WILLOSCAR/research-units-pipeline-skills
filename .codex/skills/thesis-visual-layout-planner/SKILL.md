@@ -1,5 +1,6 @@
 ---
 name: thesis-visual-layout-planner
+binding: staged
 description: |
   规划中文毕业论文的图表、流程图和版面节奏：先决定哪些图表支撑主线，再做草图、拼版预演与图文映射。
   **Trigger**: 图表规划, figure layout, thesis visual plan, 版面预演, 图文映射, mermaid 草图.

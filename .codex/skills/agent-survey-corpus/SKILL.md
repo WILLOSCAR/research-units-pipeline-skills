@@ -1,5 +1,6 @@
 ---
 name: agent-survey-corpus
+binding: library
 description: |
   Download a small corpus of open-access arXiv survey/review PDFs about agentic systems and extract text for style learning.
   **Trigger**: agent survey corpus, ref corpus, download surveys, 学习综述写法, 下载 survey.

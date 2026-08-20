@@ -1,5 +1,6 @@
 ---
 name: redundancy-pruner
+binding: library
 description: |
   Remove repeated boilerplate across sections (methodology disclaimers, generic transitions, repeated summaries) while preserving citations and meaning.
   **Trigger**: redundancy, repetition, boilerplate removal, 去重复, 去套话, 合并重复段落.

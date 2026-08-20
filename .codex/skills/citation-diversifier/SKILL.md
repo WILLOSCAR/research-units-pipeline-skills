@@ -1,7 +1,7 @@
 ---
 name: citation-diversifier
 description: |
-  Raise citation diversity/density (NO NEW FACTS): generate an in-scope “citation budget” plan per H3 so drafts stop failing the global unique-citation gate and stop looking under-cited.
+  PRODUCES a citation-budget plan/report (`output/CITATION_BUDGET_REPORT.md`); does NOT edit the draft. Allocates an in-scope per-H3 budget (NO NEW FACTS) so drafts stop failing the global unique-citation gate; citation-injector applies it.
   **Trigger**: cite boost, citation budget, unique citations too low, add more citations, improve reference density, 引用太少, 增加引用, 引用密度.
 ---
 

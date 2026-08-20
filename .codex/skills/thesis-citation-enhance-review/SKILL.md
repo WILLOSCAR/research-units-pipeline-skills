@@ -1,5 +1,6 @@
 ---
 name: thesis-citation-enhance-review
+binding: staged
 description: |
   为中文毕业论文补强并核验引用：找出必须有引文支撑的句子，扩展候选文献，检查引用与论断是否匹配，并回写参考文献与正文引用。
   **Trigger**: 引用补强, citation enhance, 文献补充, 引用核验, 毕业论文参考文献检查.

@@ -1,5 +1,6 @@
 ---
 name: unit-planner
+binding: library
 description: |
   Instantiate or update a workspace `UNITS.csv` from a selected pipeline and units template (deps/checkpoints/acceptance).
   **Trigger**: unit planner, generate UNITS.csv, execution contract, units template, 生成工作单元.

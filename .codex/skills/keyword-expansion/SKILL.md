@@ -1,5 +1,6 @@
 ---
 name: keyword-expansion
+binding: library
 description: |
   Expand and refine search keywords (synonyms, acronyms, exclusions) and update `queries.md`.
   **Trigger**: keyword expansion, synonyms, exclusions, queries.md, 关键词扩展, 同义词, 排除词.

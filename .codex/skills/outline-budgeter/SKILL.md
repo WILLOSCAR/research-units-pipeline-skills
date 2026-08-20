@@ -1,5 +1,6 @@
 ---
 name: outline-budgeter
+binding: library
 description: |
   Merge/simplify an over-fragmented outline to hit a paper-like section budget (NO PROSE): target final ToC ~6–8 H2, fewer thicker H3.
   **Trigger**: outline budget, merge sections, too many sections, H3 explosion, 大纲预算, 合并小节, 大纲太碎.

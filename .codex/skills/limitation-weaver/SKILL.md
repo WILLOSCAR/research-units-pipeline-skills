@@ -1,5 +1,6 @@
 ---
 name: limitation-weaver
+binding: library
 description: |
   Rewrite limitation passages so the paper keeps limitations without falling into count-based slot phrases (e.g., \"Two limitations…\") across many H3s.
   **Trigger**: limitation weaver, rewrite limitations, remove two limitations, 去Two limitations, 局限改写, caveat rewrite.

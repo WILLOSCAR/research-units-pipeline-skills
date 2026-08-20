@@ -1,5 +1,6 @@
 ---
 name: terminology-normalizer
+binding: library
 description: |
   Normalize terminology across a draft (canonical terms + synonym policy) without changing citations or meaning.
   **Trigger**: terminology, glossary, consistent terms, 术语统一, 统一叫法, 术语表.

@@ -1,7 +1,7 @@
 ---
 name: citation-injector
 description: |
-  Apply a `citation-diversifier` budget report by injecting *in-scope* citations into an existing draft (NO NEW FACTS), so the run passes the global unique-citation gate without citation dumps.
+  APPLIES/consumes a `citation-diversifier` budget report (`output/CITATION_BUDGET_REPORT.md`) to inject *in-scope* citations into an existing draft (NO NEW FACTS), so the run passes the global unique-citation gate without citation dumps.
   **Trigger**: citation injector, apply citation budget, inject citations, add citations safely, 引用注入, 按预算加引用, 引用增密.
 ---
 
