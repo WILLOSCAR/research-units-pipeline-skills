@@ -7,6 +7,8 @@ remain behind this seam.
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import re
@@ -563,6 +565,77 @@ class LocalRunEngine:
                 lambda: self._dispatch_bound(command),
             )
 
+    def _project_run_units(self, run: RunView | None) -> None:
+        """Project committed Unit status into the Workspace UNITS.csv projection.
+
+        The canonical authority is the Run aggregate in ``.harness-v3``; UNITS.csv
+        is a human- and skill-readable projection. Some repository Skills (e.g.
+        the contract auditor) read Unit status from UNITS.csv, so keep it faithful
+        as the Run advances. UNITS.csv is exempt from the post-Completion drift
+        comparison (see ``case._MUTABLE_PROJECTION_PATHS``), so rewriting it here
+        does not trip the immutable-output check. No-op when UNITS.csv is absent,
+        which keeps in-memory and stub Workspaces untouched.
+        """
+
+        if run is None:
+            return
+        units_path = self.workspace / "UNITS.csv"
+        if not units_path.is_file():
+            return
+        status_by_unit = {unit.plan.id: unit.status.value for unit in run.units}
+        if not status_by_unit:
+            return
+        try:
+            with units_path.open("r", encoding="utf-8", newline="") as handle:
+                reader = csv.DictReader(handle)
+                fieldnames = reader.fieldnames or []
+                if "unit_id" not in fieldnames or "status" not in fieldnames:
+                    return
+                rows = list(reader)
+        except (OSError, csv.Error):
+            return
+
+        changed = False
+        for row in rows:
+            unit_id = (row.get("unit_id") or "").strip()
+            projected = status_by_unit.get(unit_id)
+            if projected is not None and row.get("status") != projected:
+                row["status"] = projected
+                changed = True
+        if not changed:
+            return
+
+        buffer = io.StringIO()
+        writer = csv.DictWriter(buffer, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+        try:
+            self._atomic_write_text(units_path, buffer.getvalue())
+        except OSError:
+            return
+
+    @staticmethod
+    def _atomic_write_text(path: Path, text: str) -> None:
+        handle = tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            newline="",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        )
+        try:
+            with handle:
+                handle.write(text)
+            os.replace(handle.name, path)
+        except OSError:
+            try:
+                os.unlink(handle.name)
+            except OSError:
+                pass
+            raise
+
     def inspect(self) -> EngineInspection:
         if self._has_legacy_v2_evidence():
             return EngineInspection(
@@ -705,6 +778,9 @@ class LocalRunEngine:
                 unit_ids.append(step.unit_id)
             if step.attempt_id:
                 attempt_ids.append(step.attempt_id)
+            # Keep UNITS.csv faithful to committed status before the next Unit
+            # runs, so skills reading UNITS.csv see the true state mid-advance.
+            self._project_run_units(step.inspection.run)
             if step.outcome in {
                 EngineOutcome.BLOCKED,
                 EngineOutcome.SKILL_FAILED,
@@ -773,6 +849,12 @@ class LocalRunEngine:
                 issues=_bounded_issues(begun.issues or (begun.message,)),
             )
         attempt_id = begun.attempt_id
+
+        # The Unit is now DOING in the canonical Run. Project that into UNITS.csv
+        # before invoking the skill subprocess so a skill that reads UNITS.csv
+        # status (e.g. the contract auditor) sees prior Units as DONE and itself
+        # as DOING, matching the legacy runner's contract.
+        self._project_run_units(begun.run)
 
         if context is not None:
             assert adapter is not None

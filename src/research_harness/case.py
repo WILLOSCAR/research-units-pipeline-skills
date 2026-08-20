@@ -51,6 +51,31 @@ _PROJECTION_ROLES = (
     "evidence_sources",
     "decision_sources",
 )
+# Human- and skill-readable Workspace files that are live projections of the
+# canonical Run, not immutable Evidence. They are recorded as committed
+# artifacts (so the required-check binding invariant stays consistent), but the
+# Run rewrites them as it advances (e.g. UNITS.csv status), so the
+# post-Completion drift comparison exempts them from hash equality while still
+# requiring them to exist. Mirrors the legacy engine's MUTABLE_PROJECTION_PATHS.
+_MUTABLE_PROJECTION_PATHS = frozenset(
+    {
+        "STATUS.md",
+        "UNITS.csv",
+        "CHECKPOINTS.md",
+        "DECISIONS.md",
+        "output/QUALITY_GATE.md",
+        "output/RUN_ERRORS.md",
+        "output/CONTRACT_REPORT.md",
+        "output/DOCTOR_REPORT.md",
+        "output/DOCTOR_REPORT.json",
+        "output/RUN_AUDIT.md",
+        "output/RUN_AUDIT.json",
+        "output/IMPROVEMENT_REPORT.md",
+        "output/IMPROVEMENT_REPORT.json",
+        "output/ARTIFACT_PACK.md",
+        "output/ARTIFACT_PACK.json",
+    }
+)
 _MAX_CONTRACT_BYTES = 4 * 1024 * 1024
 _MAX_EXPLANATION_CHARS = 500
 
@@ -895,7 +920,7 @@ def _run_evidence_issues(
         current = current_by_path.get(path)
         if current is None:
             issues.append(f"Committed Loop evidence is missing: {path}.")
-        elif current != expected:
+        elif current != expected and path not in _MUTABLE_PROJECTION_PATHS:
             issues.append(f"Committed Loop evidence changed after Completion: {path}.")
 
     if not completed:
@@ -919,6 +944,8 @@ def _run_evidence_issues(
             )
             continue
         if artifact.sha256 != expected.sha256 or artifact.size != expected.size:
+            if artifact.path in _MUTABLE_PROJECTION_PATHS:
+                continue
             issues.append(
                 f"Declared Loop Artifact changed after Completion: {artifact.path}."
             )

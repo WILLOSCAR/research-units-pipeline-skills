@@ -7,14 +7,12 @@ no human checkpoint) end to end through compose_repository_engine, so the same
 subprocess seam a user hits is exercised at least once.
 
 Scope note: the v3 engine tracks unit status in .harness-v3/state.json and
-writes UNITS.csv once at init as a projection; it does not project committed
-status back into UNITS.csv. The legacy tooling engine does. Because the
-artifact-contract-auditor skill reads UNITS.csv status, the final unit (U040)
-cannot observe the pipeline as complete under v3 and blocks — a known seam gap
-tracked separately. This test therefore asserts what the engine truly
-guarantees today: every real skill up to the auditor executes and commits, the
-run reaches the final unit, and the real semantic artifacts exist. Assert the
-true state, not an aspirational COMPLETED.
+projects committed status back into UNITS.csv as the Run advances. UNITS.csv is
+recorded as a committed artifact but exempt from the post-Completion drift
+comparison (case._MUTABLE_PROJECTION_PATHS), so the projection does not trip the
+immutable-output check. Because the artifact-contract-auditor skill reads
+UNITS.csv status, the final unit observes the pipeline as complete and the run
+reaches COMPLETED. This test drives the real repository skills end to end.
 """
 
 from __future__ import annotations
@@ -155,16 +153,14 @@ def test_paper_review_real_skills_run_end_to_end_through_v3_engine(
     )
     assert "related works unavailable" not in novelty
 
-    # The v3 engine committed real unit status in its own authority even though
-    # UNITS.csv is a write-once projection it does not update.
+    # The v3 engine projects committed Unit status from its canonical authority
+    # back into UNITS.csv as the Run advances, so the final
+    # artifact-contract-auditor observes the pipeline as complete and the run
+    # reaches COMPLETED.
     inspection = engine.inspect().run
     assert inspection is not None
     status_by_unit = {unit.plan.id: unit.status.value for unit in inspection.units}
-    for done_unit in ("U001", "U010", "U025", "U035"):
+    for done_unit in ("U001", "U010", "U025", "U035", "U040"):
         assert status_by_unit[done_unit] == "DONE", status_by_unit
 
-    # Known seam gap: the final artifact-contract-auditor reads UNITS.csv status
-    # (all TODO under v3) and so cannot mark the pipeline complete; the run
-    # blocks at U040 rather than reaching COMPLETED. Assert the true outcome.
-    assert result.outcome is EngineOutcome.BLOCKED
-    assert any("contract_report_not_pass" in issue for issue in result.issues)
+    assert result.outcome is EngineOutcome.COMPLETED, result.issues

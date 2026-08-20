@@ -119,9 +119,18 @@ def test_case_work_materializes_one_canonical_run_and_pinned_contracts(
     )
     assert pinned_script.is_file()
     assert pinned_script.stat().st_mode & 0o222 == 0
-    assert (workspace / "UNITS.csv").read_bytes() == (
+    # The pinned contract copy stays byte-identical to the template (immutable
+    # Evidence), while the top-level UNITS.csv is a live projection: after the
+    # first advance, workspace-init (U001) has committed, so its status is
+    # projected to DONE. The two therefore diverge only in the status column.
+    assert (execution / "templates" / "UNITS.paper-review.csv").read_bytes() == (
         REPO_ROOT / "templates" / "UNITS.paper-review.csv"
     ).read_bytes()
+    projected_units = (workspace / "UNITS.csv").read_text(encoding="utf-8")
+    u001_row = next(
+        line for line in projected_units.splitlines() if line.startswith("U001,")
+    )
+    assert ",DONE," in u001_row, u001_row
 
 
 def test_case_show_and_retry_survive_process_restart(
