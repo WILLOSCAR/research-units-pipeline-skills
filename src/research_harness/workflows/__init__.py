@@ -13,9 +13,10 @@ from .errors import (
     WorkflowSyntaxError,
     WorkflowValidationError,
 )
-from .loader import CASE_KIND_BY_WORKFLOW, load_workflow_definition
+from .loader import CANONICAL_UNIT_COLUMNS, CASE_KIND_BY_WORKFLOW, load_workflow_definition
 
 __all__ = [
+    "CANONICAL_UNIT_COLUMNS",
     "CASE_KIND_BY_WORKFLOW",
     "LoopContract",
     "StageDefinition",

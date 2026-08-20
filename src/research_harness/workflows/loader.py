@@ -70,7 +70,7 @@ CASE_KIND_BY_WORKFLOW = {
 # Backwards-compatible private alias for existing loader call sites.
 _CASE_KIND_BY_WORKFLOW = CASE_KIND_BY_WORKFLOW
 _MAX_CASE_KIND_CHARS = 64
-_UNIT_COLUMNS = (
+CANONICAL_UNIT_COLUMNS = (
     "unit_id",
     "title",
     "type",
@@ -83,6 +83,8 @@ _UNIT_COLUMNS = (
     "depends_on",
     "owner",
 )
+# Backwards-compatible private alias for existing loader call sites.
+_UNIT_COLUMNS = CANONICAL_UNIT_COLUMNS
 
 
 def load_workflow_definition(

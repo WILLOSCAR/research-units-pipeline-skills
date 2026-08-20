@@ -6,7 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from research_harness.workflows import UnitDefinition, WorkflowDefinition
+from research_harness.workflows import (
+    CANONICAL_UNIT_COLUMNS,
+    UnitDefinition,
+    WorkflowDefinition,
+)
 from tooling.pipeline_spec import PipelineSpec
 
 
@@ -25,19 +29,7 @@ WORKFLOW_PARITY_FIELDS = (
     "dag",
 )
 
-_CANONICAL_UNIT_COLUMNS = (
-    "unit_id",
-    "title",
-    "type",
-    "skill",
-    "inputs",
-    "outputs",
-    "acceptance",
-    "checkpoint",
-    "status",
-    "depends_on",
-    "owner",
-)
+_CANONICAL_UNIT_COLUMNS = CANONICAL_UNIT_COLUMNS
 _SEMICOLON_UNIT_COLUMNS = frozenset({"inputs", "outputs", "depends_on"})
 
 
