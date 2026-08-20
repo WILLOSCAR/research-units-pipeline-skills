@@ -1,24 +1,27 @@
 """Transitional adapter for repository-local deterministic quality checks.
 
-Imports from ``tooling`` are deliberately lazy and limited to deterministic
-quality functions and registry introspection.  The adapter never asks legacy
-Run state which checks are required; the validated Workflow is authoritative.
+Deterministic quality functions and registry introspection enter through the
+:class:`~.quality_provider.QualityCheckProvider` Port, defaulting to the
+legacy ``tooling.quality_gate`` adapter.  The evaluator never asks legacy Run
+state which checks are required; the validated Workflow is authoritative.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 from research_harness.domain.model import AcceptanceEvidence
 
+from .legacy_tooling import default_quality_provider
 from .policy import (
     AcceptanceRequest,
     WorkflowAcceptancePolicy,
     _sanitize_evaluator_issues,
 )
+from .quality_provider import QualityCheckProvider, QualityIssueLike
 
 if TYPE_CHECKING:
     from research_harness.workflows import WorkflowDefinition
@@ -30,23 +33,14 @@ _MAX_CODE_CHARS = 96
 _MAX_MESSAGE_CHARS = 512
 
 
-class _QualityIssue(Protocol):
-    code: str
-    message: str
-
-
 @dataclass(frozen=True, slots=True)
 class RepositoryQualityEvaluator:
     """Adapt current repository quality functions to ``AcceptanceEvaluator``."""
 
     workspace_for_run: WorkspaceResolver
+    provider: QualityCheckProvider = field(default_factory=default_quality_provider)
 
     def evaluate(self, request: AcceptanceRequest) -> AcceptanceEvidence:
-        from tooling.quality_gate import (
-            check_completion_invariants,
-            check_unit_outputs,
-        )
-
         workspace = Path(self.workspace_for_run(request.run.id)).expanduser().resolve()
         declared_outputs = set(request.unit.all_output_paths)
         outputs = [
@@ -55,12 +49,12 @@ class RepositoryQualityEvaluator:
             if artifact.path in declared_outputs
         ]
         issues = [
-            *check_completion_invariants(
+            *self.provider.check_completion_invariants(
                 skill=request.unit.skill,
                 workspace=workspace,
                 outputs=outputs,
             ),
-            *check_unit_outputs(
+            *self.provider.check_unit_outputs(
                 skill=request.unit.skill,
                 workspace=workspace,
                 outputs=outputs,
@@ -81,21 +75,24 @@ def build_repository_acceptance_policy(
     *,
     workflows: Iterable[WorkflowDefinition],
     workspace_for_run: WorkspaceResolver,
+    provider: QualityCheckProvider | None = None,
 ) -> WorkflowAcceptancePolicy:
     """Build exact bindings from validated Workflows to current quality checks.
 
     Construction fails if a Workflow-required check has no registered quality
     check or completion invariant.  Registered non-required Skills are also
     bound, so their semantic checks run without gaining required-check status.
+
+    ``provider`` selects the quality-check backend; it defaults to the legacy
+    ``tooling.quality_gate`` adapter so runtime behavior is unchanged.
     """
 
-    from tooling.quality_gate import (
-        has_completion_invariant,
-        registered_quality_skills,
+    resolved_provider = provider or default_quality_provider()
+    registered = resolved_provider.registered_quality_skills()
+    evaluator = RepositoryQualityEvaluator(
+        workspace_for_run=workspace_for_run,
+        provider=resolved_provider,
     )
-
-    registered = registered_quality_skills()
-    evaluator = RepositoryQualityEvaluator(workspace_for_run=workspace_for_run)
     evaluators: dict[
         tuple[str, str],
         RepositoryQualityEvaluator,
@@ -104,7 +101,8 @@ def build_repository_acceptance_policy(
         supported = frozenset(
             skill
             for skill in workflow.skills
-            if skill in registered or has_completion_invariant(skill)
+            if skill in registered
+            or resolved_provider.has_completion_invariant(skill)
         )
         missing = tuple(skill for skill in workflow.checks if skill not in supported)
         if missing:
@@ -119,7 +117,7 @@ def build_repository_acceptance_policy(
     return WorkflowAcceptancePolicy(evaluators=evaluators)
 
 
-def _bounded_issues(issues: Iterable[_QualityIssue]) -> tuple[str, ...]:
+def _bounded_issues(issues: Iterable[QualityIssueLike]) -> tuple[str, ...]:
     bounded: list[str] = []
     for issue in issues:
         if len(bounded) == _MAX_ISSUES:

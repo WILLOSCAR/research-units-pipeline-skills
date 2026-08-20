@@ -1164,9 +1164,9 @@ def _resolve_quality_check_catalog(
     # Transitional adapter: this is the authoritative registry until quality
     # checks move behind the typed acceptance seam. The import stays lazy so isolated Workflow
     # parsing remains independent of the legacy Harness implementation.
-    from tooling.quality_gate import registered_quality_skills
+    from research_harness.acceptance.legacy_tooling import default_quality_provider
 
-    return frozenset(registered_quality_skills())
+    return frozenset(default_quality_provider().registered_quality_skills())
 
 
 def _normalized_catalog(values: Iterable[str]) -> frozenset[str]:
