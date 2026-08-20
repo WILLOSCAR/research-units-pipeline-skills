@@ -1,0 +1,69 @@
+{
+ "engine": "research_harness typed local engine",
+ "goal": "Review one supplied manuscript through the current typed engine and reach a completed Review.",
+ "limitations": [
+  "One Recipe (paper-review), one synthetic manuscript, one topic.",
+  "Proves execution-integrity and contract-acceptance for this run only; NOT research-quality, novelty, or exhaustive-retrieval validation.",
+  "Not expert reviewed; cross-topic and real-manuscript proof remain open.",
+  "Artifact hashes are content-addressed for this checkout; skill or manuscript changes will change them by design."
+ ],
+ "manifest_schema": "research-harness.completion-manifest/v1",
+ "produced_artifacts": [
+  {
+   "path": "output/PAPER.md",
+   "sha256": "07674f9f63d22eb8f347b75811f46a02dbb509bcca3cd1f6e8e67fed0bca2649",
+   "size": 2186
+  },
+  {
+   "path": "output/CLAIMS.jsonl",
+   "sha256": "4e0326085e04bee73de6a9c524d8af3f1caeb4e537d8ce56c39dc3b7df6de2a0",
+   "size": 2278
+  },
+  {
+   "path": "output/EVIDENCE_AUDIT.jsonl",
+   "sha256": "7f37e339ec685fabb1f8709d81a2cd441cef7942cc5983c037c087c4b4d9315a",
+   "size": 3902
+  },
+  {
+   "path": "output/NOVELTY_MATRIX.tsv",
+   "sha256": "45af6ba79d660ecd079e88b1d7e9b3be5f46a4b381e51092b5bc271025930a14",
+   "size": 10263
+  },
+  {
+   "path": "output/REVIEW.md",
+   "sha256": "00db596a1c132616a5bd62d5b4c2f1ed2065fc2180f27515f44d4636e9accb33",
+   "size": 1474
+  },
+  {
+   "path": "output/REVIEW_SCORECARD.json",
+   "sha256": "c9dec8937991c184dfef8c6fd0434ef923574a01a757650d08e2d9776ece0779",
+   "size": 2802
+  }
+ ],
+ "run_state": "COMPLETED",
+ "schema": "completed-run-evidence.v1",
+ "source_mode": "deterministic_synthetic_manuscript",
+ "state_schema": "research-harness.run-aggregate/v1",
+ "storage_namespace": ".harness-v3",
+ "units": {
+  "done": 9,
+  "total": 9,
+  "unit_status": {
+   "U001": "DONE",
+   "U002": "DONE",
+   "U005": "DONE",
+   "U010": "DONE",
+   "U020": "DONE",
+   "U025": "DONE",
+   "U030": "DONE",
+   "U035": "DONE",
+   "U040": "DONE"
+  }
+ },
+ "verification": {
+  "novelty_matrix_grounded": "positioned claims against the manuscript reference list rather than emitting the 'related works unavailable' fallback.",
+  "reached_completed": true,
+  "real_skills": "producer skills (manuscript-ingest, claims-extractor, evidence-auditor, novelty-matrix, rubric-writer) plus the artifact-contract-auditor ran as subprocesses; no stub adapters."
+ },
+ "workflow": "paper-review"
+}
