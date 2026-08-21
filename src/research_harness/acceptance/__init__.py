@@ -9,7 +9,12 @@ the transitional :class:`LegacyToolingQualityProvider`;
 Port (added but not yet the default).
 """
 
-from .legacy_tooling import LegacyToolingQualityProvider, default_quality_provider
+from .legacy_tooling import (
+    LegacyToolingPolicyReader,
+    LegacyToolingQualityProvider,
+    default_quality_provider,
+    default_workspace_policy_reader,
+)
 from .native import NativeQualityProvider
 from .policy import (
     AcceptanceEvaluator,
@@ -22,17 +27,21 @@ from .repository import (
     WorkspaceResolver,
     build_repository_acceptance_policy,
 )
+from .workspace_policy import WorkspacePolicyPort
 
 __all__ = [
     "AcceptanceEvaluator",
     "AcceptanceRequest",
+    "LegacyToolingPolicyReader",
     "LegacyToolingQualityProvider",
     "NativeQualityProvider",
     "QualityCheckProvider",
     "QualityIssueLike",
     "RepositoryQualityEvaluator",
+    "WorkspacePolicyPort",
     "WorkspaceResolver",
     "WorkflowAcceptancePolicy",
     "build_repository_acceptance_policy",
     "default_quality_provider",
+    "default_workspace_policy_reader",
 ]

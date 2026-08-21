@@ -15,8 +15,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .quality_provider import QualityCheckProvider, QualityIssueLike
+from .workspace_policy import WorkspacePolicyPort
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,3 +64,47 @@ def default_quality_provider() -> QualityCheckProvider:
     """
 
     return LegacyToolingQualityProvider()
+
+
+@dataclass(frozen=True, slots=True)
+class LegacyToolingPolicyReader(WorkspacePolicyPort):
+    """Delegate the workspace-policy Port to ``tooling``.
+
+    Each method mirrors the corresponding ``tooling.quality_checks.survey_policy``
+    / ``tooling.common`` function exactly, so behavior is identical to importing
+    that function directly.  Imports stay lazy (inside methods) so acceptance
+    construction remains independent of the legacy import graph until a policy
+    read actually runs -- matching ``LegacyToolingQualityProvider``.
+    """
+
+    def pipeline_profile_name(self, workspace: Path) -> str:
+        from tooling.quality_checks.survey_policy import pipeline_profile_name
+
+        return pipeline_profile_name(workspace)
+
+    def evidence_mode(self, workspace: Path) -> str:
+        from tooling.quality_checks.survey_policy import evidence_mode
+
+        return evidence_mode(workspace)
+
+    def core_size(self, workspace: Path) -> int:
+        from tooling.quality_checks.survey_policy import core_size
+
+        return core_size(workspace)
+
+    def pipeline_quality_contract_value(
+        self, workspace: Path, *keys: str, default: Any = None
+    ) -> Any:
+        from tooling.common import pipeline_quality_contract_value
+
+        return pipeline_quality_contract_value(workspace, *keys, default=default)
+
+
+def default_workspace_policy_reader() -> WorkspacePolicyPort:
+    """Return the default (legacy) workspace-policy reader.
+
+    Centralizes the choice of reader so a future native default is a one-line
+    change here rather than at every call site.
+    """
+
+    return LegacyToolingPolicyReader()

@@ -35,8 +35,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .legacy_tooling import LegacyToolingQualityProvider
+from .legacy_tooling import LegacyToolingPolicyReader, LegacyToolingQualityProvider
 from .quality_provider import QualityCheckProvider, QualityIssueLike
+from .workspace_policy import WorkspacePolicyPort
 
 # Native mirror of ``tooling.quality_gate._QUALITY_CHECKS`` keys: Skills with a
 # semantic check beyond output existence.  The Port parity test pins this to
@@ -366,9 +367,16 @@ class NativeQualityProvider(QualityCheckProvider):
       the composed legacy adapter.
     - :meth:`check_completion_invariants` delegates in full: no invariant has a
       native reimplementation yet.
+
+    ``policy`` is the injected :class:`WorkspacePolicyPort` a future native
+    survey check reads workspace policy (run profile, evidence mode, core-set
+    target, quality contract) through.  It defaults to the legacy adapter so
+    runtime behavior is unchanged; no native check consumes it yet, so it is
+    only a landed seam at this step.
     """
 
     legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)
+    policy: WorkspacePolicyPort = field(default_factory=LegacyToolingPolicyReader)
 
     def registered_quality_skills(self) -> frozenset[str]:
         return _NATIVE_QUALITY_SKILLS
