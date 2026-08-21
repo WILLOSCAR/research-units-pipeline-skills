@@ -1,15 +1,17 @@
-"""Contract tests for the first native quality-check provider slice.
+"""Contract tests for the native quality-check provider slice.
 
-``NativeQualityProvider`` is the first tooling-free step behind the
+``NativeQualityProvider`` is the tooling-free step behind the
 ``QualityCheckProvider`` Port.  It answers registry introspection from native
-constant tables and reimplements the single smallest self-contained semantic
-check (``citation-injector``), delegating everything else to the legacy
-adapter.  These tests lock in:
+constant tables and reimplements the self-contained semantic checks
+(``citation-injector``, ``deliverable-selfloop``, ``artifact-contract-auditor``,
+and ``beamer-compile-qa``), delegating everything else to the legacy adapter.
+These tests lock in:
 
 - Port conformance (``isinstance`` of the runtime-checkable Protocol);
 - registry parity with the legacy provider (the native constant tables must
   not drift from ``tooling.quality_gate``);
-- native behavior for ``citation-injector`` matching the legacy check exactly;
+- native behavior for each natively-covered skill matching the legacy check
+  exactly (byte-for-byte codes + messages) across representative inputs;
 - delegation to the composed legacy adapter for a non-native skill; and
 - that ``native.py`` imports no ``tooling`` symbols at module top.
 """
@@ -18,6 +20,8 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+
+import pytest
 
 import research_harness.acceptance.native as native_module
 from research_harness.acceptance import (
@@ -108,6 +112,188 @@ def test_native_citation_injector_matches_legacy_across_cases(tmp_path: Path) ->
         assert native_pairs == legacy_pairs, name
 
 
+def _write_file(workspace: Path, rel: str, body: str) -> None:
+    path = workspace / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+# --- deliverable-selfloop parity -------------------------------------------
+
+
+_DELIVERABLE_OUT = ["output/DELIVERABLE_SELFLOOP_TODO.md"]
+_DELIVERABLE_REL = "output/DELIVERABLE_SELFLOOP_TODO.md"
+
+_DELIVERABLE_CASES: dict[str, str | None] = {
+    "missing": None,
+    "empty": "",
+    "placeholder": "# Report\nTODO: finish\n- Status: PASS\n",
+    "ellipsis": "# Report\n- Status: PASS\n- Note: more…\n",
+    "not_pass": "# Report\n- Status: FAIL\n",
+    "pass": "# Report\n- Status: PASS\n- Fixed: 3\n",
+}
+
+
+@pytest.mark.parametrize("name", sorted(_DELIVERABLE_CASES))
+def test_native_deliverable_selfloop_matches_legacy(name: str, tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    body = _DELIVERABLE_CASES[name]
+    ws = tmp_path / name
+    ws.mkdir()
+    if body is not None:
+        _write_file(ws, _DELIVERABLE_REL, body)
+
+    native_pairs = [
+        (i.code, i.message)
+        for i in native.check_unit_outputs(
+            skill="deliverable-selfloop", workspace=ws, outputs=_DELIVERABLE_OUT
+        )
+    ]
+    legacy_pairs = [
+        (i.code, i.message)
+        for i in legacy.check_unit_outputs(
+            skill="deliverable-selfloop", workspace=ws, outputs=_DELIVERABLE_OUT
+        )
+    ]
+    assert native_pairs == legacy_pairs, name
+
+
+def test_native_deliverable_selfloop_default_output_path(tmp_path: Path) -> None:
+    # With empty outputs both providers fall back to the canonical relative path.
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    _write_file(tmp_path, _DELIVERABLE_REL, "# ok\n- Status: PASS\n")
+    assert (
+        native.check_unit_outputs(
+            skill="deliverable-selfloop", workspace=tmp_path, outputs=[]
+        )
+        == legacy.check_unit_outputs(
+            skill="deliverable-selfloop", workspace=tmp_path, outputs=[]
+        )
+        == []
+    )
+
+
+# --- artifact-contract-auditor parity --------------------------------------
+
+
+_CONTRACT_OUT = ["output/CONTRACT_REPORT.md"]
+_CONTRACT_REL = "output/CONTRACT_REPORT.md"
+_CONTRACT_PASS = "- Status: PASS\n- Pipeline complete (units): yes\n"
+
+_CONTRACT_CASES: dict[str, str | None] = {
+    "missing": None,
+    "empty": "",
+    "whitespace": "   \n  \n",
+    "placeholder": "TBD\n" + _CONTRACT_PASS,
+    "ellipsis": "…\n" + _CONTRACT_PASS,
+    "status_only": "- Status: PASS\n",
+    "complete_only": "- Pipeline complete (units): yes\n",
+    "pass": _CONTRACT_PASS,
+}
+
+
+@pytest.mark.parametrize("name", sorted(_CONTRACT_CASES))
+def test_native_contract_auditor_matches_legacy(name: str, tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    body = _CONTRACT_CASES[name]
+    ws = tmp_path / name
+    ws.mkdir()
+    if body is not None:
+        _write_file(ws, _CONTRACT_REL, body)
+
+    native_pairs = [
+        (i.code, i.message)
+        for i in native.check_unit_outputs(
+            skill="artifact-contract-auditor", workspace=ws, outputs=_CONTRACT_OUT
+        )
+    ]
+    legacy_pairs = [
+        (i.code, i.message)
+        for i in legacy.check_unit_outputs(
+            skill="artifact-contract-auditor", workspace=ws, outputs=_CONTRACT_OUT
+        )
+    ]
+    assert native_pairs == legacy_pairs, name
+
+
+def test_native_contract_auditor_default_output_path(tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    _write_file(tmp_path, _CONTRACT_REL, _CONTRACT_PASS)
+    assert (
+        native.check_unit_outputs(
+            skill="artifact-contract-auditor", workspace=tmp_path, outputs=[]
+        )
+        == legacy.check_unit_outputs(
+            skill="artifact-contract-auditor", workspace=tmp_path, outputs=[]
+        )
+        == []
+    )
+
+
+# --- beamer-compile-qa parity ----------------------------------------------
+
+
+_BEAMER_OUT = ["latex/slides/main.pdf", "output/SLIDES_BUILD_REPORT.md"]
+_BEAMER_PDF = "latex/slides/main.pdf"
+_BEAMER_REPORT = "output/SLIDES_BUILD_REPORT.md"
+
+# Each case is (pdf_body, report_body); ``None`` means the file is absent.
+_BEAMER_CASES: dict[str, tuple[str | None, str | None]] = {
+    "missing_pdf": (None, "- Status: PASS\n"),
+    "missing_report": ("%PDF-1.4\n", None),
+    "not_pass": ("%PDF-1.4\n", "# build\n- Status: FAIL\n"),
+    "pass_dash": ("%PDF-1.4\n", "# build\n- Status: PASS\n"),
+    "pass_bare": ("%PDF-1.4\n", "Status: PASS\n"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_BEAMER_CASES))
+def test_native_beamer_compile_qa_matches_legacy(name: str, tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    pdf_body, report_body = _BEAMER_CASES[name]
+    ws = tmp_path / name
+    ws.mkdir()
+    if pdf_body is not None:
+        _write_file(ws, _BEAMER_PDF, pdf_body)
+    if report_body is not None:
+        _write_file(ws, _BEAMER_REPORT, report_body)
+
+    native_pairs = [
+        (i.code, i.message)
+        for i in native.check_unit_outputs(
+            skill="beamer-compile-qa", workspace=ws, outputs=_BEAMER_OUT
+        )
+    ]
+    legacy_pairs = [
+        (i.code, i.message)
+        for i in legacy.check_unit_outputs(
+            skill="beamer-compile-qa", workspace=ws, outputs=_BEAMER_OUT
+        )
+    ]
+    assert native_pairs == legacy_pairs, name
+
+
+def test_native_beamer_compile_qa_default_output_paths(tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    _write_file(tmp_path, _BEAMER_PDF, "%PDF-1.4\n")
+    _write_file(tmp_path, _BEAMER_REPORT, "- Status: PASS\n")
+    assert (
+        native.check_unit_outputs(
+            skill="beamer-compile-qa", workspace=tmp_path, outputs=[]
+        )
+        == legacy.check_unit_outputs(
+            skill="beamer-compile-qa", workspace=tmp_path, outputs=[]
+        )
+        == []
+    )
+
+
 def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     # A non-native skill's check_unit_outputs is routed to the composed legacy
     # adapter, so behavior matches the legacy provider exactly.
@@ -146,10 +332,21 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         workspace=tmp_path,
         outputs=["output/CITATION_INJECTION_REPORT.md"],
     )
+    for native_skill in (
+        "deliverable-selfloop",
+        "artifact-contract-auditor",
+        "beamer-compile-qa",
+    ):
+        native.check_unit_outputs(
+            skill=native_skill, workspace=tmp_path, outputs=[]
+        )
 
     assert ("outputs", "arxiv-search") in calls
     assert ("invariants", "outline-refiner") in calls
     assert ("outputs", "citation-injector") not in calls
+    assert ("outputs", "deliverable-selfloop") not in calls
+    assert ("outputs", "artifact-contract-auditor") not in calls
+    assert ("outputs", "beamer-compile-qa") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
