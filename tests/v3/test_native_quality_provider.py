@@ -362,3 +362,102 @@ def test_native_module_imports_no_tooling_at_top() -> None:
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
             assert not module.startswith("tooling"), module
+
+
+# --- cutover-safety: byte-identical parity for *every* registered skill -----
+
+
+def _pairs(issues: object) -> list[tuple[str, str]]:
+    return [(i.code, i.message) for i in issues]  # type: ignore[attr-defined]
+
+
+def _seed_native_pass_outputs(workspace: Path) -> None:
+    """Materialize PASS-state files for each natively-covered skill.
+
+    Exercises the *native* code paths (not just the empty-workspace early
+    returns) so the parity sweep compares real output-check outcomes for the
+    four skills native reimplements, alongside the delegated remainder.
+    """
+
+    (workspace / "output").mkdir(parents=True, exist_ok=True)
+    (workspace / "output" / "CITATION_INJECTION_REPORT.md").write_text(
+        "# Report\n- Status: PASS\n- Injected: 4\n", encoding="utf-8"
+    )
+    (workspace / "output" / "DELIVERABLE_SELFLOOP_TODO.md").write_text(
+        "# Report\n- Status: PASS\n- Fixed: 2\n", encoding="utf-8"
+    )
+    (workspace / "output" / "CONTRACT_REPORT.md").write_text(
+        "- Status: PASS\n- Pipeline complete (units): yes\n", encoding="utf-8"
+    )
+    (workspace / "latex" / "slides").mkdir(parents=True, exist_ok=True)
+    (workspace / "latex" / "slides" / "main.pdf").write_text(
+        "%PDF-1.4\n", encoding="utf-8"
+    )
+    (workspace / "output" / "SLIDES_BUILD_REPORT.md").write_text(
+        "# build\n- Status: PASS\n", encoding="utf-8"
+    )
+
+
+def test_native_matches_legacy_for_every_registered_skill(tmp_path: Path) -> None:
+    """Cutover-safety proof: selecting native is byte-identical to legacy.
+
+    For *every* registered skill (the four native ones + all delegated ones),
+    both ``check_unit_outputs`` and ``check_completion_invariants`` must return
+    the same (code, message) pairs as the legacy provider -- under an empty
+    workspace and under one seeded with PASS-state native outputs. This is the
+    evidence that flipping ``default_quality_provider`` to native is safe: no
+    skill diverges. If any did, this test names it.
+    """
+
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    assert isinstance(legacy, LegacyToolingQualityProvider)
+
+    skills = sorted(legacy.registered_quality_skills())
+    assert len(skills) == 68, "expected all 68 registered skills"
+    # The four natively reimplemented skills must be inside the swept set.
+    for native_skill in (
+        "citation-injector",
+        "deliverable-selfloop",
+        "artifact-contract-auditor",
+        "beamer-compile-qa",
+    ):
+        assert native_skill in skills
+
+    empty_ws = tmp_path / "empty"
+    empty_ws.mkdir()
+    seeded_ws = tmp_path / "seeded"
+    seeded_ws.mkdir()
+    _seed_native_pass_outputs(seeded_ws)
+
+    divergences: list[str] = []
+    for skill in skills:
+        for ws in (empty_ws, seeded_ws):
+            native_out = _pairs(
+                native.check_unit_outputs(skill=skill, workspace=ws, outputs=[])
+            )
+            legacy_out = _pairs(
+                legacy.check_unit_outputs(skill=skill, workspace=ws, outputs=[])
+            )
+            if native_out != legacy_out:
+                divergences.append(
+                    f"{skill} check_unit_outputs @ {ws.name}: "
+                    f"native={native_out} legacy={legacy_out}"
+                )
+            native_ci = _pairs(
+                native.check_completion_invariants(
+                    skill=skill, workspace=ws, outputs=[]
+                )
+            )
+            legacy_ci = _pairs(
+                legacy.check_completion_invariants(
+                    skill=skill, workspace=ws, outputs=[]
+                )
+            )
+            if native_ci != legacy_ci:
+                divergences.append(
+                    f"{skill} check_completion_invariants @ {ws.name}: "
+                    f"native={native_ci} legacy={legacy_ci}"
+                )
+
+    assert not divergences, "native diverges from legacy:\n" + "\n".join(divergences)

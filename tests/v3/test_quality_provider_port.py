@@ -15,13 +15,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from research_harness.acceptance import (
     LegacyToolingQualityProvider,
+    NativeQualityProvider,
     QualityCheckProvider,
     RepositoryQualityEvaluator,
     build_repository_acceptance_policy,
     default_quality_provider,
 )
+from research_harness.acceptance.legacy_tooling import _QUALITY_PROVIDER_ENV_VAR
 
 
 def test_default_provider_satisfies_the_port() -> None:
@@ -128,3 +132,55 @@ def test_seam_is_injectable_without_tooling() -> None:
         provider=provider,
     )
     assert policy is not None
+
+
+# --- provider selection (opt-in cutover seam) ------------------------------
+
+
+def test_default_is_legacy_when_opt_in_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # With no opt-in, the default is legacy -- identical to before the seam.
+    monkeypatch.delenv(_QUALITY_PROVIDER_ENV_VAR, raising=False)
+    assert isinstance(default_quality_provider(), LegacyToolingQualityProvider)
+
+
+def test_native_selected_by_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(_QUALITY_PROVIDER_ENV_VAR, "native")
+    assert isinstance(default_quality_provider(), NativeQualityProvider)
+
+
+def test_legacy_selected_when_opt_in_explicit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(_QUALITY_PROVIDER_ENV_VAR, "legacy")
+    assert isinstance(default_quality_provider(), LegacyToolingQualityProvider)
+
+
+def test_opt_in_parsing_is_case_and_whitespace_insensitive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(_QUALITY_PROVIDER_ENV_VAR, "  NaTiVe \t")
+    assert isinstance(default_quality_provider(), NativeQualityProvider)
+
+
+@pytest.mark.parametrize("value", ["", "  ", "native-ish", "nativ", "1", "true", "?"])
+def test_unrecognized_opt_in_falls_back_to_legacy(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    # Defensive parsing: any value that is not exactly ``native``/``legacy``
+    # (after strip + case-fold) resolves to legacy, so a typo can never
+    # silently change acceptance outcomes.
+    monkeypatch.setenv(_QUALITY_PROVIDER_ENV_VAR, value)
+    assert isinstance(default_quality_provider(), LegacyToolingQualityProvider)
+
+
+def test_clearing_opt_in_returns_to_legacy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Selecting native then clearing the opt-in reverts to the legacy default,
+    # proving the toggle is fully reversible and leaks no global state.
+    monkeypatch.setenv(_QUALITY_PROVIDER_ENV_VAR, "native")
+    assert isinstance(default_quality_provider(), NativeQualityProvider)
+    monkeypatch.delenv(_QUALITY_PROVIDER_ENV_VAR, raising=False)
+    assert isinstance(default_quality_provider(), LegacyToolingQualityProvider)

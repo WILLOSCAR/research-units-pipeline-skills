@@ -3,10 +3,23 @@
 The acceptance module depends only on the typed domain read model. Concrete
 quality implementations enter through :class:`AcceptanceEvaluator`; they do
 not need to expose legacy Run-state helpers to the Harness. The quality-check
-backend enters through the :class:`QualityCheckProvider` Port. The default is
-the transitional :class:`LegacyToolingQualityProvider`;
-:class:`NativeQualityProvider` is the first tooling-free slice behind the same
-Port (added but not yet the default).
+backend enters through the :class:`QualityCheckProvider` Port.
+
+Provider selection (opt-in cutover seam)
+----------------------------------------
+:func:`default_quality_provider` is the single place that picks the backend.
+It is legacy by default -- :class:`LegacyToolingQualityProvider`, the
+transitional adapter over ``tooling.quality_gate`` -- so with no opt-in set,
+behavior is byte-for-byte identical to before this seam existed.
+
+Setting the ``RESEARCH_HARNESS_QUALITY_PROVIDER`` environment variable to
+``native`` selects :class:`NativeQualityProvider` instead: the first
+tooling-free slice behind the same Port. It answers registry introspection
+and four self-contained output checks natively and delegates every other
+check to the legacy adapter, so selecting it yields the same acceptance
+outcomes for all Skills. Any other value -- unset, empty, or unrecognized --
+resolves to legacy (parsing is deliberately defensive). Nothing wires native
+as the default; flipping the cutover is a future, separately gated step.
 """
 
 from .legacy_tooling import (
