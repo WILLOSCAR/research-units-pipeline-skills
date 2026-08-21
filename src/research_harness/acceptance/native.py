@@ -1,0 +1,231 @@
+"""First native (tooling-free) slice of the acceptance quality-check Port.
+
+This module is the first step toward a native
+:class:`~.quality_provider.QualityCheckProvider` that does not import
+``tooling`` at all.  It:
+
+- answers the registry-introspection methods
+  (:meth:`~NativeQualityProvider.registered_quality_skills` and
+  :meth:`~NativeQualityProvider.has_completion_invariant`) from native
+  constant tables that mirror ``tooling.quality_gate`` -- removing the registry
+  coupling for those two methods; and
+- natively reimplements the single smallest self-contained semantic output
+  check (``citation-injector``), delegating every other ``check_unit_outputs``
+  call and *all* ``check_completion_invariants`` calls to a composed legacy
+  adapter.
+
+Unlike ``legacy_tooling``, this module imports no ``tooling`` symbols -- not
+even lazily.  Composition delegates to ``LegacyToolingQualityProvider``, which
+is the only module that wraps ``tooling`` (and it does so lazily).
+
+This provider is intentionally *not* the default: ``default_quality_provider``
+still returns the legacy adapter, so runtime behavior is unchanged.  Swapping
+the default is a later, separately gated step.  The native constant tables are
+kept honest by the Port parity test, which asserts they equal the legacy
+provider's registry.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from .legacy_tooling import LegacyToolingQualityProvider
+from .quality_provider import QualityCheckProvider, QualityIssueLike
+
+# Native mirror of ``tooling.quality_gate._QUALITY_CHECKS`` keys: Skills with a
+# semantic check beyond output existence.  The Port parity test pins this to
+# the legacy registry so drift is caught rather than silently diverging.
+_NATIVE_QUALITY_SKILLS: frozenset[str] = frozenset(
+    {
+        "anchor-sheet",
+        "appendix-table-writer",
+        "argument-selfloop",
+        "artifact-contract-auditor",
+        "arxiv-search",
+        "beamer-compile-qa",
+        "beamer-scaffold",
+        "bias-assessor",
+        "chapter-briefs",
+        "chapter-skeleton",
+        "citation-injector",
+        "citation-verifier",
+        "claim-evidence-matrix",
+        "claim-matrix-rewriter",
+        "claims-extractor",
+        "dedupe-rank",
+        "deliverable-selfloop",
+        "draft-polisher",
+        "evaluation-anchor-checker",
+        "evidence-auditor",
+        "evidence-binder",
+        "evidence-draft",
+        "evidence-selfloop",
+        "extraction-form",
+        "front-matter-writer",
+        "global-reviewer",
+        "idea-brief",
+        "idea-direction-generator",
+        "idea-memo-writer",
+        "idea-screener",
+        "idea-shortlist-curator",
+        "idea-signal-mapper",
+        "latex-compile-qa",
+        "latex-scaffold",
+        "literature-engineer",
+        "module-source-coverage",
+        "novelty-matrix",
+        "outline-builder",
+        "outline-refiner",
+        "paper-notes",
+        "paragraph-curator",
+        "pdf-text-extractor",
+        "pipeline-auditor",
+        "prose-writer",
+        "protocol-writer",
+        "rubric-writer",
+        "schema-normalizer",
+        "screening-manager",
+        "section-bindings",
+        "section-briefs",
+        "section-logic-polisher",
+        "section-mapper",
+        "section-merger",
+        "source-ingest",
+        "source-manifest",
+        "source-tutorial-spec",
+        "subsection-briefs",
+        "subsection-writer",
+        "survey-visuals",
+        "synthesis-writer",
+        "table-filler",
+        "table-schema",
+        "taxonomy-builder",
+        "transition-weaver",
+        "tutorial-context-pack",
+        "tutorial-selfloop",
+        "writer-context-pack",
+        "writer-selfloop",
+    }
+)
+
+# Native mirror of ``tooling.quality_gate._COMPLETION_INVARIANTS`` keys: Skills
+# with a mandatory Workflow-domain invariant.  No invariant is reimplemented
+# natively yet, so ``check_completion_invariants`` delegates in full; this
+# table only serves the (pure introspection) ``has_completion_invariant``.
+_NATIVE_COMPLETION_INVARIANTS: frozenset[str] = frozenset({"outline-refiner"})
+
+# Skills whose semantic output check this provider answers natively, with zero
+# tooling delegation.  Everything else composes onto the legacy adapter.
+_NATIVE_OUTPUT_CHECKS: frozenset[str] = frozenset({"citation-injector"})
+
+
+@dataclass(frozen=True, slots=True)
+class NativeQualityIssue:
+    """A native quality issue; structurally satisfies :class:`QualityIssueLike`."""
+
+    code: str
+    message: str
+
+
+def _has_placeholder_markers(text: str) -> bool:
+    """Native mirror of ``tooling.quality_checks.common.has_placeholder_markers``."""
+
+    if not text:
+        return False
+    if re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", text):
+        return True
+    lowered = text.lower()
+    return "(placeholder)" in lowered or "<!-- scaffold" in lowered
+
+
+def _check_citation_injector(
+    workspace: Path, outputs: list[str]
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_retrieval.check_citation_injection``.
+
+    Byte-for-byte parity (codes + messages) with the legacy check is pinned by
+    the Port parity test.  The report must exist, be non-empty, be free of
+    placeholder/ellipsis residue, and self-report ``Status: PASS``.
+    """
+
+    report_rel = next(
+        (p for p in outputs if p.endswith("CITATION_INJECTION_REPORT.md")),
+        "output/CITATION_INJECTION_REPORT.md",
+    )
+    report_path = workspace / report_rel
+    if not report_path.exists() or report_path.stat().st_size == 0:
+        return [
+            NativeQualityIssue(
+                code="missing_citation_injection_report",
+                message=f"`{report_rel}` is missing or empty.",
+            )
+        ]
+
+    text = report_path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not text:
+        return [
+            NativeQualityIssue(
+                code="empty_citation_injection_report",
+                message=f"`{report_rel}` is empty.",
+            )
+        ]
+    if _has_placeholder_markers(text) or "…" in text:
+        return [
+            NativeQualityIssue(
+                code="citation_injection_report_placeholders",
+                message=(
+                    f"`{report_rel}` contains placeholders/ellipsis; "
+                    "regenerate after fixing the injection step."
+                ),
+            )
+        ]
+    if re.search(r"(?im)^-\s*Status:\s*PASS\b", text):
+        return []
+    return [
+        NativeQualityIssue(
+            code="citation_injection_failed",
+            message=(
+                f"`{report_rel}` is not PASS; add more in-scope unused citations "
+                "(or expand C1/C2 mapping), then rerun citation injection."
+            ),
+        )
+    ]
+
+
+@dataclass(frozen=True)
+class NativeQualityProvider(QualityCheckProvider):
+    """Composition provider: native registry + one native check, else legacy.
+
+    - :meth:`registered_quality_skills` / :meth:`has_completion_invariant`
+      answer from native constant tables, with no ``tooling`` import.
+    - :meth:`check_unit_outputs` handles the natively reimplemented Skill(s)
+      directly and delegates every other Skill to the composed legacy adapter.
+    - :meth:`check_completion_invariants` delegates in full: no invariant has a
+      native reimplementation yet.
+    """
+
+    legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)
+
+    def registered_quality_skills(self) -> frozenset[str]:
+        return _NATIVE_QUALITY_SKILLS
+
+    def has_completion_invariant(self, skill: str) -> bool:
+        return skill in _NATIVE_COMPLETION_INVARIANTS
+
+    def check_completion_invariants(
+        self, *, skill: str, workspace: Path, outputs: list[str]
+    ) -> list[QualityIssueLike]:
+        return self.legacy.check_completion_invariants(
+            skill=skill, workspace=workspace, outputs=outputs
+        )
+
+    def check_unit_outputs(
+        self, *, skill: str, workspace: Path, outputs: list[str]
+    ) -> list[QualityIssueLike]:
+        if skill in _NATIVE_OUTPUT_CHECKS:
+            return list(_check_citation_injector(workspace, outputs))
+        return self.legacy.check_unit_outputs(
+            skill=skill, workspace=workspace, outputs=outputs
+        )

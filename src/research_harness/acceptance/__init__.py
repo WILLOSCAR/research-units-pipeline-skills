@@ -3,12 +3,14 @@
 The acceptance module depends only on the typed domain read model. Concrete
 quality implementations enter through :class:`AcceptanceEvaluator`; they do
 not need to expose legacy Run-state helpers to the Harness. The quality-check
-backend enters through the :class:`QualityCheckProvider` Port, whose sole
-current implementation is the transitional
-:class:`LegacyToolingQualityProvider`.
+backend enters through the :class:`QualityCheckProvider` Port. The default is
+the transitional :class:`LegacyToolingQualityProvider`;
+:class:`NativeQualityProvider` is the first tooling-free slice behind the same
+Port (added but not yet the default).
 """
 
 from .legacy_tooling import LegacyToolingQualityProvider, default_quality_provider
+from .native import NativeQualityProvider
 from .policy import (
     AcceptanceEvaluator,
     AcceptanceRequest,
@@ -25,6 +27,7 @@ __all__ = [
     "AcceptanceEvaluator",
     "AcceptanceRequest",
     "LegacyToolingQualityProvider",
+    "NativeQualityProvider",
     "QualityCheckProvider",
     "QualityIssueLike",
     "RepositoryQualityEvaluator",
