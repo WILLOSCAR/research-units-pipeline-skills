@@ -19,6 +19,7 @@ These tests lock in:
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
 import pytest
@@ -461,3 +462,194 @@ def test_native_matches_legacy_for_every_registered_skill(tmp_path: Path) -> Non
                 )
 
     assert not divergences, "native diverges from legacy:\n" + "\n".join(divergences)
+
+
+# --- citation-verifier parity (first policy-consuming native check) ---------
+
+_CITATION_OUT = ["citations/ref.bib", "citations/verified.jsonl"]
+
+_GOOD_BIB = "@article{keyA, title={A}}\n@article{keyB, title={B}}\n"
+
+
+def _verified_line(bibkey: str, **overrides: object) -> str:
+    record: dict[str, object] = {
+        "bibkey": bibkey,
+        "title": f"Title {bibkey}",
+        "url": f"https://example.org/{bibkey}",
+        "date": "2026-01-01",
+        "verification_status": "verified_online",
+    }
+    record.update(overrides)
+    return json.dumps(record)
+
+
+# Each case is (ref.bib body, verified.jsonl body); ``None`` means absent.
+_CITATION_CASES: dict[str, tuple[str | None, str | None]] = {
+    "missing_bib": (None, _verified_line("keyA")),
+    "missing_verified": (_GOOD_BIB, None),
+    "empty_bib": ("% no entries here\n", _verified_line("keyA")),
+    "duplicate_keys": (
+        "@article{dup, title={A}}\n@article{dup, title={B}}\n",
+        _verified_line("dup"),
+    ),
+    "empty_verified": (_GOOD_BIB, ""),
+    "missing_records": (_GOOD_BIB, _verified_line("keyA")),  # keyB unmatched
+    "bad_fields_missing": (
+        _GOOD_BIB,
+        _verified_line("keyA")
+        + "\n"
+        + json.dumps({"bibkey": "keyB", "title": "", "url": "", "date": ""}),
+    ),
+    "bad_fields_unknown_status": (
+        _GOOD_BIB,
+        _verified_line("keyA")
+        + "\n"
+        + _verified_line("keyB", verification_status="bogus_status"),
+    ),
+    "pass": (_GOOD_BIB, _verified_line("keyA") + "\n" + _verified_line("keyB")),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_CITATION_CASES))
+def test_native_citation_verifier_matches_legacy(name: str, tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    bib_body, verified_body = _CITATION_CASES[name]
+    ws = tmp_path / name
+    ws.mkdir()
+    if bib_body is not None:
+        _write_file(ws, "citations/ref.bib", bib_body)
+    if verified_body is not None:
+        _write_file(ws, "citations/verified.jsonl", verified_body)
+
+    native_pairs = _pairs(
+        native.check_unit_outputs(
+            skill="citation-verifier", workspace=ws, outputs=_CITATION_OUT
+        )
+    )
+    legacy_pairs = _pairs(
+        legacy.check_unit_outputs(
+            skill="citation-verifier", workspace=ws, outputs=_CITATION_OUT
+        )
+    )
+    assert native_pairs == legacy_pairs, name
+
+
+def test_native_citation_verifier_default_output_paths(tmp_path: Path) -> None:
+    # With empty outputs both providers fall back to the canonical relative
+    # paths (citations/ref.bib, citations/verified.jsonl).
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    _write_file(tmp_path, "citations/ref.bib", _GOOD_BIB)
+    _write_file(
+        tmp_path,
+        "citations/verified.jsonl",
+        _verified_line("keyA") + "\n" + _verified_line("keyB"),
+    )
+    assert (
+        _pairs(
+            native.check_unit_outputs(
+                skill="citation-verifier", workspace=tmp_path, outputs=[]
+            )
+        )
+        == _pairs(
+            legacy.check_unit_outputs(
+                skill="citation-verifier", workspace=tmp_path, outputs=[]
+            )
+        )
+        == []
+    )
+
+
+def _seed_arxiv_survey_workspace(workspace: Path) -> None:
+    """Stand up a real ``arxiv-survey``-profile workspace.
+
+    The profile + core-set target are read from ``PIPELINE.lock.md`` through the
+    pipeline spec -- the exact policy surface the native check now consumes via
+    the injected ``WorkspacePolicyPort``.  Both providers default to the legacy
+    reader, so this drives the ``arxiv-survey`` branch identically on each side.
+    """
+
+    (workspace / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/arxiv-survey.pipeline.md\n", encoding="utf-8"
+    )
+
+
+def test_native_citation_verifier_matches_legacy_on_survey_policy_branch(
+    tmp_path: Path,
+) -> None:
+    # The policy-consuming branch: under an arxiv-survey profile, a bib with
+    # fewer than the core-set target of entries must fail identically (same
+    # code + message, which embeds the resolved target) on both providers.
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    ws = tmp_path / "survey"
+    ws.mkdir()
+    _seed_arxiv_survey_workspace(ws)
+    _write_file(ws, "citations/ref.bib", _GOOD_BIB)  # only 2 entries << target
+    _write_file(
+        ws,
+        "citations/verified.jsonl",
+        _verified_line("keyA") + "\n" + _verified_line("keyB"),
+    )
+
+    native_pairs = _pairs(
+        native.check_unit_outputs(
+            skill="citation-verifier", workspace=ws, outputs=_CITATION_OUT
+        )
+    )
+    legacy_pairs = _pairs(
+        legacy.check_unit_outputs(
+            skill="citation-verifier", workspace=ws, outputs=_CITATION_OUT
+        )
+    )
+    assert native_pairs == legacy_pairs
+    # The branch actually fired (not a trivially-equal empty result): the
+    # too-few-entries code is present and carries the policy-resolved target.
+    assert native_pairs and native_pairs[0][0] == "citations_too_few_entries"
+
+
+def test_native_citation_verifier_consumes_injected_policy() -> None:
+    # Prove the check reads through the injected WorkspacePolicyPort (not a
+    # hidden tooling import): a stub policy that reports arxiv-survey with a
+    # tiny core-set target changes the outcome deterministically, with no
+    # PIPELINE.lock present.
+    import tempfile
+
+    class _StubPolicy:
+        def pipeline_profile_name(self, workspace: Path) -> str:
+            return "arxiv-survey"
+
+        def evidence_mode(self, workspace: Path) -> str:
+            return "abstract"
+
+        def core_size(self, workspace: Path) -> int:
+            return 5
+
+        def pipeline_quality_contract_value(
+            self, workspace: Path, *keys: str, default: object = None
+        ) -> object:
+            return default
+
+    provider = NativeQualityProvider(policy=_StubPolicy())
+    with tempfile.TemporaryDirectory() as d:
+        ws = Path(d)
+        (ws / "citations").mkdir()
+        (ws / "citations" / "ref.bib").write_text(_GOOD_BIB, encoding="utf-8")
+        (ws / "citations" / "verified.jsonl").write_text(
+            _verified_line("keyA") + "\n" + _verified_line("keyB"),
+            encoding="utf-8",
+        )
+        pairs = _pairs(
+            provider.check_unit_outputs(
+                skill="citation-verifier", workspace=ws, outputs=_CITATION_OUT
+            )
+        )
+    # core_size=5 with 2 bib entries -> too-few-entries against target 5.
+    assert pairs == [
+        (
+            "citations_too_few_entries",
+            "`citations/ref.bib` has only 2 entries; target >= 5 for a "
+            "survey-quality run (expand retrieval / snowball / imports).",
+        )
+    ]
