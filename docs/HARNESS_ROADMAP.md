@@ -82,11 +82,14 @@ fault/replay matrix is exercised end-to-end:
   (`test_native_self_contained_check_does_not_import_tooling_at_runtime`).
 - **Run fault-injection matrix.** Recovery is exercised, not asserted, for
   state-write faults at attempt-begin
-  (`test_state_write_fault_at_attempt_begin_is_recoverable`), manifest
-  finalize/status faults, and process-death/interrupt-active recovery (the
-  crash-adapter tests). The durable state is path-independent by construction
-  (workspace-relative artifact paths; no workspace field in the run-aggregate
-  schema).
+  (`test_state_write_fault_at_attempt_begin_is_recoverable`) and at the
+  prepare-completion save, which leaves an orphaned PREPARED Manifest next to
+  a still-RUNNING Attempt
+  (`test_orphan_manifest_recovers_after_prepare_completion_save_fault`),
+  manifest finalize/status faults, and process-death/interrupt-active recovery
+  (the crash-adapter tests). The durable state is path-independent by
+  construction (workspace-relative artifact paths; no workspace field in the
+  run-aggregate schema).
 - **Disposable-Workspace replay.** A completed Run replays byte-identically in
   a fresh workspace
   (`test_completed_run_is_replayable_in_a_disposable_workspace`), and a Run
