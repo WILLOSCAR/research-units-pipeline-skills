@@ -321,12 +321,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
 
     native = NativeQualityProvider(legacy=_SpyLegacy())
 
-    # Non-native skill -> delegated. (source-ingest is registered but has no
-    # native reimplementation -- the whole survey-retrieval family is native,
-    # but source-tutorial checks still delegate -- so it must route to the
-    # composed legacy adapter.)
+    # Non-native skill -> delegated. (claims-extractor is registered but has no
+    # native reimplementation -- the survey-retrieval, delivery, and
+    # source-tutorial families are native, but the paper-review family still
+    # delegates -- so it must route to the composed legacy adapter.)
     native.check_unit_outputs(
-        skill="source-ingest", workspace=tmp_path, outputs=[]
+        skill="claims-extractor", workspace=tmp_path, outputs=[]
     )
     # Completion invariants always delegated (none reimplemented yet).
     native.check_completion_invariants(
@@ -343,6 +343,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "artifact-contract-auditor",
         "beamer-compile-qa",
         "beamer-scaffold",
+        "source-manifest",
+        "source-ingest",
+        "source-tutorial-spec",
+        "module-source-coverage",
+        "tutorial-context-pack",
+        "tutorial-selfloop",
         # policy-consuming native skills route through the policy table, still
         # not delegated to legacy.
         "citation-verifier",
@@ -357,13 +363,19 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
             skill=native_skill, workspace=tmp_path, outputs=[]
         )
 
-    assert ("outputs", "source-ingest") in calls
+    assert ("outputs", "claims-extractor") in calls
     assert ("invariants", "outline-refiner") in calls
     assert ("outputs", "citation-injector") not in calls
     assert ("outputs", "deliverable-selfloop") not in calls
     assert ("outputs", "artifact-contract-auditor") not in calls
     assert ("outputs", "beamer-compile-qa") not in calls
     assert ("outputs", "beamer-scaffold") not in calls
+    assert ("outputs", "source-manifest") not in calls
+    assert ("outputs", "source-ingest") not in calls
+    assert ("outputs", "source-tutorial-spec") not in calls
+    assert ("outputs", "module-source-coverage") not in calls
+    assert ("outputs", "tutorial-context-pack") not in calls
+    assert ("outputs", "tutorial-selfloop") not in calls
     assert ("outputs", "citation-verifier") not in calls
     assert ("outputs", "arxiv-search") not in calls
     assert ("outputs", "pdf-text-extractor") not in calls
@@ -1229,3 +1241,292 @@ def test_native_latex_compile_qa_pass(tmp_path: Path) -> None:
     which = _fake_pdfinfo(tmp_path, pages=12)  # within default [8, inf)
     native, leg = _latex_qa_direct(ws, which)
     assert native == leg == []
+
+
+# --- source-tutorial family parity (whole module native) --------------------
+#
+# All six checks are self-contained (no workspace policy). Each is exercised
+# through a real workspace with backing files so the index/provenance grounding
+# join can succeed; `_both` asserts native == legacy. A companion differential
+# fuzzer (.scratch/parity_fuzz.py) sweeps thousands of randomized source-tutorial
+# workspaces; these pin the branch-critical cases as regression evidence.
+
+
+def _st_backed_sources(ws: Path, source_ids: list[str]) -> dict[str, str]:
+    """Write backing files + manifest/index/provenance for a valid grounding join."""
+    backing: dict[str, str] = {}
+    rows = []
+    index = []
+    prov = []
+    for sid in source_ids:
+        rel = f"sources/{sid}.txt"
+        _write_file(ws, rel, f"grounded snippet for {sid} here")
+        backing[sid] = rel
+        rows.append({"source_id": sid, "kind": "pdf", "locator": f"http://x/{sid}", "label": sid})
+        index.append({"source_id": sid, "kind": "pdf", "status": "success", "local_path": rel})
+        prov.append({"source_id": sid, "pointer": "p.1", "origin_url_or_path": f"http://x/{sid}", "local_path": rel})
+    import yaml as _yaml
+
+    _write_file(ws, "sources/manifest.yml", _yaml.safe_dump({"sources": rows}))
+    _write_file(ws, "sources/index.jsonl", "\n".join(json.dumps(r) for r in index))
+    _write_file(ws, "sources/provenance.jsonl", "\n".join(json.dumps(r) for r in prov))
+    return backing
+
+
+# source-manifest --------------------------------------------------------------
+
+
+def test_native_source_manifest_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sm_missing")
+    assert _both("source-manifest", ws, ["sources/manifest.yml"]) == [
+        ("missing_source_manifest", "`sources/manifest.yml` does not exist.")
+    ]
+
+
+def test_native_source_manifest_invalid_yaml(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sm_badyaml")
+    _write_file(ws, "sources/manifest.yml", "sources: [oops\n")
+    codes = [c for c, _ in _both("source-manifest", ws, ["sources/manifest.yml"])]
+    assert codes == ["invalid_source_manifest_yaml"]
+
+
+def test_native_source_manifest_missing_fields_and_dupes(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sm_fields")
+    _write_file(
+        ws,
+        "sources/manifest.yml",
+        "sources:\n  - source_id: s1\n    kind: pdf\n",  # missing locator + label
+    )
+    assert [c for c, _ in _both("source-manifest", ws, ["sources/manifest.yml"])] == [
+        "source_manifest_missing_fields"
+    ]
+
+
+def test_native_source_manifest_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sm_pass")
+    _write_file(
+        ws,
+        "sources/manifest.yml",
+        "sources:\n  - source_id: s1\n    kind: pdf\n    locator: http://x\n    label: S1\n",
+    )
+    assert _both("source-manifest", ws, ["sources/manifest.yml"]) == []
+
+
+# source-ingest ----------------------------------------------------------------
+
+
+def test_native_source_ingest_missing_index(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "si_missing")
+    assert _both(
+        "source-ingest", ws, ["sources/index.jsonl", "sources/provenance.jsonl"]
+    ) == [("missing_source_index", "`sources/index.jsonl` does not exist.")]
+
+
+def test_native_source_ingest_invalid_jsonl(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "si_badjsonl")
+    _write_file(ws, "sources/manifest.yml", "sources:\n  - source_id: s1\n    kind: pdf\n    locator: x\n    label: S1\n")
+    _write_file(ws, "sources/index.jsonl", "{not json\n")
+    _write_file(ws, "sources/provenance.jsonl", "{}\n")
+    codes = [c for c, _ in _both("source-ingest", ws, ["sources/index.jsonl", "sources/provenance.jsonl"])]
+    assert codes == ["source_index_invalid_jsonl"]
+
+
+def test_native_source_ingest_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "si_pass")
+    _st_backed_sources(ws, ["s1", "s2"])
+    assert _both(
+        "source-ingest", ws, ["sources/index.jsonl", "sources/provenance.jsonl"]
+    ) == []
+
+
+def test_native_source_ingest_manifest_mismatch(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "si_mismatch")
+    _st_backed_sources(ws, ["s1", "s2"])
+    # Drop s2 from the manifest so index has an unexpected id.
+    import yaml as _yaml
+
+    _write_file(
+        ws,
+        "sources/manifest.yml",
+        _yaml.safe_dump(
+            {"sources": [{"source_id": "s1", "kind": "pdf", "locator": "x", "label": "S1"}]}
+        ),
+    )
+    codes = {c for c, _ in _both("source-ingest", ws, ["sources/index.jsonl", "sources/provenance.jsonl"])}
+    assert "source_index_manifest_mismatch" in codes
+
+
+# source-tutorial-spec ---------------------------------------------------------
+
+
+def test_native_source_tutorial_spec_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sts_missing")
+    assert _both("source-tutorial-spec", ws, ["output/TUTORIAL_SPEC.md"]) == [
+        ("missing_source_tutorial_spec", "`output/TUTORIAL_SPEC.md` does not exist.")
+    ]
+
+
+def test_native_source_tutorial_spec_missing_sections(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sts_sections")
+    _write_file(ws, "output/TUTORIAL_SPEC.md", "## Audience\nx\n")
+    codes = [c for c, _ in _both("source-tutorial-spec", ws, ["output/TUTORIAL_SPEC.md"])]
+    assert codes == ["source_tutorial_spec_missing_sections"]
+
+
+def test_native_source_tutorial_spec_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "sts_pass")
+    struct = {
+        "audience": "x",
+        "prerequisites": "x",
+        "learning_objectives": ["a"],
+        "non_goals": ["n"],
+        "source_scope": "s",
+        "delivery_shape": "d",
+    }
+    body = (
+        "## Audience\nx\n## Prerequisites\nx\n## Learning objectives\nx\n"
+        "## Non-goals\nx\n## Source scope\nx\n## Running example policy\nx\n"
+        "## Delivery shape\nx\n## Structured data\n```json\n" + json.dumps(struct) + "\n```\n"
+    )
+    _write_file(ws, "output/TUTORIAL_SPEC.md", body)
+    assert _both("source-tutorial-spec", ws, ["output/TUTORIAL_SPEC.md"]) == []
+
+
+# module-source-coverage -------------------------------------------------------
+
+
+def test_native_module_source_coverage_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "msc_missing")
+    assert _both("module-source-coverage", ws, ["outline/source_coverage.jsonl"]) == [
+        ("missing_source_coverage", "`outline/source_coverage.jsonl` does not exist.")
+    ]
+
+
+def test_native_module_source_coverage_unresolved_and_mismatch(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "msc_unresolved")
+    # coverage references s9 (no grounding join) and no module plan present.
+    _write_file(
+        ws,
+        "outline/source_coverage.jsonl",
+        json.dumps({"module_id": "m1", "source_ids": ["s9"], "gaps": []}),
+    )
+    codes = {c for c, _ in _both("module-source-coverage", ws, ["outline/source_coverage.jsonl"])}
+    assert "source_coverage_unresolved_sources" in codes
+    assert "source_coverage_plan_missing" in codes
+
+
+def test_native_module_source_coverage_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "msc_pass")
+    _st_backed_sources(ws, ["s1"])
+    import yaml as _yaml
+
+    _write_file(ws, "outline/module_plan.yml", _yaml.safe_dump({"modules": [{"id": "m1"}]}))
+    _write_file(
+        ws,
+        "outline/source_coverage.jsonl",
+        json.dumps({"module_id": "m1", "source_ids": ["s1"], "gaps": []}),
+    )
+    assert _both("module-source-coverage", ws, ["outline/source_coverage.jsonl"]) == []
+
+
+# tutorial-context-pack (cross-calls module-source-coverage) -------------------
+
+
+def test_native_tutorial_context_packs_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "tcp_missing")
+    assert _both(
+        "tutorial-context-pack", ws, ["outline/tutorial_context_packs.jsonl"]
+    ) == [
+        (
+            "missing_tutorial_context_packs",
+            "`outline/tutorial_context_packs.jsonl` does not exist.",
+        )
+    ]
+
+
+def test_native_tutorial_context_packs_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "tcp_pass")
+    _st_backed_sources(ws, ["s1"])
+    import yaml as _yaml
+
+    _write_file(ws, "outline/module_plan.yml", _yaml.safe_dump({"modules": [{"id": "m1"}]}))
+    _write_file(
+        ws,
+        "outline/source_coverage.jsonl",
+        json.dumps({"module_id": "m1", "source_ids": ["s1"], "gaps": []}),
+    )
+    _write_file(
+        ws,
+        "outline/tutorial_context_packs.jsonl",
+        json.dumps(
+            {
+                "module_id": "m1",
+                "objective": "learn",
+                "source_ids": ["s1"],
+                "source_snippets": [
+                    {"source_id": "s1", "pointer": "p.1", "snippet": "grounded snippet for s1"}
+                ],
+            }
+        ),
+    )
+    assert _both("tutorial-context-pack", ws, ["outline/tutorial_context_packs.jsonl"]) == []
+
+
+def test_native_tutorial_context_packs_content_mismatch(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "tcp_content")
+    _st_backed_sources(ws, ["s1"])
+    import yaml as _yaml
+
+    _write_file(ws, "outline/module_plan.yml", _yaml.safe_dump({"modules": [{"id": "m1"}]}))
+    _write_file(
+        ws,
+        "outline/source_coverage.jsonl",
+        json.dumps({"module_id": "m1", "source_ids": ["s1"], "gaps": []}),
+    )
+    _write_file(
+        ws,
+        "outline/tutorial_context_packs.jsonl",
+        json.dumps(
+            {
+                "module_id": "m1",
+                "objective": "learn",
+                "source_ids": ["s1"],
+                "source_snippets": [
+                    {"source_id": "s1", "pointer": "p.1", "snippet": "text that is not in the source"}
+                ],
+            }
+        ),
+    )
+    codes = {c for c, _ in _both("tutorial-context-pack", ws, ["outline/tutorial_context_packs.jsonl"])}
+    assert "tutorial_context_packs_snippet_content_mismatch" in codes
+
+
+# tutorial-selfloop (cross-calls tutorial_contract_issues) ---------------------
+
+
+def test_native_tutorial_selfloop_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "tsl_missing")
+    assert _both("tutorial-selfloop", ws, ["output/TUTORIAL_SELFLOOP_TODO.md"]) == [
+        (
+            "missing_tutorial_selfloop_report",
+            "`output/TUTORIAL_SELFLOOP_TODO.md` is missing or empty.",
+        )
+    ]
+
+
+def test_native_tutorial_selfloop_not_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "tsl_fail")
+    _write_file(ws, "output/TUTORIAL_SELFLOOP_TODO.md", "- Status: FAIL\n")
+    assert [c for c, _ in _both("tutorial-selfloop", ws, ["output/TUTORIAL_SELFLOOP_TODO.md"])] == [
+        "tutorial_selfloop_not_pass"
+    ]
+
+
+def test_native_tutorial_selfloop_stale(tmp_path: Path) -> None:
+    # PASS report but the tutorial does not match its contract -> stale/invalid.
+    ws = _survey_ws(tmp_path, "tsl_stale")
+    _write_file(ws, "output/TUTORIAL_SELFLOOP_TODO.md", "- Status: PASS\n")
+    # No TUTORIAL.md -> structure issues -> stale_or_invalid on both sides.
+    assert [c for c, _ in _both("tutorial-selfloop", ws, ["output/TUTORIAL_SELFLOOP_TODO.md"])] == [
+        "tutorial_selfloop_stale_or_invalid"
+    ]
