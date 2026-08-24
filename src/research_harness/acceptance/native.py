@@ -16,12 +16,16 @@ This module is a growing step toward a native
   ``beamer-compile-qa`` -- delegating every other ``check_unit_outputs`` call
   and *all* ``check_completion_invariants`` calls to a composed legacy adapter;
   and
-- reimplements the *policy-consuming* output checks, ``citation-verifier`` and
-  ``arxiv-search``, which read workspace policy (run profile, core-set target,
-  and the retrieval-policy contract) through the injected
+- reimplements the *policy-consuming* output checks of the survey-retrieval
+  family in full -- ``citation-verifier``, ``arxiv-search``,
+  ``pdf-text-extractor``, ``literature-engineer``, and ``dedupe-rank`` -- which
+  read workspace policy (run profile, evidence mode, core-set target, and the
+  retrieval / candidate-pool contracts) through the injected
   :class:`WorkspacePolicyPort` rather than importing
-  ``tooling.quality_checks.survey_policy`` / ``tooling.common`` -- exercising
-  that seam for real instead of leaving it merely constructed.
+  ``tooling.quality_checks.survey_policy`` / ``tooling.common``.  With these,
+  every check in ``tooling.quality_checks.survey_retrieval`` has a native
+  equivalent, exercising the policy seam for real instead of leaving it merely
+  constructed.
 
 Unlike ``legacy_tooling``, this module imports no ``tooling`` symbols -- not
 even lazily.  Composition delegates to ``LegacyToolingQualityProvider``, which
@@ -37,6 +41,7 @@ provider's registry, and every native check is pinned to byte-for-byte parity
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 from collections.abc import Callable
@@ -664,6 +669,520 @@ def _check_arxiv_search(
     return []
 
 
+def _check_pdf_text_extractor(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_retrieval.check_pdf_text_extractor``.
+
+    Policy-consuming: reads the run's evidence mode through the injected
+    :class:`WorkspacePolicyPort` (``evidence_mode``).  In abstract mode it
+    diffs the full-text index against ``papers/core_set.csv`` (native ``csv`` +
+    ``_read_jsonl``); in fulltext mode it enforces a real-extraction floor.
+    Byte-for-byte parity (codes + messages) with the legacy check is pinned by
+    the Port parity sweep.
+    """
+
+    out_rel = outputs[0] if outputs else "papers/fulltext_index.jsonl"
+    path = workspace / out_rel
+    records = _read_jsonl(path) if path.exists() else []
+    if not records:
+        return [
+            NativeQualityIssue(
+                code="empty_fulltext_index",
+                message=f"`{out_rel}` is missing or empty.",
+            )
+        ]
+
+    mode = policy.evidence_mode(workspace)
+    if mode != "fulltext":
+        core_path = workspace / "papers" / "core_set.csv"
+        core_ids: set[str] = set()
+        if core_path.exists():
+            with core_path.open(encoding="utf-8", newline="") as handle:
+                core_ids = {
+                    str(row.get("paper_id") or "").strip()
+                    for row in csv.DictReader(handle)
+                    if str(row.get("paper_id") or "").strip()
+                }
+        indexed_ids = {
+            str(record.get("paper_id") or "").strip()
+            for record in records
+            if isinstance(record, dict) and str(record.get("paper_id") or "").strip()
+        }
+        missing_ids = sorted(core_ids - indexed_ids)
+        if missing_ids:
+            preview = ", ".join(missing_ids[:8])
+            suffix = " ..." if len(missing_ids) > 8 else ""
+            return [
+                NativeQualityIssue(
+                    code="abstract_index_incomplete",
+                    message=(
+                        f"`{out_rel}` is missing {len(missing_ids)}/{len(core_ids)} "
+                        f"core paper(s): {preview}{suffix}. Abstract mode must "
+                        "index the complete core set."
+                    ),
+                )
+            ]
+        unexpected_statuses = sorted(
+            {
+                str(record.get("status") or "").strip()
+                for record in records
+                if isinstance(record, dict)
+                and str(record.get("paper_id") or "").strip() in core_ids
+                and str(record.get("status") or "").strip() != "skip_mode_abstract"
+            }
+        )
+        if unexpected_statuses:
+            return [
+                NativeQualityIssue(
+                    code="abstract_index_status_invalid",
+                    message=(
+                        f"`{out_rel}` contains non-abstract skip statuses: "
+                        + ", ".join(unexpected_statuses)
+                        + "."
+                    ),
+                )
+            ]
+        return []
+
+    ok = 0
+    missing_url = 0
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        status = str(rec.get("status") or "").strip()
+        pdf_url = str(rec.get("pdf_url") or "").strip()
+        chars = int(rec.get("chars_extracted") or 0)
+        if not pdf_url:
+            missing_url += 1
+        if status.startswith("ok") and chars >= 1500:
+            ok += 1
+
+    total = max(1, len([r for r in records if isinstance(r, dict)]))
+    # In strict mode, we want at least some real full-text extraction before synthesis.
+    min_ok = 5 if total >= 10 else 1
+    if ok < min_ok:
+        hint = (
+            "Run with network access, or reduce scope, or provide PDFs manually "
+            "under `papers/pdfs/`."
+        )
+        return [
+            NativeQualityIssue(
+                code="fulltext_too_few",
+                message=(
+                    f"Only {ok}/{total} papers have extracted text (>=1500 chars). "
+                    f"{hint}"
+                ),
+            )
+        ]
+    if missing_url / total >= 0.7:
+        return [
+            NativeQualityIssue(
+                code="fulltext_missing_pdf_urls",
+                message=(
+                    "Most records have empty `pdf_url`; ensure `core_set.csv` "
+                    "includes `pdf_url`/`arxiv_id` or use arXiv online mode."
+                ),
+            )
+        ]
+    return []
+
+
+def _check_literature_engineer(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_retrieval.check_literature_engineer``.
+
+    Policy-consuming: reads the retrieval-policy minimum-records contract, the
+    run profile, the core-set target, and the evidence mode through the injected
+    :class:`WorkspacePolicyPort`.  The metadata-completeness scan over
+    ``papers/papers_raw.jsonl`` and the retrieval-report check are pure stdlib.
+    Byte-for-byte parity (codes + messages, and issue ORDER) with the legacy
+    check is pinned by the Port parity sweep.
+    """
+
+    out_rel = outputs[0] if outputs else "papers/papers_raw.jsonl"
+    report_rel = outputs[1] if len(outputs) >= 2 else "papers/retrieval_report.md"
+
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_raw", message=f"`{out_rel}` does not exist."
+            )
+        ]
+    records = _read_jsonl(path)
+    if not records:
+        return [
+            NativeQualityIssue(
+                code="empty_raw", message=f"No records found in `{out_rel}`."
+            )
+        ]
+
+    report_path = workspace / report_rel
+    if not report_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_retrieval_report",
+                message=f"`{report_rel}` does not exist.",
+            )
+        ]
+    report = report_path.read_text(encoding="utf-8", errors="ignore").strip()
+    if not report or "Retrieval report" not in report:
+        return [
+            NativeQualityIssue(
+                code="bad_retrieval_report",
+                message=f"`{report_rel}` is empty or not a retrieval report.",
+            )
+        ]
+
+    total = len([r for r in records if isinstance(r, dict)])
+    missing_title = 0
+    missing_url = 0
+    missing_year = 0
+    missing_authors = 0
+    missing_abstract = 0
+    missing_stable_id = 0
+    missing_prov = 0
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        if not str(rec.get("title") or "").strip():
+            missing_title += 1
+        if not str(rec.get("url") or rec.get("id") or "").strip():
+            missing_url += 1
+        year = str(rec.get("year") or "").strip()
+        if not year:
+            missing_year += 1
+        authors = rec.get("authors") or []
+        if not isinstance(authors, list) or not [a for a in authors if str(a).strip()]:
+            missing_authors += 1
+        if not str(rec.get("abstract") or "").strip():
+            missing_abstract += 1
+        if not str(rec.get("arxiv_id") or "").strip() and not str(
+            rec.get("doi") or ""
+        ).strip():
+            missing_stable_id += 1
+        prov = rec.get("provenance")
+        if not isinstance(prov, list) or len([p for p in prov if isinstance(p, dict)]) == 0:
+            missing_prov += 1
+
+    issues: list[NativeQualityIssue] = []
+    minimum_records = int(
+        policy.pipeline_quality_contract_value(
+            workspace,
+            "retrieval_policy",
+            "minimum_records",
+            default=1,
+        )
+        or 1
+    )
+    if total < minimum_records:
+        issues.append(
+            NativeQualityIssue(
+                code="raw_pool_too_small",
+                message=(
+                    f"`{out_rel}` contains {total} records; the Workflow contract "
+                    f"requires at least {minimum_records}. Expand the approved "
+                    "retrieval plan before screening."
+                ),
+            )
+        )
+    if missing_title:
+        issues.append(
+            NativeQualityIssue(
+                code="raw_missing_titles",
+                message=f"`{out_rel}` has {missing_title} record(s) missing `title`.",
+            )
+        )
+    if missing_url:
+        issues.append(
+            NativeQualityIssue(
+                code="raw_missing_urls",
+                message=f"`{out_rel}` has {missing_url} record(s) missing `url`.",
+            )
+        )
+    if missing_year / max(1, total) >= 0.25:
+        issues.append(
+            NativeQualityIssue(
+                code="raw_missing_years",
+                message=(
+                    f"Many records are missing `year` ({missing_year}/{total}); "
+                    "prefer richer exports or enable online metadata backfill."
+                ),
+            )
+        )
+    if missing_authors / max(1, total) >= 0.25:
+        issues.append(
+            NativeQualityIssue(
+                code="raw_missing_authors",
+                message=(
+                    f"Many records are missing `authors` ({missing_authors}/{total}); "
+                    "prefer richer exports or enable online metadata backfill."
+                ),
+            )
+        )
+    if missing_prov / max(1, total) >= 0.1:
+        issues.append(
+            NativeQualityIssue(
+                code="raw_missing_provenance",
+                message=(
+                    f"Many records are missing `provenance` ({missing_prov}/{total}); "
+                    "ensure imports are labeled and provenance is preserved through "
+                    "dedupe."
+                ),
+            )
+        )
+
+    profile = policy.pipeline_profile_name(workspace)
+    if profile == "arxiv-survey":
+        min_raw = max(200, int(policy.core_size(workspace)) * 4)
+        if total < min_raw:
+            issues.append(
+                NativeQualityIssue(
+                    code="raw_too_small",
+                    message=(
+                        f"`{out_rel}` has {total} records; target >= {min_raw} for "
+                        "survey-quality runs (expand queries/imports/snowballing; "
+                        "raise `max_results` and add more buckets)."
+                    ),
+                )
+            )
+        if missing_stable_id / max(1, total) >= 0.2:
+            issues.append(
+                NativeQualityIssue(
+                    code="raw_missing_stable_ids",
+                    message=(
+                        f"Too many records lack stable IDs (arxiv_id/doi) "
+                        f"({missing_stable_id}/{total}); filter bad exports or "
+                        "enrich metadata before citations."
+                    ),
+                )
+            )
+        # Evidence-first: without full text we need abstracts for grounded notes.
+        mode = policy.evidence_mode(workspace)
+        if mode != "fulltext" and missing_abstract / max(1, total) >= 0.7:
+            issues.append(
+                NativeQualityIssue(
+                    code="raw_missing_abstracts",
+                    message=(
+                        f"Most records are missing `abstract` "
+                        f"({missing_abstract}/{total}); "
+                        "provide richer exports (e.g., Semantic Scholar/OpenAlex "
+                        "JSONL/CSV, Zotero export with abstracts) "
+                        "or enable online metadata enrichment, otherwise "
+                        "notes/claims/draft will collapse into title-only templates."
+                    ),
+                )
+            )
+
+    return issues
+
+
+def _check_dedupe_rank(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_retrieval.check_dedupe_rank``.
+
+    Policy-consuming: reads the candidate-pool contract, the run profile, and
+    the core-set target through the injected :class:`WorkspacePolicyPort`.  The
+    core-set CSV validation, GOAL scope-drift heuristic, and dedup-pool size
+    check are pure stdlib over native ``csv`` + ``_read_jsonl``.  Byte-for-byte
+    parity (codes + messages, and issue ORDER) with the legacy check is pinned
+    by the Port parity sweep.
+    """
+
+    dedup_rel = outputs[0] if outputs else "papers/papers_dedup.jsonl"
+    core_rel = outputs[1] if len(outputs) >= 2 else "papers/core_set.csv"
+    path = workspace / core_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_core_set", message=f"`{core_rel}` does not exist."
+            )
+        ]
+
+    try:
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            rows = [row for row in reader]
+    except Exception as exc:  # noqa: BLE001 - mirror legacy broad catch + message
+        return [
+            NativeQualityIssue(
+                code="invalid_core_set",
+                message=f"Failed to read `{core_rel}`: {exc}",
+            )
+        ]
+
+    if not rows:
+        return [
+            NativeQualityIssue(
+                code="empty_core_set", message=f"`{core_rel}` has no rows."
+            )
+        ]
+
+    missing_id = 0
+    missing_title = 0
+    ids: list[str] = []
+    for row in rows:
+        pid = str(row.get("paper_id") or "").strip()
+        title = str(row.get("title") or "").strip()
+        if not pid:
+            missing_id += 1
+        else:
+            ids.append(pid)
+        if not title:
+            missing_title += 1
+
+    issues: list[NativeQualityIssue] = []
+    if missing_id:
+        issues.append(
+            NativeQualityIssue(
+                code="core_set_missing_paper_id",
+                message=(
+                    f"`{core_rel}` has {missing_id} row(s) missing `paper_id`; "
+                    "ensure stable IDs for downstream mapping/citations."
+                ),
+            )
+        )
+    if missing_title:
+        issues.append(
+            NativeQualityIssue(
+                code="core_set_missing_title",
+                message=(
+                    f"`{core_rel}` has {missing_title} row(s) missing `title`; "
+                    "fix upstream normalization/dedupe."
+                ),
+            )
+        )
+    if ids and len(set(ids)) != len(ids):
+        issues.append(
+            NativeQualityIssue(
+                code="core_set_duplicate_ids",
+                message=f"`{core_rel}` contains duplicate `paper_id` values.",
+            )
+        )
+
+    core_size_min = int(
+        policy.pipeline_quality_contract_value(
+            workspace,
+            "candidate_pool_policy",
+            "core_size_min",
+            default=0,
+        )
+        or 0
+    )
+    core_size_max = int(
+        policy.pipeline_quality_contract_value(
+            workspace,
+            "candidate_pool_policy",
+            "core_size_max",
+            default=0,
+        )
+        or 0
+    )
+    if core_size_min and len(rows) < core_size_min:
+        issues.append(
+            NativeQualityIssue(
+                code="core_set_too_small",
+                message=(
+                    f"`{core_rel}` has {len(rows)} rows; the Workflow contract "
+                    f"requires at least {core_size_min}."
+                ),
+            )
+        )
+    if core_size_max and len(rows) > core_size_max:
+        issues.append(
+            NativeQualityIssue(
+                code="core_set_too_large",
+                message=(
+                    f"`{core_rel}` has {len(rows)} rows; the Workflow contract "
+                    f"allows at most {core_size_max}."
+                ),
+            )
+        )
+
+    profile = policy.pipeline_profile_name(workspace)
+    if profile == "arxiv-survey":
+        min_core = int(policy.core_size(workspace))
+        if len(rows) < min_core:
+            issues.append(
+                NativeQualityIssue(
+                    code="core_set_too_small",
+                    message=(
+                        f"`{core_rel}` has {len(rows)} rows; target >= {min_core} "
+                        "for survey-quality coverage (increase candidate pool and "
+                        "set `core_size`)."
+                    ),
+                )
+            )
+
+        # Scope drift heuristic (evidence-first): a text-to-image GOAL with a
+        # video-heavy core set blocks early so C2 scope can be tightened.
+        goal_path = workspace / "GOAL.md"
+        goal = ""
+        if goal_path.exists():
+            for raw in goal_path.read_text(
+                encoding="utf-8", errors="ignore"
+            ).splitlines():
+                line = raw.strip()
+                if not line or line.startswith("#") or line.startswith(("-", ">", "<!--")):
+                    continue
+                low = line.lower()
+                if "写一句话描述" in line or "fill" in low:
+                    continue
+                goal = line
+                break
+        goal_low = goal.lower()
+        if goal_low and (
+            "text-to-image" in goal_low
+            or "text to image" in goal_low
+            or "t2i" in goal_low
+        ):
+            # Only flag drift when video isn't explicitly part of the goal.
+            if (
+                "video" not in goal_low
+                and "text-to-video" not in goal_low
+                and "text to video" not in goal_low
+                and "t2v" not in goal_low
+            ):
+                video_titles = sum(
+                    1 for r in rows if "video" in str(r.get("title") or "").lower()
+                )
+                audio_titles = sum(
+                    1 for r in rows if "audio" in str(r.get("title") or "").lower()
+                )
+                denom = max(1, len(rows))
+                if video_titles >= 10 and (video_titles / denom) >= 0.15:
+                    issues.append(
+                        NativeQualityIssue(
+                            code="scope_drift_video",
+                            message=(
+                                f"GOAL suggests text-to-image, but "
+                                f"{video_titles}/{len(rows)} core papers mention "
+                                f"video (audio={audio_titles}). Tighten "
+                                "`queries.md` excludes / filters, or explicitly "
+                                "broaden scope at C2."
+                            ),
+                        )
+                    )
+        dedup_path = workspace / dedup_rel
+        dedup = _read_jsonl(dedup_path)
+        min_dedup = max(200, int(min_core) * 4) if min_core else 200
+        if len([r for r in dedup if isinstance(r, dict)]) < min_dedup:
+            issues.append(
+                NativeQualityIssue(
+                    code="dedup_pool_too_small",
+                    message=(
+                        f"`{dedup_rel}` has too few deduplicated records for a "
+                        f"survey run; target >= {min_dedup} (expand retrieval/"
+                        "snowballing first)."
+                    ),
+                )
+            )
+    return issues
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -677,6 +1196,9 @@ _NativePolicyCheck = Callable[
 _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "citation-verifier": _check_citation_verifier,
     "arxiv-search": _check_arxiv_search,
+    "pdf-text-extractor": _check_pdf_text_extractor,
+    "literature-engineer": _check_literature_engineer,
+    "dedupe-rank": _check_dedupe_rank,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)
@@ -698,9 +1220,10 @@ class NativeQualityProvider(QualityCheckProvider):
     ``policy`` is the injected :class:`WorkspacePolicyPort` the policy-consuming
     native checks read workspace policy (run profile, evidence mode, core-set
     target, quality contract) through.  It defaults to the legacy adapter so
-    runtime behavior is unchanged; ``citation-verifier`` and ``arxiv-search``
-    are the checks that consume it, so the seam is load-bearing rather than
-    merely constructed.
+    runtime behavior is unchanged; the whole survey-retrieval family
+    (``citation-verifier``, ``arxiv-search``, ``pdf-text-extractor``,
+    ``literature-engineer``, ``dedupe-rank``) consumes it, so the seam is
+    load-bearing rather than merely constructed.
     """
 
     legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)

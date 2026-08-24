@@ -321,11 +321,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
 
     native = NativeQualityProvider(legacy=_SpyLegacy())
 
-    # Non-native skill -> delegated. (literature-engineer is registered but has
-    # no native reimplementation, so it must route to the composed legacy
-    # adapter.)
+    # Non-native skill -> delegated. (source-ingest is registered but has no
+    # native reimplementation -- the whole survey-retrieval family is native,
+    # but source-tutorial checks still delegate -- so it must route to the
+    # composed legacy adapter.)
     native.check_unit_outputs(
-        skill="literature-engineer", workspace=tmp_path, outputs=[]
+        skill="source-ingest", workspace=tmp_path, outputs=[]
     )
     # Completion invariants always delegated (none reimplemented yet).
     native.check_completion_invariants(
@@ -345,12 +346,15 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         # not delegated to legacy.
         "citation-verifier",
         "arxiv-search",
+        "pdf-text-extractor",
+        "literature-engineer",
+        "dedupe-rank",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
         )
 
-    assert ("outputs", "literature-engineer") in calls
+    assert ("outputs", "source-ingest") in calls
     assert ("invariants", "outline-refiner") in calls
     assert ("outputs", "citation-injector") not in calls
     assert ("outputs", "deliverable-selfloop") not in calls
@@ -358,6 +362,9 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "beamer-compile-qa") not in calls
     assert ("outputs", "citation-verifier") not in calls
     assert ("outputs", "arxiv-search") not in calls
+    assert ("outputs", "pdf-text-extractor") not in calls
+    assert ("outputs", "literature-engineer") not in calls
+    assert ("outputs", "dedupe-rank") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -797,3 +804,233 @@ def test_native_arxiv_search_consumes_injected_policy_minimum_records() -> None:
             "requires at least 3. Broaden or repair the query before ranking.",
         )
     ]
+
+
+# --- survey-retrieval family completion: pdf/lit/dedupe parity --------------
+#
+# These three checks complete native coverage of tooling.quality_checks.
+# survey_retrieval. Each is exercised through a REAL workspace (both providers
+# on the default legacy policy reader), so policy resolves identically and any
+# divergence is in the check's own logic. A companion differential fuzzer
+# (.scratch/parity_fuzz.py, git-excluded) sweeps thousands of randomized
+# workspaces per skill; these pin the branch-critical cases as regression
+# evidence.
+
+
+def _survey_ws(tmp_path: Path, name: str, *, profile: str = "default") -> Path:
+    ws = tmp_path / name
+    ws.mkdir()
+    if profile == "arxiv-survey":
+        (ws / "PIPELINE.lock.md").write_text(
+            "pipeline: pipelines/arxiv-survey.pipeline.md\n", encoding="utf-8"
+        )
+    return ws
+
+
+def _both(skill: str, ws: Path, outputs: list[str]) -> list[tuple[str, str]]:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    n = _pairs(native.check_unit_outputs(skill=skill, workspace=ws, outputs=outputs))
+    lg = _pairs(legacy.check_unit_outputs(skill=skill, workspace=ws, outputs=outputs))
+    assert n == lg, f"{skill}: native={n} legacy={lg}"
+    return n
+
+
+# pdf-text-extractor -----------------------------------------------------------
+
+_PDF_OUT = ["papers/fulltext_index.jsonl"]
+
+
+def test_native_pdf_extractor_missing_index(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "missing")
+    assert _both("pdf-text-extractor", ws, _PDF_OUT) == [
+        ("empty_fulltext_index", "`papers/fulltext_index.jsonl` is missing or empty.")
+    ]
+
+
+def test_native_pdf_extractor_abstract_mode_incomplete(tmp_path: Path) -> None:
+    # abstract mode (default): core_set has p1,p2 but index only covers p1.
+    ws = _survey_ws(tmp_path, "abs_incomplete")
+    _write_file(ws, "queries.md", "- evidence_mode: abstract\n")
+    _write_file(ws, "papers/core_set.csv", "paper_id,title\np1,A\np2,B\n")
+    _write_file(
+        ws,
+        "papers/fulltext_index.jsonl",
+        json.dumps({"paper_id": "p1", "status": "skip_mode_abstract"}),
+    )
+    pairs = _both("pdf-text-extractor", ws, _PDF_OUT)
+    assert pairs and pairs[0][0] == "abstract_index_incomplete"
+
+
+def test_native_pdf_extractor_abstract_mode_bad_status(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "abs_status")
+    _write_file(ws, "queries.md", "- evidence_mode: abstract\n")
+    _write_file(ws, "papers/core_set.csv", "paper_id,title\np1,A\n")
+    _write_file(
+        ws,
+        "papers/fulltext_index.jsonl",
+        json.dumps({"paper_id": "p1", "status": "ok"}),
+    )
+    pairs = _both("pdf-text-extractor", ws, _PDF_OUT)
+    assert pairs and pairs[0][0] == "abstract_index_status_invalid"
+
+
+def test_native_pdf_extractor_abstract_mode_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "abs_pass")
+    _write_file(ws, "queries.md", "- evidence_mode: abstract\n")
+    _write_file(ws, "papers/core_set.csv", "paper_id,title\np1,A\n")
+    _write_file(
+        ws,
+        "papers/fulltext_index.jsonl",
+        json.dumps({"paper_id": "p1", "status": "skip_mode_abstract"}),
+    )
+    assert _both("pdf-text-extractor", ws, _PDF_OUT) == []
+
+
+def test_native_pdf_extractor_fulltext_too_few(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "ft_few")
+    _write_file(ws, "queries.md", "- evidence_mode: fulltext\n")
+    _write_file(
+        ws,
+        "papers/fulltext_index.jsonl",
+        json.dumps({"paper_id": "p1", "status": "fail", "pdf_url": "u"}),
+    )
+    pairs = _both("pdf-text-extractor", ws, _PDF_OUT)
+    assert pairs and pairs[0][0] == "fulltext_too_few"
+
+
+def test_native_pdf_extractor_fulltext_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "ft_pass")
+    _write_file(ws, "queries.md", "- evidence_mode: fulltext\n")
+    _write_file(
+        ws,
+        "papers/fulltext_index.jsonl",
+        json.dumps(
+            {"paper_id": "p1", "status": "ok", "pdf_url": "u", "chars_extracted": 5000}
+        ),
+    )
+    assert _both("pdf-text-extractor", ws, _PDF_OUT) == []
+
+
+# literature-engineer ----------------------------------------------------------
+
+_LIT_OUT = ["papers/papers_raw.jsonl", "papers/retrieval_report.md"]
+
+
+def _good_lit_record(**overrides: object) -> dict[str, object]:
+    rec: dict[str, object] = {
+        "title": "Real",
+        "url": "u",
+        "year": "2026",
+        "authors": ["A"],
+        "abstract": "abs",
+        "arxiv_id": "2601.1",
+        "provenance": [{"route": "r"}],
+    }
+    rec.update(overrides)
+    return rec
+
+
+def test_native_literature_missing_raw(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lit_missing")
+    assert _both("literature-engineer", ws, _LIT_OUT) == [
+        ("missing_raw", "`papers/papers_raw.jsonl` does not exist.")
+    ]
+
+
+def test_native_literature_bad_report(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lit_bad_report")
+    _write_file(ws, "papers/papers_raw.jsonl", json.dumps(_good_lit_record()))
+    _write_file(ws, "papers/retrieval_report.md", "not a report\n")
+    assert _both("literature-engineer", ws, _LIT_OUT) == [
+        ("bad_retrieval_report", "`papers/retrieval_report.md` is empty or not a retrieval report.")
+    ]
+
+
+def test_native_literature_metadata_gaps_order(tmp_path: Path) -> None:
+    # Multiple simultaneous gaps: verify native emits the SAME ordered list.
+    ws = _survey_ws(tmp_path, "lit_gaps")
+    rows = [
+        json.dumps(_good_lit_record(title="", url="", year="", authors=[], provenance=[])),
+        json.dumps(_good_lit_record(title="", url="", year="", authors=[], provenance=[])),
+    ]
+    _write_file(ws, "papers/papers_raw.jsonl", "\n".join(rows))
+    _write_file(ws, "papers/retrieval_report.md", "Retrieval report\n- x: 1\n")
+    pairs = _both("literature-engineer", ws, _LIT_OUT)
+    codes = [c for c, _ in pairs]
+    # missing titles, urls, then ratio-based years/authors/provenance in order.
+    assert codes == [
+        "raw_missing_titles",
+        "raw_missing_urls",
+        "raw_missing_years",
+        "raw_missing_authors",
+        "raw_missing_provenance",
+    ]
+
+
+def test_native_literature_survey_profile_thresholds(tmp_path: Path) -> None:
+    # arxiv-survey profile adds raw_too_small (target=max(200, core_size*4)).
+    ws = _survey_ws(tmp_path, "lit_survey", profile="arxiv-survey")
+    _write_file(ws, "papers/papers_raw.jsonl", json.dumps(_good_lit_record()))
+    _write_file(ws, "papers/retrieval_report.md", "Retrieval report\n- x: 1\n")
+    pairs = _both("literature-engineer", ws, _LIT_OUT)
+    assert "raw_too_small" in {c for c, _ in pairs}
+
+
+def test_native_literature_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lit_pass")  # default profile, complete metadata
+    _write_file(ws, "papers/papers_raw.jsonl", json.dumps(_good_lit_record()))
+    _write_file(ws, "papers/retrieval_report.md", "Retrieval report\n- x: 1\n")
+    assert _both("literature-engineer", ws, _LIT_OUT) == []
+
+
+# dedupe-rank ------------------------------------------------------------------
+
+_DEDUPE_OUT = ["papers/papers_dedup.jsonl", "papers/core_set.csv"]
+
+
+def test_native_dedupe_missing_core(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "dd_missing")
+    assert _both("dedupe-rank", ws, _DEDUPE_OUT) == [
+        ("missing_core_set", "`papers/core_set.csv` does not exist.")
+    ]
+
+
+def test_native_dedupe_empty_core(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "dd_empty")
+    _write_file(ws, "papers/core_set.csv", "paper_id,title\n")
+    assert _both("dedupe-rank", ws, _DEDUPE_OUT) == [
+        ("empty_core_set", "`papers/core_set.csv` has no rows.")
+    ]
+
+
+def test_native_dedupe_missing_fields_and_dupes(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "dd_fields")
+    _write_file(
+        ws,
+        "papers/core_set.csv",
+        "paper_id,title\n,\ndup,A\ndup,B\n",
+    )
+    pairs = _both("dedupe-rank", ws, _DEDUPE_OUT)
+    codes = [c for c, _ in pairs]
+    assert "core_set_missing_paper_id" in codes
+    assert "core_set_missing_title" in codes
+    assert "core_set_duplicate_ids" in codes
+
+
+def test_native_dedupe_scope_drift_video(tmp_path: Path) -> None:
+    # arxiv-survey + text-to-image GOAL + video-heavy core set -> scope drift.
+    ws = _survey_ws(tmp_path, "dd_drift", profile="arxiv-survey")
+    _write_file(ws, "GOAL.md", "A survey of text-to-image generation\n")
+    rows = ["paper_id,title"]
+    for i in range(12):
+        rows.append(f"p{i},Video model {i}")
+    _write_file(ws, "papers/core_set.csv", "\n".join(rows) + "\n")
+    pairs = _both("dedupe-rank", ws, _DEDUPE_OUT)
+    assert "scope_drift_video" in {c for c, _ in pairs}
+
+
+def test_native_dedupe_pass_default_profile(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "dd_pass")  # default profile: no survey thresholds
+    _write_file(ws, "papers/core_set.csv", "paper_id,title\np1,A\np2,B\n")
+    assert _both("dedupe-rank", ws, _DEDUPE_OUT) == []
