@@ -586,13 +586,13 @@ def test_native_matches_legacy_for_every_registered_skill(tmp_path: Path) -> Non
 
     skills = sorted(legacy.registered_quality_skills())
     assert len(skills) == 68, "expected all 68 registered skills"
-    # The four natively reimplemented skills must be inside the swept set.
-    for native_skill in (
-        "citation-injector",
-        "deliverable-selfloop",
-        "artifact-contract-auditor",
-        "beamer-compile-qa",
-    ):
+    # Every self-contained native check must be inside the swept set. Derive the
+    # expected set from the source of truth (``_NATIVE_UNIT_CHECKS``) rather
+    # than a hardcoded list, so this guard can't go stale as more checks are
+    # ported natively.
+    from research_harness.acceptance import native as native_mod
+
+    for native_skill in native_mod._NATIVE_UNIT_CHECKS:
         assert native_skill in skills
 
     empty_ws = tmp_path / "empty"
