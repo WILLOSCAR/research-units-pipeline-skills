@@ -137,11 +137,13 @@ _NATIVE_QUALITY_SKILLS: frozenset[str] = frozenset(
     }
 )
 
-# Native mirror of ``tooling.quality_gate._COMPLETION_INVARIANTS`` keys: Skills
-# with a mandatory Workflow-domain invariant.  No invariant is reimplemented
-# natively yet, so ``check_completion_invariants`` delegates in full; this
-# table only serves the (pure introspection) ``has_completion_invariant``.
-_NATIVE_COMPLETION_INVARIANTS: frozenset[str] = frozenset({"outline-refiner"})
+# Native mirror of ``tooling.quality_gate._COMPLETION_INVARIANTS``: Skills with
+# a mandatory Workflow-domain invariant.  The invariants themselves are
+# reimplemented natively and dispatched through ``_NATIVE_COMPLETION_INVARIANT_CHECKS``
+# (defined below, next to the provider, since they reuse the policy-check
+# signature); ``_NATIVE_COMPLETION_INVARIANTS`` (the routing set used by
+# ``has_completion_invariant``) is derived from that table so the two never
+# drift.
 
 # Skills whose semantic output check this provider answers natively, with zero
 # tooling delegation.  Everything else composes onto the legacy adapter.  The
@@ -9894,6 +9896,51 @@ _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)
 
 
+# --- native completion invariants ------------------------------------------
+#
+# The single registered completion invariant (``outline-refiner``) guards on
+# the declared ``outline/outline_state.jsonl`` output and then runs the
+# section-first cutover gate.  That gate already runs behind the
+# ``WorkspacePolicyPort`` (the default reader delegates to
+# ``tooling.quality_checks.survey_structure``, so the resolved issues are
+# byte-identical by construction); only the output-declaration guard is
+# reimplemented here.  ``_NATIVE_COMPLETION_INVARIANTS`` (the routing set used
+# by ``has_completion_invariant``) is derived from this table so the two never
+# drift.
+
+
+def _check_completion_outline_refiner(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of the ``outline-refiner`` completion invariant.
+
+    Mirrors ``tooling.quality_gate._check_outline_cutover`` exactly: a no-op
+    unless the run declared ``outline/outline_state.jsonl``, in which case it
+    runs the section-first cutover gate for that consumer.  Exceptions from the
+    gate propagate unchanged -- the legacy path has no try/except wrapper
+    either.
+    """
+
+    if "outline/outline_state.jsonl" not in outputs:
+        return []
+    return _as_native_issues(
+        policy.section_first_cutover_issues(
+            workspace,
+            consumer="outline/outline_state.jsonl",
+            require_stable_h3=True,
+        )
+    )
+
+
+_NATIVE_COMPLETION_INVARIANT_CHECKS: dict[str, _NativePolicyCheck] = {
+    "outline-refiner": _check_completion_outline_refiner,
+}
+
+_NATIVE_COMPLETION_INVARIANTS: frozenset[str] = frozenset(
+    _NATIVE_COMPLETION_INVARIANT_CHECKS
+)
+
+
 @dataclass(frozen=True)
 class NativeQualityProvider(QualityCheckProvider):
     """Composition provider: native registry + native checks, else legacy.
@@ -9904,8 +9951,9 @@ class NativeQualityProvider(QualityCheckProvider):
       ``_NATIVE_UNIT_CHECKS``) and the policy-consuming native Skills (via
       ``_NATIVE_POLICY_UNIT_CHECKS``, passing the injected ``policy``), and
       delegates every other Skill to the composed legacy adapter.
-    - :meth:`check_completion_invariants` delegates in full: no invariant has a
-      native reimplementation yet.
+    - :meth:`check_completion_invariants` handles the ``outline-refiner``
+      invariant natively (via ``_NATIVE_COMPLETION_INVARIANT_CHECKS``) and
+      delegates every other Skill to the composed legacy adapter.
 
     ``policy`` is the injected :class:`WorkspacePolicyPort` the policy-consuming
     native checks read workspace policy (run profile, evidence mode, core-set
@@ -9930,6 +9978,9 @@ class NativeQualityProvider(QualityCheckProvider):
     def check_completion_invariants(
         self, *, skill: str, workspace: Path, outputs: list[str]
     ) -> list[QualityIssueLike]:
+        invariant = _NATIVE_COMPLETION_INVARIANT_CHECKS.get(skill)
+        if invariant is not None:
+            return list(invariant(workspace, outputs, self.policy))
         return self.legacy.check_completion_invariants(
             skill=skill, workspace=workspace, outputs=outputs
         )

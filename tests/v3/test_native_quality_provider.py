@@ -330,9 +330,11 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     native.check_unit_outputs(
         skill="no-such-skill-xyz", workspace=tmp_path, outputs=[]
     )
-    # Completion invariants always delegated (none reimplemented yet).
+    # An unregistered completion invariant -> delegated (fallback path). The
+    # registered ``outline-refiner`` invariant is now natively handled, so it
+    # must NOT be delegated (asserted below).
     native.check_completion_invariants(
-        skill="outline-refiner", workspace=tmp_path, outputs=[]
+        skill="no-such-skill-xyz", workspace=tmp_path, outputs=[]
     )
     # Native skill -> NOT delegated.
     native.check_unit_outputs(
@@ -416,7 +418,9 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         )
 
     assert ("outputs", "no-such-skill-xyz") in calls
-    assert ("invariants", "outline-refiner") in calls
+    assert ("invariants", "no-such-skill-xyz") in calls
+    # The registered outline-refiner completion invariant is native now.
+    assert ("invariants", "outline-refiner") not in calls
     assert ("outputs", "taxonomy-builder") not in calls
     assert ("outputs", "outline-builder") not in calls
     assert ("outputs", "section-mapper") not in calls
@@ -585,6 +589,126 @@ def test_native_matches_legacy_for_every_registered_skill(tmp_path: Path) -> Non
                 )
 
     assert not divergences, "native diverges from legacy:\n" + "\n".join(divergences)
+
+
+# --- outline-refiner completion invariant parity ----------------------------
+#
+# The single registered completion invariant.  It guards on the declared
+# ``outline/outline_state.jsonl`` output and then runs the section-first
+# cutover gate (behind the WorkspacePolicyPort, byte-identical by construction).
+# These tests pin both branches of the guard and the gate's section_first
+# outcomes as regression evidence.
+
+
+def test_outline_refiner_invariant_noop_without_declared_output(
+    tmp_path: Path,
+) -> None:
+    # Without ``outline/outline_state.jsonl`` in the declared outputs, the
+    # guard short-circuits before the gate is consulted: no-op on both sides.
+    ws = tmp_path / "noop"
+    ws.mkdir()
+    assert _both_ci("outline-refiner", ws, outputs=[]) == []
+    assert _both_ci(
+        "outline-refiner", ws, outputs=["outline/coverage_report.md"]
+    ) == []
+
+
+def test_outline_refiner_invariant_non_section_first_is_noop(
+    tmp_path: Path,
+) -> None:
+    # Output declared but the workspace is NOT in section-first mode: the gate
+    # returns no issues on both sides.
+    ws = tmp_path / "non_sf"
+    ws.mkdir()
+    _write_file(
+        ws, "outline/outline_state.jsonl", json.dumps({"structure_phase": "done"})
+    )
+    assert _both_ci(
+        "outline-refiner", ws, outputs=["outline/outline_state.jsonl"]
+    ) == []
+
+
+def test_outline_refiner_invariant_section_first_missing_state(
+    tmp_path: Path,
+) -> None:
+    # section-first mode (arxiv-survey pipeline) + declared output + missing
+    # outline_state.jsonl -> the gate flags it on both sides, byte-identical.
+    ws = tmp_path / "sf_missing"
+    ws.mkdir()
+    _write_file(ws, "PIPELINE.lock.md", "pipeline: pipelines/arxiv-survey.pipeline.md\n")
+    assert _both_ci(
+        "outline-refiner", ws, outputs=["outline/outline_state.jsonl"]
+    ) == [
+        (
+            "section_first_missing_outline_state",
+            "`outline/outline_state.jsonl` requires `outline/outline_state.jsonl` "
+            "to record section-first cutover state.",
+        )
+    ]
+
+
+def test_outline_refiner_invariant_section_first_empty_state(
+    tmp_path: Path,
+) -> None:
+    ws = tmp_path / "sf_empty"
+    ws.mkdir()
+    _write_file(ws, "PIPELINE.lock.md", "pipeline: pipelines/arxiv-survey.pipeline.md\n")
+    _write_file(ws, "outline/outline_state.jsonl", "")
+    assert _both_ci(
+        "outline-refiner", ws, outputs=["outline/outline_state.jsonl"]
+    ) == [
+        (
+            "section_first_empty_outline_state",
+            "`outline/outline_state.jsonl` requires `outline/outline_state.jsonl` "
+            "to contain at least one cutover-state record.",
+        )
+    ]
+
+
+def test_outline_refiner_invariant_section_first_valid_state(
+    tmp_path: Path,
+) -> None:
+    # A complete, stable cutover record (decomposed + stable) -> no issues on
+    # either side.
+    ws = tmp_path / "sf_ok"
+    ws.mkdir()
+    _write_file(ws, "PIPELINE.lock.md", "pipeline: pipelines/arxiv-survey.pipeline.md\n")
+    _write_file(
+        ws,
+        "outline/outline_state.jsonl",
+        json.dumps(
+            {
+                "structure_phase": "decomposed",
+                "h3_status": "stable",
+                "approval_status": "approved",
+                "reroute_target": "",
+                "retry_budget_remaining": 3,
+            }
+        ),
+    )
+    assert _both_ci(
+        "outline-refiner", ws, outputs=["outline/outline_state.jsonl"]
+    ) == []
+
+
+def test_outline_refiner_invariant_propagates_gate_exceptions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The legacy path has no try/except around the gate, so a gate crash must
+    # propagate identically on the native side (not be swallowed).
+    from research_harness.acceptance import native as native_mod
+
+    class _BoomPolicy:
+        def section_first_cutover_issues(self, workspace, *, consumer, require_stable_h3):
+            raise RuntimeError("boom")
+
+    provider = native_mod.NativeQualityProvider(policy=_BoomPolicy())
+    with pytest.raises(RuntimeError, match="boom"):
+        provider.check_completion_invariants(
+            skill="outline-refiner",
+            workspace=tmp_path,
+            outputs=["outline/outline_state.jsonl"],
+        )
 
 
 # --- citation-verifier parity (first policy-consuming native check) ---------
@@ -945,6 +1069,20 @@ def _both(skill: str, ws: Path, outputs: list[str]) -> list[tuple[str, str]]:
     n = _pairs(native.check_unit_outputs(skill=skill, workspace=ws, outputs=outputs))
     lg = _pairs(legacy.check_unit_outputs(skill=skill, workspace=ws, outputs=outputs))
     assert n == lg, f"{skill}: native={n} legacy={lg}"
+    return n
+
+
+def _both_ci(skill: str, ws: Path, outputs: list[str]) -> list[tuple[str, str]]:
+    """Parity helper for completion invariants (native vs legacy)."""
+    native = NativeQualityProvider()
+    legacy = LegacyToolingQualityProvider()
+    n = _pairs(
+        native.check_completion_invariants(skill=skill, workspace=ws, outputs=outputs)
+    )
+    lg = _pairs(
+        legacy.check_completion_invariants(skill=skill, workspace=ws, outputs=outputs)
+    )
+    assert n == lg, f"{skill} completion invariant: native={n} legacy={lg}"
     return n
 
 
