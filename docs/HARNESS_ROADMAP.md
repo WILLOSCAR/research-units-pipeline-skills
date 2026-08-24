@@ -63,6 +63,43 @@ Exit evidence:
   completed outcomes through the one interface;
 - legacy Workspaces remain byte-identical under inspection.
 
+Evidence (2026-08):
+
+The acceptance/verify layer now has native, independently-audited parity with
+the legacy `tooling.quality_checks` path, and the deterministic Run
+fault/replay matrix is exercised end-to-end:
+
+- **Native acceptance conformance + legacy-projection retirement.** All 68
+  registered quality checks and the `outline-refiner` completion invariant are
+  ported to `NativeQualityProvider` behind the `QualityCheckProvider` Port; the
+  runtime default is native, with `RESEARCH_HARNESS_QUALITY_PROVIDER=legacy`
+  retained as a one-release escape hatch. Byte-parity is pinned by
+  `test_native_matches_legacy_for_every_registered_skill` (every registered
+  skill, under empty and PASS-seeded workspaces), a differential fuzzer, and an
+  independent adversarial audit (two reviewers, ~6,900 differential trials plus
+  AST string-equivalence, zero workspace-input-reachable divergences). The
+  native self-contained path imports no `tooling.*` at runtime
+  (`test_native_self_contained_check_does_not_import_tooling_at_runtime`).
+- **Run fault-injection matrix.** Recovery is exercised, not asserted, for
+  state-write faults at attempt-begin
+  (`test_state_write_fault_at_attempt_begin_is_recoverable`), manifest
+  finalize/status faults, and process-death/interrupt-active recovery (the
+  crash-adapter tests). The durable state is path-independent by construction
+  (workspace-relative artifact paths; no workspace field in the run-aggregate
+  schema).
+- **Disposable-Workspace replay.** A completed Run replays byte-identically in
+  a fresh workspace
+  (`test_completed_run_is_replayable_in_a_disposable_workspace`), and a Run
+  blocked mid-flight at a human checkpoint can be cloned, approved, and driven
+  to completion there
+  (`test_checkpoint_blocked_run_replays_and_completes_in_a_disposable_workspace`).
+
+Still blocked (needs real LLM access, outside autonomous authority): the
+"Completed outcome pilot" (one fresh realistic current-engine Run) and full
+end-to-end behavioral conformance of producer/prover skills beyond the
+acceptance/verify layer. The strategic "Remaining work" list above is left
+intact; this block records evidence, not a claim that every item is closed.
+
 ## Horizon 2: Prove The Loop Across Workflows
 
 Goal: decide whether the one Loop interface can become the stable `rh` surface
