@@ -142,10 +142,11 @@ def _engine(
     *,
     artifacts: InMemoryArtifacts,
     adapters: dict[str, SkillAdapter],
+    ledger: InMemoryRunLedger | None = None,
 ) -> LocalRunEngine:
     return LocalRunEngine(
         workspace,
-        ledger=InMemoryRunLedger(),
+        ledger=ledger if ledger is not None else InMemoryRunLedger(),
         artifacts=artifacts,
         skill_adapters=adapters,
         acceptance=InMemoryAcceptance(),
@@ -404,6 +405,65 @@ def test_advance_automatically_recovers_a_prepared_completion(
 
     no_recovery = engine.execute(RecoverLocalRun())
     assert no_recovery.outcome is EngineOutcome.NOOP
+
+
+def test_state_write_fault_at_attempt_begin_is_recoverable(
+    tmp_path: Path,
+) -> None:
+    # A ledger state-write fault (the atomic state.json replace failing) at the
+    # BeginAttempt save must surface as a bounded adapter error AND leave the
+    # canonical Run untouched, so a fresh AdvanceRun reloads the prior state and
+    # completes -- the skill runs exactly once (no phantom Attempt, no rerun).
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    artifacts = InMemoryArtifacts()
+    ledger = InMemoryRunLedger()
+    calls: list[str] = []
+    run_id = "run-save-fault"
+    engine = _engine(
+        workspace,
+        artifacts=artifacts,
+        ledger=ledger,
+        adapters={
+            "writer": _writer(artifacts, run_id=run_id, output="result.md", calls=calls)
+        },
+    )
+    engine.execute(
+        CreateLocalRun(
+            run_id=run_id,
+            plan=_plan(
+                UnitPlan(
+                    id="U010", title="Write", skill="writer", outputs=("result.md",)
+                ),
+                targets=("result.md",),
+            ),
+        )
+    )
+    created = engine.inspect().run
+    assert created is not None
+    ledger.fail_next_save()
+
+    with pytest.raises(EngineError) as raised:
+        engine.execute(AdvanceRun())
+    assert raised.value.code is EngineErrorCode.ADAPTER_FAILURE
+
+    # The fault hit the BeginAttempt save: the canonical state is unchanged --
+    # the Unit is still TODO with no Attempt, and the skill never ran.
+    interrupted = engine.inspect().run
+    assert interrupted is not None
+    assert interrupted.version == created.version
+    assert interrupted.unit("U010").status is UnitStatus.TODO
+    assert interrupted.attempts == ()
+    assert interrupted.active_attempt_id is None
+    assert calls == []
+
+    # A fresh AdvanceRun reloads the prior canonical state and completes: the
+    # fault was one-shot, so the BeginAttempt save now succeeds and the skill
+    # runs exactly once.
+    recovered = engine.execute(AdvanceRun())
+    assert recovered.outcome is EngineOutcome.COMPLETED
+    assert calls == ["U010"]
+    assert engine.inspect().run.unit("U010").status is UnitStatus.DONE
 
 
 def test_legacy_v2_workspace_is_inspectable_but_never_mutated(

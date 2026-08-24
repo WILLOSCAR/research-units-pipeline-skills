@@ -28,6 +28,19 @@ class InMemoryRunLedger:
         self._runs: dict[str, RunAggregate] = {}
         self._locks: dict[str, threading.Lock] = {}
         self._meta_lock = threading.Lock()
+        self._fail_save_once = False
+
+    def fail_next_save(self) -> None:
+        """Make the next ``save`` raise a storage I/O fault, leaving state intact.
+
+        Simulates a transient ``FilesystemRunLedger`` write failure -- the atomic
+        ``os.replace`` of ``state.json`` -- for fault-injection tests: the
+        optimistic-concurrency checks still run, but the canonical state is left
+        at the prior version, exactly as the filesystem ledger preserves the
+        prior canonical state on a failed atomic replace. The fault is one-shot.
+        """
+
+        self._fail_save_once = True
 
     @contextmanager
     def lock(self, run_id: str, operation: str) -> Iterator[None]:
@@ -70,6 +83,9 @@ class InMemoryRunLedger:
                 f"Run {run.id} save must append at least one Event.",
                 run_id=run.id,
             )
+        if self._fail_save_once:
+            self._fail_save_once = False
+            raise OSError("injected state-write failure")
         self._runs[run.id] = copy.deepcopy(run)
 
 
