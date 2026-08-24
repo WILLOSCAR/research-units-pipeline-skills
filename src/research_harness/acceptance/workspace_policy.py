@@ -113,3 +113,56 @@ class WorkspacePolicyPort(Protocol):
         because scoring is a heavyweight evaluator, not output inspection.
         """
         ...
+
+    def draft_profile(self, workspace: Path) -> str:
+        """Return the draft strictness profile (``survey`` / ``deep`` / ``course_paper``).
+
+        Mirrors ``tooling.quality_checks.survey_policy.draft_profile``.
+        """
+        ...
+
+    def global_citation_min_subsections(self, workspace: Path) -> int:
+        """Return the min subsection-mapping count for a globally in-scope bibkey.
+
+        Mirrors ``tooling.quality_checks.survey_policy.global_citation_min_subsections``.
+        """
+        ...
+
+    def quality_contract_int(
+        self, workspace: Path, *, keys: tuple[str, ...], default: int
+    ) -> int:
+        """Return a positive int from the quality contract, or ``default``.
+
+        Mirrors ``tooling.quality_checks.survey_policy.quality_contract_int``.
+        """
+        ...
+
+    def per_subsection(self, workspace: Path) -> int:
+        """Return the per-H3 mapping contract for the run.
+
+        Mirrors ``tooling.quality_checks.survey_policy.per_subsection``.
+        """
+        ...
+
+    def template_residue_document_issues(
+        self, workspace: Path, documents: list[tuple[str, str]]
+    ) -> list[Any]:
+        """Return template-residue issues for a set of (relpath, text) documents.
+
+        Mirrors ``tooling.quality_checks.template_residue.check_template_residue_documents``.
+        Kept behind the Port because it runs a heavyweight evaluator that reads
+        Run-state implementation fingerprints and repo template assets, not just
+        the passed documents.  Returns objects with ``code`` + ``message``.
+        """
+        ...
+
+    def template_residue_subsection_issues(
+        self, workspace: Path, relpaths: list[str]
+    ) -> list[Any]:
+        """Return template-residue issues for subsection files named by relpath.
+
+        Mirrors ``tooling.quality_checks.template_residue.check_subsection_template_residue``
+        (reads each relpath under the workspace, then evaluates).  Kept behind
+        the Port for the same reason as ``template_residue_document_issues``.
+        """
+        ...

@@ -184,6 +184,50 @@ class LegacyToolingPolicyReader(WorkspacePolicyPort):
 
         return evaluate_evidence_review(workspace)
 
+    def draft_profile(self, workspace: Path) -> str:
+        from tooling.quality_checks.survey_policy import draft_profile
+
+        return draft_profile(workspace)
+
+    def global_citation_min_subsections(self, workspace: Path) -> int:
+        from tooling.quality_checks.survey_policy import global_citation_min_subsections
+
+        return global_citation_min_subsections(workspace)
+
+    def quality_contract_int(
+        self, workspace: Path, *, keys: tuple[str, ...], default: int
+    ) -> int:
+        from tooling.quality_checks.survey_policy import quality_contract_int
+
+        return quality_contract_int(workspace, keys=keys, default=default)
+
+    def per_subsection(self, workspace: Path) -> int:
+        from tooling.quality_checks.survey_policy import per_subsection
+
+        return per_subsection(workspace)
+
+    def template_residue_document_issues(
+        self, workspace: Path, documents: list[tuple[str, str]]
+    ) -> list[Any]:
+        from tooling.quality_checks.template_residue import (
+            check_template_residue_documents,
+        )
+
+        return check_template_residue_documents(
+            workspace=workspace, documents=documents
+        )
+
+    def template_residue_subsection_issues(
+        self, workspace: Path, relpaths: list[str]
+    ) -> list[Any]:
+        from tooling.quality_checks.template_residue import (
+            check_subsection_template_residue,
+        )
+
+        return check_subsection_template_residue(
+            workspace=workspace, relpaths=relpaths
+        )
+
 
 def default_workspace_policy_reader() -> WorkspacePolicyPort:
     """Return the default (legacy) workspace-policy reader.

@@ -44,6 +44,12 @@ def test_port_surface_is_complete() -> None:
         "resolve_idea_contract",
         "evaluate_paper_review",
         "evaluate_evidence_review",
+        "draft_profile",
+        "global_citation_min_subsections",
+        "quality_contract_int",
+        "per_subsection",
+        "template_residue_document_issues",
+        "template_residue_subsection_issues",
     ):
         assert callable(getattr(reader, method)), method
 
@@ -169,6 +175,48 @@ def test_reader_evidence_review_scorecard_pass_through(tmp_path: Path) -> None:
     assert native == legacy
 
 
+def test_reader_survey_writing_policy_pass_through(tmp_path: Path) -> None:
+    # draft_profile / global_citation_min_subsections / quality_contract_int /
+    # per_subsection / template-residue evaluators mirror tooling exactly.
+    from tooling.quality_checks.survey_policy import (
+        draft_profile as legacy_draft_profile,
+        global_citation_min_subsections as legacy_gcms,
+        per_subsection as legacy_per_sub,
+        quality_contract_int as legacy_qci,
+    )
+    from tooling.quality_checks.template_residue import (
+        check_subsection_template_residue as legacy_sub_residue,
+        check_template_residue_documents as legacy_doc_residue,
+    )
+
+    reader = default_workspace_policy_reader()
+    assert reader.draft_profile(tmp_path) == legacy_draft_profile(tmp_path)
+    assert reader.global_citation_min_subsections(tmp_path) == legacy_gcms(tmp_path)
+    assert reader.per_subsection(tmp_path) == legacy_per_sub(tmp_path)
+    assert reader.quality_contract_int(
+        tmp_path, keys=("no", "such"), default=7
+    ) == legacy_qci(tmp_path, keys=("no", "such"), default=7)
+    # template-residue evaluators: same (code, message) pairs on an empty ws.
+    native_docs = [
+        (i.code, i.message)
+        for i in reader.template_residue_document_issues(tmp_path, [])
+    ]
+    legacy_docs = [
+        (i.code, i.message)
+        for i in legacy_doc_residue(workspace=tmp_path, documents=[])
+    ]
+    assert native_docs == legacy_docs
+    native_subs = [
+        (i.code, i.message)
+        for i in reader.template_residue_subsection_issues(tmp_path, [])
+    ]
+    legacy_subs = [
+        (i.code, i.message)
+        for i in legacy_sub_residue(workspace=tmp_path, relpaths=[])
+    ]
+    assert native_subs == legacy_subs
+
+
 def test_reader_matches_tooling_on_empty_workspace(tmp_path: Path) -> None:
     # With no queries.md / no resolvable spec, the adapter returns the same
     # defaults tooling does.
@@ -243,6 +291,36 @@ def test_native_provider_accepts_injected_policy_reader() -> None:
         def evaluate_evidence_review(self, workspace: Path) -> dict[str, object]:
             self.calls.append("evaluate_evidence_review")
             return {"dimensions": []}
+
+        def draft_profile(self, workspace: Path) -> str:
+            self.calls.append("draft_profile")
+            return "survey"
+
+        def global_citation_min_subsections(self, workspace: Path) -> int:
+            self.calls.append("global_citation_min_subsections")
+            return 4
+
+        def quality_contract_int(
+            self, workspace: Path, *, keys: tuple, default: int
+        ) -> int:
+            self.calls.append("quality_contract_int")
+            return int(default)
+
+        def per_subsection(self, workspace: Path) -> int:
+            self.calls.append("per_subsection")
+            return 3
+
+        def template_residue_document_issues(
+            self, workspace: Path, documents: list
+        ) -> list:
+            self.calls.append("template_residue_document_issues")
+            return []
+
+        def template_residue_subsection_issues(
+            self, workspace: Path, relpaths: list
+        ) -> list:
+            self.calls.append("template_residue_subsection_issues")
+            return []
 
     reader = _RecordingReader()
     assert isinstance(reader, WorkspacePolicyPort)

@@ -377,6 +377,18 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "chapter-skeleton",
         "section-bindings",
         "section-briefs",
+        "writer-selfloop",
+        "front-matter-writer",
+        "evaluation-anchor-checker",
+        "paragraph-curator",
+        "argument-selfloop",
+        "subsection-writer",
+        "prose-writer",
+        "draft-polisher",
+        "section-logic-polisher",
+        "section-merger",
+        "pipeline-auditor",
+        "global-reviewer",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
@@ -420,6 +432,18 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "chapter-skeleton") not in calls
     assert ("outputs", "section-bindings") not in calls
     assert ("outputs", "section-briefs") not in calls
+    assert ("outputs", "writer-selfloop") not in calls
+    assert ("outputs", "front-matter-writer") not in calls
+    assert ("outputs", "evaluation-anchor-checker") not in calls
+    assert ("outputs", "paragraph-curator") not in calls
+    assert ("outputs", "argument-selfloop") not in calls
+    assert ("outputs", "subsection-writer") not in calls
+    assert ("outputs", "prose-writer") not in calls
+    assert ("outputs", "draft-polisher") not in calls
+    assert ("outputs", "section-logic-polisher") not in calls
+    assert ("outputs", "section-merger") not in calls
+    assert ("outputs", "pipeline-auditor") not in calls
+    assert ("outputs", "global-reviewer") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -2140,3 +2164,89 @@ def test_native_section_briefs(tmp_path: Path) -> None:
     assert [c for c, _ in _both("section-briefs", ws, ["outline/section_briefs.jsonl"])] == [
         "section_briefs_missing_fields"
     ]
+
+
+# --- survey-writing family parity (largest module, policy + template-residue) -
+
+
+@pytest.mark.parametrize(
+    "skill,out_rel,missing_code",
+    [
+        ("writer-selfloop", "output/WRITER_SELFLOOP_TODO.md", "missing_writer_selfloop_report"),
+        ("evaluation-anchor-checker", "output/EVAL_ANCHOR_REPORT.md", "missing_eval_anchor_report"),
+        ("section-logic-polisher", "output/SECTION_LOGIC_REPORT.md", "missing_section_logic_report"),
+        ("pipeline-auditor", "output/AUDIT_REPORT.md", "missing_audit_report"),
+        ("global-reviewer", "output/GLOBAL_REVIEW.md", "missing_global_review"),
+        ("prose-writer", "output/DRAFT.md", "missing_draft"),
+        ("subsection-writer", "sections/sections_manifest.jsonl", "missing_sections_manifest"),
+    ],
+)
+def test_native_survey_writing_missing_matches_legacy(
+    skill: str, out_rel: str, missing_code: str, tmp_path: Path
+) -> None:
+    ws = tmp_path / f"sw_{skill}"
+    ws.mkdir()
+    pairs = _both(skill, ws, [out_rel])
+    assert pairs and pairs[0][0] == missing_code
+
+
+def test_native_writer_selfloop_pass_and_notpass(tmp_path: Path) -> None:
+    ws = tmp_path / "sw_wsl_pass"
+    ws.mkdir()
+    _write_file(ws, "output/WRITER_SELFLOOP_TODO.md", "# plan\n- Status: PASS\n")
+    assert _both("writer-selfloop", ws, ["output/WRITER_SELFLOOP_TODO.md"]) == []
+    ws2 = tmp_path / "sw_wsl_fail"
+    ws2.mkdir()
+    _write_file(ws2, "output/WRITER_SELFLOOP_TODO.md", "# plan\n- Status: FAIL\n")
+    assert [c for c, _ in _both("writer-selfloop", ws2, ["output/WRITER_SELFLOOP_TODO.md"])] == [
+        "writer_selfloop_not_pass"
+    ]
+
+
+def test_native_draft_delivery_leak_and_placeholders(tmp_path: Path) -> None:
+    # A draft with a delivery-request leak + TODO + no citations fails on the
+    # same codes as legacy (reader_request_leakage native mirror).
+    ws = tmp_path / "sw_draft"
+    ws.mkdir()
+    _write_file(
+        ws,
+        "output/DRAFT.md",
+        "Please write a course paper on agents with pdf output.\n"
+        "## Introduction\nTODO more\n## Conclusion\ndone\n",
+    )
+    codes = {c for c, _ in _both("prose-writer", ws, ["output/DRAFT.md"])}
+    assert "draft_delivery_request_leakage" in codes
+    assert "draft_contains_todo" in codes
+    assert "draft_no_citations" in codes
+
+
+def test_native_global_review_reruns_draft_checks(tmp_path: Path) -> None:
+    # global-reviewer composes check_draft; a missing draft surfaces the draft
+    # code alongside the review-structure codes, identically to legacy.
+    ws = tmp_path / "sw_global"
+    ws.mkdir()
+    _write_file(ws, "output/GLOBAL_REVIEW.md", "- Status: PASS\n")
+    native_pairs = _both("global-reviewer", ws, ["output/GLOBAL_REVIEW.md"])
+    codes = {c for c, _ in native_pairs}
+    assert "global_review_too_short" in codes
+    assert "missing_draft" in codes  # from the composed check_draft
+
+
+def test_native_draft_polisher_composes_anchoring(tmp_path: Path) -> None:
+    # draft-polisher = check_draft + check_citation_anchoring; with a baseline
+    # anchor file whose H3 is renamed, the anchoring code appears (matching legacy).
+    ws = tmp_path / "sw_polish"
+    ws.mkdir()
+    _write_file(
+        ws,
+        "output/DRAFT.md",
+        "## Introduction\n" + "grounded [@k0]. " * 40 + "\n### Kept\ntext [@k0]\n## Conclusion\nx\n## Discussion\nx\n",
+    )
+    _write_file(ws, "citations/ref.bib", "@article{k0, title={T}}\n")
+    _write_file(
+        ws,
+        "output/citation_anchors.prepolish.jsonl",
+        json.dumps({"kind": "h3", "title": "Renamed Away", "cite_keys": ["k0"]}),
+    )
+    codes = {c for c, _ in _both("draft-polisher", ws, ["output/DRAFT.md"])}
+    assert "citation_anchor_missing_h3" in codes
