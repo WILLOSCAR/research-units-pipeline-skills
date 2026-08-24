@@ -478,6 +478,67 @@ def test_state_write_fault_at_attempt_begin_is_recoverable(
     assert engine.inspect().run.unit("U010").status is UnitStatus.DONE
 
 
+def test_orphan_manifest_recovers_after_prepare_completion_save_fault(
+    tmp_path: Path,
+) -> None:
+    # A ledger state-write fault at the prepare-completion save -- the second
+    # save of CompleteAttempt, after the PREPARED Manifest is written but before
+    # the Completion is persisted -- leaves an orphaned PREPARED Manifest next
+    # to a still-RUNNING Attempt. The next AdvanceRun must reconcile that orphan
+    # Manifest (recover it, not merely detect it) and complete -- the skill ran
+    # exactly once, its output already on disk.
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    artifacts = InMemoryArtifacts()
+    ledger = InMemoryRunLedger()
+    calls: list[str] = []
+    run_id = "run-orphan-manifest"
+    engine = _engine(
+        workspace,
+        artifacts=artifacts,
+        ledger=ledger,
+        adapters={
+            "writer": _writer(artifacts, run_id=run_id, output="result.md", calls=calls)
+        },
+    )
+    engine.execute(
+        CreateLocalRun(
+            run_id=run_id,
+            plan=_plan(
+                UnitPlan(
+                    id="U010", title="Write", skill="writer", outputs=("result.md",)
+                ),
+                targets=("result.md",),
+            ),
+        )
+    )
+    # Arm AFTER CreateLocalRun: the BeginAttempt save (1st after arming) passes,
+    # the prepare-completion save (2nd) faults -- the orphan-Manifest state.
+    ledger.fail_nth_save(2)
+
+    with pytest.raises(EngineError) as raised:
+        engine.execute(AdvanceRun())
+    assert raised.value.code is EngineErrorCode.ADAPTER_FAILURE
+
+    # The fault hit the prepare-completion save: the Attempt is RUNNING (the
+    # BeginAttempt save persisted) with no Completion, and the PREPARED Manifest
+    # is orphaned in the store (written before the save that failed).
+    interrupted = engine.inspect().run
+    assert interrupted is not None
+    assert interrupted.active_attempt_id is not None
+    assert interrupted.completions == ()
+    assert interrupted.unit("U010").status is UnitStatus.DOING
+    assert [m.status.value for m in artifacts.list_manifests(run_id)] == ["PREPARED"]
+
+    # A fresh AdvanceRun reconciles the orphan Manifest and completes: the skill
+    # ran exactly once (recovery re-uses its already-materialized output).
+    recovered = engine.execute(AdvanceRun())
+    assert recovered.outcome is EngineOutcome.COMPLETED
+    assert recovered.recovered is True
+    assert calls == ["U010"]
+    assert engine.inspect().run.unit("U010").status is UnitStatus.DONE
+
+
 def test_completed_run_is_replayable_in_a_disposable_workspace(
     tmp_path: Path,
 ) -> None:

@@ -29,6 +29,7 @@ class InMemoryRunLedger:
         self._locks: dict[str, threading.Lock] = {}
         self._meta_lock = threading.Lock()
         self._fail_save_once = False
+        self._fail_save_countdown: int | None = None
 
     def fail_next_save(self) -> None:
         """Make the next ``save`` raise a storage I/O fault, leaving state intact.
@@ -41,6 +42,22 @@ class InMemoryRunLedger:
         """
 
         self._fail_save_once = True
+
+    def fail_nth_save(self, n: int) -> None:
+        """Fail the nth ``save`` after this call (1-indexed) with a storage fault.
+
+        Generalizes :meth:`fail_next_save` for fault-injection tests that must
+        fault a save *after* the next one -- e.g. the prepare-completion save
+        inside ``CompleteAttempt``, which follows the BeginAttempt save and
+        leaves an orphaned PREPARED Manifest next to a still-RUNNING Attempt.
+        The countdown decrements only for saves that pass the
+        optimistic-concurrency checks, and -- as with :meth:`fail_next_save` --
+        the canonical state is left at the prior version.
+        """
+
+        if n < 1:
+            raise ValueError(f"fail_nth_save requires n >= 1, got {n}")
+        self._fail_save_countdown = n
 
     @contextmanager
     def lock(self, run_id: str, operation: str) -> Iterator[None]:
@@ -86,6 +103,11 @@ class InMemoryRunLedger:
         if self._fail_save_once:
             self._fail_save_once = False
             raise OSError("injected state-write failure")
+        if self._fail_save_countdown is not None:
+            self._fail_save_countdown -= 1
+            if self._fail_save_countdown == 0:
+                self._fail_save_countdown = None
+                raise OSError("injected state-write failure")
         self._runs[run.id] = copy.deepcopy(run)
 
 
