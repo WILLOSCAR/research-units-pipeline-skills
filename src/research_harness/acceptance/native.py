@@ -12,20 +12,21 @@ This module is a growing step toward a native
 - natively reimplements the self-contained semantic output checks whose
   faithful reproduction needs only the ``QualityIssue`` shape (code + message),
   the stdlib, and pure helpers ported here -- currently ``citation-injector``,
-  ``deliverable-selfloop``, ``artifact-contract-auditor``, and
-  ``beamer-compile-qa`` -- delegating every other ``check_unit_outputs`` call
+  ``deliverable-selfloop``, ``artifact-contract-auditor``, ``beamer-compile-qa``,
+  and ``beamer-scaffold`` -- delegating every other ``check_unit_outputs`` call
   and *all* ``check_completion_invariants`` calls to a composed legacy adapter;
   and
 - reimplements the *policy-consuming* output checks of the survey-retrieval
   family in full -- ``citation-verifier``, ``arxiv-search``,
-  ``pdf-text-extractor``, ``literature-engineer``, and ``dedupe-rank`` -- which
-  read workspace policy (run profile, evidence mode, core-set target, and the
-  retrieval / candidate-pool contracts) through the injected
-  :class:`WorkspacePolicyPort` rather than importing
-  ``tooling.quality_checks.survey_policy`` / ``tooling.common``.  With these,
-  every check in ``tooling.quality_checks.survey_retrieval`` has a native
-  equivalent, exercising the policy seam for real instead of leaving it merely
-  constructed.
+  ``pdf-text-extractor``, ``literature-engineer``, and ``dedupe-rank`` -- plus
+  the delivery-family ``latex-scaffold`` -- which read workspace policy (run
+  profile, evidence mode, core-set target, and the retrieval / candidate-pool
+  contracts) through the injected :class:`WorkspacePolicyPort` rather than
+  importing ``tooling.quality_checks.survey_policy`` / ``tooling.common``.
+  With these, every check in ``tooling.quality_checks.survey_retrieval`` has a
+  native equivalent, exercising the policy seam for real instead of leaving it
+  merely constructed.  (``latex-compile-qa`` is deliberately still delegated:
+  it needs PDF-parsing and a goal-constraints read not yet on the Port.)
 
 Unlike ``legacy_tooling``, this module imports no ``tooling`` symbols -- not
 even lazily.  Composition delegates to ``LegacyToolingQualityProvider``, which
@@ -375,6 +376,51 @@ def _check_beamer_compile_qa(
     return []
 
 
+def _check_beamer_scaffold(
+    workspace: Path, outputs: list[str]
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``delivery.check_beamer_scaffold``.
+
+    Self-contained (no policy): the generated Beamer ``main.tex`` must exist,
+    declare the ``beamer`` class, contain frame structure, and be free of
+    leaked markdown headings.  Byte-for-byte parity (codes + messages, and
+    issue ORDER) with the legacy check is pinned by the Port parity sweep.
+    """
+
+    out_rel = outputs[0] if outputs else "latex/slides/main.tex"
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_beamer_tex", message=f"`{out_rel}` does not exist."
+            )
+        ]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    issues: list[NativeQualityIssue] = []
+    if "\\documentclass" not in text or "beamer" not in text:
+        issues.append(
+            NativeQualityIssue(
+                code="beamer_missing_class",
+                message=f"`{out_rel}` is not a Beamer document.",
+            )
+        )
+    if "\\begin{frame}" not in text:
+        issues.append(
+            NativeQualityIssue(
+                code="beamer_missing_frames",
+                message=f"`{out_rel}` has no frame structure.",
+            )
+        )
+    if "## " in text or "### " in text:
+        issues.append(
+            NativeQualityIssue(
+                code="beamer_markdown_headings",
+                message=f"`{out_rel}` still contains markdown headings.",
+            )
+        )
+    return issues
+
+
 # Dispatch table binding each natively covered Skill to its reimplementation.
 # ``_NATIVE_OUTPUT_CHECKS`` (the routing set used by ``check_unit_outputs``) is
 # derived from this so the table and the set can never drift apart.
@@ -385,6 +431,7 @@ _NATIVE_UNIT_CHECKS: dict[str, _NativeUnitCheck] = {
     "deliverable-selfloop": _check_deliverable_selfloop,
     "artifact-contract-auditor": _check_artifact_contract_auditor,
     "beamer-compile-qa": _check_beamer_compile_qa,
+    "beamer-scaffold": _check_beamer_scaffold,
 }
 
 _NATIVE_OUTPUT_CHECKS: frozenset[str] = frozenset(_NATIVE_UNIT_CHECKS)
@@ -1183,6 +1230,70 @@ def _check_dedupe_rank(
     return issues
 
 
+def _check_latex_scaffold(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``delivery.check_latex_scaffold``.
+
+    Policy-consuming: reads the run profile through the injected
+    :class:`WorkspacePolicyPort` (``pipeline_profile_name``) to decide whether
+    the abstract/bibliography structure is required (``source-tutorial`` is
+    exempt).  The markdown-leak heuristics are pure string scans.  Byte-for-byte
+    parity (codes + messages, and issue ORDER) with the legacy check is pinned
+    by the Port parity sweep.
+    """
+
+    out_rel = outputs[0] if outputs else "latex/main.tex"
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_main_tex", message=f"`{out_rel}` does not exist."
+            )
+        ]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    profile = policy.pipeline_profile_name(workspace)
+
+    issues: list[NativeQualityIssue] = []
+    if profile not in {"source-tutorial"} and "\\begin{abstract}" not in text:
+        issues.append(
+            NativeQualityIssue(
+                code="latex_missing_abstract",
+                message="LaTeX output has no `\\begin{abstract}` block.",
+            )
+        )
+    if profile not in {"source-tutorial"} and "\\bibliography{../citations/ref}" not in text:
+        issues.append(
+            NativeQualityIssue(
+                code="latex_missing_bib",
+                message="LaTeX output does not reference `../citations/ref.bib`.",
+            )
+        )
+    # Heuristics: markdown artifacts should not leak into TeX.
+    if "[@" in text:
+        issues.append(
+            NativeQualityIssue(
+                code="latex_markdown_cites",
+                message="LaTeX still contains markdown cite markers like `[@...]`.",
+            )
+        )
+    if "**" in text:
+        issues.append(
+            NativeQualityIssue(
+                code="latex_markdown_bold",
+                message="LaTeX still contains markdown bold markers `**...**`.",
+            )
+        )
+    if "## " in text or "### " in text:
+        issues.append(
+            NativeQualityIssue(
+                code="latex_markdown_headings",
+                message="LaTeX still contains markdown headings like `##`/`###`.",
+            )
+        )
+    return issues
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -1199,6 +1310,7 @@ _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "pdf-text-extractor": _check_pdf_text_extractor,
     "literature-engineer": _check_literature_engineer,
     "dedupe-rank": _check_dedupe_rank,
+    "latex-scaffold": _check_latex_scaffold,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)
@@ -1222,8 +1334,8 @@ class NativeQualityProvider(QualityCheckProvider):
     target, quality contract) through.  It defaults to the legacy adapter so
     runtime behavior is unchanged; the whole survey-retrieval family
     (``citation-verifier``, ``arxiv-search``, ``pdf-text-extractor``,
-    ``literature-engineer``, ``dedupe-rank``) consumes it, so the seam is
-    load-bearing rather than merely constructed.
+    ``literature-engineer``, ``dedupe-rank``) plus ``latex-scaffold`` consume
+    it, so the seam is load-bearing rather than merely constructed.
     """
 
     legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)

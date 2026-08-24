@@ -342,6 +342,7 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "deliverable-selfloop",
         "artifact-contract-auditor",
         "beamer-compile-qa",
+        "beamer-scaffold",
         # policy-consuming native skills route through the policy table, still
         # not delegated to legacy.
         "citation-verifier",
@@ -349,6 +350,7 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "pdf-text-extractor",
         "literature-engineer",
         "dedupe-rank",
+        "latex-scaffold",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
@@ -360,11 +362,13 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "deliverable-selfloop") not in calls
     assert ("outputs", "artifact-contract-auditor") not in calls
     assert ("outputs", "beamer-compile-qa") not in calls
+    assert ("outputs", "beamer-scaffold") not in calls
     assert ("outputs", "citation-verifier") not in calls
     assert ("outputs", "arxiv-search") not in calls
     assert ("outputs", "pdf-text-extractor") not in calls
     assert ("outputs", "literature-engineer") not in calls
     assert ("outputs", "dedupe-rank") not in calls
+    assert ("outputs", "latex-scaffold") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -820,10 +824,16 @@ def test_native_arxiv_search_consumes_injected_policy_minimum_records() -> None:
 def _survey_ws(tmp_path: Path, name: str, *, profile: str = "default") -> Path:
     ws = tmp_path / name
     ws.mkdir()
-    if profile == "arxiv-survey":
-        (ws / "PIPELINE.lock.md").write_text(
-            "pipeline: pipelines/arxiv-survey.pipeline.md\n", encoding="utf-8"
-        )
+    # Materialize a real PIPELINE.lock so both providers resolve the profile
+    # identically through the default legacy reader. "default" writes no lock
+    # (pipeline_profile falls back to "default").
+    _lock_by_profile = {
+        "arxiv-survey": "pipelines/arxiv-survey.pipeline.md",
+        "source-tutorial": "pipelines/source-tutorial.pipeline.md",
+    }
+    lock = _lock_by_profile.get(profile)
+    if lock:
+        (ws / "PIPELINE.lock.md").write_text(f"pipeline: {lock}\n", encoding="utf-8")
     return ws
 
 
@@ -1034,3 +1044,76 @@ def test_native_dedupe_pass_default_profile(tmp_path: Path) -> None:
     ws = _survey_ws(tmp_path, "dd_pass")  # default profile: no survey thresholds
     _write_file(ws, "papers/core_set.csv", "paper_id,title\np1,A\np2,B\n")
     assert _both("dedupe-rank", ws, _DEDUPE_OUT) == []
+
+
+# --- delivery-family scaffolds: beamer-scaffold, latex-scaffold parity ------
+
+
+def test_native_beamer_scaffold_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "bs_missing")
+    assert _both("beamer-scaffold", ws, ["latex/slides/main.tex"]) == [
+        ("missing_beamer_tex", "`latex/slides/main.tex` does not exist.")
+    ]
+
+
+def test_native_beamer_scaffold_all_issues_ordered(tmp_path: Path) -> None:
+    # Not a beamer doc, no frames, leaked markdown headings -> all three, in
+    # the legacy order.
+    ws = _survey_ws(tmp_path, "bs_bad")
+    _write_file(ws, "latex/slides/main.tex", "\\documentclass{article}\n## heading\n")
+    pairs = _both("beamer-scaffold", ws, ["latex/slides/main.tex"])
+    assert [c for c, _ in pairs] == [
+        "beamer_missing_class",
+        "beamer_missing_frames",
+        "beamer_markdown_headings",
+    ]
+
+
+def test_native_beamer_scaffold_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "bs_pass")
+    _write_file(
+        ws,
+        "latex/slides/main.tex",
+        "\\documentclass{beamer}\n\\begin{frame}\n\\end{frame}\n",
+    )
+    assert _both("beamer-scaffold", ws, ["latex/slides/main.tex"]) == []
+
+
+def test_native_latex_scaffold_missing(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "ls_missing")
+    assert _both("latex-scaffold", ws, ["latex/main.tex"]) == [
+        ("missing_main_tex", "`latex/main.tex` does not exist.")
+    ]
+
+
+def test_native_latex_scaffold_default_profile_requires_structure(tmp_path: Path) -> None:
+    # default profile: missing abstract + bib, plus leaked markdown -> ordered.
+    ws = _survey_ws(tmp_path, "ls_default")
+    _write_file(ws, "latex/main.tex", "\\documentclass{article}\n[@k]\n**b**\n## h\n")
+    pairs = _both("latex-scaffold", ws, ["latex/main.tex"])
+    assert [c for c, _ in pairs] == [
+        "latex_missing_abstract",
+        "latex_missing_bib",
+        "latex_markdown_cites",
+        "latex_markdown_bold",
+        "latex_markdown_headings",
+    ]
+
+
+def test_native_latex_scaffold_source_tutorial_exempts_structure(tmp_path: Path) -> None:
+    # source-tutorial profile: abstract/bib NOT required. A clean tutorial tex
+    # passes on both providers (proving the policy branch is consumed).
+    ws = _survey_ws(tmp_path, "ls_tut", profile="source-tutorial")
+    _write_file(ws, "latex/main.tex", "\\documentclass{article}\nplain body\n")
+    assert _both("latex-scaffold", ws, ["latex/main.tex"]) == []
+
+
+def test_native_latex_scaffold_pass_default(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "ls_pass")
+    _write_file(
+        ws,
+        "latex/main.tex",
+        "\\documentclass{article}\n\\begin{abstract}\\end{abstract}\n"
+        "\\bibliography{../citations/ref}\n",
+    )
+    assert _both("latex-scaffold", ws, ["latex/main.tex"]) == []
