@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -166,6 +167,17 @@ def _writer(
         artifacts.put(run_id, output, f"created by {context.unit_id}")
 
     return InMemorySkillAdapter(handler=write, adapter=f"fixture:{output}")
+
+
+def _filesystem_writer(workspace: Path, *, output: str) -> InMemorySkillAdapter:
+    """A writer that materializes a real file on disk (for filesystem storage)."""
+
+    def write(context: SkillContext) -> None:
+        path = workspace / output
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"created by {context.unit_id}\n", encoding="utf-8")
+
+    return InMemorySkillAdapter(handler=write, adapter=f"fixture:fs:{output}")
 
 
 def test_one_advance_hides_attempt_choreography_and_completes_run(
@@ -464,6 +476,70 @@ def test_state_write_fault_at_attempt_begin_is_recoverable(
     assert recovered.outcome is EngineOutcome.COMPLETED
     assert calls == ["U010"]
     assert engine.inspect().run.unit("U010").status is UnitStatus.DONE
+
+
+def test_completed_run_is_replayable_in_a_disposable_workspace(
+    tmp_path: Path,
+) -> None:
+    # Disposable-Workspace replay evidence: a completed Run's durable state
+    # (``.harness-v3/`` + the materialized Artifacts) is self-contained and
+    # path-independent. Cloning it into a fresh Workspace with a different
+    # absolute path and opening an engine there reproduces the same COMPLETED
+    # Run, and advancing the replay is a no-op. The durable state -- not the
+    # Workspace path -- is the authority.
+    source = tmp_path / "source"
+    source.mkdir()
+    run_id = "run-replay"
+    engine = LocalRunEngine.for_workspace(
+        source,
+        skill_adapters={"writer": _filesystem_writer(source, output="result.md")},
+        acceptance=InMemoryAcceptance(),
+        revision=_revision(),
+    )
+    engine.execute(
+        CreateLocalRun(
+            run_id=run_id,
+            plan=_plan(
+                UnitPlan(
+                    id="U010", title="Write", skill="writer", outputs=("result.md",)
+                ),
+                targets=("result.md",),
+            ),
+        )
+    )
+    completed = engine.execute(AdvanceRun())
+    assert completed.outcome is EngineOutcome.COMPLETED
+    source_view = engine.inspect().run
+    assert source_view is not None
+
+    # Clone the durable state + the materialized Artifact into a disposable
+    # Workspace with a different absolute path.
+    disposable = tmp_path / "disposable"
+    disposable.mkdir()
+    shutil.copytree(source / ".harness-v3", disposable / ".harness-v3")
+    shutil.copy2(source / "result.md", disposable / "result.md")
+
+    replay = LocalRunEngine.for_workspace(
+        disposable,
+        skill_adapters={
+            "writer": _filesystem_writer(disposable, output="result.md")
+        },
+        acceptance=InMemoryAcceptance(),
+        revision=_revision(),
+    )
+    replayed = replay.inspect().run
+    assert replayed is not None
+    assert replayed.id == source_view.id
+    assert replayed.version == source_view.version
+    assert replayed.status is RunStatus.COMPLETED
+    assert replayed.completions == source_view.completions
+    assert replayed.unit("U010").status is UnitStatus.DONE
+
+    # The replayed engine recognizes the Run as already complete: advancing is
+    # a no-op that re-runs no Skill.
+    advanced = replay.execute(AdvanceRun())
+    assert advanced.outcome is EngineOutcome.COMPLETED
+    assert advanced.unit_ids == ()
 
 
 def test_legacy_v2_workspace_is_inspectable_but_never_mutated(
