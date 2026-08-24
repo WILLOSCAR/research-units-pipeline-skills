@@ -102,3 +102,14 @@ class WorkspacePolicyPort(Protocol):
         output inspection.
         """
         ...
+
+    def evaluate_evidence_review(self, workspace: Path) -> dict[str, Any]:
+        """Return the evidence-review scorecard for the run.
+
+        Mirrors ``tooling.evidence_review_evaluation.evaluate_evidence_review``:
+        reads protocol / screening / extraction / synthesis artifacts and the
+        candidate pool into a scorecard whose ``synthesis_traceability``
+        dimension the native ``check_synthesis`` reads.  Kept behind the Port
+        because scoring is a heavyweight evaluator, not output inspection.
+        """
+        ...

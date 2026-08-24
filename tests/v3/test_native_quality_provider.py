@@ -321,13 +321,13 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
 
     native = NativeQualityProvider(legacy=_SpyLegacy())
 
-    # Non-native skill -> delegated. (protocol-writer is registered but has no
+    # Non-native skill -> delegated. (taxonomy-builder is registered but has no
     # native reimplementation -- the survey-retrieval, delivery, source-tutorial,
-    # research-idea, and paper-review families are native, but the
-    # evidence-review family still delegates -- so it must route to the composed
-    # legacy adapter.)
+    # research-idea, paper-review, and evidence-review families are native, but
+    # the survey-planning/structure/writing families still delegate -- so it
+    # must route to the composed legacy adapter.)
     native.check_unit_outputs(
-        skill="protocol-writer", workspace=tmp_path, outputs=[]
+        skill="taxonomy-builder", workspace=tmp_path, outputs=[]
     )
     # Completion invariants always delegated (none reimplemented yet).
     native.check_completion_invariants(
@@ -369,12 +369,17 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "evidence-auditor",
         "novelty-matrix",
         "rubric-writer",
+        "protocol-writer",
+        "screening-manager",
+        "extraction-form",
+        "bias-assessor",
+        "synthesis-writer",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
         )
 
-    assert ("outputs", "protocol-writer") in calls
+    assert ("outputs", "taxonomy-builder") in calls
     assert ("invariants", "outline-refiner") in calls
     assert ("outputs", "citation-injector") not in calls
     assert ("outputs", "deliverable-selfloop") not in calls
@@ -404,6 +409,11 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "evidence-auditor") not in calls
     assert ("outputs", "novelty-matrix") not in calls
     assert ("outputs", "rubric-writer") not in calls
+    assert ("outputs", "protocol-writer") not in calls
+    assert ("outputs", "screening-manager") not in calls
+    assert ("outputs", "extraction-form") not in calls
+    assert ("outputs", "bias-assessor") not in calls
+    assert ("outputs", "synthesis-writer") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -1805,3 +1815,209 @@ def test_native_paper_review_consumes_injected_scorecard() -> None:
         assert failed == [
             ("paper_review_claim_traceability", "Paper-review `claim_traceability` is FAIL: stub")
         ]
+
+
+# --- evidence-review family parity (whole module native) --------------------
+#
+# protocol-writer / screening-manager / extraction-form / bias-assessor are
+# self-contained CSV/text checks; synthesis-writer additionally reads the
+# evidence-review scorecard's synthesis_traceability dimension through the Port
+# (legacy-backed, byte-identical). `_both` asserts native == legacy.
+
+_ER_CANON = [
+    "population_or_setting",
+    "task",
+    "metric",
+    "study_type",
+    "result_summary",
+    "evidence_pointer",
+]
+
+
+def _write_good_protocol(ws: Path) -> None:
+    parts = [
+        "# Protocol\n",
+        "## Databases and Sources\narxiv\n",
+        "## Time Window\n- time_window_from: 2020\n- time_window_to: 2026\n",
+        "- RQ1: a question\n",
+        "- I1: include a\n- I2: include b\n",
+        "- E1: exclude a\n- E2: exclude b\n",
+        "## Extraction Schema\n| field | definition | allowed_values | notes |\n| --- | --- | --- | --- |\n",
+    ]
+    for f in _ER_CANON:
+        parts.append(f"| {f} | def | any | notes |\n")
+    _write_file(ws, "output/PROTOCOL.md", "".join(parts))
+
+
+def test_native_protocol_missing(tmp_path: Path) -> None:
+    ws = tmp_path / "pr_missing"
+    ws.mkdir()
+    assert _both("protocol-writer", ws, ["output/PROTOCOL.md"]) == [
+        ("missing_protocol", "`output/PROTOCOL.md` does not exist.")
+    ]
+
+
+def test_native_protocol_missing_parts_and_placeholders(tmp_path: Path) -> None:
+    ws = tmp_path / "pr_thin"
+    ws.mkdir()
+    _write_file(ws, "output/PROTOCOL.md", "# Protocol\nTODO finish\n")
+    codes = {c for c, _ in _both("protocol-writer", ws, ["output/PROTOCOL.md"])}
+    assert "protocol_placeholders" in codes
+    assert "protocol_missing_sections" in codes
+
+
+def test_native_protocol_pass(tmp_path: Path) -> None:
+    ws = tmp_path / "pr_ok"
+    ws.mkdir()
+    _write_good_protocol(ws)
+    assert _both("protocol-writer", ws, ["output/PROTOCOL.md"]) == []
+
+
+def test_native_screening_missing_inputs(tmp_path: Path) -> None:
+    ws = tmp_path / "sc_missing"
+    ws.mkdir()
+    assert _both("screening-manager", ws, ["papers/screening_log.csv"]) == [
+        (
+            "missing_screening_inputs",
+            "Evidence screening requires the protocol and screening log.",
+        )
+    ]
+
+
+def test_native_screening_untraceable_and_coverage(tmp_path: Path) -> None:
+    ws = tmp_path / "sc_bad"
+    ws.mkdir()
+    _write_good_protocol(ws)
+    _write_file(ws, "papers/papers_dedup.jsonl", json.dumps({"paper_id": "P0001"}))
+    # decision covers a different id, invalid code, no reason
+    _write_file(
+        ws,
+        "papers/screening_log.csv",
+        "paper_id,decision,reason_codes,reason\nP0002,maybe,ZZ,\n",
+    )
+    codes = {c for c, _ in _both("screening-manager", ws, ["papers/screening_log.csv"])}
+    assert "screening_candidate_coverage" in codes
+    assert "untraceable_screening_rows" in codes
+
+
+def test_native_extraction_missing_inputs(tmp_path: Path) -> None:
+    ws = tmp_path / "ex_missing"
+    ws.mkdir()
+    for skill in ("extraction-form", "bias-assessor"):
+        assert _both(skill, ws, ["papers/extraction_table.csv"]) == [
+            (
+                "missing_extraction_inputs",
+                "Evidence extraction requires the screening log and extraction table.",
+            )
+        ]
+
+
+def test_native_extraction_bias_variant_differs(tmp_path: Path) -> None:
+    # A table missing risk-of-bias fields passes extraction-form's bias check
+    # but fails bias-assessor's -- verify each matches legacy independently.
+    ws = tmp_path / "ex_bias"
+    ws.mkdir()
+    _write_file(
+        ws,
+        "papers/screening_log.csv",
+        "paper_id,decision,reason_codes,reason\nP0001,include,I1,ok\n",
+    )
+    header = "paper_id," + ",".join(_ER_CANON)
+    _write_file(
+        ws,
+        "papers/extraction_table.csv",
+        header + "\nP0001," + ",".join("value" for _ in _ER_CANON) + "\n",
+    )
+    form_codes = {c for c, _ in _both("extraction-form", ws, ["papers/extraction_table.csv"])}
+    bias_codes = {c for c, _ in _both("bias-assessor", ws, ["papers/extraction_table.csv"])}
+    assert "incomplete_bias_assessment" not in form_codes
+    assert "incomplete_bias_assessment" in bias_codes
+
+
+def test_native_synthesis_missing(tmp_path: Path) -> None:
+    ws = tmp_path / "sy_missing"
+    ws.mkdir()
+    assert _both("synthesis-writer", ws, ["output/SYNTHESIS.md"]) == [
+        ("missing_evidence_synthesis", "`output/SYNTHESIS.md` does not exist.")
+    ]
+
+
+def test_native_synthesis_missing_sections_and_traceability(tmp_path: Path) -> None:
+    # A synthesis missing sections + with untraceable pointers fails both the
+    # native section scan and the Port-provided synthesis_traceability dimension.
+    ws = tmp_path / "sy_thin"
+    ws.mkdir()
+    _write_file(ws, "output/SYNTHESIS.md", "## Research questions + scope\nx\n")
+    codes = [c for c, _ in _both("synthesis-writer", ws, ["output/SYNTHESIS.md"])]
+    assert "evidence_synthesis_missing_section" in codes
+
+
+def test_native_synthesis_consumes_injected_scorecard() -> None:
+    # Prove check_synthesis reads synthesis_traceability through the Port.
+    import tempfile
+
+    class _StubPolicy:
+        def __init__(self, status: str) -> None:
+            self._status = status
+
+        def pipeline_profile_name(self, workspace: Path) -> str:
+            return "default"
+
+        def evidence_mode(self, workspace: Path) -> str:
+            return "abstract"
+
+        def core_size(self, workspace: Path) -> int:
+            return 0
+
+        def pipeline_quality_contract_value(self, workspace, *keys, default=None):
+            return default
+
+        def workspace_goal_constraints(self, workspace: Path) -> dict:
+            return {}
+
+        def has_pipeline_contract(self, workspace: Path) -> bool:
+            return True
+
+        def resolve_idea_contract(self, workspace: Path) -> dict:
+            return {}
+
+        def evaluate_paper_review(self, workspace: Path) -> dict:
+            return {"dimensions": []}
+
+        def evaluate_evidence_review(self, workspace: Path) -> dict:
+            return {
+                "dimensions": [
+                    {
+                        "id": "synthesis_traceability",
+                        "status": self._status,
+                        "evidence": "stub trace",
+                    }
+                ]
+            }
+
+    with tempfile.TemporaryDirectory() as d:
+        ws = Path(d)
+        # All required sections present so only the traceability dimension matters.
+        (ws / "output").mkdir()
+        (ws / "output" / "SYNTHESIS.md").write_text(
+            "".join(
+                f"{h}\nx\n"
+                for h in (
+                    "## Research questions + scope",
+                    "## Included studies summary",
+                    "## Extracted evidence table",
+                    "## Findings by theme",
+                    "## Risk of bias",
+                    "## Supported conclusions",
+                    "## Needs more evidence",
+                )
+            ),
+            encoding="utf-8",
+        )
+        passing = NativeQualityProvider(policy=_StubPolicy("PASS"))
+        failing = NativeQualityProvider(policy=_StubPolicy("FAIL"))
+        assert passing.check_unit_outputs(skill="synthesis-writer", workspace=ws, outputs=[]) == []
+        failed = _pairs(
+            failing.check_unit_outputs(skill="synthesis-writer", workspace=ws, outputs=[])
+        )
+        assert failed == [("evidence_synthesis_untraceable", "stub trace")]

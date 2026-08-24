@@ -3981,6 +3981,527 @@ def _check_review(
     )
 
 
+
+
+# --- evidence-review family (policy-consuming) ------------------------------
+#
+# Native reimplementation of the whole ``tooling.quality_checks.evidence_review``
+# module (five registered checks: protocol-writer, screening-manager,
+# extraction-form + bias-assessor -> check_extraction with/without require_bias,
+# synthesis-writer).  The protocol parser, candidate-pool loader, stable-id
+# helper, and the two canonical constant tuples are self-contained and are
+# reimplemented natively.  The one heavyweight dependency -- the evidence-review
+# scorecard read by check_synthesis -- stays behind the ``WorkspacePolicyPort``
+# (``evaluate_evidence_review``), legacy-backed so the scorecard is
+# byte-identical; only the ``synthesis_traceability`` dimension is consulted.
+
+
+_ER_CANONICAL_EXTRACTION_FIELDS = (
+    "population_or_setting",
+    "task",
+    "metric",
+    "study_type",
+    "result_summary",
+    "evidence_pointer",
+)
+_ER_REQUIRED_SYNTHESIS_SECTIONS = (
+    "## Research questions + scope",
+    "## Included studies summary",
+    "## Extracted evidence table",
+    "## Findings by theme",
+    "## Risk of bias",
+    "## Supported conclusions",
+    "## Needs more evidence",
+)
+
+
+def _er_parse_protocol_extraction_fields(text: str) -> list[dict[str, str]]:
+    """Native mirror of ``tooling.review_protocol.parse_protocol_extraction_fields``."""
+
+    lines = (text or "").splitlines()
+    fields: list[dict[str, str]] = []
+    in_table = False
+    for raw in lines:
+        line = raw.strip()
+        if line == "## Extraction Schema":
+            in_table = True
+            continue
+        if in_table and line.startswith("## "):
+            break
+        if not in_table or not line.startswith("|"):
+            continue
+        cols = [col.strip() for col in line.strip("|").split("|")]
+        if not cols or cols[0] in {"field", "---"}:
+            continue
+        if len(cols) < 4:
+            continue
+        fields.append(
+            {
+                "field": cols[0],
+                "definition": cols[1],
+                "allowed_values": cols[2],
+                "notes": cols[3],
+            }
+        )
+    return fields
+
+
+def _er_parse_protocol(text: str) -> dict[str, Any]:
+    """Native mirror of ``tooling.review_protocol.parse_protocol``."""
+
+    data: dict[str, Any] = {
+        "review_questions": [],
+        "include_keywords": [],
+        "exclude_keywords": [],
+        "time_window_from": "",
+        "time_window_to": "",
+        "inclusion": [],
+        "exclusion": [],
+        "extraction_fields": [],
+    }
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- RQ"):
+            data["review_questions"].append(stripped[2:].strip())
+        elif stripped.startswith("- include_keywords:"):
+            data["include_keywords"] = [
+                item.strip()
+                for item in stripped.split(":", 1)[1].split(";")
+                if item.strip()
+            ]
+        elif stripped.startswith("- exclude_keywords:"):
+            data["exclude_keywords"] = [
+                item.strip()
+                for item in stripped.split(":", 1)[1].split(";")
+                if item.strip()
+            ]
+        elif stripped.startswith("- time_window_from:"):
+            data["time_window_from"] = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("- time_window_to:"):
+            data["time_window_to"] = stripped.split(":", 1)[1].strip()
+        elif re.match(r"^- I[0-9]+:", stripped):
+            code, body = stripped[2:].split(":", 1)
+            data["inclusion"].append((code.strip(), body.strip()))
+        elif re.match(r"^- E[0-9]+:", stripped):
+            code, body = stripped[2:].split(":", 1)
+            data["exclusion"].append((code.strip(), body.strip()))
+    data["extraction_fields"] = _er_parse_protocol_extraction_fields(text)
+    return data
+
+
+def _er_load_candidate_records(workspace: Path) -> list[dict[str, Any]]:
+    """Native mirror of ``tooling.review_artifacts.load_candidate_records``."""
+
+    papers_dir = workspace / "papers"
+    for path in (
+        papers_dir / "papers_dedup.jsonl",
+        papers_dir / "papers_raw.jsonl",
+        papers_dir / "core_set.csv",
+    ):
+        if not path.exists():
+            continue
+        if path.suffix == ".jsonl":
+            return [rec for rec in _read_jsonl(path) if isinstance(rec, dict)]
+        if path.suffix == ".csv":
+            with path.open("r", encoding="utf-8", newline="") as handle:
+                return [dict(row) for row in csv.DictReader(handle)]
+    return []
+
+
+def _er_stable_paper_id(record: dict[str, Any], *, index: int) -> str:
+    """Native mirror of ``tooling.review_artifacts.stable_paper_id``."""
+
+    value = str(record.get("paper_id") or "").strip()
+    return value if value else f"P{index:04d}"
+
+
+def _check_protocol(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``evidence_review.check_protocol``.
+
+    Self-contained (does not consume ``policy``); routed through the policy
+    dispatch table only so it sits beside its evidence-review siblings.
+    """
+
+    out_rel = outputs[0] if outputs else "output/PROTOCOL.md"
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_protocol", message=f"`{out_rel}` does not exist."
+            )
+        ]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+
+    issues: list[NativeQualityIssue] = []
+    if _has_placeholder_markers(text):
+        issues.append(
+            NativeQualityIssue(
+                code="protocol_placeholders",
+                message="Protocol contains placeholder markers (TODO/TBD/FIXME).",
+            )
+        )
+
+    protocol = _er_parse_protocol(text)
+    field_names = {
+        str(item.get("field") or "").strip()
+        for item in protocol.get("extraction_fields") or []
+    }
+    missing_fields = [
+        field for field in _ER_CANONICAL_EXTRACTION_FIELDS if field not in field_names
+    ]
+    missing_parts: list[str] = []
+    if "## Databases and Sources" not in text:
+        missing_parts.append("databases and sources")
+    if "## Time Window" not in text:
+        missing_parts.append("time window")
+    if len(protocol.get("review_questions") or []) < 1:
+        missing_parts.append("review questions")
+    if len(protocol.get("inclusion") or []) < 2:
+        missing_parts.append("numbered inclusion clauses")
+    if len(protocol.get("exclusion") or []) < 2:
+        missing_parts.append("numbered exclusion clauses")
+    if missing_fields:
+        missing_parts.append("extraction fields: " + ", ".join(missing_fields))
+    if missing_parts:
+        issues.append(
+            NativeQualityIssue(
+                code="protocol_missing_sections",
+                message=(
+                    "Protocol is missing operational contract parts: "
+                    f"{', '.join(missing_parts)}."
+                ),
+            )
+        )
+    return issues
+
+
+def _check_screening(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``evidence_review.check_screening``.
+
+    Self-contained (does not consume ``policy``); routed through the policy
+    dispatch table only so it sits beside its evidence-review siblings.
+    """
+
+    from collections import Counter
+
+    out_rel = outputs[0] if outputs else "papers/screening_log.csv"
+    path = workspace / out_rel
+    protocol_path = workspace / "output" / "PROTOCOL.md"
+    if not path.exists() or not protocol_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_screening_inputs",
+                message="Evidence screening requires the protocol and screening log.",
+            )
+        ]
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = [dict(row) for row in csv.DictReader(handle)]
+    candidates = _er_load_candidate_records(workspace)
+    candidate_ids = {
+        _er_stable_paper_id(record, index=index)
+        for index, record in enumerate(candidates, start=1)
+    }
+    screened_ids = [str(row.get("paper_id") or "").strip() for row in rows]
+    screened_id_set = {paper_id for paper_id in screened_ids if paper_id}
+    protocol = _er_parse_protocol(
+        protocol_path.read_text(encoding="utf-8", errors="ignore")
+    )
+    valid_codes = {
+        code
+        for code, _ in (protocol.get("inclusion") or [])
+        + (protocol.get("exclusion") or [])
+    }
+    invalid = 0
+    included = 0
+    for row in rows:
+        decision = str(row.get("decision") or "").strip().lower()
+        included += int(decision == "include")
+        codes = {
+            value.strip()
+            for value in re.split(r"[;,\s]+", str(row.get("reason_codes") or ""))
+            if value.strip()
+        }
+        if (
+            decision not in {"include", "exclude"}
+            or not str(row.get("paper_id") or "").strip()
+            or not codes
+            or not codes.issubset(valid_codes)
+            or not str(row.get("reason") or "").strip()
+        ):
+            invalid += 1
+    issues: list[NativeQualityIssue] = []
+    if not rows:
+        issues.append(
+            NativeQualityIssue(
+                code="empty_screening_log",
+                message=f"`{out_rel}` has no screening decisions.",
+            )
+        )
+    if not candidates:
+        issues.append(
+            NativeQualityIssue(
+                code="missing_screening_candidate_pool",
+                message="No candidate pool is available to verify screening completeness.",
+            )
+        )
+    elif candidate_ids != screened_id_set:
+        missing = sorted(candidate_ids - screened_id_set)
+        unexpected = sorted(screened_id_set - candidate_ids)
+        issues.append(
+            NativeQualityIssue(
+                code="screening_candidate_coverage",
+                message=(
+                    f"`{out_rel}` covers "
+                    f"{len(screened_id_set & candidate_ids)}/{len(candidate_ids)} "
+                    f"candidate IDs; missing={missing[:5] or 'none'}, "
+                    f"unexpected={unexpected[:5] or 'none'}."
+                ),
+            )
+        )
+    id_counts = Counter(paper_id for paper_id in screened_ids if paper_id)
+    duplicate_ids = sorted(
+        paper_id for paper_id, count in id_counts.items() if count > 1
+    )
+    if duplicate_ids:
+        issues.append(
+            NativeQualityIssue(
+                code="duplicate_screening_decisions",
+                message=(
+                    f"`{out_rel}` contains duplicate decisions for: "
+                    f"{', '.join(duplicate_ids[:5])}."
+                ),
+            )
+        )
+    if invalid:
+        issues.append(
+            NativeQualityIssue(
+                code="untraceable_screening_rows",
+                message=(
+                    f"`{out_rel}` has {invalid} row(s) without valid "
+                    "protocol-linked decisions and reasons."
+                ),
+            )
+        )
+    if rows and included == 0:
+        issues.append(
+            NativeQualityIssue(
+                code="screening_includes_nothing",
+                message=(
+                    f"`{out_rel}` includes no studies; revise the protocol or "
+                    "candidate pool before extraction."
+                ),
+            )
+        )
+    return issues
+
+
+def _check_extraction(
+    workspace: Path, outputs: list[str], *, require_bias: bool
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``evidence_review.check_extraction``.
+
+    ``require_bias`` selects the bias-assessor variant (risk-of-bias fields
+    required) vs the extraction-form variant, exactly as the legacy quality_gate
+    wrappers pass it.
+    """
+
+    from collections import Counter
+
+    out_rel = outputs[0] if outputs else "papers/extraction_table.csv"
+    path = workspace / out_rel
+    screening_path = workspace / "papers" / "screening_log.csv"
+    if not path.exists() or not screening_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_extraction_inputs",
+                message="Evidence extraction requires the screening log and extraction table.",
+            )
+        ]
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = [dict(row) for row in csv.DictReader(handle)]
+    with screening_path.open("r", encoding="utf-8", newline="") as handle:
+        screening = [dict(row) for row in csv.DictReader(handle)]
+    included_ids = {
+        str(row.get("paper_id") or "").strip()
+        for row in screening
+        if str(row.get("decision") or "").strip().lower() == "include"
+    }
+    extracted_ids = {
+        str(row.get("paper_id") or "").strip()
+        for row in rows
+        if str(row.get("paper_id") or "").strip()
+    }
+    extracted_id_list = [
+        str(row.get("paper_id") or "").strip()
+        for row in rows
+        if str(row.get("paper_id") or "").strip()
+    ]
+    issues: list[NativeQualityIssue] = []
+    if not rows:
+        return [
+            NativeQualityIssue(
+                code="empty_extraction_table",
+                message=f"`{out_rel}` has no extracted studies.",
+            )
+        ]
+    missing_columns = [
+        field for field in _ER_CANONICAL_EXTRACTION_FIELDS if field not in set(rows[0])
+    ]
+    if missing_columns:
+        issues.append(
+            NativeQualityIssue(
+                code="extraction_missing_columns",
+                message=(
+                    f"`{out_rel}` is missing canonical fields: "
+                    f"{', '.join(missing_columns)}."
+                ),
+            )
+        )
+    missing_ids = sorted(included_ids - extracted_ids)
+    unexpected_ids = sorted(extracted_ids - included_ids)
+    if missing_ids or unexpected_ids:
+        issues.append(
+            NativeQualityIssue(
+                code="extraction_screening_mismatch",
+                message=(
+                    "Extraction IDs must equal included screening IDs; "
+                    f"missing={missing_ids}, unexpected={unexpected_ids}."
+                ),
+            )
+        )
+    duplicate_ids = sorted(
+        paper_id
+        for paper_id, count in Counter(extracted_id_list).items()
+        if count > 1
+    )
+    if duplicate_ids:
+        issues.append(
+            NativeQualityIssue(
+                code="duplicate_extraction_rows",
+                message=(
+                    f"`{out_rel}` contains duplicate extraction rows for: "
+                    f"{', '.join(duplicate_ids[:5])}."
+                ),
+            )
+        )
+    thin_rows = sum(
+        1
+        for row in rows
+        if any(
+            not value
+            or value.startswith("not reported")
+            or value.startswith("not classifiable")
+            for value in [
+                str(row.get(field) or "").strip().lower()
+                for field in _ER_CANONICAL_EXTRACTION_FIELDS
+            ]
+        )
+    )
+    if thin_rows:
+        issues.append(
+            NativeQualityIssue(
+                code="extraction_rows_not_substantive",
+                message=(
+                    f"`{out_rel}` has {thin_rows} row(s) with missing or explicitly "
+                    "unavailable canonical evidence fields; enrich or exclude them "
+                    "before synthesis."
+                ),
+            )
+        )
+    if require_bias:
+        allowed = {"low", "unclear", "high"}
+        rob_fields = (
+            "rob_selection",
+            "rob_measurement",
+            "rob_confounding",
+            "rob_reporting",
+            "rob_overall",
+        )
+        invalid_bias = sum(
+            1
+            for row in rows
+            if any(
+                str(row.get(field) or "").strip().lower() not in allowed
+                for field in rob_fields
+            )
+            or not str(row.get("rob_notes") or "").strip()
+        )
+        if invalid_bias:
+            issues.append(
+                NativeQualityIssue(
+                    code="incomplete_bias_assessment",
+                    message=(
+                        f"`{out_rel}` has {invalid_bias} row(s) with incomplete "
+                        "risk-of-bias fields."
+                    ),
+                )
+            )
+    return issues
+
+
+def _check_extraction_form(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native mirror of the ``extraction-form`` wrapper (require_bias=False)."""
+
+    return _check_extraction(workspace, outputs, require_bias=False)
+
+
+def _check_bias_assessor(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native mirror of the ``bias-assessor`` wrapper (require_bias=True)."""
+
+    return _check_extraction(workspace, outputs, require_bias=True)
+
+
+def _check_synthesis(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``evidence_review.check_synthesis``.
+
+    Reads the evidence-review scorecard's ``synthesis_traceability`` dimension
+    through the injected Port (legacy-backed, byte-identical); the required
+    section scan is native.
+    """
+
+    out_rel = outputs[0] if outputs else "output/SYNTHESIS.md"
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_evidence_synthesis",
+                message=f"`{out_rel}` does not exist.",
+            )
+        ]
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    issues = [
+        NativeQualityIssue(
+            code="evidence_synthesis_missing_section",
+            message=f"`{out_rel}` is missing `{heading}`.",
+        )
+        for heading in _ER_REQUIRED_SYNTHESIS_SECTIONS
+        if heading not in text
+    ]
+    payload = policy.evaluate_evidence_review(workspace)
+    trace = next(
+        (item for item in payload["dimensions"] if item["id"] == "synthesis_traceability"),
+        None,
+    )
+    if trace and trace["status"] != "PASS":
+        issues.append(
+            NativeQualityIssue(
+                code="evidence_synthesis_untraceable",
+                message=str(trace["evidence"]),
+            )
+        )
+    return issues
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -4009,6 +4530,11 @@ _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "evidence-auditor": _check_evidence_audit,
     "novelty-matrix": _check_novelty_matrix,
     "rubric-writer": _check_review,
+    "extraction-form": _check_extraction_form,
+    "bias-assessor": _check_bias_assessor,
+    "synthesis-writer": _check_synthesis,
+    "protocol-writer": _check_protocol,
+    "screening-manager": _check_screening,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)

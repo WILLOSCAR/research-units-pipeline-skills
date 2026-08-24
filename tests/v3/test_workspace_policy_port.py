@@ -43,6 +43,7 @@ def test_port_surface_is_complete() -> None:
         "has_pipeline_contract",
         "resolve_idea_contract",
         "evaluate_paper_review",
+        "evaluate_evidence_review",
     ):
         assert callable(getattr(reader, method)), method
 
@@ -157,6 +158,17 @@ def test_reader_paper_review_scorecard_pass_through(tmp_path: Path) -> None:
     assert native == legacy
 
 
+def test_reader_evidence_review_scorecard_pass_through(tmp_path: Path) -> None:
+    # evaluate_evidence_review mirrors tooling.evidence_review_evaluation exactly.
+    from tooling.evidence_review_evaluation import evaluate_evidence_review as legacy_eval
+
+    reader = default_workspace_policy_reader()
+    native = reader.evaluate_evidence_review(tmp_path)
+    legacy = legacy_eval(tmp_path)
+    assert isinstance(native, dict) and "dimensions" in native
+    assert native == legacy
+
+
 def test_reader_matches_tooling_on_empty_workspace(tmp_path: Path) -> None:
     # With no queries.md / no resolvable spec, the adapter returns the same
     # defaults tooling does.
@@ -226,6 +238,10 @@ def test_native_provider_accepts_injected_policy_reader() -> None:
 
         def evaluate_paper_review(self, workspace: Path) -> dict[str, object]:
             self.calls.append("evaluate_paper_review")
+            return {"dimensions": []}
+
+        def evaluate_evidence_review(self, workspace: Path) -> dict[str, object]:
+            self.calls.append("evaluate_evidence_review")
             return {"dimensions": []}
 
     reader = _RecordingReader()
