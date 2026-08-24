@@ -712,6 +712,67 @@ def test_all_validated_workflows_have_repository_acceptance_coverage(
     assert isinstance(policy, WorkflowAcceptancePolicy)
 
 
+def test_native_and_legacy_policies_are_identical_across_all_workflows(
+    tmp_path: Path,
+) -> None:
+    """Cutover-safety at the orchestration level.
+
+    Building the repository acceptance policy with the native provider vs the
+    legacy provider must yield identical ``(workflow, skill)`` bindings for
+    every real workflow, and evaluating a bound unit through each policy must
+    yield byte-identical ``AcceptanceEvidence``.  The orchestration
+    concatenates completion-invariant + unit-output issues, then bounds and
+    sanitizes them -- provider-agnostic in principle, but here proven
+    end-to-end so the default flip cannot silently change an acceptance
+    outcome.
+    """
+    from research_harness.acceptance import NativeQualityProvider
+    from research_harness.workflows import load_workflow_definition
+
+    repo_root = Path(__file__).resolve().parents[2]
+    names = (
+        "arxiv-survey-latex",
+        "arxiv-survey",
+        "evidence-review",
+        "idea-brainstorm",
+        "paper-review",
+        "research-brief",
+        "source-tutorial",
+    )
+    workflows = tuple(
+        load_workflow_definition(
+            repo_root / "pipelines" / f"{name}.pipeline.md",
+            repo_root=repo_root,
+        )
+        for name in names
+    )
+
+    native_policy = build_repository_acceptance_policy(
+        workflows=workflows,
+        workspace_for_run=lambda run_id: tmp_path,
+        provider=NativeQualityProvider(),
+    )
+    legacy_policy = build_repository_acceptance_policy(
+        workflows=workflows,
+        workspace_for_run=lambda run_id: tmp_path,
+        provider=LegacyToolingQualityProvider(),
+    )
+
+    # Evaluating every Skill in every real workflow through both policies on an
+    # empty workspace yields identical AcceptanceEvidence -- proving both the
+    # (workflow, skill) bindings (an unbound Skill passes on both, a bound one
+    # runs the same checks) and the issue mapping are byte-identical.
+    for workflow in workflows:
+        for skill in workflow.skills:
+            run = _run(workflow=workflow.name, skill=skill, required=(), outputs=())
+            unit = run.units[0].plan
+            native_ev = native_policy.evaluate(run=run, unit=unit, artifacts=())
+            legacy_ev = legacy_policy.evaluate(run=run, unit=unit, artifacts=())
+            assert native_ev == legacy_ev, (
+                f"{workflow.name}/{skill}: native={native_ev!r} legacy={legacy_ev!r}"
+            )
+
+
 def test_harness_blocks_completion_when_required_checker_is_not_configured() -> None:
     run = _run(required=("paper-review-auditor",), outputs=("audit.md",))
     unit = run.units[0].plan
