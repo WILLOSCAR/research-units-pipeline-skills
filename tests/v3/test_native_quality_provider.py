@@ -358,6 +358,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "dedupe-rank",
         "latex-scaffold",
         "latex-compile-qa",
+        "idea-brief",
+        "idea-signal-mapper",
+        "idea-direction-generator",
+        "idea-screener",
+        "idea-shortlist-curator",
+        "idea-memo-writer",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
@@ -383,6 +389,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "dedupe-rank") not in calls
     assert ("outputs", "latex-scaffold") not in calls
     assert ("outputs", "latex-compile-qa") not in calls
+    assert ("outputs", "idea-brief") not in calls
+    assert ("outputs", "idea-signal-mapper") not in calls
+    assert ("outputs", "idea-direction-generator") not in calls
+    assert ("outputs", "idea-screener") not in calls
+    assert ("outputs", "idea-shortlist-curator") not in calls
+    assert ("outputs", "idea-memo-writer") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -1530,3 +1542,119 @@ def test_native_tutorial_selfloop_stale(tmp_path: Path) -> None:
     assert [c for c, _ in _both("tutorial-selfloop", ws, ["output/TUTORIAL_SELFLOOP_TODO.md"])] == [
         "tutorial_selfloop_stale_or_invalid"
     ]
+
+
+# --- research-idea family parity (whole module native, policy-consuming) ----
+#
+# All six checks resolve the ideation contract through the WorkspacePolicyPort
+# (has_pipeline_contract + resolve_idea_contract), both legacy-backed, so the
+# contract is byte-identical on each side. `_both` asserts native == legacy. A
+# companion differential fuzzer sweeps thousands of randomized ideation
+# workspaces; these pin the branch-critical cases as regression evidence.
+
+
+def _idea_ws(tmp_path: Path, name: str, *, resolvable: bool = True) -> Path:
+    """Stand up an ideation workspace whose contract resolves (or not)."""
+    ws = tmp_path / name
+    (ws / "output" / "trace").mkdir(parents=True)
+    ws_pipeline = ws / "PIPELINE.lock.md"
+    ws_pipeline.write_text(
+        "pipeline: pipelines/idea-brainstorm.pipeline.md\n", encoding="utf-8"
+    )
+    (ws / "output" / "trace" / "IDEA_BRIEF.md").write_text(
+        "# Idea Brief\n## Focus lenses after C2\n- Focus clusters: retrieval\n",
+        encoding="utf-8",
+    )
+    focus = (
+        "Memory and retrieval (RAG); Tool interfaces and orchestration"
+        if resolvable
+        else "(select after retrieval)"
+    )
+    (ws / "DECISIONS.md").write_text(
+        "# Decisions\n<!-- BEGIN CHECKPOINT:C2 -->\n"
+        f"- Focus clusters: {focus}\n<!-- END CHECKPOINT:C2 -->\n",
+        encoding="utf-8",
+    )
+    return ws
+
+
+def test_native_idea_brief_missing(tmp_path: Path) -> None:
+    ws = _idea_ws(tmp_path, "ib_missing")
+    # Overwrite IDEA_BRIEF.md as empty to hit the missing/empty branch.
+    _write_file(ws, "output/trace/IDEA_BRIEF.md", "")
+    assert _both("idea-brief", ws, ["output/trace/IDEA_BRIEF.md"]) == [
+        ("missing_idea_brief", "`output/trace/IDEA_BRIEF.md` is missing or empty.")
+    ]
+
+
+def test_native_idea_brief_missing_queries(tmp_path: Path) -> None:
+    # A brief with all required sections but no queries.md -> missing_queries.
+    ws = _idea_ws(tmp_path, "ib_noqueries")
+    import json as _json
+
+    contract_path = (
+        Path(native_module.__file__).resolve().parents[3]
+        / ".codex" / "skills" / "idea-brief" / "assets" / "brief_contract.json"
+    )
+    sections = _json.loads(contract_path.read_text())["required_sections"]
+    body = "# Idea Brief\n" + "".join(f"## {s}\nx\n" for s in sections)
+    _write_file(ws, "output/trace/IDEA_BRIEF.md", body)
+    codes = [c for c, _ in _both("idea-brief", ws, ["output/trace/IDEA_BRIEF.md"])]
+    assert codes == ["idea_brief_missing_queries"]
+
+
+def test_native_signal_table_contract_error(tmp_path: Path) -> None:
+    # Unresolvable contract (no C2 focus) -> invalid_idea_pipeline_contract,
+    # identical on both sides.
+    ws = _idea_ws(tmp_path, "st_badcontract", resolvable=False)
+    _write_file(ws, "output/trace/IDEA_SIGNAL_TABLE.md", "| Signal ID |\n|---|\n| S0 |\n")
+    codes = [c for c, _ in _both("idea-signal-mapper", ws, ["output/trace/IDEA_SIGNAL_TABLE.md"])]
+    assert codes == ["invalid_idea_pipeline_contract"]
+
+
+def test_native_signal_table_too_small(tmp_path: Path) -> None:
+    # Resolvable contract, table present with the columns but too few rows.
+    ws = _idea_ws(tmp_path, "st_small")
+    header = (
+        "| Signal ID | Cluster | Theme | Claim / observation | Tension | "
+        "Missing piece | Possible axis | Academic value | Confidence | Paper IDs |"
+    )
+    sep = "|---|---|---|---|---|---|---|---|---|---|"
+    _write_file(
+        ws,
+        "output/trace/IDEA_SIGNAL_TABLE.md",
+        header + "\n" + sep + "\n| S0 | c | t | claim | x | m | a | v | hi | P0001 |\n",
+    )
+    codes = {c for c, _ in _both("idea-signal-mapper", ws, ["output/trace/IDEA_SIGNAL_TABLE.md"])}
+    assert "idea_signal_table_too_small" in codes
+
+
+def test_native_shortlist_missing_contract(tmp_path: Path) -> None:
+    # Shortlist present but no pipeline lock -> missing_idea_pipeline_contract.
+    ws = tmp_path / "sl_nocontract"
+    (ws / "output" / "trace").mkdir(parents=True)
+    _write_file(ws, "output/trace/IDEA_SHORTLIST.md", "### Direction 1. X\n")
+    codes = [c for c, _ in _both("idea-shortlist-curator", ws, ["output/trace/IDEA_SHORTLIST.md"])]
+    assert codes == ["missing_idea_pipeline_contract"]
+
+
+def test_native_report_bundle_missing_parts(tmp_path: Path) -> None:
+    ws = _idea_ws(tmp_path, "rb_missing")
+    # No REPORT.md -> missing_brainstorm_report (first gate, before contract).
+    assert _both(
+        "idea-memo-writer",
+        ws,
+        ["output/REPORT.md", "output/APPENDIX.md", "output/REPORT.json"],
+    ) == [("missing_brainstorm_report", "`output/REPORT.md` is missing or empty.")]
+
+
+def test_native_direction_pool_and_screening_contract_error(tmp_path: Path) -> None:
+    # Both checks share the contract-error branch; verify parity for each.
+    for skill, out_rel in (
+        ("idea-direction-generator", "output/trace/IDEA_DIRECTION_POOL.md"),
+        ("idea-screener", "output/trace/IDEA_SCREENING_TABLE.md"),
+    ):
+        ws = _idea_ws(tmp_path, f"ce_{skill}", resolvable=False)
+        _write_file(ws, out_rel, "| Direction ID |\n|---|\n| D0 |\n")
+        codes = [c for c, _ in _both(skill, ws, [out_rel])]
+        assert codes == ["invalid_idea_pipeline_contract"], skill

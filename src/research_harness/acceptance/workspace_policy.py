@@ -69,3 +69,24 @@ class WorkspacePolicyPort(Protocol):
         constraint through this rather than importing ``tooling.common``.
         """
         ...
+
+    def has_pipeline_contract(self, workspace: Path) -> bool:
+        """Return whether the run has a resolvable active pipeline contract.
+
+        Mirrors ``tooling.common.load_workspace_pipeline_spec(workspace) is not
+        None``.  The native ideation checks use this as the pre-flight guard
+        before resolving the full ideation contract.
+        """
+        ...
+
+    def resolve_idea_contract(self, workspace: Path) -> dict[str, Any]:
+        """Return the resolved ideation runtime contract for the run.
+
+        Mirrors ``tooling.ideation.resolve_idea_contract``: reads the pipeline
+        spec's ``query_defaults`` / ``quality_contract``, the ``DECISIONS.md``
+        C2 focus selection, and ``IDEA_BRIEF.md`` into the validated size/policy
+        contract the native ``research_idea`` checks read (raising on an invalid
+        or missing contract).  Kept behind the Port because resolution is a
+        heavyweight workspace-policy read, not output inspection.
+        """
+        ...

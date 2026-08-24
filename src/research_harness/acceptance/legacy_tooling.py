@@ -164,6 +164,16 @@ class LegacyToolingPolicyReader(WorkspacePolicyPort):
 
         return load_workspace_goal_constraints(workspace)
 
+    def has_pipeline_contract(self, workspace: Path) -> bool:
+        from tooling.common import load_workspace_pipeline_spec
+
+        return load_workspace_pipeline_spec(workspace) is not None
+
+    def resolve_idea_contract(self, workspace: Path) -> dict[str, Any]:
+        from tooling.ideation import resolve_idea_contract
+
+        return resolve_idea_contract(workspace)
+
 
 def default_workspace_policy_reader() -> WorkspacePolicyPort:
     """Return the default (legacy) workspace-policy reader.

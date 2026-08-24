@@ -40,6 +40,8 @@ def test_port_surface_is_complete() -> None:
         "core_size",
         "pipeline_quality_contract_value",
         "workspace_goal_constraints",
+        "has_pipeline_contract",
+        "resolve_idea_contract",
     ):
         assert callable(getattr(reader, method)), method
 
@@ -110,6 +112,37 @@ def test_reader_goal_constraints_pass_through(tmp_path: Path) -> None:
     assert reader.workspace_goal_constraints(empty) == legacy_goal(empty) == {}
 
 
+def test_reader_idea_contract_pass_through(tmp_path: Path) -> None:
+    # has_pipeline_contract and resolve_idea_contract mirror tooling exactly.
+    from tooling.common import load_workspace_pipeline_spec as legacy_spec
+    from tooling.ideation import resolve_idea_contract as legacy_resolve
+
+    reader = default_workspace_policy_reader()
+
+    # (1) empty workspace: no contract; has_pipeline_contract is False and
+    # matches the tooling `is not None` predicate.
+    assert reader.has_pipeline_contract(tmp_path) is (legacy_spec(tmp_path) is not None)
+    assert reader.has_pipeline_contract(tmp_path) is False
+
+    # (2) a resolvable ideation workspace: the resolved contract is identical.
+    (tmp_path / "PIPELINE.lock.md").write_text(
+        "pipeline: pipelines/idea-brainstorm.pipeline.md\n", encoding="utf-8"
+    )
+    (tmp_path / "output" / "trace").mkdir(parents=True)
+    (tmp_path / "output" / "trace" / "IDEA_BRIEF.md").write_text(
+        "# Idea Brief\n## Focus lenses after C2\n- Focus clusters: retrieval\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "DECISIONS.md").write_text(
+        "# Decisions\n<!-- BEGIN CHECKPOINT:C2 -->\n"
+        "- Focus clusters: Memory and retrieval (RAG); Tool interfaces\n"
+        "<!-- END CHECKPOINT:C2 -->\n",
+        encoding="utf-8",
+    )
+    assert reader.has_pipeline_contract(tmp_path) is True
+    assert reader.resolve_idea_contract(tmp_path) == legacy_resolve(tmp_path)
+
+
 def test_reader_matches_tooling_on_empty_workspace(tmp_path: Path) -> None:
     # With no queries.md / no resolvable spec, the adapter returns the same
     # defaults tooling does.
@@ -167,6 +200,14 @@ def test_native_provider_accepts_injected_policy_reader() -> None:
 
         def workspace_goal_constraints(self, workspace: Path) -> dict[str, object]:
             self.calls.append("workspace_goal_constraints")
+            return {}
+
+        def has_pipeline_contract(self, workspace: Path) -> bool:
+            self.calls.append("has_pipeline_contract")
+            return True
+
+        def resolve_idea_contract(self, workspace: Path) -> dict[str, object]:
+            self.calls.append("resolve_idea_contract")
             return {}
 
     reader = _RecordingReader()
