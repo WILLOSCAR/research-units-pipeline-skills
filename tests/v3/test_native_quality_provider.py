@@ -42,15 +42,14 @@ def test_registered_skills_match_legacy_exactly() -> None:
     # Parity: the native constant table must equal the legacy registry so it
     # cannot silently diverge from tooling.quality_gate.
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
-    assert isinstance(legacy, LegacyToolingQualityProvider)
+    legacy = LegacyToolingQualityProvider()
     assert native.registered_quality_skills() == legacy.registered_quality_skills()
     assert len(native.registered_quality_skills()) > 0
 
 
 def test_completion_invariant_flags_match_legacy() -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     for skill in native.registered_quality_skills():
         assert native.has_completion_invariant(skill) == legacy.has_completion_invariant(
             skill
@@ -58,10 +57,13 @@ def test_completion_invariant_flags_match_legacy() -> None:
     assert native.has_completion_invariant("no-such-skill-xyz") is False
 
 
-def test_default_provider_is_still_legacy() -> None:
-    # The native provider is added but not yet the default; swapping the
-    # default is a later gated step.
-    assert isinstance(default_quality_provider(), LegacyToolingQualityProvider)
+def test_default_provider_is_now_native(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Cutover complete: every registered check has a byte-identical native
+    # equivalent (proven by the 68-skill sweep), so native is the default.
+    # `RESEARCH_HARNESS_QUALITY_PROVIDER=legacy` is the retained escape hatch;
+    # clear it so the assertion reflects the real default regardless of ambient env.
+    monkeypatch.delenv("RESEARCH_HARNESS_QUALITY_PROVIDER", raising=False)
+    assert isinstance(default_quality_provider(), NativeQualityProvider)
 
 
 def _write_report(workspace: Path, body: str) -> None:
@@ -85,7 +87,7 @@ def test_native_citation_injector_pass(tmp_path: Path) -> None:
 
 def test_native_citation_injector_matches_legacy_across_cases(tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     outputs = ["output/CITATION_INJECTION_REPORT.md"]
 
     cases = {
@@ -138,7 +140,7 @@ _DELIVERABLE_CASES: dict[str, str | None] = {
 @pytest.mark.parametrize("name", sorted(_DELIVERABLE_CASES))
 def test_native_deliverable_selfloop_matches_legacy(name: str, tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     body = _DELIVERABLE_CASES[name]
     ws = tmp_path / name
     ws.mkdir()
@@ -163,7 +165,7 @@ def test_native_deliverable_selfloop_matches_legacy(name: str, tmp_path: Path) -
 def test_native_deliverable_selfloop_default_output_path(tmp_path: Path) -> None:
     # With empty outputs both providers fall back to the canonical relative path.
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     _write_file(tmp_path, _DELIVERABLE_REL, "# ok\n- Status: PASS\n")
     assert (
         native.check_unit_outputs(
@@ -198,7 +200,7 @@ _CONTRACT_CASES: dict[str, str | None] = {
 @pytest.mark.parametrize("name", sorted(_CONTRACT_CASES))
 def test_native_contract_auditor_matches_legacy(name: str, tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     body = _CONTRACT_CASES[name]
     ws = tmp_path / name
     ws.mkdir()
@@ -222,7 +224,7 @@ def test_native_contract_auditor_matches_legacy(name: str, tmp_path: Path) -> No
 
 def test_native_contract_auditor_default_output_path(tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     _write_file(tmp_path, _CONTRACT_REL, _CONTRACT_PASS)
     assert (
         native.check_unit_outputs(
@@ -255,7 +257,7 @@ _BEAMER_CASES: dict[str, tuple[str | None, str | None]] = {
 @pytest.mark.parametrize("name", sorted(_BEAMER_CASES))
 def test_native_beamer_compile_qa_matches_legacy(name: str, tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     pdf_body, report_body = _BEAMER_CASES[name]
     ws = tmp_path / name
     ws.mkdir()
@@ -281,7 +283,7 @@ def test_native_beamer_compile_qa_matches_legacy(name: str, tmp_path: Path) -> N
 
 def test_native_beamer_compile_qa_default_output_paths(tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     _write_file(tmp_path, _BEAMER_PDF, "%PDF-1.4\n")
     _write_file(tmp_path, _BEAMER_REPORT, "- Status: PASS\n")
     assert (
@@ -532,7 +534,7 @@ def test_native_matches_legacy_for_every_registered_skill(tmp_path: Path) -> Non
     """
 
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     assert isinstance(legacy, LegacyToolingQualityProvider)
 
     skills = sorted(legacy.registered_quality_skills())
@@ -634,7 +636,7 @@ _CITATION_CASES: dict[str, tuple[str | None, str | None]] = {
 @pytest.mark.parametrize("name", sorted(_CITATION_CASES))
 def test_native_citation_verifier_matches_legacy(name: str, tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     bib_body, verified_body = _CITATION_CASES[name]
     ws = tmp_path / name
     ws.mkdir()
@@ -660,7 +662,7 @@ def test_native_citation_verifier_default_output_paths(tmp_path: Path) -> None:
     # With empty outputs both providers fall back to the canonical relative
     # paths (citations/ref.bib, citations/verified.jsonl).
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     _write_file(tmp_path, "citations/ref.bib", _GOOD_BIB)
     _write_file(
         tmp_path,
@@ -703,7 +705,7 @@ def test_native_citation_verifier_matches_legacy_on_survey_policy_branch(
     # fewer than the core-set target of entries must fail identically (same
     # code + message, which embeds the resolved target) on both providers.
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     ws = tmp_path / "survey"
     ws.mkdir()
     _seed_arxiv_survey_workspace(ws)
@@ -809,7 +811,7 @@ _ARXIV_CASES: dict[str, str | None] = {
 @pytest.mark.parametrize("name", sorted(_ARXIV_CASES))
 def test_native_arxiv_search_matches_legacy(name: str, tmp_path: Path) -> None:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     body = _ARXIV_CASES[name]
     ws = tmp_path / name
     ws.mkdir()
@@ -833,7 +835,7 @@ def test_native_arxiv_search_keyword_branch_matches_legacy(tmp_path: Path) -> No
     # arxiv source, no id_fetch, with a queries.md keyword list: both providers
     # route through the keyword-expansion helper. Sweep its own case matrix.
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     raw = _raw_line(title="Real paper", url="u", source="arxiv")
 
     keyword_cases: dict[str, str | None] = {
@@ -939,7 +941,7 @@ def _survey_ws(tmp_path: Path, name: str, *, profile: str = "default") -> Path:
 
 def _both(skill: str, ws: Path, outputs: list[str]) -> list[tuple[str, str]]:
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     n = _pairs(native.check_unit_outputs(skill=skill, workspace=ws, outputs=outputs))
     lg = _pairs(legacy.check_unit_outputs(skill=skill, workspace=ws, outputs=outputs))
     assert n == lg, f"{skill}: native={n} legacy={lg}"
@@ -2374,7 +2376,7 @@ def test_native_evidence_binder_regex_fidelity(tmp_path: Path) -> None:
         ),
     )
     native = NativeQualityProvider()
-    legacy = default_quality_provider()
+    legacy = LegacyToolingQualityProvider()
     n = _pairs(native.check_unit_outputs(skill="evidence-binder", workspace=ws, outputs=["outline/evidence_bindings.jsonl"]))
     lg = _pairs(legacy.check_unit_outputs(skill="evidence-binder", workspace=ws, outputs=["outline/evidence_bindings.jsonl"]))
     assert n == lg

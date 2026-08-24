@@ -7,6 +7,7 @@ import pytest
 
 from research_harness.acceptance import (
     AcceptanceRequest,
+    LegacyToolingQualityProvider,
     WorkflowAcceptancePolicy,
     build_repository_acceptance_policy,
 )
@@ -539,6 +540,7 @@ def test_repository_evaluator_maps_quality_issues_without_legacy_run_state(
     policy = build_repository_acceptance_policy(
         workflows=(workflow,),
         workspace_for_run=lambda run_id: workspace,
+        provider=LegacyToolingQualityProvider(),
     )
     run = _run(
         skill="claims-extractor",
@@ -587,6 +589,7 @@ def test_repository_factory_binds_registered_non_required_skill(
     policy = build_repository_acceptance_policy(
         workflows=(workflow,),
         workspace_for_run=lambda run_id: tmp_path,
+        provider=LegacyToolingQualityProvider(),
     )
     run = _run(
         workflow="research-brief",
@@ -625,6 +628,7 @@ def test_repository_factory_rejects_uncovered_required_skill(
         build_repository_acceptance_policy(
             workflows=(workflow,),
             workspace_for_run=lambda run_id: tmp_path,
+            provider=LegacyToolingQualityProvider(),
         )
 
 

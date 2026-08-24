@@ -16,15 +16,14 @@ Provider selection
 layer uses.  It consults the ``RESEARCH_HARNESS_QUALITY_PROVIDER`` opt-in
 environment variable (see :data:`_QUALITY_PROVIDER_ENV_VAR`):
 
-- unset / empty / any unrecognized value -> ``legacy`` (the default; behavior
-  is byte-for-byte identical to before this seam existed);
-- ``"legacy"`` -> the transitional legacy adapter;
-- ``"native"`` -> :class:`~.native.NativeQualityProvider`.
+- unset / empty / any unrecognized value -> ``native`` (the default; every
+  registered check has a native equivalent proven byte-identical to legacy);
+- ``"native"`` -> :class:`~.native.NativeQualityProvider`;
+- ``"legacy"`` -> the transitional legacy adapter (retained escape hatch).
 
 Parsing is deliberately defensive so a typo or stray value can never silently
-change acceptance outcomes: anything that is not exactly ``native`` (after
-strip + case-fold) resolves to legacy.  This is the single seam a future
-cutover flips; nothing wires native as the default today.
+revert to the legacy path: anything that is not exactly ``legacy`` (after strip
++ case-fold) resolves to native.  This is the single seam the cutover flipped.
 """
 
 from __future__ import annotations
@@ -40,11 +39,16 @@ from .workspace_policy import WorkspacePolicyPort
 
 #: Opt-in environment variable selecting the acceptance quality-check backend.
 #: Recognized (case-insensitive) values are ``legacy`` and ``native``; every
-#: other value -- including unset and empty -- resolves to ``legacy``.
+#: other value -- including unset and empty -- resolves to ``native`` (default).
 _QUALITY_PROVIDER_ENV_VAR = "RESEARCH_HARNESS_QUALITY_PROVIDER"
 
-#: The provider selected when no valid opt-in is present.
-_DEFAULT_PROVIDER_CHOICE = "legacy"
+#: The provider selected when no valid opt-in is present.  Now ``native``:
+#: every registered quality check has a byte-for-byte native equivalent (proven
+#: by the 68-skill equivalence sweep, differential fuzzing, and per-module
+#: adversarial audits), so the native provider is the default runtime backend.
+#: Set ``RESEARCH_HARNESS_QUALITY_PROVIDER=legacy`` to revert to the transitional
+#: ``tooling.quality_gate`` adapter (the escape hatch is retained for one release).
+_DEFAULT_PROVIDER_CHOICE = "native"
 
 #: The full set of recognized selector values.
 _KNOWN_PROVIDER_CHOICES = frozenset({"legacy", "native"})
@@ -91,8 +95,8 @@ def _selected_provider_choice(env: Mapping[str, str] | None = None) -> str:
     Defensive by design: reads :data:`_QUALITY_PROVIDER_ENV_VAR`, strips
     surrounding whitespace, case-folds, and returns it only if it is a known
     choice.  Anything else -- unset, empty, whitespace, a typo -- resolves to
-    :data:`_DEFAULT_PROVIDER_CHOICE` (``legacy``), so an invalid opt-in can
-    never silently change acceptance outcomes.
+    :data:`_DEFAULT_PROVIDER_CHOICE` (now ``native``), so an invalid opt-in can
+    never silently fall back to the legacy path once native is the default.
     """
 
     source = os.environ if env is None else env
@@ -106,20 +110,20 @@ def _selected_provider_choice(env: Mapping[str, str] | None = None) -> str:
 def default_quality_provider() -> QualityCheckProvider:
     """Return the acceptance quality-check backend selected by the opt-in.
 
-    With no opt-in set the result is the legacy adapter, so runtime behavior is
-    identical to before this seam existed.  Setting
-    ``RESEARCH_HARNESS_QUALITY_PROVIDER=native`` selects
-    :class:`~.native.NativeQualityProvider` instead; every other value (unset,
-    empty, or unrecognized) resolves to legacy.
+    The default is now :class:`~.native.NativeQualityProvider`: every registered
+    quality check has a native equivalent proven byte-for-byte identical to the
+    legacy ``tooling.quality_gate`` path.  Setting
+    ``RESEARCH_HARNESS_QUALITY_PROVIDER=legacy`` reverts to the transitional
+    legacy adapter (the retained escape hatch); any other value (including unset
+    or unrecognized) resolves to native.
 
-    Centralizing the choice here keeps a future native cutover a one-line
-    default change (or a documented opt-in flip) rather than an edit at every
-    call site.
+    Centralizing the choice here kept the cutover a one-line default change
+    rather than an edit at every call site.
     """
 
     if _selected_provider_choice() == "native":
         # Lazy import: ``native`` imports from this module, so importing it at
-        # top level would create a cycle.  It is only needed when opted in.
+        # top level would create a cycle.
         from .native import NativeQualityProvider
 
         return NativeQualityProvider()
