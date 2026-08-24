@@ -374,6 +374,9 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "extraction-form",
         "bias-assessor",
         "synthesis-writer",
+        "chapter-skeleton",
+        "section-bindings",
+        "section-briefs",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
@@ -414,6 +417,9 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "extraction-form") not in calls
     assert ("outputs", "bias-assessor") not in calls
     assert ("outputs", "synthesis-writer") not in calls
+    assert ("outputs", "chapter-skeleton") not in calls
+    assert ("outputs", "section-bindings") not in calls
+    assert ("outputs", "section-briefs") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -2021,3 +2027,116 @@ def test_native_synthesis_consumes_injected_scorecard() -> None:
             failing.check_unit_outputs(skill="synthesis-writer", workspace=ws, outputs=[])
         )
         assert failed == [("evidence_synthesis_untraceable", "stub trace")]
+
+
+# --- survey-structure family parity (self-contained YAML/JSONL checks) -------
+
+
+def test_native_chapter_skeleton(tmp_path: Path) -> None:
+    ws = tmp_path / "cs"
+    ws.mkdir()
+    assert _both("chapter-skeleton", ws, ["outline/chapter_skeleton.yml"]) == [
+        ("missing_chapter_skeleton", "`outline/chapter_skeleton.yml` does not exist.")
+    ]
+    # invalid (not a list)
+    _write_file(ws, "outline/chapter_skeleton.yml", "not: a-list\n")
+    assert [c for c, _ in _both("chapter-skeleton", ws, ["outline/chapter_skeleton.yml"])] == [
+        "invalid_chapter_skeleton"
+    ]
+    # a valid single record passes
+    ws2 = tmp_path / "cs_ok"
+    ws2.mkdir()
+    import yaml as _y
+
+    _write_file(
+        ws2,
+        "outline/chapter_skeleton.yml",
+        _y.safe_dump([{"id": "S0", "title": "t", "rationale": "r", "seed_topics": ["a"], "target_h3_count": 3}]),
+    )
+    assert _both("chapter-skeleton", ws2, ["outline/chapter_skeleton.yml"]) == []
+
+
+def test_native_section_bindings_report_drift(tmp_path: Path) -> None:
+    ws = tmp_path / "sb"
+    ws.mkdir()
+    # jsonl PASS but report says BLOCKED -> drift
+    _write_file(
+        ws,
+        "outline/section_bindings.jsonl",
+        json.dumps(
+            {
+                "section_id": "S0",
+                "section_title": "t",
+                "paper_ids_primary": ["P1"],
+                "paper_ids_support": [],
+                "coverage_count": 1,
+                "status": "PASS",
+                "blocking_gaps": [],
+                "decomposition_recommendation": "decompose",
+            }
+        ),
+    )
+    _write_file(
+        ws,
+        "outline/section_binding_report.md",
+        "| Section | Coverage | Status | Recommendation |\n|---|---|---|---|\n| S0 sec | 1 | BLOCKED | decompose |\n",
+    )
+    codes = {c for c, _ in _both("section-bindings", ws, ["outline/section_bindings.jsonl", "outline/section_binding_report.md"])}
+    assert "section_binding_report_drift" in codes
+
+
+def test_native_section_bindings_pass(tmp_path: Path) -> None:
+    ws = tmp_path / "sb_ok"
+    ws.mkdir()
+    _write_file(
+        ws,
+        "outline/section_bindings.jsonl",
+        json.dumps(
+            {
+                "section_id": "S0",
+                "section_title": "t",
+                "paper_ids_primary": ["P1"],
+                "paper_ids_support": [],
+                "coverage_count": 1,
+                "status": "PASS",
+                "blocking_gaps": [],
+                "decomposition_recommendation": "decompose",
+            }
+        ),
+    )
+    _write_file(
+        ws,
+        "outline/section_binding_report.md",
+        "| Section | Coverage | Status | Recommendation |\n|---|---|---|---|\n| S0 sec | 1 | PASS | decompose |\n",
+    )
+    assert _both("section-bindings", ws, ["outline/section_bindings.jsonl", "outline/section_binding_report.md"]) == []
+
+
+def test_native_section_briefs(tmp_path: Path) -> None:
+    ws = tmp_path / "sbr"
+    ws.mkdir()
+    assert _both("section-briefs", ws, ["outline/section_briefs.jsonl"]) == [
+        ("missing_section_briefs", "`outline/section_briefs.jsonl` does not exist.")
+    ]
+    # invalid semantics: BLOCKED without blocking_gaps
+    _write_file(
+        ws,
+        "outline/section_briefs.jsonl",
+        json.dumps(
+            {
+                "section_id": "S0",
+                "section_title": "t",
+                "section_rationale": "r",
+                "contrast_lens": ["l"],
+                "must_cover": ["m"],
+                "target_h3_count": 3,
+                "subsection_seeds": ["s"],
+                "status": "BLOCKED",
+                "decomposition_recommendation": "hold_or_merge",
+                "blocking_gaps": [],
+            }
+        ),
+    )
+    assert [c for c, _ in _both("section-briefs", ws, ["outline/section_briefs.jsonl"])] == [
+        "section_briefs_missing_fields"
+    ]

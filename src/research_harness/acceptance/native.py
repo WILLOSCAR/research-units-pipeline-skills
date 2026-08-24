@@ -4502,6 +4502,364 @@ def _check_synthesis(
     return issues
 
 
+
+
+# --- survey-structure family (self-contained) -------------------------------
+#
+# Native reimplementation of the three *registered* checks in
+# ``tooling.quality_checks.survey_structure`` (chapter-skeleton, section-bindings,
+# section-briefs).  They read only YAML/JSONL outputs -- no workspace policy --
+# via the native ``_st_load_yaml`` / ``_read_jsonl`` helpers.  (The module's
+# ``section_first_*`` helpers feed a *completion invariant*, which the native
+# provider still delegates in full, so they are not reimplemented here.)  These
+# are routed through the policy dispatch table with an ignored ``policy`` arg
+# only because they are defined after the self-contained dispatch table.
+
+
+def _check_chapter_skeleton(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_structure.check_chapter_skeleton``."""
+
+    out_rel = outputs[0] if outputs else "outline/chapter_skeleton.yml"
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_chapter_skeleton",
+                message=f"`{out_rel}` does not exist.",
+            )
+        ]
+    data = _st_load_yaml(path)
+    if not isinstance(data, list) or not data:
+        return [
+            NativeQualityIssue(
+                code="invalid_chapter_skeleton",
+                message=f"`{out_rel}` must be a non-empty YAML list.",
+            )
+        ]
+    missing = 0
+    for rec in data:
+        if not isinstance(rec, dict):
+            missing += 1
+            continue
+        required = ("id", "title", "rationale", "seed_topics", "target_h3_count")
+        if any(not rec.get(key) for key in required):
+            missing += 1
+            continue
+        if not isinstance(rec.get("seed_topics"), list):
+            missing += 1
+            continue
+    if missing:
+        return [
+            NativeQualityIssue(
+                code="chapter_skeleton_missing_fields",
+                message=f"`{out_rel}` has {missing} invalid chapter skeleton record(s).",
+            )
+        ]
+    return []
+
+
+def _check_section_bindings(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_structure.check_section_bindings``."""
+
+    bindings_rel = outputs[0] if outputs else "outline/section_bindings.jsonl"
+    report_rel = outputs[1] if len(outputs) >= 2 else "outline/section_binding_report.md"
+    bindings_path = workspace / bindings_rel
+    report_path = workspace / report_rel
+    if not bindings_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_section_bindings",
+                message=f"`{bindings_rel}` does not exist.",
+            )
+        ]
+    records = [r for r in _read_jsonl(bindings_path) if isinstance(r, dict)]
+    if not records:
+        return [
+            NativeQualityIssue(
+                code="invalid_section_bindings",
+                message=f"`{bindings_rel}` has no JSON objects.",
+            )
+        ]
+    missing = 0
+    invalid_status = 0
+    invalid_semantics = 0
+    derived_records: list[dict[str, Any]] = []
+    for rec in records:
+        required = (
+            "section_id",
+            "section_title",
+            "paper_ids_primary",
+            "paper_ids_support",
+            "coverage_count",
+            "status",
+            "blocking_gaps",
+            "decomposition_recommendation",
+        )
+        if any(key not in rec for key in required):
+            missing += 1
+            continue
+        if not isinstance(rec.get("paper_ids_primary"), list) or not isinstance(
+            rec.get("paper_ids_support"), list
+        ):
+            missing += 1
+            continue
+        if not isinstance(rec.get("blocking_gaps"), list):
+            missing += 1
+            continue
+        status = str(rec.get("status") or "").strip().upper()
+        binding_status = str(rec.get("binding_status") or "").strip().upper()
+        recommendation = str(rec.get("decomposition_recommendation") or "").strip().lower()
+        blocking_gaps = rec.get("blocking_gaps") or []
+        if status not in {"PASS", "BLOCKED", "REROUTE"}:
+            invalid_status += 1
+            continue
+        if binding_status and binding_status not in {"PASS", "BLOCKED", "REROUTE"}:
+            invalid_status += 1
+            continue
+        if binding_status and binding_status != status:
+            invalid_semantics += 1
+            continue
+        if recommendation not in {"decompose", "hold_or_merge"}:
+            invalid_semantics += 1
+            continue
+        if status == "PASS" and (blocking_gaps or recommendation != "decompose"):
+            invalid_semantics += 1
+            continue
+        if status == "BLOCKED" and not blocking_gaps:
+            invalid_semantics += 1
+            continue
+        if status == "REROUTE" and (blocking_gaps or recommendation == "decompose"):
+            invalid_semantics += 1
+            continue
+        derived_records.append(
+            {
+                "section_id": str(rec.get("section_id") or "").strip(),
+                "binding_status": binding_status or status,
+                "decomposition_recommendation": recommendation,
+                "blocking_gaps": list(blocking_gaps),
+            }
+        )
+    if missing:
+        return [
+            NativeQualityIssue(
+                code="section_bindings_missing_fields",
+                message=f"`{bindings_rel}` has {missing} invalid section-binding record(s).",
+            )
+        ]
+    if invalid_status:
+        return [
+            NativeQualityIssue(
+                code="section_bindings_invalid_status",
+                message=(
+                    f"`{bindings_rel}` has {invalid_status} record(s) with unknown "
+                    "binding status (expected PASS/BLOCKED/REROUTE)."
+                ),
+            )
+        ]
+    if invalid_semantics:
+        return [
+            NativeQualityIssue(
+                code="section_bindings_invalid_semantics",
+                message=(
+                    f"`{bindings_rel}` has {invalid_semantics} record(s) where "
+                    "status, blocking_gaps, and decomposition_recommendation disagree."
+                ),
+            )
+        ]
+    if not report_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_section_binding_report",
+                message=f"`{report_rel}` does not exist.",
+            )
+        ]
+    report = report_path.read_text(encoding="utf-8", errors="ignore")
+    rows = _ss_parse_section_binding_report_rows(report)
+    if "| Section |" not in report or "| Status |" not in report or not rows:
+        return [
+            NativeQualityIssue(
+                code="invalid_section_binding_report",
+                message=f"`{report_rel}` is missing the section binding summary table.",
+            )
+        ]
+    by_section_id: dict[str, dict[str, Any]] = {}
+    for rec in derived_records:
+        section_id = str(rec.get("section_id") or "").strip()
+        if section_id:
+            by_section_id[section_id] = rec
+    if len(rows) != len(derived_records):
+        return [
+            NativeQualityIssue(
+                code="section_binding_report_row_mismatch",
+                message=(
+                    f"`{report_rel}` should report one status row per section "
+                    f"binding (report rows={len(rows)}, binding "
+                    f"rows={len(derived_records)})."
+                ),
+            )
+        ]
+    bad_statuses = sorted(
+        {
+            str(row.get("status") or "").strip().upper()
+            for row in rows
+            if str(row.get("status") or "").strip().upper()
+            not in {"PASS", "BLOCKED", "REROUTE"}
+        }
+    )
+    if bad_statuses:
+        return [
+            NativeQualityIssue(
+                code="section_binding_report_bad_status",
+                message=(
+                    f"`{report_rel}` contains unsupported binding statuses: "
+                    f"{', '.join(bad_statuses)}."
+                ),
+            )
+        ]
+    inconsistent: list[str] = []
+    for row in rows:
+        label = str(row.get("section") or "").strip()
+        section_id = label.split(" ", 1)[0].strip()
+        rec = by_section_id.get(section_id) or {}
+        binding_status = str(rec.get("binding_status") or "").strip().upper()
+        report_status = str(row.get("status") or "").strip().upper()
+        recommendation = str(rec.get("decomposition_recommendation") or "").strip().lower()
+        blocking_gaps = rec.get("blocking_gaps") or []
+        if binding_status != report_status:
+            inconsistent.append(
+                f"{section_id}: report={report_status} jsonl={binding_status or 'missing'}"
+            )
+            continue
+        if report_status == "PASS" and (blocking_gaps or recommendation != "decompose"):
+            inconsistent.append(f"{section_id}: PASS with non-decompose semantics")
+        if report_status == "BLOCKED" and not blocking_gaps:
+            inconsistent.append(f"{section_id}: BLOCKED without blocking_gaps")
+        if report_status == "REROUTE" and (blocking_gaps or recommendation == "decompose"):
+            inconsistent.append(f"{section_id}: REROUTE without hold_or_merge semantics")
+    if inconsistent:
+        return [
+            NativeQualityIssue(
+                code="section_binding_report_drift",
+                message=(
+                    f"`{bindings_rel}` and `{report_rel}` disagree about "
+                    "section-binding gate state: "
+                    f"{', '.join(inconsistent[:6])}."
+                ),
+            )
+        ]
+    return []
+
+
+def _ss_parse_section_binding_report_rows(text: str) -> list[dict[str, str]]:
+    """Native mirror of ``survey_structure._parse_section_binding_report_rows``."""
+
+    rows: list[dict[str, str]] = []
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line.startswith("|") or line.startswith("|---"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) < 4:
+            continue
+        if cells[0].lower() == "section" and cells[2].lower() == "status":
+            continue
+        rows.append(
+            {
+                "section": cells[0],
+                "coverage": cells[1],
+                "status": cells[2].upper(),
+                "recommendation": cells[3],
+            }
+        )
+    return rows
+
+
+def _check_section_briefs(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_structure.check_section_briefs``."""
+
+    out_rel = outputs[0] if outputs else "outline/section_briefs.jsonl"
+    path = workspace / out_rel
+    if not path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_section_briefs",
+                message=f"`{out_rel}` does not exist.",
+            )
+        ]
+    records = [r for r in _read_jsonl(path) if isinstance(r, dict)]
+    if not records:
+        return [
+            NativeQualityIssue(
+                code="invalid_section_briefs",
+                message=f"`{out_rel}` has no JSON objects.",
+            )
+        ]
+    missing = 0
+    for rec in records:
+        required = (
+            "section_id",
+            "section_title",
+            "section_rationale",
+            "contrast_lens",
+            "must_cover",
+            "target_h3_count",
+            "subsection_seeds",
+            "status",
+            "decomposition_recommendation",
+            "blocking_gaps",
+        )
+        if any(key not in rec for key in required):
+            missing += 1
+            continue
+        if (
+            not isinstance(rec.get("contrast_lens"), list)
+            or not isinstance(rec.get("must_cover"), list)
+            or not isinstance(rec.get("subsection_seeds"), list)
+            or not isinstance(rec.get("blocking_gaps"), list)
+        ):
+            missing += 1
+            continue
+        status = str(rec.get("status") or "").strip().upper()
+        binding_status = str(rec.get("binding_status") or "").strip().upper()
+        recommendation = str(rec.get("decomposition_recommendation") or "").strip().lower()
+        blocking_gaps = rec.get("blocking_gaps") or []
+        if status not in {"PASS", "BLOCKED", "REROUTE"}:
+            missing += 1
+            continue
+        if binding_status and binding_status not in {"PASS", "BLOCKED", "REROUTE"}:
+            missing += 1
+            continue
+        if binding_status and status != binding_status:
+            missing += 1
+            continue
+        if recommendation not in {"decompose", "hold_or_merge"}:
+            missing += 1
+            continue
+        if status == "PASS" and (blocking_gaps or recommendation != "decompose"):
+            missing += 1
+            continue
+        if status == "BLOCKED" and not blocking_gaps:
+            missing += 1
+            continue
+        if status == "REROUTE" and (blocking_gaps or recommendation == "decompose"):
+            missing += 1
+            continue
+    if missing:
+        return [
+            NativeQualityIssue(
+                code="section_briefs_missing_fields",
+                message=f"`{out_rel}` has {missing} invalid section brief record(s).",
+            )
+        ]
+    return []
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -4535,6 +4893,9 @@ _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "synthesis-writer": _check_synthesis,
     "protocol-writer": _check_protocol,
     "screening-manager": _check_screening,
+    "chapter-skeleton": _check_chapter_skeleton,
+    "section-bindings": _check_section_bindings,
+    "section-briefs": _check_section_briefs,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)
