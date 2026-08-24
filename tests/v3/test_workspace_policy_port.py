@@ -50,6 +50,9 @@ def test_port_surface_is_complete() -> None:
         "per_subsection",
         "template_residue_document_issues",
         "template_residue_subsection_issues",
+        "structure_mode",
+        "section_first_artifact_issues",
+        "section_first_cutover_issues",
     ):
         assert callable(getattr(reader, method)), method
 
@@ -217,6 +220,38 @@ def test_reader_survey_writing_policy_pass_through(tmp_path: Path) -> None:
     assert native_subs == legacy_subs
 
 
+def test_reader_structure_mode_and_section_first_pass_through(tmp_path: Path) -> None:
+    # structure_mode / section_first_* mirror tooling.quality_checks.survey_structure.
+    from tooling.quality_checks.survey_structure import (
+        section_first_artifact_issues as legacy_artifact,
+        section_first_cutover_issues as legacy_cutover,
+        structure_mode as legacy_structure_mode,
+    )
+
+    reader = default_workspace_policy_reader()
+    assert reader.structure_mode(tmp_path) == legacy_structure_mode(tmp_path) == ""
+    native_a = [
+        (i.code, i.message)
+        for i in reader.section_first_artifact_issues(tmp_path, consumer="x")
+    ]
+    legacy_a = [
+        (i.code, i.message)
+        for i in legacy_artifact(tmp_path, consumer="x")
+    ]
+    assert native_a == legacy_a
+    native_c = [
+        (i.code, i.message)
+        for i in reader.section_first_cutover_issues(
+            tmp_path, consumer="x", require_stable_h3=True
+        )
+    ]
+    legacy_c = [
+        (i.code, i.message)
+        for i in legacy_cutover(tmp_path, consumer="x", require_stable_h3=True)
+    ]
+    assert native_c == legacy_c
+
+
 def test_reader_matches_tooling_on_empty_workspace(tmp_path: Path) -> None:
     # With no queries.md / no resolvable spec, the adapter returns the same
     # defaults tooling does.
@@ -320,6 +355,20 @@ def test_native_provider_accepts_injected_policy_reader() -> None:
             self, workspace: Path, relpaths: list
         ) -> list:
             self.calls.append("template_residue_subsection_issues")
+            return []
+
+        def structure_mode(self, workspace: Path) -> str:
+            self.calls.append("structure_mode")
+            return ""
+
+        def section_first_artifact_issues(self, workspace: Path, *, consumer: str) -> list:
+            self.calls.append("section_first_artifact_issues")
+            return []
+
+        def section_first_cutover_issues(
+            self, workspace: Path, *, consumer: str, require_stable_h3: bool
+        ) -> list:
+            self.calls.append("section_first_cutover_issues")
             return []
 
     reader = _RecordingReader()

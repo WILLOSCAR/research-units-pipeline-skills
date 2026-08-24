@@ -321,13 +321,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
 
     native = NativeQualityProvider(legacy=_SpyLegacy())
 
-    # Non-native skill -> delegated. (taxonomy-builder is registered but has no
-    # native reimplementation -- the survey-retrieval, delivery, source-tutorial,
-    # research-idea, paper-review, and evidence-review families are native, but
-    # the survey-planning/structure/writing families still delegate -- so it
-    # must route to the composed legacy adapter.)
+    # Non-native skill -> delegated. Every *registered* skill is now natively
+    # covered (68/68), so an unregistered skill exercises the fallback
+    # delegation path: check_unit_outputs routes it to the composed legacy
+    # adapter (which returns [] for an unknown skill, matching legacy).
     native.check_unit_outputs(
-        skill="taxonomy-builder", workspace=tmp_path, outputs=[]
+        skill="no-such-skill-xyz", workspace=tmp_path, outputs=[]
     )
     # Completion invariants always delegated (none reimplemented yet).
     native.check_completion_invariants(
@@ -389,13 +388,39 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "section-merger",
         "pipeline-auditor",
         "global-reviewer",
+        "taxonomy-builder",
+        "outline-builder",
+        "section-mapper",
+        "paper-notes",
+        "claim-evidence-matrix",
+        "claim-matrix-rewriter",
+        "subsection-briefs",
+        "chapter-briefs",
+        "outline-refiner",
+        "evidence-draft",
+        "evidence-selfloop",
+        "anchor-sheet",
+        "schema-normalizer",
+        "writer-context-pack",
+        "evidence-binder",
+        "survey-visuals",
+        "table-schema",
+        "table-filler",
+        "appendix-table-writer",
+        "transition-weaver",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
         )
 
-    assert ("outputs", "taxonomy-builder") in calls
+    assert ("outputs", "no-such-skill-xyz") in calls
     assert ("invariants", "outline-refiner") in calls
+    assert ("outputs", "taxonomy-builder") not in calls
+    assert ("outputs", "outline-builder") not in calls
+    assert ("outputs", "section-mapper") not in calls
+    assert ("outputs", "evidence-draft") not in calls
+    assert ("outputs", "writer-context-pack") not in calls
+    assert ("outputs", "transition-weaver") not in calls
     assert ("outputs", "citation-injector") not in calls
     assert ("outputs", "deliverable-selfloop") not in calls
     assert ("outputs", "artifact-contract-auditor") not in calls
@@ -2250,3 +2275,106 @@ def test_native_draft_polisher_composes_anchoring(tmp_path: Path) -> None:
     )
     codes = {c for c, _ in _both("draft-polisher", ws, ["output/DRAFT.md"])}
     assert "citation_anchor_missing_h3" in codes
+
+
+# --- survey-planning family parity (final module -> 68/68 native) -----------
+
+
+@pytest.mark.parametrize(
+    "skill,out_rel,missing_code",
+    [
+        ("taxonomy-builder", "outline/taxonomy.yml", "invalid_taxonomy"),
+        ("outline-builder", "outline/outline.yml", "invalid_outline"),
+        ("section-mapper", "outline/mapping.tsv", "empty_mapping"),
+        ("paper-notes", "papers/paper_notes.jsonl", "empty_paper_notes"),
+        ("claim-evidence-matrix", "outline/claim_evidence_matrix.md", "missing_claim_matrix"),
+        ("subsection-briefs", "outline/subsection_briefs.jsonl", "missing_subsection_briefs"),
+        ("chapter-briefs", "outline/chapter_briefs.jsonl", "missing_chapter_briefs"),
+        ("outline-refiner", "outline/coverage_report.md", "missing_coverage_report"),
+        ("evidence-draft", "outline/evidence_drafts.jsonl", "missing_evidence_drafts"),
+        ("evidence-selfloop", "output/EVIDENCE_SELFLOOP_TODO.md", "missing_evidence_selfloop_report"),
+        ("anchor-sheet", "outline/anchor_sheet.jsonl", "missing_anchor_sheet"),
+        ("schema-normalizer", "output/SCHEMA_NORMALIZATION_REPORT.md", "missing_schema_normalization_report"),
+        ("writer-context-pack", "outline/writer_context_packs.jsonl", "missing_writer_context_packs"),
+        ("evidence-binder", "outline/evidence_bindings.jsonl", "missing_evidence_bindings"),
+        ("table-schema", "outline/table_schema.md", "missing_table_schema"),
+        ("table-filler", "outline/tables_index.md", "missing_tables_md"),
+        ("appendix-table-writer", "outline/tables_appendix.md", "missing_tables_appendix"),
+        ("transition-weaver", "outline/transitions.md", "missing_transitions"),
+    ],
+)
+def test_native_survey_planning_missing_matches_legacy(
+    skill: str, out_rel: str, missing_code: str, tmp_path: Path
+) -> None:
+    ws = tmp_path / f"sp_{skill}"
+    ws.mkdir()
+    pairs = _both(skill, ws, [out_rel])
+    assert pairs and pairs[0][0] == missing_code
+
+
+def test_native_taxonomy_domain_and_template_branches(tmp_path: Path) -> None:
+    ws = tmp_path / "sp_tax"
+    ws.mkdir()
+    import yaml as _y
+
+    # depth ok, but all descriptions templated + short-desc -> template + short codes
+    tax = [
+        {
+            "name": "Overview",
+            "description": "Papers and ideas centered on 'x'",
+            "children": [{"name": "Benchmarks", "description": "Key aspects of 'y'"}],
+        }
+    ]
+    _write_file(ws, "outline/taxonomy.yml", _y.safe_dump(tax))
+    codes = {c for c, _ in _both("taxonomy-builder", ws, ["outline/taxonomy.yml"])}
+    assert "taxonomy_template_descriptions" in codes
+
+
+def test_native_survey_visuals_multi_file(tmp_path: Path) -> None:
+    # survey-visuals reads timeline + figures; short timeline + sparse cites fire.
+    ws = tmp_path / "sp_vis"
+    ws.mkdir()
+    _write_file(ws, "outline/timeline.md", "- 2021 event\n- 2022 event\n")
+    _write_file(ws, "outline/figures.md", "- Figure 1: x\n")
+    codes = {
+        c
+        for c, _ in _both(
+            "survey-visuals", ws, ["outline/timeline.md", "outline/figures.md"]
+        )
+    }
+    assert "visuals_timeline_too_short" in codes
+    assert "visuals_missing_figures" in codes
+
+
+def test_native_transitions_planner_talk(tmp_path: Path) -> None:
+    ws = tmp_path / "sp_trans"
+    ws.mkdir()
+    _write_file(ws, "outline/transitions.md", "- 1.1 follows naturally by turning to X\n")
+    codes = [c for c, _ in _both("transition-weaver", ws, ["outline/transitions.md"])]
+    assert codes == ["transitions_planner_talk_turning"]
+
+
+def test_native_evidence_binder_regex_fidelity(tmp_path: Path) -> None:
+    # The legacy evidence_id paper regex is literally `^E-(P\\d+)-` (a literal
+    # backslash-d that never matches); native reproduces it so a binding whose
+    # only paper signal is an evidence_id prefix still fails distinct-papers.
+    ws = tmp_path / "sp_bind"
+    ws.mkdir()
+    _write_file(
+        ws,
+        "outline/evidence_bindings.jsonl",
+        json.dumps(
+            {
+                "sub_id": "1.1",
+                "title": "t",
+                "evidence_ids": ["E-P0001-a"],
+                "mapped_bibkeys": ["k0"],
+                "bibkeys": ["k0"],
+            }
+        ),
+    )
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    n = _pairs(native.check_unit_outputs(skill="evidence-binder", workspace=ws, outputs=["outline/evidence_bindings.jsonl"]))
+    lg = _pairs(legacy.check_unit_outputs(skill="evidence-binder", workspace=ws, outputs=["outline/evidence_bindings.jsonl"]))
+    assert n == lg

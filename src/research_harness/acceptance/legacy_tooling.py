@@ -228,6 +228,25 @@ class LegacyToolingPolicyReader(WorkspacePolicyPort):
             workspace=workspace, relpaths=relpaths
         )
 
+    def structure_mode(self, workspace: Path) -> str:
+        from tooling.quality_checks.survey_structure import structure_mode
+
+        return structure_mode(workspace)
+
+    def section_first_artifact_issues(self, workspace: Path, *, consumer: str) -> list[Any]:
+        from tooling.quality_checks.survey_structure import section_first_artifact_issues
+
+        return section_first_artifact_issues(workspace, consumer=consumer)
+
+    def section_first_cutover_issues(
+        self, workspace: Path, *, consumer: str, require_stable_h3: bool
+    ) -> list[Any]:
+        from tooling.quality_checks.survey_structure import section_first_cutover_issues
+
+        return section_first_cutover_issues(
+            workspace, consumer=consumer, require_stable_h3=require_stable_h3
+        )
+
 
 def default_workspace_policy_reader() -> WorkspacePolicyPort:
     """Return the default (legacy) workspace-policy reader.

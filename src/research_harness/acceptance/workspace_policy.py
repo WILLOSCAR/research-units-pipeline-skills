@@ -166,3 +166,31 @@ class WorkspacePolicyPort(Protocol):
         the Port for the same reason as ``template_residue_document_issues``.
         """
         ...
+
+    def structure_mode(self, workspace: Path) -> str:
+        """Return the run's structure mode (``"section_first"`` or ``""``).
+
+        Mirrors ``tooling.quality_checks.survey_structure.structure_mode`` (reads
+        the pipeline spec's ``structure_mode``).
+        """
+        ...
+
+    def section_first_artifact_issues(self, workspace: Path, *, consumer: str) -> list[Any]:
+        """Return section-first C2-artifact gate issues for a consumer.
+
+        Mirrors ``tooling.quality_checks.survey_structure.section_first_artifact_issues``:
+        under section_first mode, requires the C2 artifacts to exist and be
+        non-empty.  Returns objects with ``code`` + ``message``.
+        """
+        ...
+
+    def section_first_cutover_issues(
+        self, workspace: Path, *, consumer: str, require_stable_h3: bool
+    ) -> list[Any]:
+        """Return section-first cutover-state gate issues for a consumer.
+
+        Mirrors ``tooling.quality_checks.survey_structure.section_first_cutover_issues``:
+        under section_first mode, validates ``outline/outline_state.jsonl``
+        cutover state.  Returns objects with ``code`` + ``message``.
+        """
+        ...
