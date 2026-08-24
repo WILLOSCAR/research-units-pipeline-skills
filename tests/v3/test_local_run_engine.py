@@ -542,6 +542,76 @@ def test_completed_run_is_replayable_in_a_disposable_workspace(
     assert advanced.unit_ids == ()
 
 
+def test_checkpoint_blocked_run_replays_and_completes_in_a_disposable_workspace(
+    tmp_path: Path,
+) -> None:
+    # Mid-flight replay: a Run blocked at a human checkpoint is cloned into a
+    # disposable workspace and driven to completion there. The pending-checkpoint
+    # state and the DECISIONS.md artifact are both path-independent, so a human
+    # Decision can be resumed and committed in a fresh workspace.
+    source = tmp_path / "source"
+    source.mkdir()
+    run_id = "run-checkpoint-replay"
+    engine = LocalRunEngine.for_workspace(
+        source,
+        skill_adapters={
+            "producer": _filesystem_writer(source, output="basis.md"),
+        },
+        acceptance=InMemoryAcceptance(),
+        revision=_revision(),
+    )
+    plan = _plan(
+        UnitPlan(id="U010", title="Produce", skill="producer", outputs=("basis.md",)),
+        UnitPlan(
+            id="U020",
+            title="Approve",
+            skill="human-checkpoint",
+            owner=Owner.HUMAN,
+            checkpoint="C1",
+            depends_on=("U010",),
+            inputs=("basis.md", "DECISIONS.md"),
+            outputs=("DECISIONS.md",),
+        ),
+        targets=("DECISIONS.md",),
+    )
+    engine.execute(CreateLocalRun(plan=plan, run_id=run_id))
+
+    waiting = engine.execute(AdvanceRun(until=AdvanceUntil.BLOCKED_OR_COMPLETE))
+    assert waiting.outcome is EngineOutcome.WAITING_FOR_CHECKPOINT
+    assert waiting.unit_ids == ("U010",)
+    assert waiting.inspection.waiting_checkpoint == "C1"
+
+    # Clone the durable state + the producer's artifact mid-flight, before the
+    # human decision exists.
+    disposable = tmp_path / "disposable"
+    disposable.mkdir()
+    shutil.copytree(source / ".harness-v3", disposable / ".harness-v3")
+    shutil.copy2(source / "basis.md", disposable / "basis.md")
+
+    # In the disposable workspace, write the human decision and approve it.
+    (disposable / "DECISIONS.md").write_text(
+        "- [x] Approve C1\n"
+        "<!-- BEGIN CHECKPOINT:C1 -->\nreviewed\n"
+        "<!-- END CHECKPOINT:C1 -->\n",
+        encoding="utf-8",
+    )
+    replay = LocalRunEngine.for_workspace(
+        disposable,
+        skill_adapters={
+            "producer": _filesystem_writer(disposable, output="basis.md"),
+        },
+        acceptance=InMemoryAcceptance(),
+        revision=_revision(),
+    )
+    approved = replay.execute(ApproveLocalCheckpoint(checkpoint="C1"))
+    assert approved.outcome is EngineOutcome.APPROVED
+
+    completed = replay.execute(AdvanceRun())
+    assert completed.outcome is EngineOutcome.COMPLETED
+    assert completed.unit_ids == ("U020",)
+    assert replay.inspect().run.status is RunStatus.COMPLETED
+
+
 def test_legacy_v2_workspace_is_inspectable_but_never_mutated(
     tmp_path: Path,
 ) -> None:
