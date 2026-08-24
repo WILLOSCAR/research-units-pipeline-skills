@@ -321,8 +321,12 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
 
     native = NativeQualityProvider(legacy=_SpyLegacy())
 
-    # Non-native skill -> delegated.
-    native.check_unit_outputs(skill="arxiv-search", workspace=tmp_path, outputs=[])
+    # Non-native skill -> delegated. (literature-engineer is registered but has
+    # no native reimplementation, so it must route to the composed legacy
+    # adapter.)
+    native.check_unit_outputs(
+        skill="literature-engineer", workspace=tmp_path, outputs=[]
+    )
     # Completion invariants always delegated (none reimplemented yet).
     native.check_completion_invariants(
         skill="outline-refiner", workspace=tmp_path, outputs=[]
@@ -337,17 +341,23 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "deliverable-selfloop",
         "artifact-contract-auditor",
         "beamer-compile-qa",
+        # policy-consuming native skills route through the policy table, still
+        # not delegated to legacy.
+        "citation-verifier",
+        "arxiv-search",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
         )
 
-    assert ("outputs", "arxiv-search") in calls
+    assert ("outputs", "literature-engineer") in calls
     assert ("invariants", "outline-refiner") in calls
     assert ("outputs", "citation-injector") not in calls
     assert ("outputs", "deliverable-selfloop") not in calls
     assert ("outputs", "artifact-contract-auditor") not in calls
     assert ("outputs", "beamer-compile-qa") not in calls
+    assert ("outputs", "citation-verifier") not in calls
+    assert ("outputs", "arxiv-search") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -651,5 +661,139 @@ def test_native_citation_verifier_consumes_injected_policy() -> None:
             "citations_too_few_entries",
             "`citations/ref.bib` has only 2 entries; target >= 5 for a "
             "survey-quality run (expand retrieval / snowball / imports).",
+        )
+    ]
+
+
+# --- arxiv-search parity (second policy-consuming native check) -------------
+
+_ARXIV_OUT = ["papers/papers_raw.jsonl"]
+
+
+def _raw_line(**fields: object) -> str:
+    return json.dumps(fields)
+
+
+# Each case is the ``papers/papers_raw.jsonl`` body; ``None`` means absent.
+_ARXIV_CASES: dict[str, str | None] = {
+    "missing": None,
+    "empty": "",
+    "placeholder_title": _raw_line(title="(placeholder) demo", url="x"),
+    "placeholder_zero_id": _raw_line(title="Real", url="https://x/0000.00000"),
+    # arxiv source, no id_fetch, no queries.md -> delegates to keyword check.
+    "arxiv_no_keywords": _raw_line(title="Real paper", url="u", source="arxiv"),
+    # arxiv source but id_list fetch -> keywords optional -> pass.
+    "arxiv_id_fetch": _raw_line(
+        title="Real paper", url="u", source="arxiv", query=["2601.00001"]
+    ),
+    # non-arxiv source -> no keyword hygiene -> pass.
+    "non_arxiv": _raw_line(title="Real paper", url="u", source="openalex"),
+    # multiple non-arxiv records, all clean -> pass.
+    "multi_clean": _raw_line(title="A", url="a", source="s")
+    + "\n"
+    + _raw_line(title="B", url="b", source="s"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_ARXIV_CASES))
+def test_native_arxiv_search_matches_legacy(name: str, tmp_path: Path) -> None:
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    body = _ARXIV_CASES[name]
+    ws = tmp_path / name
+    ws.mkdir()
+    if body is not None:
+        _write_file(ws, "papers/papers_raw.jsonl", body)
+
+    native_pairs = _pairs(
+        native.check_unit_outputs(
+            skill="arxiv-search", workspace=ws, outputs=_ARXIV_OUT
+        )
+    )
+    legacy_pairs = _pairs(
+        legacy.check_unit_outputs(
+            skill="arxiv-search", workspace=ws, outputs=_ARXIV_OUT
+        )
+    )
+    assert native_pairs == legacy_pairs, name
+
+
+def test_native_arxiv_search_keyword_branch_matches_legacy(tmp_path: Path) -> None:
+    # arxiv source, no id_fetch, with a queries.md keyword list: both providers
+    # route through the keyword-expansion helper. Sweep its own case matrix.
+    native = NativeQualityProvider()
+    legacy = default_quality_provider()
+    raw = _raw_line(title="Real paper", url="u", source="arxiv")
+
+    keyword_cases: dict[str, str | None] = {
+        "no_queries_file": None,
+        "empty_keywords": "- keywords:\n",
+        "one_generic": "- keywords:\n- rag\n",
+        "one_strong": "- keywords:\n- retrieval augmented generation\n",
+        "many": "- keywords:\n- alpha\n- beta terms\n",
+    }
+    for name, queries_body in keyword_cases.items():
+        ws = tmp_path / name
+        ws.mkdir()
+        _write_file(ws, "papers/papers_raw.jsonl", raw)
+        if queries_body is not None:
+            _write_file(ws, "queries.md", queries_body)
+
+        native_pairs = _pairs(
+            native.check_unit_outputs(
+                skill="arxiv-search", workspace=ws, outputs=_ARXIV_OUT
+            )
+        )
+        legacy_pairs = _pairs(
+            legacy.check_unit_outputs(
+                skill="arxiv-search", workspace=ws, outputs=_ARXIV_OUT
+            )
+        )
+        assert native_pairs == legacy_pairs, name
+
+
+def test_native_arxiv_search_consumes_injected_policy_minimum_records() -> None:
+    # Prove the check reads the retrieval-policy minimum-records contract through
+    # the injected WorkspacePolicyPort: a stub reporting minimum_records=3 makes
+    # a 2-record pool fail with raw_pool_too_small, deterministically.
+    import tempfile
+
+    class _StubPolicy:
+        def pipeline_profile_name(self, workspace: Path) -> str:
+            return "default"
+
+        def evidence_mode(self, workspace: Path) -> str:
+            return "abstract"
+
+        def core_size(self, workspace: Path) -> int:
+            return 0
+
+        def pipeline_quality_contract_value(
+            self, workspace: Path, *keys: str, default: object = None
+        ) -> object:
+            if keys == ("retrieval_policy", "minimum_records"):
+                return 3
+            return default
+
+    provider = NativeQualityProvider(policy=_StubPolicy())
+    with tempfile.TemporaryDirectory() as d:
+        ws = Path(d)
+        (ws / "papers").mkdir()
+        (ws / "papers" / "papers_raw.jsonl").write_text(
+            _raw_line(title="A", url="a", source="s")
+            + "\n"
+            + _raw_line(title="B", url="b", source="s"),
+            encoding="utf-8",
+        )
+        pairs = _pairs(
+            provider.check_unit_outputs(
+                skill="arxiv-search", workspace=ws, outputs=_ARXIV_OUT
+            )
+        )
+    assert pairs == [
+        (
+            "raw_pool_too_small",
+            "`papers/papers_raw.jsonl` contains 2 records; the Workflow contract "
+            "requires at least 3. Broaden or repair the query before ranking.",
         )
     ]

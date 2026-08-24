@@ -16,11 +16,12 @@ This module is a growing step toward a native
   ``beamer-compile-qa`` -- delegating every other ``check_unit_outputs`` call
   and *all* ``check_completion_invariants`` calls to a composed legacy adapter;
   and
-- reimplements the first *policy-consuming* output check, ``citation-verifier``,
-  which reads workspace policy (run profile + core-set target) through the
-  injected :class:`WorkspacePolicyPort` rather than importing
-  ``tooling.quality_checks.survey_policy`` -- exercising that seam for real
-  instead of leaving it merely constructed.
+- reimplements the *policy-consuming* output checks, ``citation-verifier`` and
+  ``arxiv-search``, which read workspace policy (run profile, core-set target,
+  and the retrieval-policy contract) through the injected
+  :class:`WorkspacePolicyPort` rather than importing
+  ``tooling.quality_checks.survey_policy`` / ``tooling.common`` -- exercising
+  that seam for real instead of leaving it merely constructed.
 
 Unlike ``legacy_tooling``, this module imports no ``tooling`` symbols -- not
 even lazily.  Composition delegates to ``LegacyToolingQualityProvider``, which
@@ -516,6 +517,153 @@ def _check_citation_verifier(
     return []
 
 
+def _check_keyword_expansion(workspace: Path) -> list[NativeQualityIssue]:
+    """Native mirror of ``survey_retrieval.check_keyword_expansion``.
+
+    Self-contained (no policy): parses ``queries.md`` for a non-empty
+    ``keywords`` list.  Byte-for-byte parity (codes + messages) with the legacy
+    check is pinned by the Port parity sweep.  This is a plain helper -- it is
+    called from :func:`_check_arxiv_search` exactly as the legacy check calls
+    its counterpart, so it is not itself registered as a native Skill.
+
+    The legacy check contains a dead ``has_placeholder_markers`` call whose
+    result is discarded (``pass``); it is intentionally dropped here because it
+    has no observable effect.
+    """
+
+    queries_path = workspace / "queries.md"
+    if not queries_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_queries",
+                message="Missing `queries.md`; expected keyword list for retrieval.",
+            )
+        ]
+
+    text = queries_path.read_text(encoding="utf-8", errors="ignore")
+
+    mode: str | None = None
+    keywords: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("- keywords:"):
+            mode = "keywords"
+            continue
+        if line.startswith("- exclude:"):
+            mode = "exclude"
+            continue
+        if not line.startswith("- "):
+            continue
+        if mode != "keywords":
+            continue
+        value = line[2:].split("#", 1)[0].strip().strip('"').strip("'")
+        if value:
+            keywords.append(value)
+
+    if not keywords:
+        return [
+            NativeQualityIssue(
+                code="queries_missing_keywords",
+                message=(
+                    "`queries.md` has no non-empty `keywords` entries; "
+                    "fill keywords (or use offline import)."
+                ),
+            )
+        ]
+    if len(keywords) == 1 and len(keywords[0]) < 6:
+        return [
+            NativeQualityIssue(
+                code="queries_keywords_too_generic",
+                message=(
+                    "`queries.md` keyword list looks too weak; add synonyms/"
+                    "acronyms or use `keyword-expansion` before retrieval."
+                ),
+            )
+        ]
+    return []
+
+
+def _check_arxiv_search(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``survey_retrieval.check_arxiv_search``.
+
+    Policy-consuming: reads the retrieval-policy minimum-records contract
+    through the injected :class:`WorkspacePolicyPort`
+    (``pipeline_quality_contract_value``); the raw-pool scan and online-arXiv
+    keyword-hygiene branch are pure stdlib.  Records are iterated unfiltered,
+    exactly as the legacy check does, so a non-dict record raises identically.
+    Byte-for-byte parity (codes + messages) with the legacy check is pinned by
+    the Port parity sweep.
+    """
+
+    out_rel = outputs[0] if outputs else "papers/papers_raw.jsonl"
+    path = workspace / out_rel
+    records = _read_jsonl(path)
+    if not records:
+        return [
+            NativeQualityIssue(
+                code="empty_raw", message=f"No records found in `{out_rel}`."
+            )
+        ]
+
+    minimum_records = int(
+        policy.pipeline_quality_contract_value(
+            workspace,
+            "retrieval_policy",
+            "minimum_records",
+            default=1,
+        )
+        or 1
+    )
+    if len(records) < minimum_records:
+        return [
+            NativeQualityIssue(
+                code="raw_pool_too_small",
+                message=(
+                    f"`{out_rel}` contains {len(records)} records; the Workflow "
+                    f"contract requires at least {minimum_records}. Broaden or "
+                    "repair the query before ranking."
+                ),
+            )
+        ]
+
+    placeholders = 0
+    arxiv_sources = 0
+    id_fetch = 0
+    for rec in records:
+        title = str(rec.get("title") or "").strip()
+        url = str(rec.get("url") or rec.get("id") or "").strip()
+        if title.lower().startswith("(placeholder)") or "0000.00000" in url:
+            placeholders += 1
+        if str(rec.get("source") or "").strip().lower() == "arxiv":
+            arxiv_sources += 1
+        q = rec.get("query")
+        if isinstance(q, list) and len(q) == 1:
+            v = str(q[0] or "").strip()
+            if re.fullmatch(r"\d{4}\.\d{4,5}(?:v\d+)?", v) or re.fullmatch(
+                r"[a-z-]+(?:\.[a-z-]+)?/\d{7}(?:v\d+)?", v
+            ):
+                id_fetch += 1
+    if placeholders:
+        return [
+            NativeQualityIssue(
+                code="placeholder_records",
+                message=(
+                    f"`{out_rel}` contains placeholder/demo records "
+                    f"({placeholders}); workspace template should start empty."
+                ),
+            )
+        ]
+    # Only enforce keyword hygiene when this looks like an online arXiv retrieval.
+    if arxiv_sources:
+        # A direct id_list fetch makes queries.md keywords optional.
+        if id_fetch:
+            return []
+        return _check_keyword_expansion(workspace)
+    return []
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -528,6 +676,7 @@ _NativePolicyCheck = Callable[
 
 _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "citation-verifier": _check_citation_verifier,
+    "arxiv-search": _check_arxiv_search,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)
@@ -549,8 +698,9 @@ class NativeQualityProvider(QualityCheckProvider):
     ``policy`` is the injected :class:`WorkspacePolicyPort` the policy-consuming
     native checks read workspace policy (run profile, evidence mode, core-set
     target, quality contract) through.  It defaults to the legacy adapter so
-    runtime behavior is unchanged; ``citation-verifier`` is the first check that
-    consumes it, so the seam is now load-bearing rather than merely constructed.
+    runtime behavior is unchanged; ``citation-verifier`` and ``arxiv-search``
+    are the checks that consume it, so the seam is load-bearing rather than
+    merely constructed.
     """
 
     legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)
