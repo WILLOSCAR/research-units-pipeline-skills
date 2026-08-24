@@ -351,6 +351,7 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "literature-engineer",
         "dedupe-rank",
         "latex-scaffold",
+        "latex-compile-qa",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
@@ -369,6 +370,7 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "literature-engineer") not in calls
     assert ("outputs", "dedupe-rank") not in calls
     assert ("outputs", "latex-scaffold") not in calls
+    assert ("outputs", "latex-compile-qa") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -1117,3 +1119,113 @@ def test_native_latex_scaffold_pass_default(tmp_path: Path) -> None:
         "\\bibliography{../citations/ref}\n",
     )
     assert _both("latex-scaffold", ws, ["latex/main.tex"]) == []
+
+
+# --- latex-compile-qa parity (completes the delivery family) ----------------
+#
+# The PDF page count is read via PyMuPDF (fitz) or a pdfinfo fallback. Neither
+# may be installed in CI, so the file-existence and log-warning branches are
+# exercised through the provider (deterministic: absent tooling -> both sides
+# emit pdf_page_count_unavailable identically), while the page-count branches
+# (too_short / too_long / placeholders) are pinned by calling the native and
+# legacy functions directly with an INJECTED fake pdfinfo, so they compare the
+# real page-count logic regardless of the host environment.
+
+_LATEX_QA_OUT = ["latex/main.pdf", "output/LATEX_BUILD_REPORT.md"]
+
+
+def test_native_latex_compile_qa_missing_pdf(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lq_nopdf")
+    assert _both("latex-compile-qa", ws, _LATEX_QA_OUT) == [
+        ("missing_main_pdf", "`latex/main.pdf` does not exist.")
+    ]
+
+
+def test_native_latex_compile_qa_missing_report(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lq_norep")
+    _write_file(ws, "latex/main.pdf", "%PDF-1.4\n")
+    assert _both("latex-compile-qa", ws, _LATEX_QA_OUT) == [
+        ("missing_build_report", "`output/LATEX_BUILD_REPORT.md` does not exist.")
+    ]
+
+
+def test_native_latex_compile_qa_log_warnings_match_legacy(tmp_path: Path) -> None:
+    # Exercises the not-SUCCESS + undefined-citation + float + missing-glyph
+    # branches; page count is unavailable here (no fitz/pdfinfo) so both sides
+    # early-return pdf_page_count_unavailable after the log warnings.
+    ws = _survey_ws(tmp_path, "lq_warn")
+    _write_file(ws, "latex/main.pdf", "not a real pdf")
+    _write_file(ws, "output/LATEX_BUILD_REPORT.md", "- Status: FAIL\n")
+    _write_file(
+        ws,
+        "latex/main.log",
+        "There were undefined citations\n"
+        "LaTeX Warning: Float too large for page\n"
+        "Missing character: no glyph\n",
+    )
+    codes = [c for c, _ in _both("latex-compile-qa", ws, _LATEX_QA_OUT)]
+    assert "latex_build_not_success" in codes
+    assert "latex_undefined_citations" in codes
+    assert "latex_float_too_large" in codes
+    assert "latex_missing_character" in codes
+
+
+def _fake_pdfinfo(tmp_path: Path, pages: int) -> "object":
+    """Return a ``which``-shaped callable pointing at a fake pdfinfo script."""
+    script = tmp_path / "bin" / "pdfinfo"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text(f'#!/bin/sh\necho "Pages:           {pages}"\n', encoding="utf-8")
+    script.chmod(0o755)
+
+    def which(tool: str) -> str | None:
+        return str(script) if tool == "pdfinfo" else None
+
+    return which
+
+
+def _latex_qa_direct(ws: Path, which: "object") -> tuple[list, list]:
+    """Call native + legacy latex-compile-qa directly with an injected which."""
+    from tooling.quality_checks.delivery import check_latex_compile_qa as legacy
+
+    from research_harness.acceptance.legacy_tooling import LegacyToolingPolicyReader
+    from research_harness.acceptance.native import _check_latex_compile_qa
+
+    policy = LegacyToolingPolicyReader()
+    native = _pairs(_check_latex_compile_qa(ws, _LATEX_QA_OUT, policy, which=which))
+    leg = _pairs(legacy(ws, _LATEX_QA_OUT, which=which))
+    return native, leg
+
+
+def test_native_latex_compile_qa_pdf_too_short(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lq_short")
+    _write_file(ws, "latex/main.pdf", "%PDF-1.4\n")
+    _write_file(ws, "output/LATEX_BUILD_REPORT.md", "- Status: SUCCESS\n")
+    which = _fake_pdfinfo(tmp_path, pages=3)  # < default min of 8
+    native, leg = _latex_qa_direct(ws, which)
+    assert native == leg
+    assert "pdf_too_short" in {c for c, _ in native}
+
+
+def test_native_latex_compile_qa_pdf_too_long(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lq_long")
+    _write_file(ws, "latex/main.pdf", "%PDF-1.4\n")
+    _write_file(ws, "output/LATEX_BUILD_REPORT.md", "- Status: SUCCESS\n")
+    # goal.json sets an explicit page_range max so the too-long branch can fire.
+    _write_file(
+        ws,
+        ".harness/goal.json",
+        json.dumps({"constraints": {"page_range": {"min": 8, "max": 20}}}),
+    )
+    which = _fake_pdfinfo(tmp_path, pages=40)
+    native, leg = _latex_qa_direct(ws, which)
+    assert native == leg
+    assert "pdf_too_long" in {c for c, _ in native}
+
+
+def test_native_latex_compile_qa_pass(tmp_path: Path) -> None:
+    ws = _survey_ws(tmp_path, "lq_pass")
+    _write_file(ws, "latex/main.pdf", "%PDF-1.4\n")
+    _write_file(ws, "output/LATEX_BUILD_REPORT.md", "- Status: SUCCESS\n")
+    which = _fake_pdfinfo(tmp_path, pages=12)  # within default [8, inf)
+    native, leg = _latex_qa_direct(ws, which)
+    assert native == leg == []

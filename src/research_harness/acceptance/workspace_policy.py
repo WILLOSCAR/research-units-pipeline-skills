@@ -14,13 +14,13 @@ inside ``research_harness`` with no ``tooling`` import (mirroring
 implementation is ``LegacyToolingPolicyReader`` in ``legacy_tooling`` (the
 single named seam that wraps ``tooling``).
 
-The method surface is a deliberately small, coherent subset: exactly the
-policy reads the siblings of ``check_citation_injection`` in
-``tooling.quality_checks.survey_retrieval`` depend on.  It is the first step
-toward letting more of those checks go native without hauling in the whole of
-``tooling.common``; a later step can port a check to read policy through this
-Port.  Generic file readers (e.g. ``read_jsonl``) are intentionally *not* here:
-they are not workspace policy.
+The method surface is a deliberately small, coherent subset: the policy reads
+the siblings of ``check_citation_injection`` in
+``tooling.quality_checks.survey_retrieval`` depend on, plus the Goal-constraint
+read the delivery ``latex-compile-qa`` check needs.  It is the seam that lets
+those checks go native without hauling in the whole of ``tooling.common``.
+Generic file readers (e.g. ``read_jsonl``) are intentionally *not* here: they
+are not workspace policy.
 
 Signatures mirror the module-level helpers in
 ``tooling.quality_checks.survey_policy`` and ``tooling.common`` exactly so a
@@ -58,4 +58,14 @@ class WorkspacePolicyPort(Protocol):
         self, workspace: Path, *keys: str, default: Any = None
     ) -> Any:
         """Return a nested value from the pipeline's quality contract, or ``default``."""
+        ...
+
+    def workspace_goal_constraints(self, workspace: Path) -> dict[str, Any]:
+        """Return the run's structured Goal constraints (``{}`` when unresolved).
+
+        Mirrors ``tooling.common.load_workspace_goal_constraints``: reads
+        ``.harness/goal.json`` first, falling back to parsing ``GOAL.md``.  A
+        native delivery check (``latex-compile-qa``) reads the ``page_range``
+        constraint through this rather than importing ``tooling.common``.
+        """
         ...

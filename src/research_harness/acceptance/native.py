@@ -19,14 +19,14 @@ This module is a growing step toward a native
 - reimplements the *policy-consuming* output checks of the survey-retrieval
   family in full -- ``citation-verifier``, ``arxiv-search``,
   ``pdf-text-extractor``, ``literature-engineer``, and ``dedupe-rank`` -- plus
-  the delivery-family ``latex-scaffold`` -- which read workspace policy (run
-  profile, evidence mode, core-set target, and the retrieval / candidate-pool
-  contracts) through the injected :class:`WorkspacePolicyPort` rather than
-  importing ``tooling.quality_checks.survey_policy`` / ``tooling.common``.
-  With these, every check in ``tooling.quality_checks.survey_retrieval`` has a
-  native equivalent, exercising the policy seam for real instead of leaving it
-  merely constructed.  (``latex-compile-qa`` is deliberately still delegated:
-  it needs PDF-parsing and a goal-constraints read not yet on the Port.)
+  the delivery family in full -- ``latex-scaffold`` and ``latex-compile-qa`` --
+  which read workspace policy (run profile, evidence mode, core-set target, the
+  retrieval / candidate-pool contracts, and the Goal page-range constraint)
+  through the injected :class:`WorkspacePolicyPort` rather than importing
+  ``tooling.quality_checks.survey_policy`` / ``tooling.common``.  With these,
+  every check in both ``tooling.quality_checks.survey_retrieval`` and
+  ``tooling.quality_checks.delivery`` has a native equivalent, exercising the
+  policy seam for real instead of leaving it merely constructed.
 
 Unlike ``legacy_tooling``, this module imports no ``tooling`` symbols -- not
 even lazily.  Composition delegates to ``LegacyToolingQualityProvider``, which
@@ -45,6 +45,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1294,6 +1295,207 @@ def _check_latex_scaffold(
     return issues
 
 
+def _check_latex_compile_qa(
+    workspace: Path,
+    outputs: list[str],
+    policy: WorkspacePolicyPort,
+    *,
+    which: Callable[[str], str | None] = shutil.which,
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``delivery.check_latex_compile_qa``.
+
+    Policy-consuming: reads the run profile (``pipeline_profile_name``) and the
+    Goal ``page_range`` constraint (``workspace_goal_constraints``) through the
+    injected :class:`WorkspacePolicyPort`.  The compiled PDF is inspected for a
+    page count -- preferring PyMuPDF (``fitz``), falling back to ``pdfinfo`` via
+    the injectable ``which`` (defaulting to ``shutil.which``, exactly as legacy)
+    -- and the build log/report is scanned for undefined-citation, float, and
+    missing-glyph warnings.  Byte-for-byte parity (codes + messages, issue
+    ORDER, and the same early-return on an unavailable page count) with the
+    legacy check is pinned by the Port parity sweep.
+    """
+
+    pdf_rel = outputs[0] if outputs else "latex/main.pdf"
+    report_rel = outputs[1] if len(outputs) > 1 else "output/LATEX_BUILD_REPORT.md"
+
+    pdf_path = workspace / pdf_rel
+    report_path = workspace / report_rel
+    log_path = workspace / "latex" / "main.log"
+
+    if not pdf_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_main_pdf", message=f"`{pdf_rel}` does not exist."
+            )
+        ]
+    if not report_path.exists():
+        return [
+            NativeQualityIssue(
+                code="missing_build_report",
+                message=f"`{report_rel}` does not exist.",
+            )
+        ]
+
+    report_text = report_path.read_text(encoding="utf-8", errors="ignore")
+    issues: list[NativeQualityIssue] = []
+    profile = policy.pipeline_profile_name(workspace)
+
+    if "Status: SUCCESS" not in report_text and "- Status: SUCCESS" not in report_text:
+        issues.append(
+            NativeQualityIssue(
+                code="latex_build_not_success",
+                message=(
+                    f"`{report_rel}` does not report SUCCESS; fix LaTeX build "
+                    "errors and re-run compile."
+                ),
+            )
+        )
+
+    # Prefer the final LaTeX log for undefined-citation checks. The build report
+    # may include warning counters that are not proof the final PDF still has
+    # unresolved cites.
+    if log_path.exists():
+        undefined_text = log_path.read_text(encoding="utf-8", errors="ignore")
+    else:
+        undefined_text = report_text
+
+    if (
+        re.search(
+            r"(?im)^Package\s+natbib\s+Warning: Citation.+undefined", undefined_text
+        )
+        or re.search(r"(?im)There were undefined citations", undefined_text)
+        or re.search(r"(?im)There were undefined references", undefined_text)
+        or re.search(r"(?im)^LaTeX\s+Warning: Reference.+undefined", undefined_text)
+    ):
+        issues.append(
+            NativeQualityIssue(
+                code="latex_undefined_citations",
+                message=(
+                    "LaTeX build reports undefined citations/references; ensure "
+                    "all cited keys exist in `citations/ref.bib` and rerun until "
+                    "warnings disappear."
+                ),
+            )
+        )
+
+    if re.search(r"(?im)^LaTeX Warning: Float too large for page", undefined_text):
+        issues.append(
+            NativeQualityIssue(
+                code="latex_float_too_large",
+                message=(
+                    "LaTeX build still has `Float too large for page` warnings; "
+                    "shrink or split oversized tables/figures and recompile."
+                ),
+            )
+        )
+
+    if re.search(r"(?im)^Missing character:", undefined_text):
+        issues.append(
+            NativeQualityIssue(
+                code="latex_missing_character",
+                message=(
+                    "LaTeX build still reports missing Unicode glyphs; add an "
+                    "explicit mapping or sanitize the generated TeX before "
+                    "recompiling."
+                ),
+            )
+        )
+
+    sample_text = ""
+    try:
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(pdf_path)
+        pages = int(len(doc))
+        sample_pages = min(pages, 4)
+        for i in range(sample_pages):
+            try:
+                sample_text += doc.load_page(i).get_text("text") + "\n"
+            except Exception:
+                continue
+        doc.close()
+    except Exception as exc:
+        try:
+            import subprocess
+
+            pdfinfo = which("pdfinfo")
+            if not pdfinfo:
+                raise exc
+            proc = subprocess.run(
+                [pdfinfo, str(pdf_path)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    proc.stderr.strip() or proc.stdout.strip() or "pdfinfo failed"
+                )
+            m = re.search(r"(?im)^Pages:\s+(\d+)\b", proc.stdout or "")
+            if not m:
+                raise RuntimeError("pdfinfo output missing page count")
+            pages = int(m.group(1))
+        except Exception as inner_exc:
+            issues.append(
+                NativeQualityIssue(
+                    code="pdf_page_count_unavailable",
+                    message=(
+                        f"Could not compute PDF page count for `{pdf_rel}` "
+                        f"({type(inner_exc).__name__}: {inner_exc})."
+                    ),
+                )
+            )
+            return issues
+
+    constraints = policy.workspace_goal_constraints(workspace)
+    page_range = (
+        constraints.get("page_range")
+        if isinstance(constraints.get("page_range"), dict)
+        else {}
+    )
+    min_pages = int(page_range.get("min") or (4 if profile == "source-tutorial" else 8))
+    max_pages = int(page_range.get("max") or 0)
+    if pages < min_pages:
+        issues.append(
+            NativeQualityIssue(
+                code="pdf_too_short",
+                message=(
+                    f"`{pdf_rel}` is too short ({pages} pages); expand the draft "
+                    f"until the compiled PDF has >= {min_pages} pages."
+                ),
+            )
+        )
+    if max_pages and pages > max_pages:
+        issues.append(
+            NativeQualityIssue(
+                code="pdf_too_long",
+                message=(
+                    f"`{pdf_rel}` exceeds the Goal page limit ({pages} pages; "
+                    f"target {min_pages}-{max_pages} total PDF pages). "
+                    "Compress layout or prose without dropping required evidence, "
+                    "then recompile."
+                ),
+            )
+        )
+
+    if (
+        re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", sample_text)
+        or "(placeholder)" in sample_text.lower()
+        or "<!-- SCAFFOLD" in sample_text
+    ):
+        issues.append(
+            NativeQualityIssue(
+                code="pdf_contains_placeholders",
+                message=(
+                    "PDF still contains placeholder text (TODO/TBD/FIXME/"
+                    "SCAFFOLD); rewrite the draft and recompile."
+                ),
+            )
+        )
+
+    return issues
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -1311,6 +1513,7 @@ _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "literature-engineer": _check_literature_engineer,
     "dedupe-rank": _check_dedupe_rank,
     "latex-scaffold": _check_latex_scaffold,
+    "latex-compile-qa": _check_latex_compile_qa,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)
@@ -1331,11 +1534,13 @@ class NativeQualityProvider(QualityCheckProvider):
 
     ``policy`` is the injected :class:`WorkspacePolicyPort` the policy-consuming
     native checks read workspace policy (run profile, evidence mode, core-set
-    target, quality contract) through.  It defaults to the legacy adapter so
-    runtime behavior is unchanged; the whole survey-retrieval family
-    (``citation-verifier``, ``arxiv-search``, ``pdf-text-extractor``,
-    ``literature-engineer``, ``dedupe-rank``) plus ``latex-scaffold`` consume
-    it, so the seam is load-bearing rather than merely constructed.
+    target, quality contract, Goal page-range) through.  It defaults to the
+    legacy adapter so runtime behavior is unchanged; the whole survey-retrieval
+    family (``citation-verifier``, ``arxiv-search``, ``pdf-text-extractor``,
+    ``literature-engineer``, ``dedupe-rank``) and the whole delivery family
+    (``latex-scaffold``, ``latex-compile-qa``, plus the self-contained
+    scaffold/report checks above) consume it, so the seam is load-bearing
+    rather than merely constructed.
     """
 
     legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)

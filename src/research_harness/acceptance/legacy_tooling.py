@@ -159,6 +159,11 @@ class LegacyToolingPolicyReader(WorkspacePolicyPort):
 
         return pipeline_quality_contract_value(workspace, *keys, default=default)
 
+    def workspace_goal_constraints(self, workspace: Path) -> dict[str, Any]:
+        from tooling.common import load_workspace_goal_constraints
+
+        return load_workspace_goal_constraints(workspace)
+
 
 def default_workspace_policy_reader() -> WorkspacePolicyPort:
     """Return the default (legacy) workspace-policy reader.

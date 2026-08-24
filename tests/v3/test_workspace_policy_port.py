@@ -39,6 +39,7 @@ def test_port_surface_is_complete() -> None:
         "evidence_mode",
         "core_size",
         "pipeline_quality_contract_value",
+        "workspace_goal_constraints",
     ):
         assert callable(getattr(reader, method)), method
 
@@ -83,6 +84,30 @@ def test_reader_matches_tooling_on_built_fixture_workspace(tmp_path: Path) -> No
     ) == legacy_qcv(
         tmp_path, "retrieval_policy", "minimum_records", default=7
     )
+
+
+def test_reader_goal_constraints_pass_through(tmp_path: Path) -> None:
+    # workspace_goal_constraints mirrors tooling.common exactly: it reads
+    # .harness/goal.json when present, else parses GOAL.md.
+    import json
+
+    from tooling.common import load_workspace_goal_constraints as legacy_goal
+
+    # (1) structured goal.json path
+    (tmp_path / ".harness").mkdir(parents=True)
+    (tmp_path / ".harness" / "goal.json").write_text(
+        json.dumps({"constraints": {"page_range": {"min": 8, "max": 20}}}),
+        encoding="utf-8",
+    )
+    reader = default_workspace_policy_reader()
+    result = reader.workspace_goal_constraints(tmp_path)
+    assert result == {"page_range": {"min": 8, "max": 20}}
+    assert result == legacy_goal(tmp_path)
+
+    # (2) empty workspace -> {} on both sides
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert reader.workspace_goal_constraints(empty) == legacy_goal(empty) == {}
 
 
 def test_reader_matches_tooling_on_empty_workspace(tmp_path: Path) -> None:
@@ -139,6 +164,10 @@ def test_native_provider_accepts_injected_policy_reader() -> None:
         ) -> object:
             self.calls.append("pipeline_quality_contract_value")
             return default
+
+        def workspace_goal_constraints(self, workspace: Path) -> dict[str, object]:
+            self.calls.append("workspace_goal_constraints")
+            return {}
 
     reader = _RecordingReader()
     assert isinstance(reader, WorkspacePolicyPort)
