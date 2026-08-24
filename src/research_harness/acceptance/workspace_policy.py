@@ -90,3 +90,15 @@ class WorkspacePolicyPort(Protocol):
         heavyweight workspace-policy read, not output inspection.
         """
         ...
+
+    def evaluate_paper_review(self, workspace: Path) -> dict[str, Any]:
+        """Return the paper-review scorecard for the run.
+
+        Mirrors ``tooling.review_evaluation.evaluate_paper_review``: reads the
+        review artifacts (``CLAIMS.jsonl``, ``EVIDENCE_AUDIT.jsonl``,
+        ``NOVELTY_MATRIX.tsv``, ``REVIEW.md``) and the rubric policy into a
+        scorecard whose ``dimensions`` the native ``paper_review`` checks read.
+        Kept behind the Port because scoring is a heavyweight evaluator, not
+        output inspection.
+        """
+        ...

@@ -321,12 +321,13 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
 
     native = NativeQualityProvider(legacy=_SpyLegacy())
 
-    # Non-native skill -> delegated. (claims-extractor is registered but has no
-    # native reimplementation -- the survey-retrieval, delivery, and
-    # source-tutorial families are native, but the paper-review family still
-    # delegates -- so it must route to the composed legacy adapter.)
+    # Non-native skill -> delegated. (protocol-writer is registered but has no
+    # native reimplementation -- the survey-retrieval, delivery, source-tutorial,
+    # research-idea, and paper-review families are native, but the
+    # evidence-review family still delegates -- so it must route to the composed
+    # legacy adapter.)
     native.check_unit_outputs(
-        skill="claims-extractor", workspace=tmp_path, outputs=[]
+        skill="protocol-writer", workspace=tmp_path, outputs=[]
     )
     # Completion invariants always delegated (none reimplemented yet).
     native.check_completion_invariants(
@@ -364,12 +365,16 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
         "idea-screener",
         "idea-shortlist-curator",
         "idea-memo-writer",
+        "claims-extractor",
+        "evidence-auditor",
+        "novelty-matrix",
+        "rubric-writer",
     ):
         native.check_unit_outputs(
             skill=native_skill, workspace=tmp_path, outputs=[]
         )
 
-    assert ("outputs", "claims-extractor") in calls
+    assert ("outputs", "protocol-writer") in calls
     assert ("invariants", "outline-refiner") in calls
     assert ("outputs", "citation-injector") not in calls
     assert ("outputs", "deliverable-selfloop") not in calls
@@ -395,6 +400,10 @@ def test_delegates_non_native_skill_to_composed_legacy(tmp_path: Path) -> None:
     assert ("outputs", "idea-screener") not in calls
     assert ("outputs", "idea-shortlist-curator") not in calls
     assert ("outputs", "idea-memo-writer") not in calls
+    assert ("outputs", "claims-extractor") not in calls
+    assert ("outputs", "evidence-auditor") not in calls
+    assert ("outputs", "novelty-matrix") not in calls
+    assert ("outputs", "rubric-writer") not in calls
 
 
 def test_native_module_imports_no_tooling_at_top() -> None:
@@ -1658,3 +1667,141 @@ def test_native_direction_pool_and_screening_contract_error(tmp_path: Path) -> N
         _write_file(ws, out_rel, "| Direction ID |\n|---|\n| D0 |\n")
         codes = [c for c, _ in _both(skill, ws, [out_rel])]
         assert codes == ["invalid_idea_pipeline_contract"], skill
+
+
+# --- paper-review family parity (whole module native, scorecard-gated) ------
+#
+# All four checks project dimension statuses from the paper-review scorecard,
+# which both providers compute via the same legacy evaluate_paper_review (behind
+# the WorkspacePolicyPort), so the scorecard is byte-identical. `_both` asserts
+# native == legacy across empty, all-FAIL, and all-PASS review workspaces.
+
+
+def _write_passing_review(ws: Path) -> None:
+    """Materialize review artifacts that make every scorecard dimension PASS."""
+    claims = [
+        {"claim_id": f"C{i}", "text": "a claim", "claim_type": "empirical", "source_pointer": "p.1"}
+        for i in range(3)
+    ]
+    _write_file(ws, "output/CLAIMS.jsonl", "\n".join(json.dumps(c) for c in claims))
+    audit = [
+        {
+            "gap_id": f"G{i}",
+            "claim_id": f"C{i}",
+            "evidence_present": "yes",
+            "gap": "none",
+            "minimal_fix": "n/a",
+            "severity": "minor",
+        }
+        for i in range(3)
+    ]
+    _write_file(ws, "output/EVIDENCE_AUDIT.jsonl", "\n".join(json.dumps(a) for a in audit))
+    rows = ["claim_id\trelated_work\toverlap\tdelta\tevidence"]
+    for i in range(3):
+        rows.append(f"C{i}\tWork {i}\tov\tdelta\tev")
+    # need >= 5 unique related works overall
+    rows.append("C0\tWork 3\tov\tdelta\tev")
+    rows.append("C1\tWork 4\tov\tdelta\tev")
+    _write_file(ws, "output/NOVELTY_MATRIX.tsv", "\n".join(rows) + "\n")
+    review = (
+        "### Summary\nx\n### Novelty\nx\n### Soundness\nx\n### Clarity\nx\n"
+        "### Impact\nx\n### Major Concerns\nx\n### Minor Comments\nx\n"
+        "### Recommendation\nx\n- accept\n"
+    )
+    _write_file(ws, "output/REVIEW.md", review)
+
+
+_PAPER_REVIEW_SKILLS = {
+    "claims-extractor": "paper_review_claim_traceability",
+    "evidence-auditor": "paper_review_evidence_coverage",
+    "novelty-matrix": "paper_review_novelty_positioning",
+    "rubric-writer": "paper_review_review_traceability",  # (+ recommendation)
+}
+
+
+@pytest.mark.parametrize("skill", sorted(_PAPER_REVIEW_SKILLS))
+def test_native_paper_review_empty_matches_legacy(skill: str, tmp_path: Path) -> None:
+    # Empty workspace: every dimension FAILs; native projection matches legacy.
+    ws = tmp_path / f"pr_empty_{skill}"
+    ws.mkdir()
+    native_pairs = _both(skill, ws, [])
+    assert native_pairs  # at least one FAIL issue
+    assert native_pairs[0][0] == _PAPER_REVIEW_SKILLS[skill]
+
+
+@pytest.mark.parametrize("skill", sorted(_PAPER_REVIEW_SKILLS))
+def test_native_paper_review_passing_matches_legacy(skill: str, tmp_path: Path) -> None:
+    # A fully-populated review makes all dimensions PASS -> no issues on either
+    # provider (proves the scorecard flows through the Port identically).
+    ws = tmp_path / f"pr_pass_{skill}"
+    ws.mkdir()
+    _write_passing_review(ws)
+    assert _both(skill, ws, []) == []
+
+
+def test_native_rubric_writer_covers_two_dimensions(tmp_path: Path) -> None:
+    # rubric-writer reads BOTH review_traceability and recommendation_consistency;
+    # a review missing sections + recommendation fails both, in order, identically.
+    ws = tmp_path / "pr_rubric_two"
+    ws.mkdir()
+    _write_file(ws, "output/CLAIMS.jsonl", json.dumps({"claim_id": "C0", "text": "t", "claim_type": "empirical", "source_pointer": "p"}))
+    _write_file(ws, "output/REVIEW.md", "### Summary\nonly one section\n")
+    codes = [c for c, _ in _both("rubric-writer", ws, [])]
+    assert codes == [
+        "paper_review_review_traceability",
+        "paper_review_recommendation_consistency",
+    ]
+
+
+def test_native_paper_review_consumes_injected_scorecard() -> None:
+    # Prove the check reads the scorecard through the injected Port: a stub
+    # policy returning a PASS dimension yields no issue; a FAIL yields one.
+    import tempfile
+
+    class _StubPolicy:
+        def __init__(self, status: str) -> None:
+            self._status = status
+
+        def pipeline_profile_name(self, workspace: Path) -> str:
+            return "default"
+
+        def evidence_mode(self, workspace: Path) -> str:
+            return "abstract"
+
+        def core_size(self, workspace: Path) -> int:
+            return 0
+
+        def pipeline_quality_contract_value(self, workspace, *keys, default=None):
+            return default
+
+        def workspace_goal_constraints(self, workspace: Path) -> dict:
+            return {}
+
+        def has_pipeline_contract(self, workspace: Path) -> bool:
+            return True
+
+        def resolve_idea_contract(self, workspace: Path) -> dict:
+            return {}
+
+        def evaluate_paper_review(self, workspace: Path) -> dict:
+            return {
+                "dimensions": [
+                    {
+                        "id": "claim_traceability",
+                        "status": self._status,
+                        "evidence": "stub",
+                    }
+                ]
+            }
+
+    with tempfile.TemporaryDirectory() as d:
+        ws = Path(d)
+        passing = NativeQualityProvider(policy=_StubPolicy("PASS"))
+        failing = NativeQualityProvider(policy=_StubPolicy("FAIL"))
+        assert passing.check_unit_outputs(skill="claims-extractor", workspace=ws, outputs=[]) == []
+        failed = _pairs(
+            failing.check_unit_outputs(skill="claims-extractor", workspace=ws, outputs=[])
+        )
+        assert failed == [
+            ("paper_review_claim_traceability", "Paper-review `claim_traceability` is FAIL: stub")
+        ]

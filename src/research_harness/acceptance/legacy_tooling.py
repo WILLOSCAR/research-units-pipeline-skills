@@ -174,6 +174,11 @@ class LegacyToolingPolicyReader(WorkspacePolicyPort):
 
         return resolve_idea_contract(workspace)
 
+    def evaluate_paper_review(self, workspace: Path) -> dict[str, Any]:
+        from tooling.review_evaluation import evaluate_paper_review
+
+        return evaluate_paper_review(workspace)
+
 
 def default_workspace_policy_reader() -> WorkspacePolicyPort:
     """Return the default (legacy) workspace-policy reader.

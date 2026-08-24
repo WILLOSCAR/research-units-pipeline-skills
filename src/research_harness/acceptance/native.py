@@ -3893,6 +3893,94 @@ def _check_report_bundle(
             ]
     return []
 
+
+
+# --- paper-review family (policy-consuming) ---------------------------------
+#
+# Native reimplementation of the whole ``tooling.quality_checks.paper_review``
+# module (four checks).  Each is a thin reader of the paper-review scorecard,
+# which is a heavyweight evaluator (reads CLAIMS.jsonl / EVIDENCE_AUDIT.jsonl /
+# NOVELTY_MATRIX.tsv / REVIEW.md plus the rubric policy).  That evaluator stays
+# behind the ``WorkspacePolicyPort`` (``evaluate_paper_review``), legacy-backed
+# so the scorecard is byte-identical; only the thin dimension-status projection
+# is reimplemented here, matching ``paper_review._check_dimensions`` exactly.
+
+
+def _pr_check_dimensions(
+    workspace: Path,
+    policy: WorkspacePolicyPort,
+    dimension_ids: tuple[str, ...],
+) -> list[NativeQualityIssue]:
+    """Native mirror of ``paper_review._check_dimensions``."""
+
+    scorecard = policy.evaluate_paper_review(workspace)
+    dimensions = {
+        str(item.get("id") or ""): item
+        for item in scorecard.get("dimensions") or []
+        if isinstance(item, dict)
+    }
+    issues: list[NativeQualityIssue] = []
+    for dimension_id in dimension_ids:
+        dimension = dimensions.get(dimension_id)
+        if dimension is None:
+            issues.append(
+                NativeQualityIssue(
+                    code=f"paper_review_{dimension_id}_missing",
+                    message=f"Paper-review evaluation did not emit `{dimension_id}`.",
+                )
+            )
+            continue
+        if str(dimension.get("status") or "").upper() == "PASS":
+            continue
+        issues.append(
+            NativeQualityIssue(
+                code=f"paper_review_{dimension_id}",
+                message=(
+                    f"Paper-review `{dimension_id}` is "
+                    f"{dimension.get('status') or 'unavailable'}: "
+                    f"{dimension.get('evidence') or 'no evidence summary'}"
+                ),
+            )
+        )
+    return issues
+
+
+def _check_claims(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``paper_review.check_claims``."""
+
+    return _pr_check_dimensions(workspace, policy, ("claim_traceability",))
+
+
+def _check_evidence_audit(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``paper_review.check_evidence_audit``."""
+
+    return _pr_check_dimensions(workspace, policy, ("evidence_coverage",))
+
+
+def _check_novelty_matrix(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``paper_review.check_novelty_matrix``."""
+
+    return _pr_check_dimensions(workspace, policy, ("novelty_positioning",))
+
+
+def _check_review(
+    workspace: Path, outputs: list[str], policy: WorkspacePolicyPort
+) -> list[NativeQualityIssue]:
+    """Native reimplementation of ``paper_review.check_review``."""
+
+    return _pr_check_dimensions(
+        workspace,
+        policy,
+        ("review_traceability", "recommendation_consistency"),
+    )
+
+
 # Dispatch table for the *policy-consuming* native checks.  These take the
 # injected ``WorkspacePolicyPort`` as a third argument (the run profile /
 # core-set target reads that keep such checks coupled to ``tooling`` today), so
@@ -3917,6 +4005,10 @@ _NATIVE_POLICY_UNIT_CHECKS: dict[str, _NativePolicyCheck] = {
     "idea-screener": _check_screening_table,
     "idea-shortlist-curator": _check_shortlist,
     "idea-memo-writer": _check_report_bundle,
+    "claims-extractor": _check_claims,
+    "evidence-auditor": _check_evidence_audit,
+    "novelty-matrix": _check_novelty_matrix,
+    "rubric-writer": _check_review,
 }
 
 _NATIVE_POLICY_CHECKS: frozenset[str] = frozenset(_NATIVE_POLICY_UNIT_CHECKS)

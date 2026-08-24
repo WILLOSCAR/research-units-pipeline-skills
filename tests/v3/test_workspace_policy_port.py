@@ -42,6 +42,7 @@ def test_port_surface_is_complete() -> None:
         "workspace_goal_constraints",
         "has_pipeline_contract",
         "resolve_idea_contract",
+        "evaluate_paper_review",
     ):
         assert callable(getattr(reader, method)), method
 
@@ -143,6 +144,19 @@ def test_reader_idea_contract_pass_through(tmp_path: Path) -> None:
     assert reader.resolve_idea_contract(tmp_path) == legacy_resolve(tmp_path)
 
 
+def test_reader_paper_review_scorecard_pass_through(tmp_path: Path) -> None:
+    # evaluate_paper_review mirrors tooling.review_evaluation exactly.
+    from tooling.review_evaluation import evaluate_paper_review as legacy_eval
+
+    reader = default_workspace_policy_reader()
+    # Empty workspace: the adapter returns the same scorecard tooling does
+    # (all dimensions FAIL, but structurally identical).
+    native = reader.evaluate_paper_review(tmp_path)
+    legacy = legacy_eval(tmp_path)
+    assert isinstance(native, dict) and "dimensions" in native
+    assert native == legacy
+
+
 def test_reader_matches_tooling_on_empty_workspace(tmp_path: Path) -> None:
     # With no queries.md / no resolvable spec, the adapter returns the same
     # defaults tooling does.
@@ -209,6 +223,10 @@ def test_native_provider_accepts_injected_policy_reader() -> None:
         def resolve_idea_contract(self, workspace: Path) -> dict[str, object]:
             self.calls.append("resolve_idea_contract")
             return {}
+
+        def evaluate_paper_review(self, workspace: Path) -> dict[str, object]:
+            self.calls.append("evaluate_paper_review")
+            return {"dimensions": []}
 
     reader = _RecordingReader()
     assert isinstance(reader, WorkspacePolicyPort)
