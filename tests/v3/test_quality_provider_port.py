@@ -2,13 +2,14 @@
 
 The acceptance layer talks to deterministic quality checks only through the
 ``QualityCheckProvider`` Port (declared in ``research_harness`` with no
-``tooling`` import). The current backend is the transitional
-``LegacyToolingQualityProvider`` adapter. These tests lock in that seam so:
+``tooling`` import). The default backend is the tooling-free
+``NativeQualityProvider``; ``LegacyToolingQualityProvider`` is retained as a
+reversible escape hatch. These tests lock in that seam so:
 
 - the decoupling cannot silently regress (a call site re-importing ``tooling``
   directly would not be caught by these, but a broken Port surface would);
-- the adapter stays a faithful pass-through to ``tooling.quality_gate``; and
-- a future *native* provider has an executable contract to satisfy.
+- the legacy adapter stays a faithful pass-through to ``tooling.quality_gate``; and
+- the native provider keeps satisfying the executable contract.
 """
 
 from __future__ import annotations

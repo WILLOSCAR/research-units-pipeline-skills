@@ -3,11 +3,14 @@
 This module declares the seam that the acceptance layer needs from any
 quality-check backend, expressed entirely inside ``research_harness``.  It
 does not import ``tooling``: concrete backends implement
-:class:`QualityCheckProvider` and are injected as adapters (see
-``legacy_tooling`` for the current transitional implementation).
+:class:`QualityCheckProvider` and are injected as adapters.  Two
+implementations ship in this package -- ``NativeQualityProvider`` (the
+tooling-free default) and ``LegacyToolingQualityProvider`` (a transitional
+adapter over ``tooling.quality_gate``, retained as a reversible escape
+hatch).
 
 Signatures mirror the module-level functions in ``tooling.quality_gate`` so a
-future native provider can be swapped in without touching call sites.
+backend can be swapped in without touching call sites.
 """
 
 from __future__ import annotations

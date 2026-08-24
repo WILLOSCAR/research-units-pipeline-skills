@@ -1,46 +1,46 @@
-"""Native (tooling-free) slice of the acceptance quality-check Port.
+"""Native (tooling-free) implementation of the acceptance quality-check Port.
 
-This module is a growing step toward a native
-:class:`~.quality_provider.QualityCheckProvider` that does not import
-``tooling`` at all.  It:
+This module is the native :class:`~.quality_provider.QualityCheckProvider`:
+it reimplements **every** registered semantic output check (all 68 Skills)
+and the single registered completion invariant (``outline-refiner``) without
+importing ``tooling`` -- not even lazily.  It is the runtime default;
+``default_quality_provider`` returns it, and the transitional
+``LegacyToolingQualityProvider`` adapter is retained only as a reversible
+escape hatch (``RESEARCH_HARNESS_QUALITY_PROVIDER=legacy``).
 
-- answers the registry-introspection methods
-  (:meth:`~NativeQualityProvider.registered_quality_skills` and
-  :meth:`~NativeQualityProvider.has_completion_invariant`) from native
-  constant tables that mirror ``tooling.quality_gate`` -- removing the registry
-  coupling for those two methods; and
-- natively reimplements the self-contained semantic output checks whose
-  faithful reproduction needs only the ``QualityIssue`` shape (code + message),
-  the stdlib, and pure helpers ported here -- the delivery-family
-  ``citation-injector``, ``deliverable-selfloop``, ``artifact-contract-auditor``,
-  ``beamer-compile-qa``, ``beamer-scaffold``, and the **entire
-  ``tooling.quality_checks.source_tutorial`` module** (``source-manifest``,
-  ``source-ingest``, ``source-tutorial-spec``, ``module-source-coverage``,
-  ``tutorial-context-pack``, ``tutorial-selfloop``) -- delegating every other
-  ``check_unit_outputs`` call and *all* ``check_completion_invariants`` calls to
-  a composed legacy adapter; and
-- reimplements the *policy-consuming* output checks of the survey-retrieval
-  family in full -- ``citation-verifier``, ``arxiv-search``,
-  ``pdf-text-extractor``, ``literature-engineer``, and ``dedupe-rank`` -- plus
-  the delivery family in full -- ``latex-scaffold`` and ``latex-compile-qa`` --
-  which read workspace policy (run profile, evidence mode, core-set target, the
-  retrieval / candidate-pool contracts, and the Goal page-range constraint)
-  through the injected :class:`WorkspacePolicyPort` rather than importing
-  ``tooling.quality_checks.survey_policy`` / ``tooling.common``.  With these,
-  every check in both ``tooling.quality_checks.survey_retrieval`` and
-  ``tooling.quality_checks.delivery`` has a native equivalent, exercising the
-  policy seam for real instead of leaving it merely constructed.
+Two dispatch tables route the work:
 
-Unlike ``legacy_tooling``, this module imports no ``tooling`` symbols -- not
-even lazily.  Composition delegates to ``LegacyToolingQualityProvider``, which
-is the only module that wraps ``tooling`` (and it does so lazily).
+- ``_NATIVE_UNIT_CHECKS`` -- self-contained checks, signature
+  ``(Path, list[str]) -> list[NativeQualityIssue]``; and
+- ``_NATIVE_POLICY_UNIT_CHECKS`` -- policy-consuming checks, signature
+  ``(Path, list[str], WorkspacePolicyPort) -> list[NativeQualityIssue]``.
 
-This provider is intentionally *not* the default: ``default_quality_provider``
-still returns the legacy adapter, so runtime behavior is unchanged.  Swapping
-the default is a later, separately gated step.  The native constant tables are
-kept honest by the Port parity test, which asserts they equal the legacy
-provider's registry, and every native check is pinned to byte-for-byte parity
-(codes + messages) with its legacy counterpart.
+A third table, ``_NATIVE_COMPLETION_INVARIANT_CHECKS``, routes
+``check_completion_invariants``.  The registry-introspection methods
+(:meth:`~NativeQualityProvider.registered_quality_skills` and
+:meth:`~NativeQualityProvider.has_completion_invariant`) answer from routing
+sets derived from these tables, so the tables and the introspection answers
+can never drift.
+
+Policy-consuming checks read workspace policy (run profile, evidence mode,
+core-set target, the retrieval / candidate-pool / quality contracts, the Goal
+page-range constraint, and the heavyweight evaluators -- template residue,
+section-first gates, review scorecards, the ideation contract) through the
+injected :class:`WorkspacePolicyPort` rather than importing
+``tooling.quality_checks.survey_policy`` / ``tooling.common``.  The default
+reader delegates to ``tooling``, so resolved policy values are byte-identical
+by construction; only each check's own logic is reimplemented here.
+
+Composition: a check with no native entry (only possible for an unregistered
+Skill) falls through to the composed ``LegacyToolingQualityProvider``.  That
+adapter is the only module in ``research_harness`` that wraps ``tooling``
+(and it does so lazily).
+
+The native tables and checks are kept honest by the Port parity tests, which
+assert the registry equals the legacy provider's and pin every native check
+to byte-for-byte parity (codes + messages + issue order + exception behavior)
+with its legacy counterpart, reinforced by a differential fuzzer and
+per-module adversarial audits.
 """
 
 from __future__ import annotations
@@ -4513,10 +4513,12 @@ def _check_synthesis(
 # ``tooling.quality_checks.survey_structure`` (chapter-skeleton, section-bindings,
 # section-briefs).  They read only YAML/JSONL outputs -- no workspace policy --
 # via the native ``_st_load_yaml`` / ``_read_jsonl`` helpers.  (The module's
-# ``section_first_*`` helpers feed a *completion invariant*, which the native
-# provider still delegates in full, so they are not reimplemented here.)  These
-# are routed through the policy dispatch table with an ignored ``policy`` arg
-# only because they are defined after the self-contained dispatch table.
+# ``section_first_*`` gates are heavyweight evaluators that stay behind the
+# ``WorkspacePolicyPort`` rather than being reimplemented here; the
+# ``outline-refiner`` completion invariant calls them through that Port.)
+# These are routed through the policy dispatch table with an ignored
+# ``policy`` arg only because they are defined after the self-contained
+# dispatch table.
 
 
 def _check_chapter_skeleton(
@@ -9957,13 +9959,12 @@ class NativeQualityProvider(QualityCheckProvider):
 
     ``policy`` is the injected :class:`WorkspacePolicyPort` the policy-consuming
     native checks read workspace policy (run profile, evidence mode, core-set
-    target, quality contract, Goal page-range) through.  It defaults to the
-    legacy adapter so runtime behavior is unchanged; the whole survey-retrieval
-    family (``citation-verifier``, ``arxiv-search``, ``pdf-text-extractor``,
-    ``literature-engineer``, ``dedupe-rank``) and the whole delivery family
-    (``latex-scaffold``, ``latex-compile-qa``, plus the self-contained
-    scaffold/report checks above) consume it, so the seam is load-bearing
-    rather than merely constructed.
+    target, quality contract, Goal page-range, and the heavyweight evaluators)
+    through.  It defaults to the legacy reader so resolved policy values are
+    byte-identical by construction; every policy-consuming family (survey
+    retrieval, delivery, research idea, paper/evidence review, survey
+    structure/writing/planning) consumes it, so the seam is load-bearing rather
+    than merely constructed.
     """
 
     legacy: QualityCheckProvider = field(default_factory=LegacyToolingQualityProvider)

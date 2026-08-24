@@ -8,18 +8,17 @@ backend enters through the :class:`QualityCheckProvider` Port.
 Provider selection (opt-in cutover seam)
 ----------------------------------------
 :func:`default_quality_provider` is the single place that picks the backend.
-It is legacy by default -- :class:`LegacyToolingQualityProvider`, the
-transitional adapter over ``tooling.quality_gate`` -- so with no opt-in set,
-behavior is byte-for-byte identical to before this seam existed.
+It is native by default -- :class:`NativeQualityProvider`, the tooling-free
+implementation that reimplements every registered output check and the
+completion invariant behind the same Port -- so with no opt-in set,
+acceptance runs natively.
 
 Setting the ``RESEARCH_HARNESS_QUALITY_PROVIDER`` environment variable to
-``native`` selects :class:`NativeQualityProvider` instead: the first
-tooling-free slice behind the same Port. It answers registry introspection
-and four self-contained output checks natively and delegates every other
-check to the legacy adapter, so selecting it yields the same acceptance
-outcomes for all Skills. Any other value -- unset, empty, or unrecognized --
-resolves to legacy (parsing is deliberately defensive). Nothing wires native
-as the default; flipping the cutover is a future, separately gated step.
+``legacy`` selects :class:`LegacyToolingQualityProvider` instead: the
+transitional adapter over ``tooling.quality_gate``, retained as a reversible
+escape hatch. Any other value -- unset, empty, or unrecognized -- resolves to
+native (parsing is deliberately defensive, so a typo can never silently
+revert to the legacy path).
 """
 
 from .legacy_tooling import (

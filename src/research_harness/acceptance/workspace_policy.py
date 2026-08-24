@@ -1,24 +1,26 @@
 """Typed acceptance Port for workspace-policy reads.
 
-Several deterministic quality checks (the survey-retrieval / delivery family)
-do not merely inspect a Unit's declared output file: they first read *workspace
-policy* -- the run profile, evidence mode, core-set target, and the pipeline's
-quality contract -- which today lives in ``PIPELINE.lock.md`` / ``queries.md``
-resolved through the pipeline spec.  Those reads are the real coupling that
-keeps such checks in ``tooling``.
+Several deterministic quality checks do not merely inspect a Unit's declared
+output file: they first read *workspace policy* -- the run profile, evidence
+mode, core-set target, the pipeline's quality contract, and the heavyweight
+evaluators (template residue, section-first gates, review scorecards, the
+ideation contract) -- which today lives in ``PIPELINE.lock.md`` /
+``queries.md`` resolved through the pipeline spec.  Those reads are the real
+coupling to ``tooling``.
 
 This module declares the seam for that policy surface, expressed entirely
 inside ``research_harness`` with no ``tooling`` import (mirroring
 ``quality_provider``).  A concrete backend implements
-:class:`WorkspacePolicyPort` and is injected as an adapter; the transitional
+:class:`WorkspacePolicyPort` and is injected as an adapter; the default
 implementation is ``LegacyToolingPolicyReader`` in ``legacy_tooling`` (the
-single named seam that wraps ``tooling``).
+single named seam that wraps ``tooling``), so resolved policy values stay
+byte-identical while the checks themselves run natively.
 
-The method surface is a deliberately small, coherent subset: the policy reads
-the siblings of ``check_citation_injection`` in
-``tooling.quality_checks.survey_retrieval`` depend on, plus the Goal-constraint
-read the delivery ``latex-compile-qa`` check needs.  It is the seam that lets
-those checks go native without hauling in the whole of ``tooling.common``.
+The method surface is the policy read set the native checks depend on:
+the survey-retrieval / delivery profile reads, the research-idea contract,
+the paper/evidence-review scorecards, the survey structure/writing/planning
+contract reads, and the Goal-constraint read.  It is the seam that lets those
+checks go native without hauling in the whole of ``tooling.common``.
 Generic file readers (e.g. ``read_jsonl``) are intentionally *not* here: they
 are not workspace policy.
 
