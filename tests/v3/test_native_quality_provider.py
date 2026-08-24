@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import ast
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -490,6 +492,47 @@ def test_native_module_imports_no_tooling_at_top() -> None:
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
             assert not module.startswith("tooling"), module
+
+
+def test_native_self_contained_check_does_not_import_tooling_at_runtime(
+    tmp_path: Path,
+) -> None:
+    # Runtime strengthening of the AST guard above: a self-contained native
+    # check must not lazy-import tooling either (the AST guard only sees
+    # top-level imports). Runs in a clean subprocess so ``sys.modules``
+    # reflects exactly what the native provider pulls in -- the legacy
+    # equivalent imports 23 ``tooling.*`` modules for the same check.
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / "sources").mkdir()
+    (workspace / "sources" / "manifest.yml").write_text(
+        "sources:\n"
+        "  - source_id: s1\n"
+        "    kind: pdf\n"
+        "    locator: http://x/s1\n"
+        "    label: S1\n",
+        encoding="utf-8",
+    )
+    code = f"""
+import sys
+from pathlib import Path
+from research_harness.acceptance.native import NativeQualityProvider
+ws = Path({str(workspace)!r})
+NativeQualityProvider().check_unit_outputs(
+    skill="source-manifest", workspace=ws, outputs=["sources/manifest.yml"]
+)
+print("|".join(sorted(m for m in sys.modules if m.startswith("tooling"))))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=Path(__file__).resolve().parents[2],
+    )
+    assert result.stdout.strip() == "", (
+        f"native self-contained check imported tooling: {result.stdout!r}"
+    )
 
 
 # --- cutover-safety: byte-identical parity for *every* registered skill -----
