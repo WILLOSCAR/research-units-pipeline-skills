@@ -23,6 +23,25 @@ _DIGEST = re.compile(r"^[0-9a-f]{64}$")
 _STATE_DIR = ".harness-v3"
 _EXECUTION_DIR = "execution"
 
+# Process-scoped record of execution-snapshot trees this process has already
+# validated byte-for-byte.  Keyed by the revision digest (which uniquely
+# identifies the component bytes); the value is a cheap stat fingerprint
+# (relpath, size, mode, mtime_ns) of the tree at the moment full validation
+# last passed.
+#
+# The tree is published read-only (0o444/0o555) and fsync'd, so re-hashing every
+# byte on each subsequent compose within the SAME process re-verifies immutable
+# bytes we already verified.  When the cheap fingerprint is unchanged, the
+# expensive re-hash is a provable duplicate and is skipped.  Bootstrap
+# materializes under a staging workspace and then atomically renames it to the
+# published path; ``rename`` preserves size/mode/mtime, so the published-path
+# fingerprint matches the memo and the once-per-Run compose re-validation skips
+# the re-hash.  An independently created same-revision tree has a different
+# mtime, so it misses the memo and is fully re-hashed; a tampered file (byte
+# rewrite changes mtime) also misses and is caught; and a fresh process starts
+# with an empty cache, so cross-Run tamper detection is unchanged.
+_VALIDATED_SNAPSHOTS: dict[str, tuple[tuple[str, int, int, int], ...]] = {}
+
 
 @dataclass(frozen=True, slots=True)
 class _Component:
@@ -71,7 +90,7 @@ def materialize_execution_snapshot(
     if target.is_symlink():
         raise ValueError("Execution snapshot path is unsafe.")
     if target.exists():
-        _validate_snapshot(target, records)
+        _validate_snapshot_cached(target, records, revision=revision)
         return target.resolve(strict=True)
 
     temporary = Path(
@@ -95,7 +114,15 @@ def materialize_execution_snapshot(
             if target.is_symlink() or not target.is_dir():
                 raise
             _validate_snapshot(target, records)
-        return target.resolve(strict=True)
+        resolved = target.resolve(strict=True)
+        # The tree was just validated byte-for-byte and published read-only.
+        # Memoize its stat fingerprint so the next compose in this process
+        # (the once-per-Run warm re-validation) can skip the redundant re-hash.
+        try:
+            _VALIDATED_SNAPSHOTS[revision] = _snapshot_fingerprint(resolved, records)
+        except ValueError:
+            _VALIDATED_SNAPSHOTS.pop(revision, None)
+        return resolved
     finally:
         if not published and temporary.exists():
             _remove_private_tree(temporary)
@@ -237,6 +264,77 @@ def _validate_snapshot(root: Path, records: tuple[_Component, ...]) -> None:
             raise ValueError(f"Execution snapshot file is inconsistent: {relative}")
     if actual != set(expected):
         raise ValueError("Execution snapshot is incomplete.")
+
+
+def _snapshot_fingerprint(
+    root: Path, records: tuple[_Component, ...]
+) -> tuple[tuple[str, int, int, int], ...]:
+    """Cheap stat-only fingerprint of a snapshot tree.
+
+    Performs the SAME structural safety checks as :func:`_validate_snapshot`
+    (reject links, extra files, unsafe entries, missing files, size mismatch)
+    but records ``(relpath, size, mode, mtime_ns)`` per file instead of reading
+    and hashing the bytes.  Raises ``ValueError`` on any structural violation so
+    the caller can fall back to the full byte-level validation.
+    """
+
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Execution snapshot is missing or unsafe.")
+    expected = {record.text_path: record for record in records}
+    seen: dict[str, tuple[str, int, int, int]] = {}
+    for candidate in root.rglob("*"):
+        relative = candidate.relative_to(root).as_posix()
+        if candidate.is_symlink():
+            raise ValueError(f"Execution snapshot contains a link: {relative}")
+        if candidate.is_dir():
+            continue
+        if not candidate.is_file():
+            raise ValueError(f"Execution snapshot contains an unsafe entry: {relative}")
+        record = expected.get(relative)
+        if record is None:
+            raise ValueError(f"Execution snapshot contains an extra file: {relative}")
+        stat_result = candidate.stat()
+        if stat_result.st_size != record.size:
+            raise ValueError(f"Execution snapshot file is inconsistent: {relative}")
+        seen[relative] = (
+            relative,
+            stat_result.st_size,
+            stat.S_IMODE(stat_result.st_mode),
+            stat_result.st_mtime_ns,
+        )
+    if set(seen) != set(expected):
+        raise ValueError("Execution snapshot is incomplete.")
+    return tuple(sorted(seen.values()))
+
+
+def _validate_snapshot_cached(
+    target: Path, records: tuple[_Component, ...], *, revision: str
+) -> None:
+    """Validate an existing snapshot, skipping the byte re-hash when provable.
+
+    On the first validation of a ``(target, revision)`` in this process, run the
+    full byte-level :func:`_validate_snapshot` and memoize a stat fingerprint of
+    the read-only tree.  On subsequent calls, re-scan the (cheap) fingerprint; if
+    it is byte-for-byte identical to the memoized one, the immutable tree is
+    unchanged and re-hashing would be a provable duplicate, so it is skipped.
+    Any fingerprint drift (or a fresh process with an empty memo) falls through
+    to the full re-hash, preserving cross-process tamper detection.
+    """
+
+    key = revision
+    cached = _VALIDATED_SNAPSHOTS.get(key)
+    if cached is not None:
+        try:
+            if _snapshot_fingerprint(target, records) == cached:
+                return
+        except ValueError:
+            _VALIDATED_SNAPSHOTS.pop(key, None)
+        # Fingerprint drifted or scan failed: fall back to full validation.
+    _validate_snapshot(target, records)
+    try:
+        _VALIDATED_SNAPSHOTS[key] = _snapshot_fingerprint(target, records)
+    except ValueError:
+        _VALIDATED_SNAPSHOTS.pop(key, None)
 
 
 def _make_tree_read_only(root: Path) -> None:
