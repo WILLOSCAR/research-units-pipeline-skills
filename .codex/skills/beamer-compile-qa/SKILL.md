@@ -1,15 +1,18 @@
 ---
 name: beamer-compile-qa
-description: |
-  Compile the Beamer tutorial deck and write a build report.
-  **Trigger**: beamer compile, slides compile, tutorial slides pdf, 编译幻灯片, beamer pdf.
-  **Use when**: `source-tutorial` 的 C4，已有 `latex/slides/main.tex`，需要输出 `latex/slides/main.pdf` 和编译报告。
-  **Skip if**: slides scaffold 还没完成。
-  **Network**: none.
-  **Guardrail**: 编译失败也要落盘可读报告，不能只返回报错。
+description: "Compile the Beamer tutorial deck and write a build report."
 ---
 
 # Beamer Compile QA
+
+## Triggers & routing
+
+- **Trigger**: beamer compile, slides compile, tutorial slides pdf, 编译幻灯片, beamer pdf.
+- **Use when**: `source-tutorial` 的 C4，已有 `latex/slides/main.tex`，需要输出 `latex/slides/main.pdf` 和编译报告。
+- **Skip if**: slides scaffold 还没完成。
+- **Network**: none.
+- **Guardrail**: 编译失败也要落盘可读报告，不能只返回报错。
+
 
 Goal: compile the Beamer deck and record success or failure in a stable report.
 

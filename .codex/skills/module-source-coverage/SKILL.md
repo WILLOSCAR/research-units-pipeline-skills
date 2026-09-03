@@ -1,15 +1,18 @@
 ---
 name: module-source-coverage
-description: |
-  Use when a tutorial module plan exists and the run needs an auditable module-to-source grounding file before prose.
-  **Trigger**: module coverage, source coverage, tutorial grounding, 模块覆盖, 来源覆盖.
-  **Use when**: `source-tutorial` 的 C2，已有 `outline/module_plan.yml`，需要确认每个模块都能回指到 sources。
-  **Skip if**: module plan 或 source ingest 不完整。
-  **Network**: none.
-  **Guardrail**: 只做 grounding audit，不写教程正文。
+description: "Use when a tutorial module plan exists and the run needs an auditable module-to-source grounding file before prose."
 ---
 
 # Module Source Coverage
+
+## Triggers & routing
+
+- **Trigger**: module coverage, source coverage, tutorial grounding, 模块覆盖, 来源覆盖.
+- **Use when**: `source-tutorial` 的 C2，已有 `outline/module_plan.yml`，需要确认每个模块都能回指到 sources。
+- **Skip if**: module plan 或 source ingest 不完整。
+- **Network**: none.
+- **Guardrail**: 只做 grounding audit，不写教程正文。
+
 
 Builds `outline/source_coverage.jsonl`, one coverage record per module.
 

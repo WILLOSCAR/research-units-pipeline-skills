@@ -1,15 +1,18 @@
 ---
 name: tutorial-context-pack
-description: |
-  Use when module planning and source coverage are done and the run needs writer-ready per-module packs.
-  **Trigger**: tutorial context pack, module pack, writer pack, 教程上下文包, 模块写作包.
-  **Use when**: `source-tutorial` 的 C2，已有 module plan + source coverage，需要组织成稳定写作输入。
-  **Skip if**: module/source coverage 还没完成。
-  **Network**: none.
-  **Guardrail**: 只整理上下文，不直接写教程正文。
+description: "Use when module planning and source coverage are done and the run needs writer-ready per-module packs."
 ---
 
 # Tutorial Context Pack
+
+## Triggers & routing
+
+- **Trigger**: tutorial context pack, module pack, writer pack, 教程上下文包, 模块写作包.
+- **Use when**: `source-tutorial` 的 C2，已有 module plan + source coverage，需要组织成稳定写作输入。
+- **Skip if**: module/source coverage 还没完成。
+- **Network**: none.
+- **Guardrail**: 只整理上下文，不直接写教程正文。
+
 
 Combines module structure, source coverage, and source snippets into one deterministic JSONL pack per module.
 

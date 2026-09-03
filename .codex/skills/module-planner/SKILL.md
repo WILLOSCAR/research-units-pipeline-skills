@@ -1,15 +1,18 @@
 ---
 name: module-planner
-description: |
-  Use when a tutorial concept DAG exists and the run needs an ordered teaching plan with objectives and outputs.
-  **Trigger**: module plan, tutorial modules, course outline, 模块规划, module_plan.yml.
-  **Use when**: tutorial 的 C2，已有 `outline/concept_graph.yml`，需要把 concept DAG 收敛成模块顺序。
-  **Skip if**: 还没有 concept graph。
-  **Network**: none.
-  **Guardrail**: 每个模块都要有 objectives、outputs、running-example step；不要写长 prose。
+description: "Use when a tutorial concept DAG exists and the run needs an ordered teaching plan with objectives and outputs."
 ---
 
 # Module Planner
+
+## Triggers & routing
+
+- **Trigger**: module plan, tutorial modules, course outline, 模块规划, module_plan.yml.
+- **Use when**: tutorial 的 C2，已有 `outline/concept_graph.yml`，需要把 concept DAG 收敛成模块顺序。
+- **Skip if**: 还没有 concept graph。
+- **Network**: none.
+- **Guardrail**: 每个模块都要有 objectives、outputs、running-example step；不要写长 prose。
+
 
 Turns the concept graph into the teachable module sequence used by later tutorial stages.
 
