@@ -34,8 +34,23 @@ _REQUIRED_QUERY_DEFAULT_KEYS = (
 )
 
 
+# Function words that carry no topic signal. Dropped BEFORE the 6-token cap so a
+# topic phrase is not silently truncated mid-phrase — e.g. "clinical note
+# summarization with large language models" must not cut to "...with large" (which
+# then harvests off-topic papers), and "adaptation of embodied agents under
+# distribution shift" must keep "distribution shift" rather than stopping at "under".
+_TOPIC_FILLER_WORDS = {
+    "a", "an", "the", "and", "or", "of", "for", "with", "under", "on", "in", "to",
+    "via", "using", "from", "into", "over", "across", "by", "at", "as", "is", "are",
+}
+
+
 def _topic_tokens(topic: str) -> list[str]:
-    toks = [t for t in re.findall(r"[A-Za-z0-9]+", str(topic or "")) if t]
+    raw = [t for t in re.findall(r"[A-Za-z0-9]+", str(topic or "")) if t]
+    # Keep meaningful topic words (drop function-word fillers) before capping, so
+    # the harvest query is built from the topic's content, not truncated at a filler.
+    content = [t for t in raw if t.lower() not in _TOPIC_FILLER_WORDS]
+    toks = content or raw
     return toks[:6] if toks else ["research", "ideas"]
 
 

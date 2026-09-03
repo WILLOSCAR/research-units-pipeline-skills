@@ -43,10 +43,10 @@
     "inspirational future work"
   ],
   "query_bucket_templates": [
-    "{topic} agent evaluation reliability",
-    "{topic} failure mode limitation",
-    "{topic} adaptation planning memory",
-    "{topic} benchmark risk governance"
+    "{topic} evaluation methodology limitations",
+    "{topic} failure modes and open problems",
+    "{topic} benchmark and reproducibility gaps",
+    "{topic} comparison and baseline tensions"
   ],
   "rubric": [
     {
