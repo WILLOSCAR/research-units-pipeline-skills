@@ -15,7 +15,7 @@
 | `acceptance` | 验收标准 | 必须可检查（手动或自动） |
 | `checkpoint` | 关联 checkpoint | `C0/C1/...` 或 pipeline 自定义 checkpoints |
 | `status` | 状态 | `TODO/DOING/BLOCKED/DONE/SKIP` |
-| `depends_on` | 依赖 | `;` 分隔 `U###`，允许为空 |
+| `depends_on` | 依赖 | `;` 分隔 unit_id（与上面同一格式），允许为空 |
 | `owner` | 执行方 | `HUMAN/CODEX` |
 
 ## Contract rules
