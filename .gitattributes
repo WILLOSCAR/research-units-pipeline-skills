@@ -1,0 +1,4 @@
+# Units templates are parsed line-by-line by the harness and by CSV readers on
+# every platform; pin them to LF so a CRLF checkout cannot introduce a diff that
+# looks like content.
+templates/UNITS.*.csv text eol=lf

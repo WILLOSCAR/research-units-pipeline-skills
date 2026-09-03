@@ -6,16 +6,16 @@
 
 | column | meaning | rules |
 |---|---|---|
-| `unit_id` | 唯一 ID | `U###`（如 `U001`） |
+| `unit_id` | 唯一 ID | `U` + 至少 3 位数字（如 `U001`、`U1005`） |
 | `title` | 一句话任务 | 建议 ≤ 80 字 |
-| `type` | 类别 | `RETRIEVE/CURATE/STRUCTURE/EVIDENCE/WRITE/CITE/LATEX/QA/META` |
+| `type` | 类别 | `RETRIEVE/CURATE/STRUCTURE/EVIDENCE/WRITE/CITE/LATEX/QA/META/IDEA` |
 | `skill` | skill 名称 | 对应 `.codex/skills/<skill>/` |
 | `inputs` | 输入文件 | `;` 分隔，允许为空 |
 | `outputs` | 输出文件 | `;` 分隔，允许为空；可用 `?` 前缀标记“可选输出”（例如 `?sections/abstract.md`） |
 | `acceptance` | 验收标准 | 必须可检查（手动或自动） |
 | `checkpoint` | 关联 checkpoint | `C0/C1/...` 或 pipeline 自定义 checkpoints |
 | `status` | 状态 | `TODO/DOING/BLOCKED/DONE/SKIP` |
-| `depends_on` | 依赖 | `;` 分隔 `U###`，允许为空 |
+| `depends_on` | 依赖 | `;` 分隔 unit_id（与上面同一格式），允许为空 |
 | `owner` | 执行方 | `HUMAN/CODEX` |
 
 ## Contract rules
