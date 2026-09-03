@@ -5,7 +5,7 @@ U010,Run focused retrieval and save raw papers,RETRIEVE,arxiv-search,queries.md,
 U020,Dedupe+rank and produce compact core set,CURATE,dedupe-rank,papers/papers_raw.jsonl,papers/papers_dedup.jsonl;papers/core_set.csv,core_set 为5-15篇且 paper_id 唯一,C1,TODO,U010,CODEX
 U030,Build taxonomy (2-level minimum),STRUCTURE,taxonomy-builder,papers/core_set.csv,outline/taxonomy.yml,taxonomy至少2层且节点带解释,C2,TODO,U020,CODEX
 U040,Build outline bullets (NO PROSE),STRUCTURE,outline-builder,outline/taxonomy.yml,outline/outline.yml,每小节≥3个bullet，且无长 prose,C2,TODO,U030,CODEX
-U042,Draft C2 review summary (evidence+scope+outline),META,checkpoint-brief,papers/core_set.csv;outline/taxonomy.yml;outline/outline.yml,DECISIONS.md,DECISIONS含C2 review摘要并覆盖 core set,C2,TODO,U040,CODEX
+U042,Draft C2 review summary (evidence+scope+outline),META,checkpoint-brief,DECISIONS.md;papers/core_set.csv;outline/taxonomy.yml;outline/outline.yml,DECISIONS.md,DECISIONS含C2 review摘要并覆盖 core set,C2,TODO,U040,CODEX
 U045,HUMAN approve C2 (scope+outline),META,human-checkpoint,DECISIONS.md,DECISIONS.md,勾选 DECISIONS.md 的 Approve C2,C2,TODO,U042,HUMAN
 U050,Write 1-page snapshot (bullet-first),WRITE,snapshot-writer,outline/outline.yml;papers/core_set.csv;DECISIONS.md,output/SNAPSHOT.md,1页以内；bullets-first；What to read first 至少含 3 个可解析的 core-set paper pointers；Scope 至少回连 1 篇 core paper、每个 Key-theme bullet 均有有效 pointer，且两段合计覆盖至少 2 篇 core papers；避免模板旁白句式,C3,TODO,U045,CODEX
 U055,Score snapshot and emit a bounded repair plan,QA,deliverable-selfloop,output/SNAPSHOT.md;outline/outline.yml;papers/core_set.csv,output/BRIEF_SCORECARD.md;output/BRIEF_SCORECARD.json;output/DELIVERABLE_SELFLOOP_TODO.md,BRIEF_SCORECARD 为 PASS；snapshot 四段完整且所有 paper pointers 可解析,C3,TODO,U050,CODEX
