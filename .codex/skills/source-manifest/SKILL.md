@@ -1,15 +1,18 @@
 ---
 name: source-manifest
-description: |
-  Build or validate the source manifest for the source-tutorial pipeline from user-provided URLs/files.
-  **Trigger**: source manifest, sources list, tutorial sources, url list, 资料清单, 教程来源.
-  **Use when**: `source-tutorial` 的 C1，需要把多源输入落成统一的 `sources/manifest.yml`，并在内容不完整时显式阻塞。
-  **Skip if**: 已经有完整且经过确认的 `sources/manifest.yml`。
-  **Network**: none.
-  **Guardrail**: 不要伪造来源；manifest 不完整时应返回 BLOCKED，而不是假装完成。
+description: "Build or validate the source manifest for the source-tutorial pipeline from user-provided URLs/files."
 ---
 
 # Source Manifest
+
+## Triggers & routing
+
+- **Trigger**: source manifest, sources list, tutorial sources, url list, 资料清单, 教程来源.
+- **Use when**: `source-tutorial` 的 C1，需要把多源输入落成统一的 `sources/manifest.yml`，并在内容不完整时显式阻塞。
+- **Skip if**: 已经有完整且经过确认的 `sources/manifest.yml`。
+- **Network**: none.
+- **Guardrail**: 不要伪造来源；manifest 不完整时应返回 BLOCKED，而不是假装完成。
+
 
 Goal: collect the source candidates for `source-tutorial` into one explicit manifest before ingest starts.
 
