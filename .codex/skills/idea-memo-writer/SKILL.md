@@ -1,12 +1,15 @@
 ---
 name: idea-memo-writer
-description: |
-  Synthesize the shortlist into a discussion-ready research idea brainstorm memo, writing `output/REPORT.md`, `output/APPENDIX.md`, and `output/REPORT.json`.
-  **Trigger**: idea memo, brainstorm memo, research direction memo, report md, 研究备忘录, brainstorm report.
-  **Use when**: the shortlist exists and you want the final reader-facing brainstorm deliverable for PI / PhD discussion.
+description: "Synthesize the shortlist into a discussion-ready research idea brainstorm memo, writing `output/REPORT.md`, `output/APPENDIX.md`, and `output/REPORT.json`."
 ---
 
 # Idea Memo Writer
+
+## Triggers & routing
+
+- **Trigger**: idea memo, brainstorm memo, research direction memo, report md, 研究备忘录, brainstorm report.
+- **Use when**: the shortlist exists and you want the final reader-facing brainstorm deliverable for PI / PhD discussion.
+
 
 Goal: turn the shortlist into a discussion-ready memo.
 

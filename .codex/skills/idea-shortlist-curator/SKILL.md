@@ -1,12 +1,15 @@
 ---
 name: idea-shortlist-curator
-description: |
-  Converge the screened direction pool into a small, discussion-ready shortlist, writing `output/trace/IDEA_SHORTLIST.md`.
-  **Trigger**: idea shortlist, shortlist directions, brainstorm shortlist, 方向 shortlist.
-  **Use when**: you already have a direction pool and screening table and want the strongest 3-5 directions for the final memo.
+description: "Converge the screened direction pool into a small, discussion-ready shortlist, writing `output/trace/IDEA_SHORTLIST.md`."
 ---
 
 # Idea Shortlist Curator
+
+## Triggers & routing
+
+- **Trigger**: idea shortlist, shortlist directions, brainstorm shortlist, 方向 shortlist.
+- **Use when**: you already have a direction pool and screening table and want the strongest 3-5 directions for the final memo.
+
 
 ## Load Order
 

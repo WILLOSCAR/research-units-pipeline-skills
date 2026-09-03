@@ -1,12 +1,15 @@
 ---
 name: idea-screener
-description: |
-  Screen the direction pool with a discussion-first scoring pass, writing `output/trace/IDEA_SCREENING_TABLE.md`.
-  **Trigger**: idea screener, screening table, brainstorm screening, 方向筛选表.
-  **Use when**: you already have a direction pool and want a table-first comparison before curating the shortlist.
+description: "Screen the direction pool with a discussion-first scoring pass, writing `output/trace/IDEA_SCREENING_TABLE.md`."
 ---
 
 # Idea Screener
+
+## Triggers & routing
+
+- **Trigger**: idea screener, screening table, brainstorm screening, 方向筛选表.
+- **Use when**: you already have a direction pool and want a table-first comparison before curating the shortlist.
+
 
 Goal: compress a direction pool into a scored comparison table that helps shortlist the most discussion-worthy directions.
 

@@ -1,12 +1,15 @@
 ---
 name: idea-brief
-description: |
-  Lock an ideation run into a single-source-of-truth brainstorm brief (`output/trace/IDEA_BRIEF.md`) and a replayable multi-query plan (`queries.md`).
-  **Trigger**: idea brief, ideation brief, research ideas, brainstorm, 找 idea, 选题, 点子, 找方向.
-  **Use when**: the user wants research ideas and their input is long / multi-turn; you need to clarify topic + constraints before retrieval.
+description: "Lock an ideation run into a single-source-of-truth brainstorm brief (`output/trace/IDEA_BRIEF.md`) and a replayable multi-query plan (`queries.md`)."
 ---
 
 # Idea Brief
+
+## Triggers & routing
+
+- **Trigger**: idea brief, ideation brief, research ideas, brainstorm, 找 idea, 选题, 点子, 找方向.
+- **Use when**: the user wants research ideas and their input is long / multi-turn; you need to clarify topic + constraints before retrieval.
+
 
 Turn a fuzzy ideation request into an auditable brainstorm contract for the later ideation stack.
 
