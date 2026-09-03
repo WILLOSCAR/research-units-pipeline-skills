@@ -1,12 +1,15 @@
 ---
 name: arxiv-search
-description: |
-  Retrieve paper metadata from arXiv using keyword queries and save results as JSONL (`papers/papers_raw.jsonl`).
-  **Trigger**: arXiv, arxiv, paper search, metadata retrieval, 文献检索, 论文检索, 拉取元数据, 离线导入.
-  **Use when**: 需要一个初始论文集合（survey/snapshot 的 Stage C1），来源为 arXiv（在线检索或离线导入 export）。
+description: "Retrieve arXiv paper metadata with keyword queries or import an offline arXiv export, and save results as JSONL (`papers/papers_raw.jsonl`)."
 ---
 
 # arXiv Search (metadata-first)
+
+## Triggers & routing
+
+- **Trigger**: arXiv, arxiv, paper search, metadata retrieval, 文献检索, 论文检索, 拉取元数据, 离线导入.
+- **Use when**: 需要一个初始论文集合（survey/snapshot 的 Stage C1），来源为 arXiv（在线检索或离线导入 export）。
+
 
 Collect an initial paper set with enough metadata to support downstream ranking, taxonomy building, and citation generation.
 
