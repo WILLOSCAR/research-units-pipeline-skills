@@ -11,7 +11,6 @@ from tooling.common import (
     ensure_dir,
     load_workspace_pipeline_spec,
     pipeline_overridable_query_fields,
-    pipeline_query_default,
     read_jsonl,
 )
 
@@ -300,11 +299,38 @@ def clean_text(text: str, *, limit: int = 220) -> str:
     s = s.replace("\n", " ")
     s = re.sub(r"\s+", " ", s)
     s = s.replace("|", ", ")
+    # Unescape LaTeX-escaped punctuation that leaks from source notes/abstracts
+    # ("attains a 35\% success rate" -> "35%"). These backslash escapes are a
+    # LaTeX artifact and must never reach reader-facing Markdown/plain text.
+    s = re.sub(r"\\([%&#_$])", r"\1", s)
     s = s.strip(" \"'`")
     if len(s) <= limit:
         return s
     clipped = s[:limit].rsplit(" ", 1)[0].strip()
     return clipped if clipped else s[:limit].strip()
+
+
+# Words a clipped PAPER TITLE must not end on — a "read <title>" instruction that
+# ends on a dangling article/preposition ("... Learning: A") is unsearchable and
+# reads broken. Used by clean_title to drop such a trailing word after clipping.
+_TITLE_DANGLING = frozenset({
+    "a", "an", "the", "of", "for", "to", "in", "on", "and", "or", "with", "via",
+    "from", "into", "at", "by", "as", "vs", "vs.",
+})
+
+
+def clean_title(text: str, *, limit: int = 140) -> str:
+    """Clean a paper title for reader-facing "read <title>" prose.
+
+    Uses a generous cap (most arXiv titles fit) so a title is not chopped, and —
+    when a clip is unavoidable — drops a trailing dangling article/preposition so
+    the title never ends on "... Learning: A".
+    """
+    s = clean_text(text, limit=limit)
+    words = s.split()
+    while words and words[-1].lower().strip(":,;-") in _TITLE_DANGLING:
+        words.pop()
+    return " ".join(words).rstrip(" :,;-") or s
 
 
 def clean_sentence(text: str, *, limit: int = 180) -> str:
@@ -326,10 +352,20 @@ def clean_sentence(text: str, *, limit: int = 180) -> str:
         total = nxt
         if total >= int(limit * 0.65):
             break
-    if acc:
-        return " ".join(acc).strip()
-    clipped = s[:limit].rsplit(" ", 1)[0].strip()
-    return clipped if clipped else s[:limit].strip()
+    result = " ".join(acc).strip() if acc else s
+    # Guarantee no mid-word cut: if still over the limit (e.g. a single long
+    # sentence with no internal terminator), back up to the last clause boundary
+    # within the limit, then to the last whole word. Never emit a partial word
+    # like "... survives, de".
+    if len(result) > limit:
+        head = result[:limit]
+        boundary = max(head.rfind(", "), head.rfind("; "))
+        if boundary >= int(limit * 0.5):
+            result = head[:boundary]
+        else:
+            cut = head.rfind(" ")
+            result = head[:cut] if cut > 0 else head
+    return result.rstrip(" ,;:-").strip()
 
 
 def markdown_table(headers: list[str], rows: list[list[str]]) -> str:
@@ -686,11 +722,56 @@ def map_notes_to_clusters(taxonomy_path: Path, notes_path: Path) -> dict[str, li
     return out
 
 
+def _cluster_axis_terms(cluster: str) -> list[str]:
+    """Distinctive content tokens of a cluster label, most-specific first.
+
+    A cluster label is "Parent / Child"; the CHILD segment is the distinguishing
+    part (parents repeat across clusters, e.g. two "Interatomic Potential / …"
+    clusters). Take the child tokens first, then the parent tokens, dropping
+    stopwords/duplicates, so clusters that share a parent still lead with a
+    distinct child token and therefore get distinct axes.
+    """
+    raw = str(cluster or "")
+    if "/" in raw:
+        parent, _, child = raw.rpartition("/")
+        ordered_segments = [child, parent]
+    else:
+        ordered_segments = [raw]
+    seen: list[str] = []
+    for segment in ordered_segments:
+        for tok in re.findall(r"[A-Za-z0-9]+", segment):
+            low = tok.lower()
+            if low in STOPWORDS or len(low) < 3:
+                continue
+            if low not in [t.lower() for t in seen]:
+                seen.append(tok)
+    return seen
+
+
 def _cluster_profile(cluster: str) -> tuple[str, list[str], str]:
     low = cluster.lower()
     for keys, axes, direction_type, academic_value in CLUSTER_AXIS_HINTS:
         if any(key in low for key in keys):
             return direction_type, axes, academic_value
+    # No domain hint matched (non-agent topic, or a keyword-derived cluster).
+    # Derive axes from THIS cluster's own distinctive terms so different clusters
+    # explore different axes, rather than collapsing every cluster onto the same
+    # fixed triple. The analytical lenses (sensitivity / failure modes / scope)
+    # are kept but grounded in the cluster's leading term.
+    terms = _cluster_axis_terms(cluster)
+    if terms:
+        lead = terms[0].lower()
+        second = terms[1].lower() if len(terms) > 1 else lead
+        axes = [
+            f"{lead} sensitivity",
+            f"{second} failure modes" if second != lead else f"{lead} failure modes",
+            f"{lead} scope boundary",
+        ]
+        # de-duplicate while preserving order (guards lead == second)
+        axes = list(dict.fromkeys(axes))
+        if len(axes) < 3:
+            axes += [a for a in ("assumption sensitivity", "failure analysis", "scope boundary") if a not in axes]
+        return "research", axes[:3], f"Could sharpen how {lead} is framed and compared within this sub-area."
     return "research", ["assumption sensitivity", "failure analysis", "scope boundary"], "Could sharpen the way this sub-area is framed and compared."
 
 
@@ -745,7 +826,11 @@ def _axis_profile(axis: str, cluster: str) -> dict[str, str]:
         "time_to_clarity": base.get("time_to_clarity", "medium"),
         "priority_note": base.get("priority_note", f"Worth discussion because it could turn {axis} into a sharper explanatory wedge for {cluster.lower()}."),
         "reading_extract": base.get("reading_extract", f"which variables change together with {axis}, what comparator is used, and whether any ablation already fixes {confound}"),
-        "title": base.get("title", f"What {axis} is really doing"),
+        # Fall back to a cluster-qualified title so different topics (and
+        # repeated axes across clusters) do not collapse to an identical stem
+        # like "What <axis> is really doing"; every other fallback field in this
+        # profile is already cluster-qualified.
+        "title": base.get("title", f"What {axis} is really doing in {cluster}"),
     }
 
 
@@ -838,10 +923,23 @@ def _task_phrase(notes: list[dict[str, Any]]) -> str:
 
 def _claim_text(note: dict[str, Any]) -> str:
     candidates = _note_bullets(note, "key_results") + _note_bullets(note, "summary_bullets")
-    for cand in candidates:
-        if len(cand.split()) >= 8:
-            return cand
-    return clean_text(note.get("method") or note.get("title") or "", limit=220)
+    long_cands = [c for c in candidates if len(c.split()) >= 8]
+    # Prefer a candidate that is a COMPLETE sentence (ends in terminal
+    # punctuation) over a truncated abstract fragment ending mid-list
+    # ("... ImageNet-C, DomainNet,"). Fall back to the first long candidate.
+    chosen = ""
+    for cand in long_cands:
+        if cand.rstrip().endswith((".", "!", "?")):
+            chosen = cand
+            break
+    if not chosen and long_cands:
+        chosen = long_cands[0]
+    if not chosen:
+        return clean_text(note.get("method") or note.get("title") or "", limit=220)
+    # clean_sentence trims to a clause/word boundary when over the limit; also
+    # drop any trailing list punctuation so a mid-list fragment never ends on a
+    # dangling comma/semicolon/colon.
+    return clean_sentence(chosen, limit=240).rstrip(" ,;:")
 
 
 def _limitation_text(note: dict[str, Any], axis: str, cluster: str) -> str:
@@ -856,10 +954,29 @@ def _anchor_notes(note_index: dict[str, dict[str, Any]], paper_ids: list[str]) -
     return [note_index[pid] for pid in paper_ids if pid in note_index]
 
 
+def _ensure_sentence_end(text: str) -> str:
+    """Guarantee a text excerpt ends with terminal punctuation.
+
+    `_paper_annotation` appends ' Open gap: ...' after a result excerpt. When the
+    excerpt is a clipped fragment ('... to Crazyflie 2.1', '... reports of
+    MIMIC-CXR,'), the appended clause runs onto it as one sentence. Append a
+    period so 'Open gap:' reads as a separate clause; a trailing comma/semicolon/
+    colon is replaced by a period, and an existing .!? is left as is.
+    """
+    s = str(text or "").rstrip()
+    if not s:
+        return s
+    if s[-1] in ".!?":
+        return s
+    if s[-1] in ",;:":
+        return s[:-1] + "."
+    return s + "."
+
+
 def _paper_annotation(note: dict[str, Any], axis: str, cluster: str) -> str:
     title = clean_text(note.get("title") or note.get("paper_id") or "paper", limit=110)
     profile = _axis_profile(axis, cluster)
-    result = _result_fact(note)
+    result = _ensure_sentence_end(_result_fact(note))
     return clean_sentence(
         f"{title}: {result} Open gap: {axis} still moves with {profile['confound']}.",
         limit=300,
@@ -877,7 +994,25 @@ def _synthesis_annotation(notes: list[dict[str, Any]], axis: str, cluster: str) 
 
 
 
-def build_signal_rows(*, cluster: str, notes: list[dict[str, Any]]) -> list[IdeaSignal]:
+def _signal_theme(title: str, cluster: str) -> str:
+    """Signal Theme = the axis-profile title, cluster-qualified exactly once.
+
+    The default profile title already ends with "... in {cluster}", so blindly
+    appending " in {cluster}" doubled it ("... in X in X"). A custom short title
+    from the axis-profile table (e.g. "Observability granularity vs planner
+    depth") carries no cluster, so it still needs the qualifier. Append only when
+    the title does not already reference the cluster.
+    """
+    title = str(title or "").strip()
+    cl = str(cluster or "").strip()
+    if not cl or cl.lower() in title.lower():
+        return title
+    return f"{title} in {cl}"
+
+
+def build_signal_rows(
+    *, cluster: str, notes: list[dict[str, Any]], cluster_index: int = 0
+) -> list[IdeaSignal]:
     if not notes:
         return []
     direction_type, axes, academic_value = _cluster_profile(cluster)
@@ -895,10 +1030,15 @@ def build_signal_rows(*, cluster: str, notes: list[dict[str, Any]]) -> list[Idea
             limit=240,
         )
         signals.append(IdeaSignal(
-            signal_id=f"SIG-{slugify(cluster)[:16]}-{idx}",
+            # cluster_index keeps signal_id globally unique even when two
+            # clusters share the same truncated slug prefix (e.g. two
+            # "Clinical Summarization ..." clusters both slugify to
+            # "clinical-summari"); without it the per-cluster idx collides and
+            # the duplicate-id gate blocks the run.
+            signal_id=f"SIG-{cluster_index:02d}-{slugify(cluster)[:16]}-{idx}",
             cluster=cluster,
             direction_type=direction_type,
-            theme=f"{profile['title']} in {cluster}",
+            theme=_signal_theme(profile["title"], cluster),
             claim_or_observation=claim,
             tension=clean_text(tension, limit=220),
             missing_piece=missing_piece,
@@ -998,7 +1138,7 @@ def signals_to_direction_cards(
         task_phrase = _task_phrase(anchors)
         metric_phrase = _metric_phrase(anchors)
         nearest = anchors[0] if anchors else {}
-        nearest_title = clean_text((nearest.get("title") if isinstance(nearest, dict) else "") or (signal.paper_ids[0] if signal.paper_ids else signal.cluster), limit=90)
+        nearest_title = clean_title((nearest.get("title") if isinstance(nearest, dict) else "") or (signal.paper_ids[0] if signal.paper_ids else signal.cluster))
         nearest_task_phrase = _task_phrase([nearest]) if nearest else task_phrase
         literature_suggests = [_paper_annotation(note, signal.possible_axis, signal.cluster) for note in anchors[:2]]
         literature_suggests.append(_synthesis_annotation(anchors, signal.possible_axis, signal.cluster))
@@ -1024,13 +1164,18 @@ def signals_to_direction_cards(
             clean_sentence("Check whether the conclusion survives on one simple public task slice and one more tool- or environment-heavy setting before treating it as a general claim.", limit=210),
         ]
         first_probes = [
+            # These are complete instructional directives whose only variable-length
+            # input is the (already-capped) anchor title, so the limit must be high
+            # enough to never clip the actionable clause — a mid-sentence cut like
+            # "...already fixes planner quality and broader" drops the "if the
+            # conclusion survives, demote this direction" instruction the reader acts on.
             clean_sentence(
                 f"Intervention: vary {signal.possible_axis} while holding {profile['confound']} as fixed as possible on {task_phrase}. Readout: {metric_phrase}. Decisive if the interpretation changes even after the control.",
-                limit=220,
+                limit=280,
             ),
             clean_sentence(
                 f"Prior-work audit: inspect {nearest_title} for any ablation that already fixes {profile['confound']}, and if the conclusion survives, demote this direction.",
-                limit=180,
+                limit=260,
             ),
         ]
         what_counts_as_insight = clean_sentence(profile['insight'], limit=190)
@@ -1083,9 +1228,74 @@ def signals_to_direction_cards(
             signal_ids=[signal.signal_id],
             anchor_reading_notes=anchor_reading_notes,
         ))
+    # Distinctness guard: two signals whose (axis, cluster) collapse to the same
+    # normalized phrase — e.g. "... Distribution Shifts" vs "... Distribution
+    # Shift" — otherwise produce near-identical direction cards ("What feedback
+    # type is really doing in ...") that read as one confound template repeated.
+    # Drop the later near-duplicate, keeping the first (higher-ranked) card.
+    deduped: list[DirectionCard] = []
+    seen_keys: set[str] = set()
+    for card in cards:
+        key = _direction_distinctness_key(card)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        deduped.append(card)
+    cards = deduped
     cards.sort(key=lambda c: (0 if _cluster_matches_focus(c.cluster, focus) else 1, c.cluster, c.program_kind, c.title))
     target = max(pool_min, min(pool_max, len(cards)))
     return cards[:target]
+
+
+def _direction_distinctness_key(card: "DirectionCard") -> str:
+    """Normalized THESIS identity for near-duplicate direction detection.
+
+    A direction's thesis line is defined by its program kind + the axis it
+    isolates + the confound it controls for — NOT by which domain cluster it is
+    filed under. Two cards sharing (program_kind, focus_axis, main_confound) are
+    the same thesis restated on a different application domain (e.g. "feedback
+    type ... in Distribution Shifts" vs "... in Time Series") and read as one
+    confound template repeated. Keying on the thesis identity collapses those;
+    genuinely different mechanisms or confounds stay distinct. Falls back to the
+    cluster when axis/confound are absent (older cards).
+
+    The axis/confound fold is order-insensitive and strips generic filler words
+    (articles, prepositions, wh-words) so pure wording variants of the SAME axis
+    also collapse: "feedback type", "the type of feedback" -> one key. Variants
+    that add a real content token ("feedback signal type", "feedback modality")
+    stay distinct, since treating those as identical needs synonymy (LLM-bound).
+    """
+
+    def _fold(text: str) -> str:
+        # Order-insensitive content-token set: lowercased, plural-folded, generic
+        # fillers dropped. Collapses word-order and filler-word wording variants.
+        tokens = re.findall(r"[a-z0-9]+", str(text or "").casefold())
+        content = [
+            (tok[:-1] if len(tok) > 3 and tok.endswith("s") else tok)
+            for tok in tokens
+            if tok not in _AXIS_FILLER_WORDS
+        ]
+        return " ".join(sorted(set(content)))
+
+    axis = _fold(card.focus_axis)
+    confound = _fold(getattr(card, "main_confound", ""))
+    identity = f"{axis}|{confound}".strip("|")
+    if not identity:
+        identity = _fold(card.cluster)
+    return f"{card.program_kind.casefold()}|{identity}"
+
+
+# Generic filler words dropped from a direction's axis/confound fold so pure
+# wording variants ("feedback type" vs "the type of feedback") collapse to one
+# distinctness key. Domain/content words (e.g. "type", "signal", "modality") are
+# deliberately NOT here — collapsing those needs synonymy, which is out of scope.
+_AXIS_FILLER_WORDS = frozenset(
+    {
+        "the", "a", "an", "of", "to", "in", "on", "for", "and", "or", "that",
+        "this", "is", "are", "its", "by", "with", "how", "what", "whether",
+        "when", "where", "which", "as", "at", "from", "into", "under", "over",
+    }
+)
 
 
 
@@ -1190,7 +1400,20 @@ def score_direction_cards(
         if not strengths:
             strengths.append("discussion value")
         risk = "still abstract-first" if str(card.evidence_confidence).startswith("low") else f"main risk is controlling {card.main_confound} cleanly"
-        rationale = clean_sentence(f"Strongest on {' + '.join(strengths[:2])}; {risk}.", limit=160)
+        # Make the rationale DIRECTION-SPECIFIC (name this direction's own focus
+        # axis) and DECISION-CONSISTENT (a "maybe"/"drop" must not read identically
+        # to a "keep"): score-flag boilerplate alone gave sibling directions the
+        # same rationale, and even paired the same text with different decisions.
+        axis = str(getattr(card, "focus_axis", "") or "").strip() or str(card.title or "").strip()
+        if recommendation == "keep":
+            decision_frame = f"Keep — {axis} is strongest on"
+        elif recommendation == "maybe":
+            decision_frame = f"Maybe — {axis} rests on"
+        else:
+            decision_frame = f"Drop — {axis} offers only"
+        rationale = clean_sentence(
+            f"{decision_frame} {' + '.join(strengths[:2])}; {risk}.", limit=180
+        )
         rows.append(ScreenedDirection(
             direction_id=card.direction_id,
             cluster=card.cluster,
@@ -1302,11 +1525,60 @@ def shortlist_snapshot_table(records: list[dict[str, Any]]) -> str:
         rows.append([
             str(rec.get("rank") or ""),
             rec.get("title", ""),
-            clean_sentence(rec.get("why_this_ranks_here", ""), limit=52),
-            clean_sentence(rec.get("contribution_shape", rec.get("academic_value", "")), limit=56),
-            clean_sentence((rec.get("kill_criteria") or rec.get("what_would_change_mind") or [""])[0], limit=54),
+            _glance_cell(rec.get("why_this_ranks_here", "")),
+            _glance_cell(rec.get("contribution_shape", rec.get("academic_value", ""))),
+            _glance_cell((rec.get("kill_criteria") or rec.get("what_would_change_mind") or [""])[0]),
         ])
-    return markdown_table(["Rank", "Direction", "Why now", "If it survives", "Fast kill signal"], rows)
+    # The middle column is fed `why_this_ranks_here` — a rank-placement rationale
+    # ("Leads because ...", "Ranks behind X ...", "Stays in the lead set ..."), NOT
+    # a timeliness statement. Heading it "Why now" promised a timeliness reason the
+    # cells never give; "Why this rank" matches what the column actually says.
+    return markdown_table(["Rank", "Direction", "Why this rank", "If it survives", "Fast kill signal"], rows)
+
+
+# Trailing function words that must not END a glance-table cell — a cell cut on
+# "...to a" / "...vs" / "...already fixes the" reads as a broken fragment. This
+# also includes object-requiring prepositions ("isolates X against", "varies Y
+# into") whose object is lost when the cell is cut just after them, so the cell
+# must back off to the last content word rather than dangle on the preposition.
+_GLANCE_DANGLING = frozenset({
+    "a", "an", "the", "to", "of", "and", "or", "but", "plus", "vs", "with", "for",
+    "in", "on", "at", "by", "from", "into", "than", "as", "that", "which", "while",
+    "because", "if", "it", "its", "their", "this", "these", "so", "up", "over",
+    "against", "between", "among", "across", "toward", "towards", "onto", "off",
+    "about", "via", "per", "versus", "vs.", "isolating", "holding", "varying",
+})
+
+
+def _glance_cell(text: str, *, max_len: int = 90) -> str:
+    """A self-contained short phrase for the 'at a glance' table.
+
+    The source rationales are full sentences, so a hard character truncation left
+    cells dangling mid-clause ("Leads because it offers the fastest path to a").
+    Instead, cut at the first clause boundary (sentence terminator or a coordinating
+    ", and/but/because/..."), then to the last whole word within ``max_len``, then
+    drop any trailing function word / object-requiring preposition so the cell ends
+    on content, not on "to a" or "isolates X against".
+    """
+    s = re.sub(r"\s+", " ", str(text or "").strip())
+    if not s:
+        return ""
+    match = re.search(r"[.;]|,\s+(?:and|but|because|so|while|which|which,)\b", s)
+    clause = s[: match.start()].strip() if match else s
+    if len(clause) > max_len:
+        head = clause[:max_len]
+        cut = head.rfind(" ")
+        clause = head[:cut] if cut > 0 else head
+    words = clause.split()
+    # Drop trailing dangling words AND any orphaned punctuation token (a bare "/"
+    # or "-" left when a slash-joined scope like "large / adapted" is cut after
+    # the slash), so the cell never ends on "for large /" or "isolates X against".
+    while words and (
+        words[-1].lower().strip(",;:-") in _GLANCE_DANGLING
+        or not re.search(r"[A-Za-z0-9]", words[-1])
+    ):
+        words.pop()
+    return " ".join(words).rstrip(" ,;:-/")
 
 
 
@@ -1327,7 +1599,10 @@ def build_report_payload(*, topic: str, shortlist: list[dict[str, Any]], deferre
             takeaways.append("The evidence is already concrete enough for a serious PI/PhD discussion, though one deeper paper pass could still reshuffle the exact order.")
     lead = top[0] if top else {}
     lead_anchor = (lead.get("anchor_reading_notes") or [{}])[0] if top else {}
-    lead_anchor_title = lead_anchor.get("paper_title") if isinstance(lead_anchor, dict) else "the first anchor paper"
+    # Cap the (variable-length) anchor paper title so it does not push the §9
+    # next-step directive past its limit and clip the actionable clause.
+    _lead_anchor_title_raw = lead_anchor.get("paper_title") if isinstance(lead_anchor, dict) else "the first anchor paper"
+    lead_anchor_title = clean_title(_lead_anchor_title_raw or "the first anchor paper")
     discussion_questions = [
         "Which direction still survives once we ask for a single-variable control rather than a suggestive confound story?",
         "Which lead direction would still matter if the nearest prior work already addressed the obvious control we are worried about?",
@@ -1341,7 +1616,7 @@ def build_report_payload(*, topic: str, shortlist: list[dict[str, Any]], deferre
     ]
     next_steps = []
     if top:
-        next_steps.append(clean_sentence(f"Start with {lead.get('title')}: read {lead_anchor_title or 'the first anchor paper'} looking specifically for whether {lead.get('focus_axis')} is already isolated against {lead.get('main_confound')}.", limit=220))
+        next_steps.append(clean_sentence(f"Start with {lead.get('title')}: read {lead_anchor_title or 'the first anchor paper'} looking specifically for whether {lead.get('focus_axis')} is already isolated against {lead.get('main_confound')}.", limit=300))
         first_probe = (lead.get("first_probes") or [""])[0]
         if first_probe:
             next_steps.append(clean_sentence(first_probe, limit=220))

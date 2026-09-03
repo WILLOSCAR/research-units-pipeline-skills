@@ -35,8 +35,8 @@ def main() -> int:
 
     clustered = map_notes_to_clusters(workspace / 'outline' / 'taxonomy.yml', workspace / 'papers' / 'paper_notes.jsonl')
     rows = []
-    for cluster, notes in clustered.items():
-        rows.extend(build_signal_rows(cluster=cluster, notes=notes))
+    for cluster_index, (cluster, notes) in enumerate(clustered.items()):
+        rows.extend(build_signal_rows(cluster=cluster, notes=notes, cluster_index=cluster_index))
 
     write_markdown(out_path, signal_table_markdown(rows))
     write_jsonl(jsonl_path, rows)
