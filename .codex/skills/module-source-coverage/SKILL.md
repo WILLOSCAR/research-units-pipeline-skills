@@ -28,17 +28,10 @@ Builds `outline/source_coverage.jsonl`, one coverage record per module.
 
 ## Contract
 
-Each module record must include:
+Each record must include:
 - `module_id`
 - `module_title`
 - `source_ids` and/or explicit `gaps`
-
-Plus exactly one corpus-reconciliation record (`record_type: corpus_reconciliation`,
-no `module_id`) listing `ingested_source_ids`, `attributed_source_ids`, and
-`unused_source_ids`, with an explicit `gaps` entry whenever a source was ingested
-but used by no module. A per-module audit alone cannot surface a source that
-contributed to zero modules, so this record keeps an unused source explicit
-instead of silently dropped.
 
 ## Script boundary
 
@@ -46,7 +39,6 @@ instead of silently dropped.
 - score module-to-source relevance
 - choose a small source set per module
 - record explicit grounding gaps when coverage is weak
-- append the corpus-reconciliation record so unused ingested sources are flagged
 
 Keep text matching and snippet scoring in shared tutorial tooling, not in the wrapper.
 
@@ -54,7 +46,6 @@ Keep text matching and snippet scoring in shared tutorial tooling, not in the wr
 
 - `outline/source_coverage.jsonl` exists
 - every module appears exactly once
-- exactly one `corpus_reconciliation` record accounts for every ingested source
 - missing grounding is explicit instead of silent
 
 ## Non-goals
