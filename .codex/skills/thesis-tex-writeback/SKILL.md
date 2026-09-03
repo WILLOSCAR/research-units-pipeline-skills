@@ -1,15 +1,19 @@
 ---
 name: thesis-tex-writeback
-description: |
-  把已经在 Markdown 中间层收敛的中文毕业论文内容回写到 `chapters/*.tex` 与相关交付层文件，保持结构、图表、公式、交叉引用与章节承接一致。
-  **Trigger**: tex 回写, thesis tex writeback, md 回 tex, 章节回写, 论文交付层同步.
-  **Use when**: 章节主线、术语、符号和图表计划已经在 Markdown 层基本稳定，需要进入 TeX 交付层。
-  **Skip if**: 结构还没稳定，或者仍在章级重构阶段。
-  **Network**: none.
-  **Guardrail**: 不在这里重新发明结构；优先把结构问题回到 Markdown 层处理；TeX 层负责交付而非重新思考。
+binding: staged
+description: "把已经在 Markdown 中间层收敛的中文毕业论文内容回写到 `chapters/*.tex` 与相关交付层文件，保持结构、图表、公式、交叉引用与章节承接一致。"
 ---
 
 # Thesis TeX Writeback
+
+## Triggers & routing
+
+- **Trigger**: tex 回写, thesis tex writeback, md 回 tex, 章节回写, 论文交付层同步.
+- **Use when**: 章节主线、术语、符号和图表计划已经在 Markdown 层基本稳定，需要进入 TeX 交付层。
+- **Skip if**: 结构还没稳定，或者仍在章级重构阶段。
+- **Network**: none.
+- **Guardrail**: 不在这里重新发明结构；优先把结构问题回到 Markdown 层处理；TeX 层负责交付而非重新思考。
+
 
 ## Inputs
 

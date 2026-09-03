@@ -1,15 +1,19 @@
 ---
 name: thesis-markdown-aligner
-description: |
-  在 Markdown 中间层统一毕业论文的主线、术语、符号、指标、图表口径与章节边界，让整篇论文先在中间层收敛成“一篇论文”。
-  **Trigger**: markdown 对齐, thesis markdown align, 术语统一, 符号统一, 指标统一, 章节归并.
-  **Use when**: 各章已经初步重构，但整篇论文仍有术语漂移、指标口径不一致、章节边界混乱或像多篇 paper 拼接。
-  **Skip if**: 章节角色还没定，或当前只是在局部修一章。
-  **Network**: none.
-  **Guardrail**: 不在这里回写 tex；先收敛中间层，再进入交付层。
+binding: staged
+description: "在 Markdown 中间层统一毕业论文的主线、术语、符号、指标、图表口径与章节边界，让整篇论文先在中间层收敛成“一篇论文”。"
 ---
 
 # Thesis Markdown Aligner
+
+## Triggers & routing
+
+- **Trigger**: markdown 对齐, thesis markdown align, 术语统一, 符号统一, 指标统一, 章节归并.
+- **Use when**: 各章已经初步重构，但整篇论文仍有术语漂移、指标口径不一致、章节边界混乱或像多篇 paper 拼接。
+- **Skip if**: 章节角色还没定，或当前只是在局部修一章。
+- **Network**: none.
+- **Guardrail**: 不在这里回写 tex；先收敛中间层，再进入交付层。
+
 
 ## Inputs
 

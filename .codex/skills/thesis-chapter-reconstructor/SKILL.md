@@ -1,15 +1,19 @@
 ---
 name: thesis-chapter-reconstructor
-description: |
-  围绕毕业论文主线重构章节：把原论文式叙事改成学位论文式叙事，重写章节目标、内容比重、前后承接与论证方式。
-  **Trigger**: 章节重构, chapter reconstructor, 毕业论文主线重构, paper 变 thesis, 章节改写.
-  **Use when**: 你已经知道每份材料在毕业论文中的角色，但当前章节仍然像原论文翻译、拼接或卖点展示。
-  **Skip if**: 当前只是做局部句子润色，或章节角色尚未确定。
-  **Network**: none.
-  **Guardrail**: 不是翻译论文；不是简单删减；必须围绕毕业论文主线重写章节目标与承接关系。
+binding: staged
+description: "围绕毕业论文主线重构章节：把原论文式叙事改成学位论文式叙事，重写章节目标、内容比重、前后承接与论证方式。"
 ---
 
 # Thesis Chapter Reconstructor
+
+## Triggers & routing
+
+- **Trigger**: 章节重构, chapter reconstructor, 毕业论文主线重构, paper 变 thesis, 章节改写.
+- **Use when**: 你已经知道每份材料在毕业论文中的角色，但当前章节仍然像原论文翻译、拼接或卖点展示。
+- **Skip if**: 当前只是做局部句子润色，或章节角色尚未确定。
+- **Network**: none.
+- **Guardrail**: 不是翻译论文；不是简单删减；必须围绕毕业论文主线重写章节目标与承接关系。
+
 
 这是 graduate-paper pipeline 的核心重构 skill。
 

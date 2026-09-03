@@ -1,12 +1,16 @@
 ---
 name: survey-visuals
-description: |
-  Draft non-prose visuals artifacts (timeline, figure specs) for a survey, grounded in evidence and using citation keys from `citations/ref.bib`.
-  **Trigger**: survey visuals, timeline, figures, visuals, 图表, 时间线, figure spec.
-  **Use when**: survey 的 C4（NO PROSE），已有 outline + claim/evidence + citations，需要先把时间线/图规格落盘。
+binding: library
+description: "Draft non-prose visuals artifacts (timeline, figure specs) for a survey, grounded in evidence and using citation keys from `citations/ref.bib`."
 ---
 
 # Survey Visuals (timeline + figure specs; NO PROSE)
+
+## Triggers & routing
+
+- **Trigger**: survey visuals, timeline, figures, visuals, 图表, 时间线, figure spec.
+- **Use when**: survey 的 C4（NO PROSE），已有 outline + claim/evidence + citations，需要先把时间线/图规格落盘。
+
 
 This skill creates non-prose artifacts that make the writing stage less template-y:
 - timeline / evolution bullets

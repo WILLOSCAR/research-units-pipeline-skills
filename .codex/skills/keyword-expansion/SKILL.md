@@ -1,15 +1,19 @@
 ---
 name: keyword-expansion
-description: |
-  Expand and refine search keywords (synonyms, acronyms, exclusions) and update `queries.md`.
-  **Trigger**: keyword expansion, synonyms, exclusions, queries.md, 关键词扩展, 同义词, 排除词.
-  **Use when**: 检索覆盖不足/噪声过大，或主题别名很多，需要系统化扩展与收敛检索词。
-  **Skip if**: `queries.md` 已经能稳定检出覆盖面（无需扩大范围导致后续成本爆炸）。
-  **Network**: none.
-  **Guardrail**: 保持可控的 query 数量；明确 exclusions；避免“无限扩展”。
+binding: library
+description: "Expand and refine search keywords (synonyms, acronyms, exclusions) and update `queries.md`."
 ---
 
 # Skill: keyword-expansion
+
+## Triggers & routing
+
+- **Trigger**: keyword expansion, synonyms, exclusions, queries.md, 关键词扩展, 同义词, 排除词.
+- **Use when**: 检索覆盖不足/噪声过大，或主题别名很多，需要系统化扩展与收敛检索词。
+- **Skip if**: `queries.md` 已经能稳定检出覆盖面（无需扩大范围导致后续成本爆炸）。
+- **Network**: none.
+- **Guardrail**: 保持可控的 query 数量；明确 exclusions；避免“无限扩展”。
+
 
 ## Goal
 

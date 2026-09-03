@@ -1,15 +1,19 @@
 ---
 name: thesis-question-list
-description: |
-  维护中文毕业论文的 `codex_md/question_list.md`：把本轮问题、边界、优先级、协作方案和验收口径结构化，作为整条 thesis pipeline 的控制面。
-  **Trigger**: 毕业论文问题清单, thesis question list, 论文修改清单, 本轮目标, 结构问题梳理, review问题整理.
-  **Use when**: 你已经有一批材料或上一轮 review 结果，需要明确这一轮到底修什么、不修什么，并给后续重构与编译复查提供统一入口。
-  **Skip if**: 当前只是在做一次性局部措辞修改，且没有形成新一轮结构/证据/编译问题。
-  **Network**: none.
-  **Guardrail**: 不在这里写正文；不把问题单写成长篇散文；每条问题必须可执行、可验收。
+binding: staged
+description: "维护中文毕业论文的 `codex_md/question_list.md`：把本轮问题、边界、优先级、协作方案和验收口径结构化，作为整条 thesis pipeline 的控制面。"
 ---
 
 # Thesis Question List
+
+## Triggers & routing
+
+- **Trigger**: 毕业论文问题清单, thesis question list, 论文修改清单, 本轮目标, 结构问题梳理, review问题整理.
+- **Use when**: 你已经有一批材料或上一轮 review 结果，需要明确这一轮到底修什么、不修什么，并给后续重构与编译复查提供统一入口。
+- **Skip if**: 当前只是在做一次性局部措辞修改，且没有形成新一轮结构/证据/编译问题。
+- **Network**: none.
+- **Guardrail**: 不在这里写正文；不把问题单写成长篇散文；每条问题必须可执行、可验收。
+
 
 这个 skill 负责维护毕业论文流程的**控制面文档**：
 

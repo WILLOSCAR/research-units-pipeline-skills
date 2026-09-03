@@ -1,5 +1,6 @@
 ---
 name: unit-executor
+binding: library
 description: Execute exactly one eligible Unit in an existing research Workspace; use for stepwise or manual semantic execution when status, Attempt, Artifact, Manifest, checkpoint, and acceptance evidence must remain synchronized.
 ---
 

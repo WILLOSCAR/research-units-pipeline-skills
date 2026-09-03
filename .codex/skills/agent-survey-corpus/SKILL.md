@@ -1,12 +1,16 @@
 ---
 name: agent-survey-corpus
-description: |
-  Download a small corpus of open-access arXiv survey/review PDFs about agentic systems and extract text for style learning.
-  **Trigger**: agent survey corpus, ref corpus, download surveys, 学习综述写法, 下载 survey.
-  **Use when**: you want to study how real agent surveys structure sections (6–8 H2), size subsections, and write evidence-backed comparisons.
+binding: library
+description: "Download a small corpus of open-access arXiv survey/review PDFs about agentic systems and extract text for style learning."
 ---
 
 # Agent Survey Corpus (arXiv PDFs → text extracts)
+
+## Triggers & routing
+
+- **Trigger**: agent survey corpus, ref corpus, download surveys, 学习综述写法, 下载 survey.
+- **Use when**: you want to study how real agent surveys structure sections (6–8 H2), size subsections, and write evidence-backed comparisons.
+
 
 Goal: create a small, local reference library so you can **learn from real agent surveys** when refining:
 - C2 outline structure (paper-like sectioning)

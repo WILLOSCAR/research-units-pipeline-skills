@@ -102,7 +102,10 @@ Authoring default:
 
 ### Progressive disclosure (recommended)
 
-1. **YAML front matter**: only `name` + `description` (for discovery/routing).
+1. **YAML front matter**: `name` + `description` for discovery/routing, plus the
+   optional `binding:` governance key (`manual` | `library` | `staged`). Nothing
+   else — `binding` records how a Skill is reached, and does not widen what may
+   invoke it.
 2. **`SKILL.md` body**: the workflow + checklists + guardrails.
 3. **`references/` + `assets/`**: domain examples, schemas, and reusable patterns.
 4. **Scripts/resources**: loaded only when the workflow calls for them.
