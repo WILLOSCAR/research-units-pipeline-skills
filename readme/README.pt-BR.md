@@ -6,11 +6,11 @@
 
 Esta página é uma navegação curta para o mapa atual de workflows. A explicação completa do projeto está no README principal.
 
-A interface do produto é `Goal -> Run -> Evidence -> Improve`; os workflows abaixo definem o trabalho de pesquisa dentro de um Run.
+O modelo do produto é `Goal -> Run -> Evidence -> Artifact`, fechado por um Loop de verify/repair/re-run: o harness verifica cada passagem, então um Run só é confiável depois de convergir. Os workflows abaixo são implementações privadas atuais de Recipe; Run e Unit são detalhes internos.
 
 Use diretamente os nomes atuais dos workflows. Os aliases antigos não fazem mais parte do roteamento ativo.
 
-## Executable Workflows
+## Implementações atuais de Recipe
 
 | Caminho | Uso principal | Entregável padrão | Guia |
 |---|---|---|---|

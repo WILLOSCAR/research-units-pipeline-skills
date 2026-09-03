@@ -1111,7 +1111,7 @@ def test_improve_writes_repair_suggestions_from_run_evidence(tmp_path: Path) -> 
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["schema"] == "improvement-report.v1"
     assert payload["verdict"] == "ATTENTION"
-    assert payload["artifact_interface_standard"] == "docs/PROJECT_LANGUAGE.md"
+    assert payload["artifact_interface_standard"] == "CONTEXT.md"
     assert payload["suggestions"][0]["upstream_interface"] == "Artifact contract / unit outputs"
     assert validate_improvement_payload(payload) == []
 
@@ -1123,7 +1123,7 @@ def test_improvement_payload_validator_reports_shape_errors() -> None:
         "workspace": "/tmp/ws",
         "repo": "/tmp/repo",
         "pipeline": "research-brief",
-        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
+        "artifact_interface_standard": "CONTEXT.md",
         "source_reports": {"doctor": {"schema": "doctor-report.v1", "verdict": "PASS", "exit_code": "0"}},
         "suggestions": [{"id": "S001", "source_report": "doctor", "observed_problem": 123}],
         "verdict": "PASS",
@@ -1266,7 +1266,7 @@ def test_artifact_pack_payload_validator_reports_shape_errors() -> None:
         "workspace": "/tmp/ws",
         "repo": "/tmp/repo",
         "pipeline": "research-brief",
-        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
+        "artifact_interface_standard": "CONTEXT.md",
         "source_reports": {
             "run_audit": {
                 "schema": "run-audit.v1",

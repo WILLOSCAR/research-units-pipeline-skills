@@ -73,16 +73,18 @@ def _valid_taxonomy_text() -> str:
 
     return (
         "# Workflow Catalog\n\n"
-        "## Maturity Levels\n\n"
+        "## Recipe Maturity\n\n"
         "- `Executable`\n"
         "- `Executable variant`\n"
         "- `Research-stage`\n\n"
-        "## Current Families\n\n"
+        "## Current Recipes\n\n"
         + "\n".join(rows)
         + "\n\n"
-        "`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`.\n\n"
-        "## Survey Delivery Profiles\n\n"
-        "Course reports use the bounded-report use-case overlay in survey workflows.\n\n"
+        "`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey` and an exporter target.\n\n"
+        "## Loop Kinds\n\n"
+        "The current Recipes are selected behind a Loop kind.\n\n"
+        "## Exporter migration\n\n"
+        "LaTeX and PDF move from a variant to one exporter target.\n\n"
         "## Evidence Gaps\n\n"
         "`paper-review`\n\n"
     )
@@ -102,8 +104,12 @@ def _write_minimal_harness_docs(repo_root: Path) -> None:
         encoding="utf-8",
     )
     (docs_dir / "PIPELINE_TAXONOMY.md").write_text(_valid_taxonomy_text(), encoding="utf-8")
+    (repo_root / "CONTEXT.md").write_text(
+        "# Challengeable Research\n\n" + "\n".join(validate_repo.CONTEXT_REQUIRED_TERMS) + "\n",
+        encoding="utf-8",
+    )
     (docs_dir / "PROJECT_LANGUAGE.md").write_text(
-        "# Project Language\n\n" + "\n".join(validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS) + "\n",
+        "# Implementation Language\n\nCanonical language: ../CONTEXT.md\n",
         encoding="utf-8",
     )
     (docs_dir / "HARNESS_ROADMAP.md").write_text("# Roadmap\n", encoding="utf-8")
@@ -200,6 +206,8 @@ def test_skill_index_reports_unclassified_skill_packages(tmp_path: Path) -> None
 
 
 def test_readiness_audit_and_repo_validation_share_harness_contracts() -> None:
+    assert validate_repo.CONTEXT_REQUIRED_TERMS is harness_contracts.CONTEXT_REQUIRED_TERMS
+    assert readiness_audit.CONTEXT_REQUIRED_TERMS is harness_contracts.CONTEXT_REQUIRED_TERMS
     assert validate_repo.HARNESS_README_LINKS is harness_contracts.HARNESS_README_LINKS
     assert readiness_audit.README_LINKS is harness_contracts.HARNESS_README_LINKS
     assert validate_repo.HARNESS_LOCAL_CHECKS is harness_contracts.HARNESS_LOCAL_CHECKS
@@ -219,7 +227,7 @@ def test_harness_docs_validation_reports_missing_readme_links(tmp_path: Path) ->
         (
             "WARN",
             "`README.md` is missing harness docs links: "
-            "docs/PIPELINE_TAXONOMY.md, docs/PROJECT_LANGUAGE.md, "
+            "CONTEXT.md, docs/PIPELINE_TAXONOMY.md, docs/PROJECT_LANGUAGE.md, "
             "docs/HARNESS_ROADMAP.md, docs/HARNESS_READINESS.md, docs/SCHEMAS.md, docs/adr/.",
         )
     ]
@@ -273,22 +281,23 @@ def test_auto_research_design_system_validation_reports_missing_terms(tmp_path: 
 
     assert len(findings) == 1
     assert findings[0].level == "WARN"
-    assert "`docs/AUTO_RESEARCH_DESIGN_SYSTEM.md` is missing Auto Research Design System terms" in findings[0].message
-    assert "Goal -> Run -> Evidence -> Improve" in findings[0].message
-    assert "External Control Plane" in findings[0].message
+    assert (
+        "`docs/AUTO_RESEARCH_DESIGN_SYSTEM.md` is missing Research Harness Architecture terms"
+        in findings[0].message
+    )
+    assert "Goal -> Run -> Evidence -> Artifact" in findings[0].message
+    assert "The Harness As Referee" in findings[0].message
 
 
-def test_project_language_validation_reports_missing_terms(tmp_path: Path) -> None:
-    docs_dir = tmp_path / "docs"
-    docs_dir.mkdir()
-    (docs_dir / "PROJECT_LANGUAGE.md").write_text("# Project Language\n\nWorkflow\n", encoding="utf-8")
+def test_context_validation_reports_missing_terms(tmp_path: Path) -> None:
+    (tmp_path / "CONTEXT.md").write_text("# Research Harness Context\n\nGoal\n", encoding="utf-8")
 
-    findings = validate_repo._validate_project_language_doc(repo_root=tmp_path)
+    findings = validate_repo._validate_context_doc(repo_root=tmp_path)
 
     assert len(findings) == 1
     assert findings[0].level == "WARN"
-    assert "`docs/PROJECT_LANGUAGE.md` is missing project language terms" in findings[0].message
-    assert "Use-case overlay" in findings[0].message
+    assert "`CONTEXT.md` is missing canonical language terms" in findings[0].message
+    assert "harness" in findings[0].message
 
 
 def test_readiness_audit_parses_iteration_progress() -> None:
@@ -301,6 +310,8 @@ def test_readiness_audit_does_not_require_progress_ledger_by_default() -> None:
     check_ids = {str(item["id"]) for item in payload["checks"]}
 
     assert payload["progress"] == "not configured"
+    assert "case_language" in check_ids
+    assert "project_language" not in check_ids
     assert "progress_iterations" not in check_ids
     assert "progress_state" not in check_ids
 

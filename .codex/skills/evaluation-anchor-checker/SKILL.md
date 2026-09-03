@@ -1,11 +1,14 @@
 ---
 name: evaluation-anchor-checker
-description: |
-  Audit and rewrite evaluation/numeric claims to ensure they carry minimal protocol context (task + metric + constraint) and avoid underspecified model naming.
-  **Trigger**: evaluation anchor checker, numeric claim hygiene, underspecified numbers, protocol context, 评测锚点检查, 数字断言, 指标上下文.
+description: "Audit and rewrite evaluation/numeric claims to ensure they carry minimal protocol context (task + metric + constraint) and avoid underspecified model naming."
 ---
 
 # Evaluation Anchor Checker (make numbers reviewer-safe)
+
+## Triggers & routing
+
+- **Trigger**: evaluation anchor checker, numeric claim hygiene, underspecified numbers, protocol context, 评测锚点检查, 数字断言, 指标上下文.
+
 
 Purpose: fix a reviewer-magnet failure mode in agent surveys:
 - strong numeric/performance statements appear

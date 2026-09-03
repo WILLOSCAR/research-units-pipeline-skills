@@ -1,15 +1,18 @@
 ---
 name: synthesis-writer
-description: |
-  Use when `evidence-review` has completed extraction and needs a bounded narrative synthesis.
-  **Trigger**: synthesis, evidence synthesis, systematic review writing, 综合写作, SYNTHESIS.md.
-  **Use when**: `evidence-review` 完成 screening+extraction（含 bias 评估）后进入写作阶段（C5）。
-  **Skip if**: 还没有 `papers/extraction_table.csv`（或 protocol/screening 尚未完成）。
-  **Network**: none.
-  **Guardrail**: 以 extraction table 为证据底座；明确局限性与偏倚；不要在无数据支撑时扩写结论。
+description: "Use when `evidence-review` has completed extraction and needs a bounded narrative synthesis."
 ---
 
 # Synthesis Writer
+
+## Triggers & routing
+
+- **Trigger**: synthesis, evidence synthesis, systematic review writing, 综合写作, SYNTHESIS.md.
+- **Use when**: `evidence-review` 完成 screening+extraction（含 bias 评估）后进入写作阶段（C5）。
+- **Skip if**: 还没有 `papers/extraction_table.csv`（或 protocol/screening 尚未完成）。
+- **Network**: none.
+- **Guardrail**: 以 extraction table 为证据底座；明确局限性与偏倚；不要在无数据支撑时扩写结论。
+
 
 Transforms the extraction table into the final `evidence-review` narrative.
 

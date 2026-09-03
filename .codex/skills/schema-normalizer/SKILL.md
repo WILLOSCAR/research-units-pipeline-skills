@@ -1,12 +1,15 @@
 ---
 name: schema-normalizer
-description: |
-  Normalize cross-skill JSONL interfaces (ids + titles + citation key formats) so downstream skills do not rely on best-effort joins.
-  **Trigger**: schema normalize, jsonl contract, interface drift, join drift, 字段不一致, schema 规范化.
-  **Use when**: you have generated C2-C4 JSONL artifacts (outline/briefs/bindings/packs/anchors) and want deterministic, stable fields before self-loops/writing.
+description: "Normalize cross-skill JSONL interfaces (ids + titles + citation key formats) so downstream skills do not rely on best-effort joins."
 ---
 
 # Schema Normalizer (NO PROSE)
+
+## Triggers & routing
+
+- **Trigger**: schema normalize, jsonl contract, interface drift, join drift, 字段不一致, schema 规范化.
+- **Use when**: you have generated C2-C4 JSONL artifacts (outline/briefs/bindings/packs/anchors) and want deterministic, stable fields before self-loops/writing.
+
 
 Purpose: close a common failure mode in skills-first pipelines: **schema drift** across JSONL artifacts.
 

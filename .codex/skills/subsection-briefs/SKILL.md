@@ -1,11 +1,14 @@
 ---
 name: subsection-briefs
-description: |
-  Build per-subsection writing briefs (NO PROSE) so later drafting is driven by evidence and checkable comparison axes (not outline placeholders).
-  **Trigger**: subsection briefs, writing cards, intent cards, H3 briefs, scope_rule, axes, clusters, 写作意图卡, 小节卡片, 段落计划.
+description: "Build per-subsection writing briefs (NO PROSE) so later drafting is driven by evidence and checkable comparison axes (not outline placeholders)."
 ---
 
 # Subsection Briefs
+
+## Triggers & routing
+
+- **Trigger**: subsection briefs, writing cards, intent cards, H3 briefs, scope_rule, axes, clusters, 写作意图卡, 小节卡片, 段落计划.
+
 
 `outline/subsection_briefs.refined.ok` freezes reviewed briefs only while the marker is newer than the briefs, declared inputs, domain packs, and generator. Stale markers are removed before backed-up regeneration.
 

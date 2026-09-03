@@ -1,5 +1,6 @@
 ---
 name: research-pipeline-runner
+binding: library
 description: Run a research Workflow end to end when the user requests a survey, brief, review, tutorial, or idea exploration; route an unbound goal, execute one eligible Unit at a time, and stop at checkpoints or diagnosed failures.
 ---
 

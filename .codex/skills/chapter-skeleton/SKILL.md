@@ -1,12 +1,15 @@
 ---
 name: chapter-skeleton
-description: |
-  Build a retrieval-informed chapter skeleton (`outline/chapter_skeleton.yml`) from taxonomy/core scope before stable H3 decomposition.
-  **Trigger**: chapter skeleton, chapter-level outline, H2 skeleton, section-first survey, 章节骨架, 章级骨架.
-  **Use when**: survey structure should stabilize chapter-level intent before subsection mapping and writing cards.
+description: "Build a retrieval-informed chapter skeleton (`outline/chapter_skeleton.yml`) from taxonomy/core scope before stable H3 decomposition."
 ---
 
 # Chapter Skeleton
+
+## Triggers & routing
+
+- **Trigger**: chapter skeleton, chapter-level outline, H2 skeleton, section-first survey, 章节骨架, 章级骨架.
+- **Use when**: survey structure should stabilize chapter-level intent before subsection mapping and writing cards.
+
 
 ## Explicit refinement marker
 

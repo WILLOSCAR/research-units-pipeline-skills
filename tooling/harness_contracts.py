@@ -2,9 +2,10 @@ from __future__ import annotations
 
 
 HARNESS_DOC_ENTRYPOINTS = {
-    "docs/AUTO_RESEARCH_DESIGN_SYSTEM.md": "auto research design system",
-    "docs/PIPELINE_TAXONOMY.md": "workflow catalog",
-    "docs/PROJECT_LANGUAGE.md": "project language",
+    "CONTEXT.md": "canonical language",
+    "docs/AUTO_RESEARCH_DESIGN_SYSTEM.md": "Research Harness architecture",
+    "docs/PIPELINE_TAXONOMY.md": "Recipe catalog",
+    "docs/PROJECT_LANGUAGE.md": "implementation-language map",
     "docs/HARNESS_ROADMAP.md": "harness roadmap",
     "docs/HARNESS_READINESS.md": "harness readiness",
     "docs/SCHEMAS.md": "harness report schema summary",
@@ -29,9 +30,15 @@ HARNESS_DOC_ENTRYPOINTS = {
     "docs/adr/0018-snapshot-pipeline-contracts-inside-each-run.md": "Pipeline-snapshot ADR",
     "docs/adr/0019-bind-checkpoint-approval-to-reviewed-artifacts.md": "Checkpoint review-basis ADR",
     "docs/adr/0020-fail-closed-on-active-run-kernel-drift.md": "active Run Kernel-drift ADR",
+    "docs/adr/0021-introduce-v2-deep-modules-without-reinterpreting-v2-runs.md": "typed deep-module migration ADR",
+    "docs/adr/0022-own-v3-local-run-execution-behind-one-engine.md": "local engine ownership ADR",
+    "docs/adr/0023-expose-one-versionless-research-harness-interface.md": "versionless Interface ADR",
+    "docs/adr/0024-make-the-case-the-product-object.md": "superseded Case product-object ADR",
+    "docs/adr/0025-make-the-self-correcting-run-the-product-object.md": "self-correcting Run product-object ADR",
 }
 
 HARNESS_README_LINKS = (
+    "CONTEXT.md",
     "docs/AUTO_RESEARCH_DESIGN_SYSTEM.md",
     "docs/PIPELINE_TAXONOMY.md",
     "docs/PROJECT_LANGUAGE.md",
@@ -42,6 +49,13 @@ HARNESS_README_LINKS = (
 )
 
 REPORT_SCHEMA_TERMS = (
+    "research-harness.case-result/v1",
+    "research-harness.case-inspection/v1",
+    "research-harness.error/v1",
+    "research-harness.workflow-snapshot/v1",
+    "research-harness.workflow-snapshot/v2",
+    "harness-readiness-audit.v1",
+    "harness-readiness-audit.v2",
     "goal-spec.v2",
     "run-state.v1",
     "harness-lock.v1",
@@ -141,10 +155,11 @@ HARNESS_KERNEL_PATHS = (
     "tooling/quality_checks/survey_writing.py",
 )
 
-READINESS_AUDIT_SCHEMA = "harness-readiness-audit.v1"
+READINESS_AUDIT_SCHEMA = "harness-readiness-audit.v2"
 READINESS_MIN_ITERATIONS = 10
 
 READINESS_REQUIRED_DOCS = (
+    "CONTEXT.md",
     "README.md",
     "README.zh-CN.md",
     "docs/AUTO_RESEARCH_DESIGN_SYSTEM.md",
@@ -215,58 +230,37 @@ READINESS_VALIDATION_SURFACES = (
 )
 
 AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS = (
-    "Auto Research Design System",
-    "Goal -> Run -> Evidence -> Improve",
-    "System Thesis",
-    "Product view",
-    "Internal view",
-    "Execution Plane",
-    "State And Evidence Plane",
-    "External Control Plane",
-    "Run Identity And Reproducibility",
-    "Failure Attribution",
-    "Evolvable Policy And Protected Kernel",
+    "Research should be easy to challenge, not merely easy to read.",
+    "Goal -> Run -> Evidence -> Artifact",
+    "The Loop",
+    "The Harness As Referee",
+    "Product Interface",
+    "Private Execution",
+    "Quality Without Overclaiming",
+    "Migration Gates",
     "Current Maturity",
-    "Drift Judgment",
     "`paper-review`",
 )
 
-PROJECT_LANGUAGE_REQUIRED_TERMS = (
+CONTEXT_REQUIRED_TERMS = (
     "Goal",
     "Run",
     "Evidence",
-    "Research Evidence",
-    "Run Evidence",
-    "Improve",
-    "Auto Research Design System",
-    "Harness",
-    "Skill",
-    "Workflow",
-    "Pipeline",
-    "Delivery profile",
-    "Use-case overlay",
-    "Workspace",
-    "Unit",
     "Artifact",
-    "Audit",
-    "Attempt",
-    "Completion",
+    "Loop",
+    "verify",
+    "harness",
     "Decision",
-    "Failure",
-    "Evaluation",
-    "Run-local repair",
-    "Harness candidate",
-    "Project Memory",
 )
 
 PIPELINE_TAXONOMY_REQUIRED_TERMS = (
-    "Maturity Levels",
+    "Recipe Maturity",
     "Executable",
     "Executable variant",
     "Research-stage",
-    "Current Families",
-    "Survey Delivery Profiles",
-    "bounded-report use-case overlay",
+    "Current Recipes",
+    "Loop Kinds",
+    "Exporter migration",
     "Evidence Gaps",
     "`paper-review`",
 )
@@ -286,6 +280,7 @@ PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS = (
     "`arxiv-survey-latex`",
     "`arxiv-survey`",
     "Executable variant",
+    "exporter target",
 )
 
 FORBIDDEN_OVERLAY_PIPELINE_FILENAMES = (

@@ -8,6 +8,15 @@ workspaces/
 # Local compatibility mirror. Project Skills are canonical under .codex/skills/.
 /.agents/
 
+# Local Codex bridge scratch (sessions/drafts/threads/bundles); never commit.
+/.codex/codex-pro-bridge/
+
+# Private local task tracker (specs and tickets); mirrors .git/info/exclude.
+/.scratch/
+
+# Agent worktrees created by the harness for isolated background work.
+/.claude/worktrees/
+
 # Local reference corpus (PDFs/text extracts); keep curated id lists/docs tracked.
 ref/**/pdfs/
 ref/**/text/

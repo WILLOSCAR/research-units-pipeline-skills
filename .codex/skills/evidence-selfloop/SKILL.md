@@ -1,11 +1,14 @@
 ---
 name: evidence-selfloop
-description: |
-  Evidence self-loop for surveys: read evidence bindings + evidence packs, then write an actionable upstream TODO plan (which stage/skill to fix) before writing more prose.
-  **Trigger**: evidence self-loop, evidence loop, evidence gaps, binding gaps, blocking_missing, 证据自循环, 证据缺口回路.
+description: "Evidence self-loop for surveys: read evidence bindings + evidence packs, then write an actionable upstream TODO plan (which stage/skill to fix) before writing more prose."
 ---
 
 # Evidence Self-loop (C3/C4 fix → rebind → redraft)
+
+## Triggers & routing
+
+- **Trigger**: evidence self-loop, evidence loop, evidence gaps, binding gaps, blocking_missing, 证据自循环, 证据缺口回路.
+
 
 Purpose: make the evidence-first pipeline converge **without writing filler prose**.
 

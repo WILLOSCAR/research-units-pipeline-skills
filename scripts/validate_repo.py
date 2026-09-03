@@ -22,18 +22,17 @@ sys.path.insert(0, str(REPO_ROOT))
 from tooling.pipeline_spec import PipelineSpec
 from tooling.harness_contracts import (
     ADR_ALLOWED_STATUSES,
-    ADR_REQUIRED_METADATA,
     ADR_REQUIRED_SECTIONS,
     AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS,
+    CONTEXT_REQUIRED_TERMS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
-    HARNESS_SKILL_AUDIT_GATE,
+    HARNESS_SKILL_AUDIT_GATE as HARNESS_SKILL_AUDIT_GATE,  # noqa: F401  re-exported for contract-parity tests
     FORBIDDEN_OVERLAY_PIPELINE_FILENAMES,
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
-    PROJECT_LANGUAGE_REQUIRED_TERMS,
     REPORT_SCHEMA_TERMS,
 )
 
@@ -95,6 +94,8 @@ def main() -> int:
 
     for pipeline_path in pipeline_paths:
         findings.extend(_validate_pipeline(pipeline_path))
+
+    findings.extend(_validate_skill_binding_governance(pipeline_paths))
 
     if args.check_docs:
         findings.extend(_validate_docs())
@@ -478,6 +479,60 @@ def _validate_claude_skills() -> list[Finding]:
     ]
 
 
+ALLOWED_SKILL_BINDINGS = frozenset({"manual", "library", "staged"})
+
+
+def _validate_skill_binding_governance(pipeline_paths: list[Path]) -> list[Finding]:
+    """Every skill dir must be bound to a Units template or declare a `binding:` key.
+
+    A skill is "governed" when it is either referenced in some `templates/UNITS.*.csv`
+    `skill` column, or carries a `binding:` frontmatter key (one of manual|library|staged).
+    Skills satisfying neither are unbound orphans and surface as a WARN.
+    """
+    findings: list[Finding] = []
+    if not SKILLS_DIR.exists():
+        return findings
+
+    referenced = _skills_from_units_templates(pipeline_paths)
+
+    unbound: list[str] = []
+    for skill_dir in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))):
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        try:
+            fm, _ = _split_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        binding = str(fm.get("binding") or "").strip()
+        if binding and binding not in ALLOWED_SKILL_BINDINGS:
+            findings.append(
+                Finding(
+                    "WARN",
+                    f"skill `{skill_dir.name}` has unsupported `binding: {binding}`; "
+                    f"expected one of {', '.join(sorted(ALLOWED_SKILL_BINDINGS))}.",
+                )
+            )
+        if skill_dir.name in referenced:
+            continue
+        if binding:
+            continue
+        unbound.append(skill_dir.name)
+
+    if unbound:
+        findings.append(
+            Finding(
+                "WARN",
+                "Unbound skills are not referenced by any `templates/UNITS.*.csv` skill column "
+                "and carry no `binding:` frontmatter (manual|library|staged): "
+                + ", ".join(f"`{name}`" for name in unbound)
+                + ".",
+            )
+        )
+
+    return findings
+
+
 def _validate_docs() -> list[Finding]:
     findings: list[Finding] = []
 
@@ -565,7 +620,7 @@ def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:
     findings.extend(_validate_adr_contracts(repo_root=repo_root, docs_dir=docs_dir))
     findings.extend(_validate_schema_summary_doc(repo_root=repo_root))
     findings.extend(_validate_auto_research_design_system_doc(repo_root=repo_root))
-    findings.extend(_validate_project_language_doc(repo_root=repo_root))
+    findings.extend(_validate_context_doc(repo_root=repo_root))
     findings.extend(_validate_local_harness_checks(repo_root=repo_root))
 
     return findings
@@ -583,7 +638,7 @@ def _validate_auto_research_design_system_doc(*, repo_root: Path) -> list[Findin
         return [
             Finding(
                 "WARN",
-                f"`{rel_path}` is missing Auto Research Design System terms: "
+                f"`{rel_path}` is missing Research Harness Architecture terms: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )
@@ -591,19 +646,19 @@ def _validate_auto_research_design_system_doc(*, repo_root: Path) -> list[Findin
     return []
 
 
-def _validate_project_language_doc(*, repo_root: Path) -> list[Finding]:
-    rel_path = "docs/PROJECT_LANGUAGE.md"
+def _validate_context_doc(*, repo_root: Path) -> list[Finding]:
+    rel_path = "CONTEXT.md"
     doc_path = repo_root / rel_path
     if not doc_path.exists():
         return []
 
     text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    missing = [term for term in CONTEXT_REQUIRED_TERMS if term not in text]
     if missing:
         return [
             Finding(
                 "WARN",
-                f"`{rel_path}` is missing project language terms: "
+                f"`{rel_path}` is missing canonical language terms: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )

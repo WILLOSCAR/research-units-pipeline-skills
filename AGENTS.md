@@ -2,6 +2,20 @@
 
 This is the minimal repo-level instruction file for Codex and other coding agents working in this repository.
 
+## Agent skills
+
+### Issue tracker
+
+Work is tracked privately as local markdown under `.scratch/`. The GitHub remote is for source control only; agents must not create or update remote issues unless the user explicitly switches the tracker. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five Matt workflow labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context project. Read `CONTEXT.md` first, then relevant ADRs in `docs/adr/`. See `docs/agents/domain.md`.
+
 ## Scope
 
 - Treat this file as the top-level repo-global note, not as the full execution contract.

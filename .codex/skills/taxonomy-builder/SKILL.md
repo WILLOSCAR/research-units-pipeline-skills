@@ -1,15 +1,18 @@
 ---
 name: taxonomy-builder
-description: |
-  Build a 2+ level taxonomy (`outline/taxonomy.yml`) from a core paper set and scope constraints, with short descriptions per node.
-  **Trigger**: taxonomy, taxonomy builder, 分类, 主题树, taxonomy.yml.
-  **Use when**: survey/snapshot 的结构阶段（NO PROSE），已有 `papers/core_set.csv`，需要生成可映射且读者友好的主题结构。
-  **Skip if**: 已经有批准过且可映射的 taxonomy（不要无意义重构）。
-  **Network**: none.
-  **Guardrail**: 避免泛化占位桶；保持 2+ 层且每节点有具体描述。
+description: "Build a 2+ level taxonomy (`outline/taxonomy.yml`) from a core paper set and scope constraints, with short descriptions per node."
 ---
 
 # Taxonomy Builder (router, compatibility mode)
+
+## Triggers & routing
+
+- **Trigger**: taxonomy, taxonomy builder, 分类, 主题树, taxonomy.yml.
+- **Use when**: survey/snapshot 的结构阶段（NO PROSE），已有 `papers/core_set.csv`，需要生成可映射且读者友好的主题结构。
+- **Skip if**: 已经有批准过且可映射的 taxonomy（不要无意义重构）。
+- **Network**: none.
+- **Guardrail**: 避免泛化占位桶；保持 2+ 层且每节点有具体描述。
+
 
 Build `outline/taxonomy.yml` from `papers/core_set.csv`.
 

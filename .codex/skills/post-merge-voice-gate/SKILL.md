@@ -1,12 +1,15 @@
 ---
 name: post-merge-voice-gate
-description: |
-  Post-merge paper-voice gate: inspect the reader-facing draft for planner-talk and axis-label artifacts, then route fixes to the actual source.
-  **Trigger**: post-merge voice gate, merge voice gate, transition leakage, planner talk, 合并后口吻门, 过渡句污染.
-  **Use when**: `section-merger` has produced `output/DRAFT.md` and you want to ensure merge-injected text won't drag the draft into generator voice before polishing.
+description: "Post-merge paper-voice gate: inspect the reader-facing draft for planner-talk and axis-label artifacts, then route fixes to the actual source."
 ---
 
 # Post-merge Voice Gate
+
+## Triggers & routing
+
+- **Trigger**: post-merge voice gate, merge voice gate, transition leakage, planner talk, 合并后口吻门, 过渡句污染.
+- **Use when**: `section-merger` has produced `output/DRAFT.md` and you want to ensure merge-injected text won't drag the draft into generator voice before polishing.
+
 
 Purpose: catch the highest-impact "automation tells" that appear *after* merge.
 

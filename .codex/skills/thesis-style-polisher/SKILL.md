@@ -1,15 +1,19 @@
 ---
 name: thesis-style-polisher
-description: |
-  对中文毕业论文做最终润色与去 AI 味：重点处理章首导言、章末小结、贡献描述、总结与展望中的模板腔、宣传腔与 AI 口癖。
-  **Trigger**: 论文润色, thesis style polish, 去 AI 味, 中文论文风格统一, 章首导言润色, 总结展望润色.
-  **Use when**: 结构、证据、数据和编译已经基本稳定，需要做最后一轮中文学位论文风格收口。
-  **Skip if**: 正文结构还在大改，或关键引用 / 数字 / 图表还没稳定。
-  **Network**: none.
-  **Guardrail**: 不用润色掩盖结构问题；不引入新事实；先去模板腔，再做措辞提升。
+binding: staged
+description: "对中文毕业论文做最终润色与去 AI 味：重点处理章首导言、章末小结、贡献描述、总结与展望中的模板腔、宣传腔与 AI 口癖。"
 ---
 
 # Thesis Style Polisher
+
+## Triggers & routing
+
+- **Trigger**: 论文润色, thesis style polish, 去 AI 味, 中文论文风格统一, 章首导言润色, 总结展望润色.
+- **Use when**: 结构、证据、数据和编译已经基本稳定，需要做最后一轮中文学位论文风格收口。
+- **Skip if**: 正文结构还在大改，或关键引用 / 数字 / 图表还没稳定。
+- **Network**: none.
+- **Guardrail**: 不用润色掩盖结构问题；不引入新事实；先去模板腔，再做措辞提升。
+
 
 ## Inputs
 

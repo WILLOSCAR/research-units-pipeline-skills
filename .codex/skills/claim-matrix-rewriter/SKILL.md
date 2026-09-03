@@ -1,11 +1,14 @@
 ---
 name: claim-matrix-rewriter
-description: |
-  Rewrite `outline/claim_evidence_matrix.md` as a projection/index of evidence packs (NO PROSE), so claims/axes are driven by `outline/evidence_drafts.jsonl` rather than outline placeholders.
-  **Trigger**: claim matrix rewriter, rewrite claim-evidence matrix, evidence-first claim matrix, matrix index, 证据矩阵重写, 从证据包生成矩阵.
+description: "Rewrite `outline/claim_evidence_matrix.md` as a projection/index of evidence packs (NO PROSE), so claims/axes are driven by `outline/evidence_drafts.jsonl` rather than outline placeholders."
 ---
 
 # Claim Matrix Rewriter (Evidence-first, NO PROSE)
+
+## Triggers & routing
+
+- **Trigger**: claim matrix rewriter, rewrite claim-evidence matrix, evidence-first claim matrix, matrix index, 证据矩阵重写, 从证据包生成矩阵.
+
 
 Purpose: make `outline/claim_evidence_matrix.md` a **navigation/index layer** that is driven by evidence packs (not by outline bullets).
 

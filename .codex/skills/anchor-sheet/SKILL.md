@@ -1,12 +1,15 @@
 ---
 name: anchor-sheet
-description: |
-  Extract per-subsection “anchor facts” (NO PROSE) from evidence packs so the writer is forced to include concrete numbers/benchmarks/limitations instead of generic summaries.
-  **Trigger**: anchor sheet, anchor facts, numeric anchors, evidence hooks, 写作锚点, 数字锚点, 证据钩子.
-  **Use when**: `outline/evidence_drafts.jsonl` exists and you want stronger, evidence-anchored writing in `sections/*.md`.
+description: "Extract per-subsection “anchor facts” (NO PROSE) from evidence packs so the writer is forced to include concrete numbers/benchmarks/limitations instead of generic summaries."
 ---
 
 # Anchor Sheet (evidence → write hooks) [NO PROSE]
+
+## Triggers & routing
+
+- **Trigger**: anchor sheet, anchor facts, numeric anchors, evidence hooks, 写作锚点, 数字锚点, 证据钩子.
+- **Use when**: `outline/evidence_drafts.jsonl` exists and you want stronger, evidence-anchored writing in `sections/*.md`.
+
 
 Purpose: make “what to actually say” explicit:
 - select quantitative snippets (numbers/percentages)

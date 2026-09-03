@@ -16,6 +16,33 @@ from tooling.common import (
     parse_semicolon_list,
     pipeline_cli_command,
 )
+from tooling.run_audit_diff import RUN_AUDIT_DIFF_SCHEMA
+from tooling.run_audit_diff import (
+    build_run_audit_diff_payload as build_run_audit_diff_payload,
+)
+from tooling.run_audit_diff import (
+    render_run_audit_diff_report as render_run_audit_diff_report,
+)
+from tooling.run_audit_diff import (
+    write_run_audit_diff_json as write_run_audit_diff_json,
+)
+from tooling.run_audit_diff import (
+    write_run_audit_diff_report as write_run_audit_diff_report,
+)
+from tooling.improvement_report import (
+    IMPROVEMENT_REPORT_SCHEMA,
+    _build_improvement_payload_from_sources,
+    _failure_ledger_entries,
+)
+from tooling.improvement_report import (
+    render_improvement_report as render_improvement_report,
+)
+from tooling.improvement_report import (
+    write_improvement_json as write_improvement_json,
+)
+from tooling.improvement_report import (
+    write_improvement_report as write_improvement_report,
+)
 
 
 VALID_STATUSES = {"TODO", "DOING", "DONE", "BLOCKED", "SKIP"}
@@ -96,7 +123,6 @@ RUN_STATE_INTEGER_KEYS = (
     "error_count",
     "warn_count",
 )
-RUN_AUDIT_DIFF_SCHEMA = "run-audit-diff.v1"
 RUN_AUDIT_DIFF_REQUIRED_KEYS = (
     "schema",
     "generated_at",
@@ -118,7 +144,6 @@ RUN_AUDIT_DIFF_REQUIRED_KEYS = (
     "verdict",
     "exit_code",
 )
-IMPROVEMENT_REPORT_SCHEMA = "improvement-report.v1"
 IMPROVEMENT_REPORT_REQUIRED_KEYS = (
     "schema",
     "generated_at",
@@ -2084,173 +2109,6 @@ def load_run_audit_payload(path: Path) -> dict[str, Any]:
     return payload
 
 
-def build_run_audit_diff_payload(
-    *,
-    before_path: Path,
-    before_payload: dict[str, Any],
-    after_path: Path,
-    after_payload: dict[str, Any],
-) -> tuple[int, dict[str, Any]]:
-    unit_status_delta = _int_mapping_delta(
-        before_payload.get("unit_status") or {},
-        after_payload.get("unit_status") or {},
-    )
-    target_changes = _target_artifact_changes(before_payload, after_payload)
-    before_manifest_count = _manifest_count(before_payload)
-    after_manifest_count = _manifest_count(after_payload)
-    before_issue_count = len(before_payload.get("harness_issues") or [])
-    after_issue_count = len(after_payload.get("harness_issues") or [])
-    attempt_comparison = _attempt_comparison(before_payload, after_payload)
-
-    comparison_issues: list[str] = []
-    if before_payload.get("pipeline") != after_payload.get("pipeline"):
-        comparison_issues.append(
-            f"Pipeline changed from `{before_payload.get('pipeline')}` to `{after_payload.get('pipeline')}`"
-        )
-
-    regressed_artifacts = [
-        item["path"]
-        for item in target_changes
-        if item.get("change") in {"became_missing", "added_missing"}
-    ]
-    for relpath in regressed_artifacts:
-        comparison_issues.append(f"Target artifact `{relpath}` is missing in the after audit")
-
-    after_verdict = str(after_payload.get("verdict") or "")
-    exit_code = 0 if after_verdict == "PASS" and not comparison_issues else 2
-    verdict = "PASS" if exit_code == 0 else "ATTENTION"
-    payload = {
-        "schema": RUN_AUDIT_DIFF_SCHEMA,
-        "generated_at": now_iso_seconds(),
-        "before_path": str(before_path),
-        "after_path": str(after_path),
-        "before_schema": str(before_payload.get("schema") or ""),
-        "after_schema": str(after_payload.get("schema") or ""),
-        "before_workspace": str(before_payload.get("workspace") or ""),
-        "after_workspace": str(after_payload.get("workspace") or ""),
-        "before_pipeline": str(before_payload.get("pipeline") or ""),
-        "after_pipeline": str(after_payload.get("pipeline") or ""),
-        "before_verdict": str(before_payload.get("verdict") or ""),
-        "after_verdict": after_verdict,
-        "unit_status_delta": unit_status_delta,
-        "target_artifact_changes": target_changes,
-        "manifest_counts": {
-            "before": before_manifest_count,
-            "after": after_manifest_count,
-            "delta": after_manifest_count - before_manifest_count,
-        },
-        "harness_issue_counts": {
-            "before": before_issue_count,
-            "after": after_issue_count,
-            "delta": after_issue_count - before_issue_count,
-        },
-        "attempt_comparison": attempt_comparison,
-        "comparison_issues": comparison_issues,
-        "verdict": verdict,
-        "exit_code": exit_code,
-    }
-    return exit_code, payload
-
-
-def render_run_audit_diff_report(payload: dict[str, Any]) -> str:
-    lines = [
-        "# Run audit diff",
-        "",
-        f"- Before: `{payload.get('before_path')}`",
-        f"- After: `{payload.get('after_path')}`",
-        f"- Pipeline: `{payload.get('before_pipeline')}` -> `{payload.get('after_pipeline')}`",
-        f"- Workspace: `{payload.get('before_workspace')}` -> `{payload.get('after_workspace')}`",
-        f"- Verdict: `{payload.get('before_verdict')}` -> `{payload.get('after_verdict')}`",
-    ]
-
-    lines.extend(["", "## Unit status delta"])
-    unit_status_delta = payload.get("unit_status_delta") or {}
-    if unit_status_delta:
-        for status, delta in unit_status_delta.items():
-            sign = "+" if int(delta) > 0 else ""
-            lines.append(f"- {status}: {sign}{delta}")
-    else:
-        lines.append("- No unit status changes")
-
-    lines.extend(["", "## Target artifact changes"])
-    changes = payload.get("target_artifact_changes") or []
-    if not changes:
-        lines.append("- No target artifact changes")
-    else:
-        for item in changes:
-            lines.append(
-                f"- `{item.get('path')}`: {item.get('change')} "
-                f"({item.get('before_exists')} -> {item.get('after_exists')})"
-            )
-
-    manifest_counts = payload.get("manifest_counts") or {}
-    issue_counts = payload.get("harness_issue_counts") or {}
-    lines.extend(
-        [
-            "",
-            "## Run-level counters",
-            _format_count_delta("Unit output manifests", manifest_counts),
-            _format_count_delta("Harness issues", issue_counts),
-        ]
-    )
-
-    lines.extend(["", "## Attempt changes"])
-    attempt_comparison = payload.get("attempt_comparison")
-    if not isinstance(attempt_comparison, dict) or not attempt_comparison.get("available"):
-        note = (
-            attempt_comparison.get("note")
-            if isinstance(attempt_comparison, dict)
-            else "One or both audits predate Attempt summaries."
-        )
-        lines.append(f"- Unavailable: {note}")
-    else:
-        counters = attempt_comparison.get("counters") or {}
-        metrics = attempt_comparison.get("process_metrics") or {}
-        for key, label in (
-            ("started", "Started Attempts"),
-            ("finished", "Finished Attempts"),
-            ("open", "Open Attempts"),
-            ("retry_units", "Units with retries"),
-            ("extra_attempts", "Extra Attempts"),
-        ):
-            if key in counters:
-                lines.append(_format_numeric_delta(label, counters[key]))
-        for key, label in (
-            ("measured_attempts", "Measured scripted Attempts"),
-            ("total_elapsed_ms", "Total adapter elapsed ms"),
-            ("mean_elapsed_ms", "Mean adapter elapsed ms"),
-            ("max_elapsed_ms", "Max adapter elapsed ms"),
-            ("stdout_chars", "Captured stdout characters"),
-            ("stderr_chars", "Captured stderr characters"),
-        ):
-            if key in metrics:
-                lines.append(_format_numeric_delta(label, metrics[key]))
-        lines.append(f"- Interpretation: {attempt_comparison.get('note')}")
-
-    lines.extend(["", "## Comparison issues"])
-    comparison_issues = payload.get("comparison_issues") or []
-    if comparison_issues:
-        for issue in comparison_issues:
-            lines.append(f"- {issue}")
-    else:
-        lines.append("- No comparison issues")
-
-    lines.extend(["", "## Diff verdict", f"- {payload.get('verdict') or 'ATTENTION'}"])
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def write_run_audit_diff_report(*, output_dir: Path, report: str) -> Path:
-    path = output_dir / "RUN_AUDIT_DIFF.md"
-    atomic_write_text(path, report)
-    return path
-
-
-def write_run_audit_diff_json(*, output_dir: Path, payload: dict[str, Any]) -> Path:
-    path = output_dir / "RUN_AUDIT_DIFF.json"
-    atomic_write_text(path, json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-    return path
-
-
 def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int, dict[str, Any]]:
     snapshot = _collect_workspace_inspection_snapshot(workspace=workspace, repo_root=repo_root)
     doctor_exit, doctor_payload = _build_doctor_payload_from_snapshot(snapshot)
@@ -2262,205 +2120,6 @@ def build_improvement_payload(*, workspace: Path, repo_root: Path) -> tuple[int,
         audit_result=(audit_exit, audit_payload),
         failure_ledger_entries=snapshot.failure_ledger_entries,
     )
-
-
-def _build_improvement_payload_from_sources(
-    *,
-    workspace: Path,
-    repo_root: Path,
-    doctor_result: tuple[int, dict[str, Any]],
-    audit_result: tuple[int, dict[str, Any]],
-    failure_ledger_entries: tuple[dict[str, Any], ...] | None = None,
-) -> tuple[int, dict[str, Any]]:
-    doctor_exit, doctor_payload = doctor_result
-    audit_exit, audit_payload = audit_result
-    entries = list(failure_ledger_entries) if failure_ledger_entries is not None else _failure_ledger_entries(workspace)
-    failures = _failure_ledger_records(workspace, entries=entries)
-    repair_history = _failure_repair_history(workspace, entries=entries)
-    diagnostic_suggestions = _improvement_suggestion_records(
-        workspace=workspace,
-        doctor_payload=doctor_payload,
-        run_audit_payload=audit_payload,
-    )
-    failure_suggestions = _failure_suggestion_records(
-        workspace=workspace,
-        failures=failures,
-    )
-    suggestions = [*failure_suggestions, *diagnostic_suggestions]
-    for index, suggestion in enumerate(suggestions, start=1):
-        suggestion["id"] = f"S{index:03d}"
-    from tooling.run_state import latest_evaluation
-
-    evaluation = latest_evaluation(workspace, verdict="PASS")
-    quality_opportunities = _evaluation_opportunity_records(evaluation)
-    exit_code = 2 if suggestions or doctor_exit or audit_exit else 0
-    source_reports = {
-        "doctor": {
-            "schema": str(doctor_payload.get("schema") or ""),
-            "verdict": str(doctor_payload.get("verdict") or ""),
-            "exit_code": int(doctor_payload.get("exit_code") or 0),
-        },
-        "run_audit": {
-            "schema": str(audit_payload.get("schema") or ""),
-            "verdict": str(audit_payload.get("verdict") or ""),
-            "exit_code": int(audit_payload.get("exit_code") or 0),
-        },
-        "failure_ledger": {
-            "schema": "failure-record.v1",
-            "verdict": "ATTENTION" if failures else "PASS",
-            "exit_code": 2 if failures else 0,
-            "record_count": len(failures),
-            "opened_count": int(repair_history["opened_count"]),
-            "resolved_count": int(repair_history["resolved_count"]),
-        },
-    }
-    if evaluation:
-        source_reports["latest_passing_evaluation"] = {
-            "schema": str(evaluation.get("schema") or "run-evaluation.v1"),
-            "verdict": str(evaluation.get("verdict") or "UNKNOWN"),
-            "exit_code": 0 if str(evaluation.get("verdict") or "").upper() == "PASS" else 2,
-            "score": evaluation.get("score"),
-            "workflow": str(evaluation.get("workflow") or ""),
-        }
-    payload = {
-        "schema": IMPROVEMENT_REPORT_SCHEMA,
-        "generated_at": str(doctor_payload.get("generated_at") or now_iso_seconds()),
-        "workspace": str(workspace),
-        "repo": str(repo_root),
-        "pipeline": str(audit_payload.get("pipeline") or ""),
-        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
-        "source_reports": source_reports,
-        "repair_history": repair_history,
-        "suggestions": suggestions,
-        "quality_opportunities": quality_opportunities,
-        "verdict": "ATTENTION" if exit_code else "PASS",
-        "exit_code": exit_code,
-    }
-    return exit_code, payload
-
-
-def _evaluation_opportunity_records(evaluation: dict[str, Any]) -> list[dict[str, Any]]:
-    """Expose non-blocking scorecard headroom without turning PASS into failure."""
-
-    if str(evaluation.get("verdict") or "").upper() != "PASS":
-        return []
-    opportunities: list[dict[str, Any]] = []
-    dimensions = evaluation.get("dimensions")
-    if not isinstance(dimensions, list):
-        return opportunities
-    for item in dimensions:
-        if not isinstance(item, dict):
-            continue
-        score = item.get("score")
-        max_score = item.get("max_score")
-        if not isinstance(score, int) or not isinstance(max_score, int) or score >= max_score:
-            continue
-        surfaces = [
-            str(value or "").strip()
-            for value in item.get("repair_surface") or []
-            if str(value or "").strip()
-        ]
-        opportunities.append(
-            {
-                "dimension_id": str(item.get("id") or "unknown"),
-                "label": str(item.get("label") or item.get("id") or "Quality dimension"),
-                "score": score,
-                "max_score": max_score,
-                "evidence": str(item.get("evidence") or "No dimension evidence recorded."),
-                "repair_surface": surfaces,
-            }
-        )
-    return opportunities
-
-
-def render_improvement_report(payload: dict[str, Any]) -> str:
-    lines = [
-        "# Improvement report",
-        "",
-        f"- Workspace: `{payload.get('workspace')}`",
-        f"- Repo: `{payload.get('repo')}`",
-        f"- Generated at: `{payload.get('generated_at')}`",
-        f"- Pipeline: `{payload.get('pipeline')}`" if payload.get("pipeline") else "- Pipeline: unknown",
-        f"- Artifact interface standard: `{payload.get('artifact_interface_standard')}`",
-        f"- JSON sidecar: `output/IMPROVEMENT_REPORT.json`",
-    ]
-
-    lines.extend(["", "## Source reports"])
-    source_reports = payload.get("source_reports") or {}
-    if not source_reports:
-        lines.append("- No source reports")
-    else:
-        for name, record in source_reports.items():
-            lines.append(
-                f"- `{name}`: {record.get('schema')} {record.get('verdict')} "
-                f"(exit {record.get('exit_code')})"
-            )
-
-    lines.extend(["", "## Repair suggestions"])
-    suggestions = payload.get("suggestions") or []
-    if not suggestions:
-        lines.append("- No repair suggestions; doctor and run audit did not surface harness issues.")
-    else:
-        for suggestion in suggestions:
-            lines.extend(
-                [
-                    f"### {suggestion.get('id')} - {suggestion.get('upstream_interface')}",
-                    "",
-                    f"- Source report: `{suggestion.get('source_report')}`",
-                    f"- Observed problem: {suggestion.get('observed_problem')}",
-                    f"- Evidence: {suggestion.get('evidence')}",
-                    f"- Repair surface: `{suggestion.get('repair_surface')}`",
-                    f"- Recommended action: {suggestion.get('recommended_action')}",
-                    f"- Validation: `{suggestion.get('validation')}`",
-                    "",
-                ]
-            )
-
-    lines.extend(["", "## Non-blocking quality opportunities"])
-    opportunities = payload.get("quality_opportunities") or []
-    if not opportunities:
-        lines.append("- No passing scorecard dimension reported remaining measurable headroom.")
-    else:
-        for opportunity in opportunities:
-            surfaces = ", ".join(f"`{value}`" for value in opportunity.get("repair_surface") or [])
-            lines.append(
-                f"- **{opportunity.get('label')}**: "
-                f"{opportunity.get('score')}/{opportunity.get('max_score')}. "
-                f"{opportunity.get('evidence')}"
-                + (f" Repair surface: {surfaces}." if surfaces else "")
-            )
-
-    history = payload.get("repair_history") or {}
-    lines.extend(["", "## Repair history"])
-    lines.append(
-        f"- Opened failures: {history.get('opened_count', 0)}; "
-        f"resolved failures: {history.get('resolved_count', 0)}"
-    )
-    entries = history.get("entries") if isinstance(history.get("entries"), list) else []
-    if entries:
-        for entry in entries:
-            lines.append(
-                f"- `{entry.get('failure_type') or 'failure'}` on `{entry.get('unit_id') or 'unknown'}`: "
-                f"attempt `{entry.get('opened_attempt_id') or 'unknown'}` -> "
-                f"`{entry.get('resolved_by_attempt_id') or 'unresolved'}` ({entry.get('status')})"
-            )
-    else:
-        lines.append("- No durable failure history recorded.")
-
-    lines.extend(["", "## Improvement verdict", f"- {payload.get('verdict') or 'ATTENTION'}"])
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def write_improvement_report(*, workspace: Path, report: str) -> Path:
-    path = workspace / "output" / "IMPROVEMENT_REPORT.md"
-    atomic_write_text(path, report)
-    return path
-
-
-def write_improvement_json(*, workspace: Path, payload: dict[str, Any]) -> Path:
-    path = workspace / "output" / "IMPROVEMENT_REPORT.json"
-    atomic_write_text(path, json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-    return path
 
 
 def build_harness_inspection(*, workspace: Path, repo_root: Path) -> HarnessInspection:
@@ -2526,7 +2185,7 @@ def _build_artifact_pack_payload_from_sources(
         "workspace": str(workspace),
         "repo": str(repo_root),
         "pipeline": str(audit_payload.get("pipeline") or ""),
-        "artifact_interface_standard": "docs/PROJECT_LANGUAGE.md",
+        "artifact_interface_standard": "CONTEXT.md",
         "source_reports": {
             "doctor": _source_report_record(doctor_payload),
             "run_audit": _source_report_record(audit_payload),
@@ -2672,163 +2331,6 @@ def write_artifact_pack_excerpt_tsv(*, workspace: Path, excerpt: str) -> Path:
     path = workspace / "output" / "ARTIFACT_PACK_EXCERPT.tsv"
     atomic_write_text(path, excerpt)
     return path
-
-
-def _improvement_suggestion_records(
-    *,
-    workspace: Path,
-    doctor_payload: dict[str, Any],
-    run_audit_payload: dict[str, Any],
-) -> list[dict[str, str]]:
-    records: list[dict[str, str]] = []
-    seen: set[tuple[str, str, str]] = set()
-    for source_report, payload in (("doctor", doctor_payload), ("run_audit", run_audit_payload)):
-        for issue in payload.get("harness_issues") or []:
-            if not isinstance(issue, dict):
-                continue
-            code = str(issue.get("code") or "")
-            message = str(issue.get("message") or "")
-            key = (source_report, code, message)
-            if key in seen:
-                continue
-            seen.add(key)
-            records.append(
-                {
-                    "id": f"S{len(records) + 1:03d}",
-                    "source_report": source_report,
-                    "observed_problem": message,
-                    "evidence": f"{str(issue.get('level') or 'INFO')} `{code}`",
-                    "upstream_interface": _issue_upstream_interface(code),
-                    "repair_surface": str(issue.get("remediation_category") or "inspect_workspace_state"),
-                    "recommended_action": str(issue.get("next_action") or "Inspect the workspace state and rerun harness checks."),
-                    "validation": _issue_validation_command(code, workspace),
-                }
-            )
-    return records
-
-
-def _failure_suggestion_records(
-    *, workspace: Path, failures: list[dict[str, Any]]
-) -> list[dict[str, str]]:
-    records: list[dict[str, str]] = []
-    latest_by_fingerprint: dict[str, dict[str, Any]] = {}
-    for failure in failures:
-        fingerprint = str(failure.get("fingerprint") or failure.get("failure_id") or "")
-        if fingerprint:
-            latest_by_fingerprint[fingerprint] = failure
-
-    for failure in latest_by_fingerprint.values():
-        repair_surface = failure.get("repair_surface") or []
-        if isinstance(repair_surface, list):
-            repair_text = "; ".join(str(item) for item in repair_surface if str(item).strip())
-        else:
-            repair_text = str(repair_surface)
-        failure_type = str(failure.get("failure_type") or "unclassified_failure")
-        records.append(
-            {
-                "id": f"S{len(records) + 1:03d}",
-                "source_report": "failure_ledger",
-                "observed_problem": str(failure.get("observable_failure") or failure_type),
-                "evidence": (
-                    f"{str(failure.get('severity') or 'medium').upper()} `{failure_type}`; "
-                    f"attempt `{failure.get('attempt_id') or 'unknown'}`"
-                ),
-                "upstream_interface": str(failure.get("harness_mechanism") or "Run attempt / skill adapter"),
-                "repair_surface": repair_text or "inspect recorded attempt",
-                "recommended_action": str(failure.get("causal_behavior") or "Inspect the recorded attempt and repair surface."),
-                "validation": pipeline_cli_command("doctor", workspace=workspace, extra_args=("--write",)),
-            }
-        )
-    return records
-
-
-def _failure_ledger_entries(workspace: Path) -> list[dict[str, Any]]:
-    path = workspace / ".harness" / "failures" / "ledger.jsonl"
-    if not path.exists():
-        return []
-    entries: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            try:
-                payload = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(payload, dict):
-                entries.append(payload)
-    return entries
-
-
-def _failure_ledger_records(
-    workspace: Path,
-    *,
-    entries: list[dict[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
-    records: dict[str, dict[str, Any]] = {}
-    for payload in entries if entries is not None else _failure_ledger_entries(workspace):
-        failure_id = str(payload.get("failure_id") or "")
-        if not failure_id:
-            continue
-        if payload.get("status") == "open":
-            records[failure_id] = payload
-        else:
-            records.pop(failure_id, None)
-    return list(records.values())
-
-
-def _failure_repair_history(
-    workspace: Path,
-    *,
-    entries: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    failures: dict[str, dict[str, Any]] = {}
-    for payload in entries if entries is not None else _failure_ledger_entries(workspace):
-        failure_id = str(payload.get("failure_id") or "")
-        if not failure_id:
-            continue
-        if payload.get("status") == "open":
-            failures[failure_id] = {
-                "failure_id": failure_id,
-                "failure_type": str(payload.get("failure_type") or ""),
-                "unit_id": str(payload.get("unit_id") or ""),
-                "opened_attempt_id": str(payload.get("attempt_id") or ""),
-                "resolved_by_attempt_id": "",
-                "status": "open",
-            }
-        elif failure_id in failures:
-            failures[failure_id]["resolved_by_attempt_id"] = str(payload.get("resolved_by_attempt_id") or "")
-            failures[failure_id]["status"] = "resolved"
-    entries = list(failures.values())
-    return {
-        "opened_count": len(entries),
-        "resolved_count": len([entry for entry in entries if entry["status"] == "resolved"]),
-        "entries": entries,
-    }
-
-
-def _issue_upstream_interface(code: str) -> str:
-    if code in {"missing_units", "missing_units_field", "missing_unit_id", "duplicate_unit_id", "invalid_owner"}:
-        return "Execution ledger / UNITS.csv"
-    if code == "invalid_status":
-        return "Execution ledger / unit status"
-    if code == "human_checkpoint_missing":
-        return "Human checkpoint / DECISIONS.md"
-    if code in {"missing_dependency", "dependency_cycle"}:
-        return "Workflow protocol / dependency graph"
-    if code == "missing_done_output":
-        return "Artifact contract / unit outputs"
-    if code == "missing_target_artifact":
-        return "Target artifact contract"
-    return "Workspace evidence surface"
-
-
-def _issue_validation_command(code: str, workspace: Path) -> str:
-    if code in {"missing_target_artifact", "missing_done_output"}:
-        return pipeline_cli_command("audit", workspace=workspace, extra_args=("--write",))
-    if code in {"missing_units", "missing_units_field", "missing_unit_id", "duplicate_unit_id", "invalid_status", "invalid_owner"}:
-        return pipeline_cli_command("doctor", workspace=workspace, extra_args=("--write",))
-    if code in {"missing_dependency", "dependency_cycle", "human_checkpoint_missing"}:
-        return pipeline_cli_command("doctor", workspace=workspace, extra_args=("--write",))
-    return pipeline_cli_command("improve", workspace=workspace, extra_args=("--write",))
 
 
 def _doctor_resume_hint(
@@ -3268,162 +2770,6 @@ def _artifact_pack_excerpt_role(category: str) -> str:
         "harness_report": "harness evidence report",
         "unit_manifest": "per-unit output manifest",
     }.get(category, "indexed artifact")
-
-
-def _int_mapping_delta(before: dict[str, Any], after: dict[str, Any]) -> dict[str, int]:
-    keys = sorted(set(before).union(after))
-    delta: dict[str, int] = {}
-    for key in keys:
-        before_value = before.get(key, 0)
-        after_value = after.get(key, 0)
-        if not isinstance(before_value, int) or not isinstance(after_value, int):
-            continue
-        change = after_value - before_value
-        if change:
-            delta[str(key)] = change
-    return delta
-
-
-def _target_artifact_changes(before_payload: dict[str, Any], after_payload: dict[str, Any]) -> list[dict[str, Any]]:
-    before = _target_artifact_map(before_payload)
-    after = _target_artifact_map(after_payload)
-    records: list[dict[str, Any]] = []
-    for relpath in sorted(set(before).union(after)):
-        before_exists = before.get(relpath)
-        after_exists = after.get(relpath)
-        change = _target_artifact_change(before_exists, after_exists)
-        if change.startswith("unchanged_"):
-            continue
-        records.append(
-            {
-                "path": relpath,
-                "before_exists": before_exists,
-                "after_exists": after_exists,
-                "change": change,
-            }
-        )
-    return records
-
-
-def _target_artifact_map(payload: dict[str, Any]) -> dict[str, bool]:
-    records: dict[str, bool] = {}
-    for item in payload.get("target_artifacts") or []:
-        if not isinstance(item, dict):
-            continue
-        relpath = item.get("path")
-        exists = item.get("exists")
-        if isinstance(relpath, str) and isinstance(exists, bool):
-            records[relpath] = exists
-    return records
-
-
-def _target_artifact_change(before_exists: bool | None, after_exists: bool | None) -> str:
-    if before_exists is None:
-        return "added_present" if after_exists else "added_missing"
-    if after_exists is None:
-        return "removed_present" if before_exists else "removed_missing"
-    if before_exists and after_exists:
-        return "unchanged_present"
-    if not before_exists and not after_exists:
-        return "unchanged_missing"
-    return "became_present" if after_exists else "became_missing"
-
-
-def _manifest_count(payload: dict[str, Any]) -> int:
-    manifests = payload.get("unit_output_manifests") or {}
-    count = manifests.get("count") if isinstance(manifests, dict) else 0
-    return count if isinstance(count, int) else 0
-
-
-def _attempt_comparison(
-    before_payload: dict[str, Any],
-    after_payload: dict[str, Any],
-) -> dict[str, Any]:
-    before = before_payload.get("attempts")
-    after = after_payload.get("attempts")
-    if not isinstance(before, dict) or not isinstance(after, dict):
-        return {
-            "available": False,
-            "counters": {},
-            "process_metrics": {},
-            "note": "One or both audits predate Attempt summaries.",
-        }
-
-    counter_keys = ("started", "finished", "open", "retry_units", "extra_attempts")
-    before_metrics = before.get("process_metrics")
-    after_metrics = after.get("process_metrics")
-    if not isinstance(before_metrics, dict) or not isinstance(after_metrics, dict):
-        return {
-            "available": False,
-            "counters": {},
-            "process_metrics": {},
-            "note": "One or both audits lack process metrics.",
-        }
-
-    counters = {
-        key: _numeric_delta(before.get(key), after.get(key), integer_only=True)
-        for key in counter_keys
-    }
-    metric_keys = (
-        "measured_attempts",
-        "total_elapsed_ms",
-        "mean_elapsed_ms",
-        "max_elapsed_ms",
-        "stdout_chars",
-        "stderr_chars",
-    )
-    process_metrics = {
-        key: _numeric_delta(
-            before_metrics.get(key),
-            after_metrics.get(key),
-            integer_only=key in {"measured_attempts", "stdout_chars", "stderr_chars"},
-        )
-        for key in metric_keys
-    }
-    return {
-        "available": True,
-        "counters": counters,
-        "process_metrics": process_metrics,
-        "note": "Descriptive evidence only; Attempt and runtime deltas do not affect the diff verdict.",
-    }
-
-
-def _numeric_delta(before: Any, after: Any, *, integer_only: bool) -> dict[str, int | float | None]:
-    def normalize(value: Any) -> int | float | None:
-        if isinstance(value, bool):
-            return None
-        if integer_only:
-            return value if isinstance(value, int) else None
-        return value if isinstance(value, (int, float)) else None
-
-    before_value = normalize(before)
-    after_value = normalize(after)
-    delta = None
-    if before_value is not None and after_value is not None:
-        delta = after_value - before_value
-    return {
-        "before": before_value,
-        "after": after_value,
-        "delta": delta,
-    }
-
-
-def _format_count_delta(label: str, counts: dict[str, Any]) -> str:
-    before = int(counts.get("before") or 0)
-    after = int(counts.get("after") or 0)
-    delta = int(counts.get("delta") or 0)
-    sign = "+" if delta > 0 else ""
-    return f"- {label}: {before} -> {after} ({sign}{delta})"
-
-
-def _format_numeric_delta(label: str, values: dict[str, Any]) -> str:
-    before = values.get("before")
-    after = values.get("after")
-    delta = values.get("delta")
-    if before is None or after is None or delta is None:
-        return f"- {label}: unavailable"
-    sign = "+" if delta > 0 else ""
-    return f"- {label}: {before} -> {after} ({sign}{delta})"
 
 
 def _recent_report_summaries(workspace: Path) -> list[str]:

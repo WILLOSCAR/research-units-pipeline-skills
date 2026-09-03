@@ -1,11 +1,14 @@
 ---
 name: front-matter-writer
-description: |
-  Write the survey's front matter files (Abstract, Introduction, Related Work, Discussion, Conclusion) in paper voice, with high citation density and a single evidence-policy paragraph.
-  **Trigger**: front matter writer, introduction writer, related work writer, abstract writer, discussion writer, conclusion writer, 引言, 相关工作, 摘要, 讨论, 结论.
+description: "Write the survey's front matter files (Abstract, Introduction, Related Work, Discussion, Conclusion) in paper voice, with high citation density and a single evidence-policy paragraph."
 ---
 
 # Front Matter Writer (compatibility router)
+
+## Triggers & routing
+
+- **Trigger**: front matter writer, introduction writer, related work writer, abstract writer, discussion writer, conclusion writer, 引言, 相关工作, 摘要, 讨论, 结论.
+
 
 Purpose: produce the paper-level shell while preserving the current output contract and approval gate.
 

@@ -1,12 +1,15 @@
 ---
 name: pipeline-auditor
-description: |
-  Audit/regression checks for the evidence-first survey pipeline: citation health, per-section coverage, placeholder leakage, and template repetition.
-  **Trigger**: auditor, audit, regression test, quality report, 审计, 回归测试.
-  **Use when**: `output/DRAFT.md` exists and you want a deterministic PASS/FAIL report before LaTeX/PDF.
+description: "Audit/regression checks for the evidence-first survey pipeline: citation health, per-section coverage, placeholder leakage, and template repetition."
 ---
 
 # Pipeline Auditor (draft audit + regression)
+
+## Triggers & routing
+
+- **Trigger**: auditor, audit, regression test, quality report, 审计, 回归测试.
+- **Use when**: `output/DRAFT.md` exists and you want a deterministic PASS/FAIL report before LaTeX/PDF.
+
 
 Purpose: a deterministic “regression test” for the writing stage.
 

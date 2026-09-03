@@ -163,16 +163,75 @@ def render_research_brief_markdown(*, goal: str, papers: list[dict[str, str]], s
         reason = _brief_summary(abstract, max_words=28) or "Representative item from the ranked core set."
         lines.append(f"- {pointer}: {reason.rstrip('.')}.")
 
-    lines.extend(
-        [
-            "",
-            "## Open problems / risks",
-            "- The core set is deliberately compact; missing terminology or adjacent communities can still change the topic boundary.",
-            "- Abstract-level descriptions are useful for orientation but cannot support strong causal, comparative, or reproducibility claims without full-text checking.",
-            "- Evaluation settings, safety constraints, and transfer conditions should be compared before turning this briefing into a larger evidence synthesis.",
-        ]
-    )
+    lines.extend(["", "## Open problems / risks"])
+    for bullet in _brief_risk_bullets(lenses=lenses, papers=chosen):
+        lines.append(f"- {bullet}")
     return "\n".join(lines).rstrip() + "\n"
+
+
+# Genuinely topic-independent methodological caveats: they describe the briefing
+# METHOD (compact core set, abstract-level orientation), not the subject matter,
+# so they honestly apply to every brief.
+_BRIEF_UNIVERSAL_RISKS = (
+    "The core set is deliberately compact; missing terminology or adjacent communities can still change the topic boundary.",
+    "Abstract-level descriptions are useful for orientation but cannot support strong causal, comparative, or reproducibility claims without full-text checking.",
+)
+
+_LIMITATION_CUE = re.compile(
+    r"(?i)\b(?:limitation|caveat|confound|does not|cannot|fails? to|"
+    r"unclear|only|restricted to|assumes?)\b"
+)
+
+
+def _brief_risk_bullets(*, lenses: list[str], papers: list[dict[str, str]]) -> list[str]:
+    """Build the Open-problems bullets from THIS brief's lenses + evidence.
+
+    The two universal caveats describe the briefing method and always apply. The
+    remaining bullets are derived from the run's own comparison lenses and the
+    in-scope papers' stated limitations (NO NEW FACTS), so the section varies
+    with the topic instead of repeating hardcoded, domain-mislabeled boilerplate.
+    """
+
+    bullets = list(_BRIEF_UNIVERSAL_RISKS)
+
+    if lenses:
+        lens_phrase = _join_human(lenses[:3])
+        bullets.append(
+            f"Findings across {lens_phrase} should be compared on common ground "
+            "before turning this briefing into a larger evidence synthesis."
+        )
+
+    # Surface one concrete limitation the selected papers themselves state,
+    # rather than a generic risk sentence. Deterministic: first cued sentence in
+    # core-set order.
+    for paper in papers:
+        abstract = str(paper.get("abstract") or "").strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", abstract):
+            sentence = sentence.strip()
+            if sentence and _LIMITATION_CUE.search(sentence):
+                pointer = _brief_pointer(paper)
+                limitation = _brief_summary(sentence, max_words=32) or sentence
+                bullets.append(
+                    f"Reported limitation to weigh: {limitation.rstrip('.')} "
+                    f"[{pointer}]."
+                )
+                break
+        else:
+            continue
+        break
+
+    return bullets
+
+
+def _join_human(items: list[str]) -> str:
+    items = [item.strip() for item in items if item.strip()]
+    if not items:
+        return "the comparison lenses"
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 
 def _brief_pointer(paper: dict[str, str]) -> str:

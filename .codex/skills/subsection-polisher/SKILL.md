@@ -1,12 +1,16 @@
 ---
 name: subsection-polisher
-description: |
-  Polish a single H3 unit file under `sections/` into survey-grade prose (de-template + contrast/eval/limitation), without changing citation keys.
-  **Trigger**: subsection polisher, per-subsection polish, polish section file, 小节润色, 去模板, 结构化段落.
-  **Use when**: `sections/S*.md` exists but reads rigid/template-y; you want to fix quality locally before `section-merger`.
+binding: library
+description: "Polish a single H3 unit file under `sections/` into survey-grade prose (de-template + contrast/eval/limitation), without changing citation keys."
 ---
 
 # Subsection Polisher (local, pre-merge)
+
+## Triggers & routing
+
+- **Trigger**: subsection polisher, per-subsection polish, polish section file, 小节润色, 去模板, 结构化段落.
+- **Use when**: `sections/S*.md` exists but reads rigid/template-y; you want to fix quality locally before `section-merger`.
+
 
 Purpose: upgrade one `sections/S<sub_id>.md` (H3 body-only) so it reads like survey prose **before** you merge into `output/DRAFT.md`.
 

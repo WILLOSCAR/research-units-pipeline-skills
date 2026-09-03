@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "research-units-pipeline-skills"
 version = "0.1.0"
-description = "An end-to-end Auto Research design system built from semantic skills and a recoverable harness."
+description = "A challengeable research system that keeps material claims connected to evidence."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -17,7 +17,33 @@ dependencies = [
 rh = "tooling.product_cli:main"
 
 [tool.setuptools]
-packages = ["tooling", "tooling.quality_checks"]
+packages = [
+  "tooling",
+  "tooling.quality_checks",
+  "research_harness",
+  "research_harness.application",
+  "research_harness.acceptance",
+  "research_harness.domain",
+  "research_harness.engine",
+  "research_harness.migration",
+  "research_harness.skills",
+  "research_harness.storage",
+  "research_harness.workflows",
+]
+
+[tool.setuptools.package-dir]
+research_harness = "src/research_harness"
+"research_harness.application" = "src/research_harness/application"
+"research_harness.acceptance" = "src/research_harness/acceptance"
+"research_harness.domain" = "src/research_harness/domain"
+"research_harness.engine" = "src/research_harness/engine"
+"research_harness.migration" = "src/research_harness/migration"
+"research_harness.skills" = "src/research_harness/skills"
+"research_harness.storage" = "src/research_harness/storage"
+"research_harness.workflows" = "src/research_harness/workflows"
+
+[tool.setuptools.package-data]
+research_harness = ["py.typed"]
 
 [project.optional-dependencies]
 test = [
@@ -29,8 +55,8 @@ test = [
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E9", "F63", "F7", "F82"]
+select = ["E9", "F63", "F7", "F82", "F401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "src"]

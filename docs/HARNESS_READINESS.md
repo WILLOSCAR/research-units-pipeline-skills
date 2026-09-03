@@ -1,64 +1,78 @@
 # Readiness
 
-Readiness is based on current repository evidence, not on a long-running Codex
-Goal ledger.
+Readiness describes current repository evidence for the self-correcting Run. It
+distinguishes the Loop capability that exists now — durable Runs, recomputed
+scorecards, staleness, local repair — from the normalized evidence graph that
+remains a target.
+
+`Landed` means implementation plus targeted local tests exist. `Migration`
+means a compatibility implementation exists but its deletion/cutover gate is
+open. `Deferred` means the capability is not implemented.
+
+The unit of trust here is the Loop, not the answer. Nothing below establishes
+that a result is scientifically true; it establishes that a Run was produced
+correctly, is reproducible, and was verified by the harness rather than by the
+model grading itself.
 
 ## Current Status
 
-Foundation is in place. Four Workflow-local semantic evaluators have passing
-fixtures, while canonical proof states range from scored fixtures to completed
-outcome pilots; two compiled delivery proofs also exist. Product-wide semantic
-readiness is incomplete.
-
-This file uses implementation-readiness labels for system capabilities:
-`Landed` means the implementation and targeted local tests exist; `Deferred`
-means the capability is not implemented. Workflow evidence uses the canonical
-proof states from [Workflow Catalog](PIPELINE_TAXONOMY.md), quoted separately
-below.
-
 | Area | Evidence | Status |
 |---|---|---|
-| Product model | `Goal -> Run -> Evidence -> Improve` in README and architecture docs | `Landed` |
-| Workflow catalog | Seven executable Workflows plus one research-stage path | `Landed` |
-| Durable Run ledger | IDs, `harness-lock.v2` with Pipeline snapshot and fail-closed active-Run Kernel boundary, Events, Attempts, Artifacts, Decisions, Failures, Evaluations; read-only historical inspection remains available; distributed execution open | `Landed` |
-| Attempt observability | scripted Attempts record measured adapter runtime and process-output size; Run Audit exposes status, mode, retry, and runtime summaries; manual model/token telemetry remains open | `Landed` |
-| Workspace serialization | all local Workspace commands share a non-blocking process lock; conflicting command and owner-crash release tests pass | `Landed` |
-| Completion integrity | Scripted, manual, and approved Units share `recoverable-provenance.v2`; every executable Workflow declares mandatory checks before DONE; PASS evidence is stored in Manifests and Events, scorecard derivations are recomputed, and Checkpoint authorization is bound to reviewed Artifact hashes; full stage fault matrix open | `Landed` |
-| Recovery | Acceptance-valid PREPARED Manifest with or without its prepared Event -> committed DONE; recognized v1 PREPARED evidence is revalidated and migrated, while failed reconstruction becomes BLOCKED with a durable Failure; dead process-owned `DOING` -> interrupted Attempt -> new Attempt | `Landed` |
-| Artifact provenance | Unit Manifests, hashes, Artifact ledger, Artifact index, immutable-output drift detection | `Landed` |
-| Cross-ledger Audit | `run-audit.v2` joins Run identity, Attempt pairs, Manifests, Artifacts, Decisions, Failures, Evaluations, DONE evidence, and Workflow acceptance; only PASS exits zero; the Survey residue-PASS snapshot is a current-v2 public projection, while published research-brief bundles remain historical v1 evidence | `Landed` |
-| Implementation freshness | successful Attempts fingerprint their Skill implementation; doctor flags stale DONE Units | `Landed` |
-| Mechanical diagnosis | doctor, audit, Failure ledger, blocking repair map, and non-blocking headroom from the latest passing scorecard; applied repair is not a first-class transaction | `Landed` |
-| Inspection composition | standalone Doctor uses a shallow snapshot; Audit, Improvement, and Artifact index share one deep snapshot; valid current Runs may reconcile recoverable projections first, while drifted identity is inspected without mutation; hashing remains a distinct semantic pass | `Landed` |
-| Quality dispatch | Explicit Skill routes across Workflow-family modules, pinned by the Run lock; Survey prewrite coverage and Source Tutorial grounding are rejoined from current structured Artifacts | `Landed` |
-| Survey template-residue acceptance | `template-residue-scorecard.v1` measures English/CJK prose against Run-selected writer assets; `FRONT_MATTER_CONTEXT.json` records selected front-matter assets and hashes, front matter and H3 prose fail early through the shared checker, and final `pipeline-auditor` measures the whole draft, fail-closes missing/legacy implementation locks, emits the full scorecard and repair list, and projects Attempt evidence into the evaluation ledger | `Landed` |
-| Survey residue threshold attainability | A completed current-contract Artifact replay passes 31/31 required checks and 0/226 whole-draft matches (0.0%) against a <=10% policy, with selected-asset, writer-lock, Kernel-lock, and ledger-integrity checks PASS | `Landed` |
-| Survey residue threshold calibration | Evidence is one historical failure at 96/140 (68.6%) and one passing Run at 0/226 (0.0%); unrelated topics, profiles, rewrite-effort distributions, and expert quality remain unevaluated | `Deferred` |
-| Skill description economy | all tracked Skill descriptions fit the 420-character information budget; total catalog description load remains below 40,000 characters; strict validation rejects Skill packages absent from `SKILL_INDEX.md` | `Landed` |
-| Skill invocation evaluator | model-neutral evaluator, 48-case lifecycle plus Workflow-semantic corpus, fixture scoring, and context-load accounting; fresh model execution remains open | `Landed` |
-| Workflow context footprint | seven executable Unit templates mapped to unique and repeated Skill character counts; observed model tokens remain open | `Landed` |
-| Semantic evaluation | Four Workflow-local evaluators feed a common ledger; critical joins cover review identity and novelty, brief theme grounding and reading path, ideation trace/consistency, and protocol-to-bounded-synthesis evidence; ideation diversity remains scored headroom; cross-Workflow corpus absent | `Landed` |
-| Bounded Harness evolution | architecture rule only | `Deferred` |
+| Product direction | `Goal -> Run -> Evidence -> Artifact` closed by a verify/repair/re-run Loop, canonical eight-term glossary in root `CONTEXT.md`, and accepted ADR 0025 | `Landed` |
+| Run engine interface | Recoverable Run with `Start/Continue/Decide` advancement and inspection over current state; source-checkout run controls | `Landed` |
+| Stable CLI cutover | Stable `rh` still owns legacy mutation; behavioral conformance and rollback evidence remain open | `Deferred` |
+| Current state authority | `.harness-v3/state.json` is the sole mutable aggregate for a current Run; scorecards, contracts, Manifests, and readable files are Evidence/Artifact projections | `Landed` |
+| Legacy treatment | Inspection returns a bounded summary for `.harness` Workspaces without mutating them or requiring the live repository | `Landed` |
+| Loop projection | The current Run-shaped aggregate is rendered in Loop language (Goal, Run, Evidence, Artifact, verify, Decision) without a second writable model | `Landed` |
+| Normalized evidence graph | A normalized, relation-typed content graph with staleness propagation as a first-class store, beyond the current per-step Evidence and content graphs (concept-graph, claim-evidence-matrix, novelty-matrix) | `Deferred` |
+| Workflow catalog | Six Loop kinds map to seven executable Workflow contracts; `graduate-paper` remains research-stage | `Migration` |
+| Survey PDF exporter | `arxiv-survey-latex` remains an Executable variant; conversion to an Export Adapter is gated on conformance | `Deferred` |
+| Durable execution | Atomic Workspace bootstrap, optimistic revision, non-blocking lock, restart discovery, orphan-Attempt safety, Skill snapshots, and filesystem Artifact/Manifest handling | `Landed` |
+| Loop convergence integrity | Required checks, Attempts, Artifacts, Manifests, Events, and Decisions must agree before the harness admits a step out of the Loop | `Landed` |
+| Decision freshness | A human Decision binds the reviewed Artifact hashes; changed inputs mark the Decision stale and revoke its authorization | `Landed` |
+| Artifact provenance | Manifest hashes, Artifact records, immutable-output drift detection, and pinned implementation evidence | `Landed` |
+| Verify and repair localization | Doctor, Audit, Failure ledger, and bounded local repair exist; applied repair is not yet its own public transaction | `Landed` |
+| Scorecard recomputation | Workflow-local provers recompute scorecards; the harness never trusts a self-reported verdict, and Run research quality remains `NOT_EVALUATED` | `Migration` |
+| Three quality layers | Execution integrity, contract acceptance, and research quality remain separately qualified | `Landed` |
+| Cross-Workflow research quality | Repeated realistic Runs, held-out comparison, expert agreement, and calibrated efficiency evidence | `Deferred` |
+| Bounded harness self-correction | Architecture and Roadmap rule only; automatic candidate creation/promotion is absent, and self-evolution stays a deferred, human-approved Horizon (Roadmap Horizon 5) | `Deferred` |
 
-The only blinded invocation result is a historical pre-migration GPT-5.6 Pro
-run over the earlier 33-case subset. It is not current-catalog proof. The 48
-current cases still need a fresh blinded run, cross-model repetition, and real
-token traces.
+The Loop projection is a rendering over current capabilities. It must not be
+described as a normalized evidence graph, a Loop-native store, a remote
+executor, a portable research object, or a scientific-truth evaluator. A
+scorecard PASS is a contract signal about how the Run was produced, never a
+claim that the research is true.
 
-## Workflow Proof Snapshot
+## Current Workflow Proof Snapshot
 
-These labels are copied from `docs/PIPELINE_TAXONOMY.md`; that catalog is the
-source of truth for definitions and complete Workflow rows.
+The [Workflow Catalog](PIPELINE_TAXONOMY.md) owns full definitions and evidence
+boundaries. Each proof state below describes what a Loop has been shown to
+produce and verify, not the correctness of its conclusions.
 
-| Workflow | Canonical proof state | Open boundary |
+| Current Workflow | Proof state | Open boundary |
 |---|---|---|
-| `arxiv-survey` | `Completed outcome pilot` | Current-contract replay passes 0/226 residue with 49/49 Units, 31/31 checks, 75/75 targets, 35/35 Kernel paths, and zero ledger issues; the historical 96/140 failure remains diagnostic, while fresh retrieval, autonomous execution, cross-topic calibration, clean-revision reproduction, and expert quality remain open |
-| `arxiv-survey-latex` | `Compiled delivery proof` | The current-contract replay compiles a 10-page PDF; from-scratch portability, repetition, and semantic expert review remain open |
-| `research-brief` | `Completed outcome pilot` | Published Runs use historical v1; current v2 public proof, cross-topic behavior, and expert usefulness remain open |
-| `paper-review` | `Scored fixture proof` | Real-manuscript and expert comparison open |
-| `evidence-review` | `Scored fixture proof` | Retrieval completeness and validity judgment open |
-| `idea-brainstorm` | `Scored fixture proof` | Novelty judgment and cross-topic stability open |
-| `source-tutorial` | `Compiled delivery proof` | Mixed-source grounding depth open |
+| `arxiv-survey` | `Completed outcome pilot` | Retained-Artifact replay passes 0/226 residue and 31/31 checks; fresh retrieval, clean revision, cross-topic calibration, and expert quality remain open |
+| `arxiv-survey-latex` | `Compiled delivery proof` | One audited 10-page PDF; exporter migration and from-scratch portability remain open |
+| `research-brief` | `Completed outcome pilot` | Published evidence is historical v1; current-engine public proof and expert usefulness remain open |
+| `paper-review` | `Scored fixture proof` | Real-manuscript and expert comparison remain open |
+| `evidence-review` | `Scored fixture proof` | Retrieval completeness and validity judgment remain open |
+| `idea-brainstorm` | `Scored fixture proof` | Novelty judgment and cross-topic stability remain open |
+| `source-tutorial` | `Compiled delivery proof` | Mixed-source grounding depth remains open |
+
+Four Workflow-local semantic provers have passing fixtures. The Survey family
+also has one deterministic writing failure baseline and one passing retained
+Artifact replay. These are execution-integrity and contract-acceptance claims
+about the Loop, not product-wide research-quality evidence.
+
+## Readiness Audit Schema
+
+`harness-readiness-audit.v2` is the current readiness report schema. Version 2
+uses the canonical-language check (retained under the stable check id
+`case_language` for schema stability, while its human-facing messages now
+enforce the eight-term Loop glossary) and the Loop-first document contract.
+`harness-readiness-audit.v1` is historical and reflects the earlier
+project-language contract; it remains evidence about its own checkout but is not
+current readiness proof.
 
 ## Local Checks
 
@@ -71,31 +85,41 @@ uv run --extra test ruff check .
 uv run --extra test python -m pytest -q
 ```
 
-`.github/workflows/verify.yml` runs the same repository-maintainer gates on
-pull requests and `main`. It is CI for this codebase, not a user-facing Research
-Workflow.
+`.github/workflows/verify.yml` runs the repository-maintainer gates on pull
+requests and `main`. It is CI for this codebase — an external referee for the
+repository itself — not a research-quality evaluation of any Run.
 
-The Ruff selection is deliberately narrow: `E9`, `F63`, `F7`, and `F82`. It has
-zero findings in the current checkout and serves as a future syntax and
-undefined-name regression floor. It is not evidence of broad lint, type, or
-style cleanliness.
+The Ruff selection remains a narrow syntax and undefined-name regression floor,
+not evidence of broad lint, type, or style cleanliness.
 
-If a new long-running Goal ledger is intentionally active, audit it as
-additional continuity evidence:
+If an explicitly tracked long-running progress ledger is active, it may be
+audited as additional continuity evidence:
 
 ```bash
 uv run python scripts/readiness_audit.py --progress <path-to-goal-ledger> --strict
 ```
 
-## Closure Gate
+## Closure Gates
 
-Do not claim mature Self-Harness behavior until:
+Stable `rh` Run-engine cutover requires:
 
-- realistic `paper-review`, `research-brief`, `idea-brainstorm`, and
-  `evidence-review` Runs remain stable across diverse inputs;
-- `source-tutorial` grounding checks remain stable across mixed real source sets;
-- semantic Failure and Evaluation records locate concrete repair surfaces;
-- target replay and historical regression exist;
-- held-out evaluation is isolated from the candidate process;
-- promotion requires external approval and preserves rollback;
-- current executable Workflows still pass structural validation.
+- behavioral conformance through every executable Workflow;
+- current-engine realistic Runs, not only fixtures or declarative parity;
+- all provers to consume current typed inputs and recompute their scorecards;
+- preserved Decision, Failure, convergence, Artifact, and recovery behavior;
+- an explicit rollback and legacy read-only support plan.
+
+A normalized evidence graph additionally requires:
+
+- at least 95% material-evidence traceability with under 2% incorrect links;
+- under 10% manual evidence correction;
+- complete stale-impact detection with under 5% false positives;
+- at least 20% reviewer-time improvement and 70% applicable Evidence reuse;
+- projections that identify one exact Run revision;
+- byte-identical legacy inspection.
+
+Until both sets of gates pass, keep Run, Unit, Attempt, and convergence
+internals private but durable, and keep the Loop projection a rendering rather
+than a second authority. Self-correction stays bounded and local, and
+self-evolution remains a deferred, human-approved Horizon — the term is
+self-correct, never self-evolve.

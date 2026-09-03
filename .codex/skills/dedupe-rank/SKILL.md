@@ -1,15 +1,18 @@
 ---
 name: dedupe-rank
-description: |
-  Use when a broad paper candidate pool needs deterministic deduplication and a stable core set.
-  **Trigger**: dedupe, rank, core set, 去重, 排序, 精选论文, 核心集合.
-  **Use when**: 检索后需要把广覆盖集合收敛成可管理的 core set（用于 taxonomy/outline/mapping）。
-  **Skip if**: 已经有人手工整理了稳定的 `papers/core_set.csv`（无需再次 churn）。
-  **Network**: none.
-  **Guardrail**: 偏 deterministic；输出应可重复（稳定 paper_id、字段规范）。
+description: "Use when a broad paper candidate pool needs deterministic deduplication and a stable core set."
 ---
 
 # Dedupe + Rank
+
+## Triggers & routing
+
+- **Trigger**: dedupe, rank, core set, 去重, 排序, 精选论文, 核心集合.
+- **Use when**: 检索后需要把广覆盖集合收敛成可管理的 core set（用于 taxonomy/outline/mapping）。
+- **Skip if**: 已经有人手工整理了稳定的 `papers/core_set.csv`（无需再次 churn）。
+- **Network**: none.
+- **Guardrail**: 偏 deterministic；输出应可重复（稳定 paper_id、字段规范）。
+
 
 Turns a raw candidate pool into a deduped pool and a stable core set.
 

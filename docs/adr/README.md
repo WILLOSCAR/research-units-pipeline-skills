@@ -31,6 +31,11 @@ the decision should guide future contributors and agents across runs.
 | [0018](0018-snapshot-pipeline-contracts-inside-each-run.md) | Snapshot Pipeline contracts inside each Run | accepted |
 | [0019](0019-bind-checkpoint-approval-to-reviewed-artifacts.md) | Bind Checkpoint approval to reviewed Artifacts | accepted |
 | [0020](0020-fail-closed-on-active-run-kernel-drift.md) | Fail closed on active Run Kernel drift | accepted |
+| [0021](0021-introduce-v2-deep-modules-without-reinterpreting-v2-runs.md) | Introduce V2 deep modules without reinterpreting v2 Runs | accepted |
+| [0022](0022-own-v3-local-run-execution-behind-one-engine.md) | Own V3 local Run execution behind one engine | accepted |
+| [0023](0023-expose-one-versionless-research-harness-interface.md) | Expose one versionless Research Harness interface | accepted |
+| [0024](0024-make-the-case-the-product-object.md) | Make the Case the product object | superseded |
+| [0025](0025-make-the-self-correcting-run-the-product-object.md) | Make the self-correcting Run the product object | accepted |
 
 ## ADR Format Contract
 

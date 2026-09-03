@@ -6,11 +6,11 @@
 
 This page is the lightweight navigation page for the current workflow map. The full project explanation lives in the root README.
 
-The product surface is `Goal -> Run -> Evidence -> Improve`; the workflows below define the research work inside a Run.
+The product model is `Goal -> Run -> Evidence -> Artifact`, closed by a verify/repair/re-run Loop: the harness verifies each pass so a Run is trusted only after it converges. The workflows below are current private Recipe implementations; Run and Unit execution are internal.
 
 Use the current workflow names directly. Old alias names are no longer part of active routing.
 
-## Executable Workflows
+## Current Recipe Implementations
 
 | Path | Use it for | Default deliverable | Guide |
 |---|---|---|---|

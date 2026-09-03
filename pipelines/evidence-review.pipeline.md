@@ -27,6 +27,12 @@ target_artifacts:
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
   - output/CONTRACT_REPORT.md
+case_contract:
+  kind: evidence-synthesis
+  views: [output/SYNTHESIS.md]
+  claim_sources: [output/SYNTHESIS.md]
+  evidence_sources: [papers/screening_log.csv, papers/extraction_table.csv]
+  decision_sources: [DECISIONS.md]
 default_checkpoints: [C0,C1,C2,C3,C4,C5]
 units_template: templates/UNITS.evidence-review.csv
 contract_model: pipeline.frontmatter/v1

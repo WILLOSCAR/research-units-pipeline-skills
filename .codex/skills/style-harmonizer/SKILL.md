@@ -1,12 +1,15 @@
 ---
 name: style-harmonizer
-description: |
-  De-slot and harmonize paper voice across `sections/*.md` without changing meaning or citation keys.
-  **Trigger**: style harmonizer, de-template stems, remove slot phrases, discourse stems, 写作风格统一, 去槽位句式, 去生成器味.
-  **Use when**: `writer-selfloop` is PASS but `output/WRITER_SELFLOOP_TODO.md` flags Style Smells (e.g., repeated count-based openers), or the draft reads like many sections share the same rhythm.
+description: "De-slot and harmonize paper voice across `sections/*.md` without changing meaning or citation keys."
 ---
 
 # Style Harmonizer (de-slot editor)
+
+## Triggers & routing
+
+- **Trigger**: style harmonizer, de-template stems, remove slot phrases, discourse stems, 写作风格统一, 去槽位句式, 去生成器味.
+- **Use when**: `writer-selfloop` is PASS but `output/WRITER_SELFLOOP_TODO.md` flags Style Smells (e.g., repeated count-based openers), or the draft reads like many sections share the same rhythm.
+
 
 Purpose: remove subtle generator-voice signals that can survive structural gates.
 

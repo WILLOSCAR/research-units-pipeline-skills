@@ -1,12 +1,15 @@
 ---
 name: citation-verifier
-description: |
-  Generate and verify BibTeX entries from paper notes, writing `citations/ref.bib` and `citations/verified.jsonl`.
-  **Trigger**: citation, BibTeX, ref.bib, verified.jsonl, references, 引用, 参考文献.
-  **Use when**: 已有 `papers/paper_notes.jsonl`，需要为 prose/LaTeX 准备可追溯的引用（每条都有 url/date/title 验证记录）。
+description: "Generate and verify BibTeX entries from paper notes, writing `citations/ref.bib` and `citations/verified.jsonl`."
 ---
 
 # Citation Verifier
+
+## Triggers & routing
+
+- **Trigger**: citation, BibTeX, ref.bib, verified.jsonl, references, 引用, 参考文献.
+- **Use when**: 已有 `papers/paper_notes.jsonl`，需要为 prose/LaTeX 准备可追溯的引用（每条都有 url/date/title 验证记录）。
+
 
 Generate `citations/ref.bib` and ensure every entry has a traceable verification record in `citations/verified.jsonl`.
 

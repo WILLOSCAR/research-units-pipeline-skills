@@ -1,12 +1,15 @@
 ---
 name: section-briefs
-description: |
-  Build chapter-level briefs (`outline/section_briefs.jsonl`) from chapter skeleton plus section bindings before stable H3 decomposition.
-  **Trigger**: section briefs, chapter planning cards, section-first briefs, 章节 brief, 章级 brief.
-  **Use when**: section bindings exist and the run needs chapter-level rationale and decomposition guidance before emitting stable H3 ids.
+description: "Build chapter-level briefs (`outline/section_briefs.jsonl`) from chapter skeleton plus section bindings before stable H3 decomposition."
 ---
 
 # Section Briefs
+
+## Triggers & routing
+
+- **Trigger**: section briefs, chapter planning cards, section-first briefs, 章节 brief, 章级 brief.
+- **Use when**: section bindings exist and the run needs chapter-level rationale and decomposition guidance before emitting stable H3 ids.
+
 
 ## Load Order
 

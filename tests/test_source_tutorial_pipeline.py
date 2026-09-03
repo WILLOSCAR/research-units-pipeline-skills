@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -1039,6 +1040,10 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             self.assertEqual(context_issues[0].code, "tutorial_context_packs_invalid_jsonl")
 
     def test_source_ingest_pdf_local_file_succeeds(self) -> None:
+        if shutil.which("pdftotext") is None:
+            self.skipTest(
+                "pdftotext is not installed; deterministic PDF source ingestion requires Poppler"
+            )
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"
         self.assertTrue(script.exists(), f"missing script: {script}")
 

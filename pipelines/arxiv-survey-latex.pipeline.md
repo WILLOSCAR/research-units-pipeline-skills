@@ -16,6 +16,11 @@ variant_overrides:
       - latex/main.tex
       - latex/main.pdf
       - output/LATEX_BUILD_REPORT.md
+  case_contract:
+    views:
+      __append__:
+        - latex/main.tex
+        - latex/main.pdf
   stages:
     C5:
       title: Draft + PDF

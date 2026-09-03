@@ -1,12 +1,16 @@
 ---
 name: survey-seed-harvest
-description: |
-  Identify survey/review papers in a retrieved set and extract taxonomy seeds into `outline/taxonomy.yml` (topics/subtopics/terminology).
-  **Trigger**: survey seed harvest, taxonomy seeds, 从 survey 提 taxonomy, bootstrap taxonomy.
-  **Use when**: retrieval/dedup 后想快速从已有 survey/review 论文中提取术语与主题结构，用于加速 `taxonomy-builder`。
+binding: library
+description: "Identify survey/review papers in a retrieved set and extract taxonomy seeds into `outline/taxonomy.yml` (topics/subtopics/terminology)."
 ---
 
 # Survey Seed Harvest
+
+## Triggers & routing
+
+- **Trigger**: survey seed harvest, taxonomy seeds, 从 survey 提 taxonomy, bootstrap taxonomy.
+- **Use when**: retrieval/dedup 后想快速从已有 survey/review 论文中提取术语与主题结构，用于加速 `taxonomy-builder`。
+
 
 Bootstrap taxonomy *seeds* from existing survey/review papers inside your retrieved set.
 
