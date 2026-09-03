@@ -1,12 +1,15 @@
 ---
 name: extraction-form
-description: |
-  Use when `evidence-review` has screened includes and needs a schema-aligned extraction table.
-  **Trigger**: extraction form, extraction table, data extraction, 信息提取, 提取表.
-  **Use when**: `evidence-review` 在 screening 后进入 extraction（C4），需要把纳入论文按字段落到 CSV 以支持后续 synthesis。
+description: "Use when `evidence-review` has screened includes and needs a schema-aligned extraction table."
 ---
 
 # Extraction Form
+
+## Triggers & routing
+
+- **Trigger**: extraction form, extraction table, data extraction, 信息提取, 提取表.
+- **Use when**: `evidence-review` 在 screening 后进入 extraction（C4），需要把纳入论文按字段落到 CSV 以支持后续 synthesis。
+
 
 Transforms screened include rows plus protocol schema into the analysis table used by `evidence-review`.
 
