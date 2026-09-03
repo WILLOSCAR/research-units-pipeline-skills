@@ -1,12 +1,15 @@
 ---
 name: section-merger
-description: |
-  Deterministically merge the final fingerprinted section snapshot into `output/DRAFT.md`, preserving outline order and inserting transitions only when explicitly enabled.
-  **Trigger**: merge sections, merge draft, combine section files, sections/ -> output/DRAFT.md, 合并小节, 拼接草稿.
-  **Use when**: you have per-unit prose files under `sections/` and want a single `output/DRAFT.md` for polishing/review/LaTeX.
+description: "Deterministically merge the final fingerprinted section snapshot into `output/DRAFT.md`, preserving outline order and inserting transitions only when explicitly enabled."
 ---
 
 # Section Merger
+
+## Triggers & routing
+
+- **Trigger**: merge sections, merge draft, combine section files, sections/ -> output/DRAFT.md, 合并小节, 拼接草稿.
+- **Use when**: you have per-unit prose files under `sections/` and want a single `output/DRAFT.md` for polishing/review/LaTeX.
+
 
 Goal: assemble a paper-like `output/DRAFT.md` from:
 - `sections/` (per-section/per-subsection prose)

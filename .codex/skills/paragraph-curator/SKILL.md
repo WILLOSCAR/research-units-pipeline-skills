@@ -1,12 +1,15 @@
 ---
 name: paragraph-curator
-description: |
-  Deterministically compact final H3 bodies to the active delivery profile's paragraph budget without deleting prose or changing citation-block order.
-  **Trigger**: paragraph compaction, paragraph budget, compact H3, 段落压缩, 段落预算.
-  **Use when**: H3 section files have passed logic polish and must converge before the final argument snapshot and merge.
+description: "Deterministically compact final H3 bodies to the active delivery profile's paragraph budget without deleting prose or changing citation-block order."
 ---
 
 # Paragraph Curator
+
+## Triggers & routing
+
+- **Trigger**: paragraph compaction, paragraph budget, compact H3, 段落压缩, 段落预算.
+- **Use when**: H3 section files have passed logic polish and must converge before the final argument snapshot and merge.
+
 
 Compact paragraph boundaries without performing a new semantic rewrite.
 

@@ -1,12 +1,15 @@
 ---
 name: table-schema
-description: |
-  Define evidence-first table schemas for a survey: what each table must answer, row unit, columns, and which evidence-pack fields are required to fill it.
-  **Trigger**: table schema, schema-first tables, table design, 表格 schema, 先 schema 后填充.
-  **Use when**: you want survey tables that are verifiable and fillable before LaTeX (typically Stage C4, after evidence packs exist).
+description: "Define evidence-first table schemas for a survey: what each table must answer, row unit, columns, and which evidence-pack fields are required to fill it."
 ---
 
 # Table Schema (two layers: index vs Appendix)
+
+## Triggers & routing
+
+- **Trigger**: table schema, schema-first tables, table design, 表格 schema, 先 schema 后填充.
+- **Use when**: you want survey tables that are verifiable and fillable before LaTeX (typically Stage C4, after evidence packs exist).
+
 
 Tables are not decorations; they are compression.
 

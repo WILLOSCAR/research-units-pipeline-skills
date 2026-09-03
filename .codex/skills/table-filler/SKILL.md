@@ -1,12 +1,15 @@
 ---
 name: table-filler
-description: |
-  Fill `outline/tables_index.md` from `outline/table_schema.md` + evidence packs (NO PROSE in cells; citation-backed rows).
-  **Trigger**: table filler, fill tables, evidence-first tables, index tables, 表格填充, 索引表.
-  **Use when**: table schema exists and evidence packs are ready; you want a compact, citation-backed index table to support later writing and Appendix table curation.
+description: "Fill `outline/tables_index.md` from `outline/table_schema.md` + evidence packs (NO PROSE in cells; citation-backed rows)."
 ---
 
 # Table Filler (index tables, evidence-first)
+
+## Triggers & routing
+
+- **Trigger**: table filler, fill tables, evidence-first tables, index tables, 表格填充, 索引表.
+- **Use when**: table schema exists and evidence packs are ready; you want a compact, citation-backed index table to support later writing and Appendix table curation.
+
 
 Goal: produce `outline/tables_index.md` as an internal, citation-backed index.
 

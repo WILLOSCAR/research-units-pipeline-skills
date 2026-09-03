@@ -1,11 +1,14 @@
 ---
 name: writer-context-pack
-description: |
-  Build per-H3 writer context packs (NO PROSE): merge briefs + evidence packs + anchor facts + allowed citations into a single deterministic JSONL, so drafting is less hollow and less brittle.
-  **Trigger**: writer context pack, context pack, drafting pack, paragraph plan pack, 写作上下文包.
+description: "Build per-H3 writer context packs (NO PROSE): merge briefs + evidence packs + anchor facts + allowed citations into a single deterministic JSONL, so drafting is less hollow and less brittle."
 ---
 
 # Writer Context Pack (C4→C5 bridge) [NO PROSE]
+
+## Triggers & routing
+
+- **Trigger**: writer context pack, context pack, drafting pack, paragraph plan pack, 写作上下文包.
+
 
 Purpose: reduce C5 “hollow writing” by giving the writer a **single, per-subsection context pack**:
 - the exact RQ/axes + paragraph plan (`subsection_briefs`)

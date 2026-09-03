@@ -1,12 +1,15 @@
 ---
 name: chapter-lead-writer
-description: |
-  Write H2 chapter lead blocks (`sections/S<sec_id>_lead.md`) that preview the chapter's comparison lens and connect its H3 subsections, without adding new facts.
-  **Trigger**: chapter lead writer, section lead writer, H2 lead, lead paragraph, 章节导读, 章节导语.
-  **Use when**: you have H2 chapters with multiple H3 subsections and the draft reads like paragraph islands across subsections.
+description: "Write H2 chapter lead blocks (`sections/S<sec_id>_lead.md`) that preview the chapter's comparison lens and connect its H3 subsections, without adding new facts."
 ---
 
 # Chapter Lead Writer
+
+## Triggers & routing
+
+- **Trigger**: chapter lead writer, section lead writer, H2 lead, lead paragraph, 章节导读, 章节导语.
+- **Use when**: you have H2 chapters with multiple H3 subsections and the draft reads like paragraph islands across subsections.
+
 
 ## Purpose
 

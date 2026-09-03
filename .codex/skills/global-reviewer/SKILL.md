@@ -1,12 +1,15 @@
 ---
 name: global-reviewer
-description: |
-  Global consistency review for survey drafts: terminology, cross-section coherence, and scope/citation hygiene.
-  **Trigger**: global review, consistency check, coherence audit, 术语一致性, 全局回看, 章节呼应, 拷打 writer.
-  **Use when**: Draft exists and you want a final evidence-first coherence pass before LaTeX/PDF.
+description: "Global consistency review for survey drafts: terminology, cross-section coherence, and scope/citation hygiene."
 ---
 
 # Global Reviewer (survey draft)
+
+## Triggers & routing
+
+- **Trigger**: global review, consistency check, coherence audit, 术语一致性, 全局回看, 章节呼应, 拷打 writer.
+- **Use when**: Draft exists and you want a final evidence-first coherence pass before LaTeX/PDF.
+
 
 Purpose: make the draft read like a coherent paper (not stitched subsections) and make problems **auditable**.
 

@@ -1,12 +1,15 @@
 ---
 name: section-bindings
-description: |
-  Bind papers to chapter-level sections first, writing `outline/section_bindings.jsonl` and `outline/section_binding_report.md`.
-  **Trigger**: section bindings, chapter bindings, section-first binding, 章节绑定, 章级绑定.
-  **Use when**: survey structure should measure chapter saturation before stable H3 decomposition.
+description: "Bind papers to chapter-level sections first, writing `outline/section_bindings.jsonl` and `outline/section_binding_report.md`."
 ---
 
 # Section Bindings
+
+## Triggers & routing
+
+- **Trigger**: section bindings, chapter bindings, section-first binding, 章节绑定, 章级绑定.
+- **Use when**: survey structure should measure chapter saturation before stable H3 decomposition.
+
 
 ## Load Order
 
