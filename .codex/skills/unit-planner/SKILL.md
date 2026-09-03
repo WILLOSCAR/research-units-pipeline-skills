@@ -1,15 +1,19 @@
 ---
 name: unit-planner
-description: |
-  Instantiate or update a workspace `UNITS.csv` from a selected pipeline and units template (deps/checkpoints/acceptance).
-  **Trigger**: unit planner, generate UNITS.csv, execution contract, units template, 生成工作单元.
-  **Use when**: 初始化/更新执行合同：从 pipeline 选择生成 `UNITS.csv`，或 scope 扩展需要新增 units/依赖。
-  **Skip if**: `UNITS.csv` 已正确反映当前 scope（无需重写）。
-  **Network**: none.
-  **Guardrail**: 保持 CSV 合法；scope 增长时新增 units；只在满足验收后标 `DONE`。
+binding: library
+description: "Instantiate or update a workspace `UNITS.csv` from a selected pipeline and units template (deps/checkpoints/acceptance)."
 ---
 
 # Skill: unit-planner
+
+## Triggers & routing
+
+- **Trigger**: unit planner, generate UNITS.csv, execution contract, units template, 生成工作单元.
+- **Use when**: 初始化/更新执行合同：从 pipeline 选择生成 `UNITS.csv`，或 scope 扩展需要新增 units/依赖。
+- **Skip if**: `UNITS.csv` 已正确反映当前 scope（无需重写）。
+- **Network**: none.
+- **Guardrail**: 保持 CSV 合法；scope 增长时新增 units；只在满足验收后标 `DONE`。
+
 
 ## Goal
 

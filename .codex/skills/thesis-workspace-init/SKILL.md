@@ -1,12 +1,16 @@
 ---
 name: thesis-workspace-init
-description: |
-  初始化中文毕业论文工作区：检查学校模板与已有材料的放置位置，明确提示当前还缺什么，建立 `codex_md/` / `claude_md/` / `tmp_layout*/` 等中间层目录，并生成材料盘点与初始工作文件。
-  **Trigger**: 毕业论文初始化, thesis workspace, 中文毕业论文准备, 模板归位, 材料盘点, 初始化论文工程.
-  **Use when**: 你要开始一条毕业论文重构流程，手头已经有学校模板、旧 `tex`、PDF、Overleaf 源稿、bib 或图表材料，需要先把工程和中间层搭起来。
+binding: staged
+description: "初始化中文毕业论文工作区：检查学校模板与已有材料的放置位置，明确提示当前还缺什么，建立 `codex_md/` / `claude_md/` / `tmp_layout*/` 等中间层目录，并生成材料盘点与初始工作文件。"
 ---
 
 # Thesis Workspace Init
+
+## Triggers & routing
+
+- **Trigger**: 毕业论文初始化, thesis workspace, 中文毕业论文准备, 模板归位, 材料盘点, 初始化论文工程.
+- **Use when**: 你要开始一条毕业论文重构流程，手头已经有学校模板、旧 `tex`、PDF、Overleaf 源稿、bib 或图表材料，需要先把工程和中间层搭起来。
+
 
 初始化一条**中文毕业论文重构流程**所需的工作区，而不是只复制通用 workspace 模板。
 

@@ -1,12 +1,16 @@
 ---
 name: outline-budgeter
-description: |
-  Merge/simplify an over-fragmented outline to hit a paper-like section budget (NO PROSE): target final ToC ~6–8 H2, fewer thicker H3.
-  **Trigger**: outline budget, merge sections, too many sections, H3 explosion, 大纲预算, 合并小节, 大纲太碎.
-  **Use when**: `outline/outline.yml` exists but would produce thin sections (too many H2/H3); before (or immediately after) `section-mapper`.
+binding: library
+description: "Merge/simplify an over-fragmented outline to hit a paper-like section budget (NO PROSE): target final ToC ~6–8 H2, fewer thicker H3."
 ---
 
 # Outline Budgeter (NO PROSE)
+
+## Triggers & routing
+
+- **Trigger**: outline budget, merge sections, too many sections, H3 explosion, 大纲预算, 合并小节, 大纲太碎.
+- **Use when**: `outline/outline.yml` exists but would produce thin sections (too many H2/H3); before (or immediately after) `section-mapper`.
+
 
 Purpose: prevent the most common survey failure mode: **H3 explosion** (too many tiny subsections) leading to a thin, outline-like PDF.
 

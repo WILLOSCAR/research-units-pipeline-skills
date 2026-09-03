@@ -96,6 +96,8 @@ def main() -> int:
     for pipeline_path in pipeline_paths:
         findings.extend(_validate_pipeline(pipeline_path))
 
+    findings.extend(_validate_skill_binding_governance(pipeline_paths))
+
     if args.check_docs:
         findings.extend(_validate_docs())
 
@@ -986,6 +988,80 @@ def _parse_inputs_outputs(body: str) -> tuple[set[str], set[str]]:
 def _is_skill_local_support_path(value: str) -> bool:
     normalized = str(value or "").strip().lstrip("./")
     return normalized.startswith(("assets/", "references/"))
+
+
+ALLOWED_SKILL_BINDINGS = frozenset({"manual", "library", "staged"})
+
+
+def _validate_skill_binding_governance(pipeline_paths: list[Path]) -> list[Finding]:
+    """Every skill dir must be bound to a Units template or declare a `binding:` key.
+
+    A skill is "governed" when it is either referenced in some `templates/UNITS.*.csv`
+    `skill` column, or carries a `binding:` frontmatter key (one of manual|library|staged).
+    Skills satisfying neither are unbound orphans and surface as a WARN.
+    """
+    findings: list[Finding] = []
+    if not SKILLS_DIR.exists():
+        return findings
+
+    referenced = _skills_from_units_templates(pipeline_paths)
+
+    unbound: list[str] = []
+    unreadable: list[str] = []
+    for skill_dir in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))):
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        templated = skill_dir.name in referenced
+        try:
+            fm, _ = _split_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except Exception:
+            fm = None
+        if not isinstance(fm, dict):
+            # Unreadable front matter cannot declare a binding, so a Skill that no
+            # Units template references is ungoverned rather than exempt. Report the
+            # Skill and the rule only — never the file content or the exception.
+            if not templated:
+                unreadable.append(skill_dir.name)
+            continue
+        binding = str(fm.get("binding") or "").strip()
+        if binding and binding not in ALLOWED_SKILL_BINDINGS:
+            findings.append(
+                Finding(
+                    "WARN",
+                    f"skill `{skill_dir.name}` has unsupported `binding: {binding}`; "
+                    f"expected one of {', '.join(sorted(ALLOWED_SKILL_BINDINGS))}.",
+                )
+            )
+        if templated:
+            continue
+        if binding:
+            continue
+        unbound.append(skill_dir.name)
+
+    if unreadable:
+        findings.append(
+            Finding(
+                "WARN",
+                "Unreadable skill front matter cannot declare a `binding:`, so these skills are "
+                "not referenced by any `templates/UNITS.*.csv` skill column and remain ungoverned: "
+                + ", ".join(f"`{name}`" for name in unreadable)
+                + ".",
+            )
+        )
+
+    if unbound:
+        findings.append(
+            Finding(
+                "WARN",
+                "Unbound skills are not referenced by any `templates/UNITS.*.csv` skill column "
+                "and carry no `binding:` frontmatter (manual|library|staged): "
+                + ", ".join(f"`{name}`" for name in unbound)
+                + ".",
+            )
+        )
+
+    return findings
 
 
 def _skills_from_units_templates(pipeline_paths: list[Path]) -> set[str]:
