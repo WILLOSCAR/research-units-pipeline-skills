@@ -1,15 +1,18 @@
 ---
 name: claims-extractor
-description: |
-  Use when a review workspace has manuscript text and needs a traceable claim ledger.
-  **Trigger**: claims extractor, extract claims, contributions, assumptions, peer review, 审稿, 主张提取.
-  **Use when**: 审稿/评审或 evidence audit，需要把主张列表落盘并可追溯到原文位置（section/page/quote）。
-  **Skip if**: 没有可用的稿件/全文（例如缺少 `output/PAPER.md` 或等价文本）。
-  **Network**: none.
-  **Guardrail**: 每条 claim 必须带可定位的 source pointer；区分 empirical vs conceptual claims。
+description: "Use when a review workspace has manuscript text and needs a traceable claim ledger."
 ---
 
 # Claims Extractor
+
+## Triggers & routing
+
+- **Trigger**: claims extractor, extract claims, contributions, assumptions, peer review, 审稿, 主张提取.
+- **Use when**: 审稿/评审或 evidence audit，需要把主张列表落盘并可追溯到原文位置（section/page/quote）。
+- **Skip if**: 没有可用的稿件/全文（例如缺少 `output/PAPER.md` 或等价文本）。
+- **Network**: none.
+- **Guardrail**: 每条 claim 必须带可定位的 source pointer；区分 empirical vs conceptual claims。
+
 
 Transforms manuscript text into a traceable claim ledger for `paper-review`.
 

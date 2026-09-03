@@ -1,12 +1,15 @@
 ---
 name: manuscript-ingest
-description: |
-  Use when `paper-review` needs a canonical manuscript text artifact before claim extraction.
-  **Trigger**: ingest paper, manuscript text, provide paper, paper.md, 输入论文, 导入稿件, 审稿输入.
-  **Use when**: You are running the `paper-review` pipeline and need `output/PAPER.md` before `claims-extractor`.
+description: "Use when `paper-review` needs a canonical manuscript text artifact before claim extraction."
 ---
 
 # Manuscript Ingest
+
+## Triggers & routing
+
+- **Trigger**: ingest paper, manuscript text, provide paper, paper.md, 输入论文, 导入稿件, 审稿输入.
+- **Use when**: You are running the `paper-review` pipeline and need `output/PAPER.md` before `claims-extractor`.
+
 
 Transforms a manuscript source file into the canonical text artifact used by `paper-review`.
 
