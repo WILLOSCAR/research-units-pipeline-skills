@@ -1,11 +1,14 @@
 ---
 name: opener-variator
-description: |
-  Rewrite subsection openers so they stop reading like a generated table-of-contents: remove \"overview/narration\" stems and reduce repeated opener cadences across H3s.
-  **Trigger**: opener variator, opener rewrite, rewrite openers, overview opener, 开头改写, 小节开头, 去overview, 去旁白.
+description: "Rewrite subsection openers so they stop reading like a generated table-of-contents: remove \\\"overview/narration\\\" stems and reduce repeated opener cadences across H3s."
 ---
 
 # Opener Variator (H3 first paragraph rewrite)
+
+## Triggers & routing
+
+- **Trigger**: opener variator, opener rewrite, rewrite openers, overview opener, 开头改写, 小节开头, 去overview, 去旁白.
+
 
 Purpose: fix a high-signal automation tell that survives structural gates:
 - many H3s begin with the same rhetorical shape

@@ -1,11 +1,14 @@
 ---
 name: evidence-draft
-description: |
-  Create per-subsection evidence packs (NO PROSE): claim candidates, concrete comparisons, evaluation protocol, limitations, plus citation-backed evidence snippets with provenance.
-  **Trigger**: evidence draft, evidence pack, claim candidates, concrete comparisons, evidence snippets, provenance, 证据草稿, 证据包, 可引用事实.
+description: "Create per-subsection evidence packs (NO PROSE): claim candidates, concrete comparisons, evaluation protocol, limitations, plus citation-backed evidence snippets with provenance."
 ---
 
 # Evidence Draft
+
+## Triggers & routing
+
+- **Trigger**: evidence draft, evidence pack, claim candidates, concrete comparisons, evidence snippets, provenance, 证据草稿, 证据包, 可引用事实.
+
 
 Build deterministic `outline/evidence_drafts.jsonl` packs from briefs + notes + optional evidence bindings.
 

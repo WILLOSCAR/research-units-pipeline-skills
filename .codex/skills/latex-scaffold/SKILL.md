@@ -1,12 +1,15 @@
 ---
 name: latex-scaffold
-description: |
-  Scaffold a LaTeX project (`latex/main.tex`, optional bibliography wiring, structure) from an existing Markdown draft.
-  **Trigger**: latex scaffold, md→tex, LaTeX 项目骨架, 生成 main.tex.
-  **Use when**: 需要 LaTeX/PDF 交付（例如 arxiv-survey-latex pipeline），且 draft 已生成/已进入写作阶段。
+description: "Scaffold a LaTeX project (`latex/main.tex`, optional bibliography wiring, structure) from an existing Markdown draft."
 ---
 
 # LaTeX Scaffold
+
+## Triggers & routing
+
+- **Trigger**: latex scaffold, md→tex, LaTeX 项目骨架, 生成 main.tex.
+- **Use when**: 需要 LaTeX/PDF 交付（例如 arxiv-survey-latex pipeline），且 draft 已生成/已进入写作阶段。
+
 
 Convert the approved Markdown draft into a minimal, buildable LaTeX project.
 

@@ -1,15 +1,18 @@
 ---
 name: outline-builder
-description: |
-  Convert a taxonomy (`outline/taxonomy.yml`) into a bullet-only outline (`outline/outline.yml`) with sections/subsections.
-  **Trigger**: outline builder, bullet outline, outline.yml, 大纲生成, bullets-only.
-  **Use when**: structure 阶段（NO PROSE），已有 taxonomy，需要生成可映射/可写作的章节与小节骨架（每小节≥3 bullets）。
-  **Skip if**: 已经有批准过且可映射的 outline（避免无意义 churn）。
-  **Network**: none.
-  **Guardrail**: bullets-only；移除 TODO/模板语句；每小节至少 3 个可检查 bullets。
+description: "Convert a taxonomy (`outline/taxonomy.yml`) into a bullet-only outline (`outline/outline.yml`) with sections/subsections."
 ---
 
 # Outline Builder
+
+## Triggers & routing
+
+- **Trigger**: outline builder, bullet outline, outline.yml, 大纲生成, bullets-only.
+- **Use when**: structure 阶段（NO PROSE），已有 taxonomy，需要生成可映射/可写作的章节与小节骨架（每小节≥3 bullets）。
+- **Skip if**: 已经有批准过且可映射的 outline（避免无意义 churn）。
+- **Network**: none.
+- **Guardrail**: bullets-only；移除 TODO/模板语句；每小节至少 3 个可检查 bullets。
+
 
 `outline/outline.refined.ok` freezes a reviewed outline only while the marker is newer than the outline, all declared inputs, the defaults asset, and the generator. Upstream changes invalidate the marker and trigger a backed-up regeneration.
 
