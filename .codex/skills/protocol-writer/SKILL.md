@@ -1,15 +1,18 @@
 ---
 name: protocol-writer
-description: |
-  Use when `evidence-review` needs an operational protocol before screening and extraction.
-  **Trigger**: protocol, PRISMA, systematic review, inclusion/exclusion, 检索式, 纳入排除.
-  **Use when**: `evidence-review` pipeline 的起点（C1），需要先锁定 protocol 再开始 screening/extraction。
-  **Skip if**: 不是做 evidence/systematic review（或 protocol 已经锁定且不允许修改）。
-  **Network**: none.
-  **Guardrail**: protocol 必须包含可执行的检索与筛选规则；需要 HUMAN 签字后才能进入 screening。
+description: "Use when `evidence-review` needs an operational protocol before screening and extraction."
 ---
 
 # Protocol Writer
+
+## Triggers & routing
+
+- **Trigger**: protocol, PRISMA, systematic review, inclusion/exclusion, 检索式, 纳入排除.
+- **Use when**: `evidence-review` pipeline 的起点（C1），需要先锁定 protocol 再开始 screening/extraction。
+- **Skip if**: 不是做 evidence/systematic review（或 protocol 已经锁定且不允许修改）。
+- **Network**: none.
+- **Guardrail**: protocol 必须包含可执行的检索与筛选规则；需要 HUMAN 签字后才能进入 screening。
+
 
 Transforms the review question into an executable `evidence-review` protocol.
 
