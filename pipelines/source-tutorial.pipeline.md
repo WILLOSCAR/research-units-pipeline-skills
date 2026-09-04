@@ -31,6 +31,12 @@ target_artifacts:
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
   - output/CONTRACT_REPORT.md
+case_contract:
+  kind: tutorial
+  views: [output/TUTORIAL.md, latex/main.pdf, latex/slides/main.pdf]
+  claim_sources: [outline/tutorial_context_packs.jsonl]
+  evidence_sources: [sources/provenance.jsonl, outline/source_coverage.jsonl]
+  decision_sources: [DECISIONS.md]
 default_checkpoints: [C0,C1,C2,C3,C4]
 units_template: templates/UNITS.source-tutorial.csv
 contract_model: pipeline.frontmatter/v1
