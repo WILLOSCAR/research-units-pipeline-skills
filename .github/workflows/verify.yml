@@ -43,7 +43,7 @@ jobs:
       - name: Sync locked environment
         run: uv sync --locked --extra test --python 3.12
 
-      - name: Check Python defects
+      - name: Check Python defects and import hygiene
         run: uv run --locked --extra test ruff check .
 
       - name: Validate repository contracts
