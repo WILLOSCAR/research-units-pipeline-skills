@@ -4,7 +4,7 @@ A review (a manuscript that cites prior work only in a
 prose Related Work section, with no `## References` bullet list) found
 `extract_related_works` returned zero — it only read a References list — so a
 paper that clearly named Yu/Kwon/Chen/Li/Zhao et al. got 0 related works and the
-novelty scorecard hard-blocked. Verdict defective, conf 1.0.
+novelty scorecard hard-blocked.
 
 `extract_related_works` now falls back to parsing "Surname et al." citations from
 the Related Work section prose when no References list is present. The References

@@ -1,6 +1,6 @@
 """Regression: brief key-theme summary picks the contribution over a background opener.
 
-An L2 whole-SNAPSHOT read (real ml-interatomic corpus via the full research-brief
+A read of a generated SNAPSHOT (real ml-interatomic corpus via the full research-brief
 engine) found two "Key themes" / "What to read first" bullets that gave generic
 field background instead of the paper's contribution: a benchmarking paper that
 opens "Machine learning approaches have recently emerged as powerful tools to probe

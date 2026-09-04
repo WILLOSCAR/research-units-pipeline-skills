@@ -1,6 +1,6 @@
 """Regression: research-brief comparison lenses must be axes, not topic restatements.
 
-An L2 whole-SNAPSHOT blind read (real embodied-adaptation corpus, 24 abstracts, via
+A read of a generated SNAPSHOT (real embodied-adaptation corpus, 24 abstracts, via
 the full research-brief engine) found the Scope line read "Comparison lenses: Test
 Time Adaptation, Shifts". On a corpus where every paper is about test-time
 adaptation, "Test Time Adaptation" restates the whole topic and "Shifts" is a

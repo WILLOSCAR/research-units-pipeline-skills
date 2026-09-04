@@ -5,8 +5,7 @@ full engine) found the Scope line "The boundary is anchored by [P0001 - CANDI:
 Curated Test-Time Adaptation for Multivariate Time-Series Anomaly Detection ...]" —
 CANDI is a narrow anomaly-detection paper, but it is merely chosen[0] (core-set
 order), not a topically-chosen anchor for the whole area. Presenting it as "anchoring
-the boundary" overclaims a representativeness judgment the tool never made. Both
-models confirmed defective.
+the boundary" overclaims a representativeness judgment the tool never made.
 
 `render_research_brief_markdown` now labels chosen[0] accurately as "The first
 listed core paper is [X]" instead of "The boundary is anchored by [X]".

@@ -189,7 +189,7 @@ def _related_work_label(work: str) -> str:
     potential energy surfaces. 2007."). Pasted verbatim into a referee sentence,
     its internal periods create false sentence breaks — the prose appears to end
     at "Behler and Parrinello." with the title and year dangling as a fragment
-    (flagged in reviewc124). Reduce it to just the author phrase:
+    (flagged in review). Reduce it to just the author phrase:
     the leading "<Surname> et al." / two-author "<Surname> and <Surname>" /
     single "<Surname>" token, dropping the title and year. Falls back to the
     original text when no author phrase is parseable.

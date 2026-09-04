@@ -6,7 +6,7 @@ text) was cut at each line break. That produced fragment "claims" like
 "...improves F1 by 5.1 points (accuracy 0.914) over the" — which the downstream
 gap classifier then mislabels as "underspecified: no concrete metric", turning a
 metric-bearing claim into a false major concern in the referee report. Surfaced
-by a blind read of a real paper-review REVIEW.md.
+while reading a generated REVIEW.md.
 
 The extractor now joins a paragraph's wrapped lines before sentence-splitting.
 This test pins that a wrapped sentence is recovered whole and that claim

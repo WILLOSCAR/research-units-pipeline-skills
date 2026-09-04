@@ -1,6 +1,6 @@
 """Regression: brief 'Reported limitation' bullet is a real limitation, not motivation.
 
-An L2 whole-SNAPSHOT read (real clinical-summarization corpus via the full engine)
+A read of a generated SNAPSHOT (real clinical-summarization corpus via the full engine)
 found the "Open problems / risks" section's "Reported limitation to weigh:" bullet
 quoting a motivation sentence — "Deploying MLLMs ... demands not only fluent
 generation but also transparency ..." — rather than a limitation the cited paper

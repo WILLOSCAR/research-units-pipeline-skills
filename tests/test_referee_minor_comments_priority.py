@@ -1,15 +1,13 @@
 """Regression: Minor Comments are ordered by execution priority and do not repeat
 the load-bearing Soundness/Clarity concern verbatim.
 
-A read (real full-engine paper-review on the AgenticSum clinical manuscript,
-) found two defects in '### Minor Comments':
+A read of a generated paper review (AgenticSum clinical manuscript) found two
+defects in '### Minor Comments':
   1. The FIRST minor comment (the load-bearing claim C01) restated the exact
      concern already given as the Soundness load-bearing gap AND the Clarity
      sharpest risk — a third verbatim copy in the action list.
   2. Minor Comments were ordered by raw manuscript claim-id (C01, C04, C06), not
      by execution priority.
-the review the review blind: defective sev2 0.97 (duplicates_soundness_or_clarity
-=true, ordered_by_priority=false); after fix clean 0.88 (both resolved).
 
 Fix in tooling/review_render.py: order minor gaps by `_minor_gap_priority`
 (concrete-result-check > dataset-provenance > qualitative > conceptual-boundary),

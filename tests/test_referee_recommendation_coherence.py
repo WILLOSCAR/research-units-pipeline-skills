@@ -1,6 +1,6 @@
 """Regression: referee recommendation is coherent with concern severity.
 
-An L2 whole-REVIEW.md read (full paper-review engine on the real ml-interatomic
+A read of a generated REVIEW.md (full paper-review engine on the real ml-interatomic
 P0006 manuscript) found the report recommended "borderline" while its own body
 stated "0 major concerns and 2 minor comments". A borderline verdict implies
 substantive unresolved doubt, so it is inconsistent with a minor-only report — an

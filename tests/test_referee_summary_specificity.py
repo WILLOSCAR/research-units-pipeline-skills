@@ -3,7 +3,7 @@
 `render_rubric_review_markdown` received only counts, so the Summary could only
 say "The paper claims N main contribution(s) and is reviewed through explicit
 claim and gap extraction" — a process description that tells a referee nothing
-about the manuscript. Surfaced by a blind read of a real paper-review REVIEW.md.
+about the manuscript. Surfaced while reading a generated REVIEW.md.
 
 The renderer now accepts the extracted claims and anchors the Summary in the
 paper's strongest real claim (empirical, front-matter, carrying a number). This
