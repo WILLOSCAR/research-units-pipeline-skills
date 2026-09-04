@@ -65,7 +65,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import parse_semicolon_list, read_jsonl, read_tsv, write_jsonl
+    from tooling.common import parse_semicolon_list, read_jsonl, write_jsonl
     from tooling.quality_gate import _draft_profile
 
     workspace = Path(args.workspace).resolve()

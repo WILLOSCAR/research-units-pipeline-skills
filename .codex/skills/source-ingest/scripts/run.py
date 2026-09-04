@@ -107,7 +107,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, write_jsonl
+    from tooling.common import ensure_dir, load_yaml, now_iso_seconds, parse_semicolon_list, write_jsonl
 
     workspace = Path(args.workspace).resolve()
     outputs = parse_semicolon_list(args.outputs) or ["sources/index.jsonl", "sources/provenance.jsonl"]

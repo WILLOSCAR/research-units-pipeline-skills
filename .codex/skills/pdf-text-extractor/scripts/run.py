@@ -38,7 +38,7 @@ def main() -> int:
         repo_root = parent
     sys.path.insert(0, str(repo_root))
 
-    from tooling.common import atomic_write_text, ensure_dir, parse_semicolon_list, read_tsv, write_jsonl
+    from tooling.common import ensure_dir, parse_semicolon_list, read_tsv, write_jsonl
 
     workspace = Path(args.workspace).resolve()
     inputs = parse_semicolon_list(args.inputs) or ["papers/core_set.csv"]
