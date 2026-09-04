@@ -836,3 +836,34 @@ def test_audit_diff_write_refuses_a_current_workspace(tmp_path: Path) -> None:
     assert "legacy pipeline CLI will not inspect or mutate it" in result.stderr
     assert not (output / "RUN_AUDIT_DIFF.md").exists()
     assert not (output / "RUN_AUDIT_DIFF.json").exists()
+
+
+# The three quality signals answer different questions and must not be conflated:
+# execution integrity is whether the Run did what it said, contract acceptance is
+# whether the declared result contract is met, and research quality is whether the
+# work is any good. Only the first two are mechanically derivable, so the harness
+# reports research quality as NOT_EVALUATED from every state rather than letting a
+# completed Run imply a sound result. These tests pin that separation, which the
+# surrounding suite otherwise only asserted incidentally.
+@pytest.mark.parametrize("state", list(LoopState))
+@pytest.mark.parametrize("execution_verified", [True, False])
+def test_research_quality_is_never_derived_from_execution(
+    state: LoopState,
+    execution_verified: bool,
+) -> None:
+    quality = case_module._quality(state=state, execution_verified=execution_verified)
+
+    assert quality.research_quality.status is LoopQualityState.NOT_EVALUATED, state
+    assert "independent Evaluation" in quality.research_quality.explanation
+
+
+def test_ready_and_verified_execution_still_withholds_research_quality() -> None:
+    """The strongest mechanical result available must not imply research quality."""
+    quality = case_module._quality(state=LoopState.READY, execution_verified=True)
+
+    # READY with verified execution is the strongest mechanical result the
+    # harness can reach: both derivable signals are affirmative here.
+    assert quality.execution_integrity.status is LoopQualityState.VERIFIED
+    assert quality.contract_acceptance.status is not LoopQualityState.NOT_EVALUATED
+    # Research quality is still withheld.
+    assert quality.research_quality.status is LoopQualityState.NOT_EVALUATED

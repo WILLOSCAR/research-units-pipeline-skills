@@ -799,3 +799,73 @@ def test_harness_blocks_completion_when_required_checker_is_not_configured() -> 
     assert "did not explicitly attest" not in completed.message
     assert "lack committed/current coverage" not in completed.message
     assert artifacts.list_manifests(run.id) == ()
+
+
+# `WorkflowAcceptancePolicy.evaluate` has four ways to refuse a unit. Only the
+# missing-evaluator branch was covered, so a regression in the other three --
+# each of which turns a genuine failure into a pass -- would not be caught.
+class _RejectingEvaluator:
+    def evaluate(self, request: AcceptanceRequest) -> AcceptanceEvidence:
+        return AcceptanceEvidence(
+            passed=False, issues=("the deliverable contradicts its own evidence",)
+        )
+
+
+class _RaisingEvaluator:
+    def evaluate(self, request: AcceptanceRequest) -> AcceptanceEvidence:
+        raise RuntimeError("evaluator exploded")
+
+
+class _InvalidResultEvaluator:
+    def evaluate(self, request: AcceptanceRequest) -> AcceptanceEvidence:
+        return "looks fine to me"  # type: ignore[return-value]
+
+
+def _policy_with(evaluator: object, *, skill: str) -> WorkflowAcceptancePolicy:
+    return WorkflowAcceptancePolicy(evaluators={("paper-review", skill): evaluator})
+
+
+def test_evaluator_rejection_is_reported_with_its_issue() -> None:
+    run = _run(required=("paper-review-auditor",))
+    policy = _policy_with(_RejectingEvaluator(), skill="paper-review-auditor")
+
+    evidence = policy.evaluate(run=run, unit=run.units[0].plan, artifacts=())
+
+    assert evidence.passed is False
+    assert any("contradicts its own evidence" in issue for issue in evidence.issues)
+
+
+def test_evaluator_that_raises_fails_closed_without_leaking_the_exception() -> None:
+    """A crashing evaluator must not be read as acceptance."""
+    run = _run(required=("paper-review-auditor",))
+    policy = _policy_with(_RaisingEvaluator(), skill="paper-review-auditor")
+
+    evidence = policy.evaluate(run=run, unit=run.units[0].plan, artifacts=())
+
+    assert evidence.passed is False
+    joined = "\n".join(evidence.issues)
+    assert "RuntimeError" in joined
+    # The message text is the evaluator's, not the harness's, so it is named by
+    # type only -- a raised string could carry anything.
+    assert "evaluator exploded" not in joined
+
+
+def test_evaluator_returning_a_non_evidence_value_fails_closed() -> None:
+    run = _run(required=("paper-review-auditor",))
+    policy = _policy_with(_InvalidResultEvaluator(), skill="paper-review-auditor")
+
+    evidence = policy.evaluate(run=run, unit=run.units[0].plan, artifacts=())
+
+    assert evidence.passed is False
+    assert any("invalid result" in issue for issue in evidence.issues)
+
+
+def test_unrequired_skill_without_an_evaluator_is_allowed() -> None:
+    """The allow path: a non-required Skill needs no evaluator to pass."""
+    run = _run(skill="opener-variator", required=("paper-review-auditor",))
+    policy = WorkflowAcceptancePolicy(evaluators={})
+
+    evidence = policy.evaluate(run=run, unit=run.units[0].plan, artifacts=())
+
+    assert evidence.passed is True
+    assert evidence.issues == ()
