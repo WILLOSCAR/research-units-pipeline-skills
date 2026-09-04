@@ -1,6 +1,6 @@
 """Regression: tutorial source snippets do not dangle mid-sentence on a conjunction.
 
-A read surfaced this defect: a Module "Key idea" snippet ended
+In generated tutorial output, a Module "Key idea" snippet ended
 "...produced correctly, reproducibly, and" — `_trim_snippet` capped at 240
 chars at a word boundary but left the phrase dangling on a conjunction, so the
 central teaching sentence read as unfinished.

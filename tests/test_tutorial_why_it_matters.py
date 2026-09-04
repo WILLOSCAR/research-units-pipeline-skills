@@ -2,9 +2,9 @@
 
 The checkpoint-brief fix unblocked the full-engine TUTORIAL.md, exposing a new
 defect: every module's "Why it matters" block recited the raw authoring goal
-("This matters because the tutorial goal is to Teach
-a new engineer ...") and dumped the internal module-output list ("The module output
-is: Produce a short explanation or checklist that makes `X` concrete ..."). Both are
+("This matters because the tutorial goal is to Teach a new engineer ...") and
+dumped the internal module-output list ("The module output is: Produce a short
+explanation or checklist that makes `X` concrete ..."). Both are
 planner/authoring artifacts, not reader-facing prose.
 
 `_render_why_it_matters` now states the objective and ties the module to the
