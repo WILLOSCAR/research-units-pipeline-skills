@@ -37,6 +37,12 @@ target_artifacts:
   - output/QUALITY_GATE.md
   - output/RUN_ERRORS.md
   - output/CONTRACT_REPORT.md
+case_contract:
+  kind: ideas
+  views: [output/REPORT.md, output/APPENDIX.md]
+  claim_sources: [output/trace/IDEA_SHORTLIST.jsonl]
+  evidence_sources: [papers/evidence_bank.jsonl, output/trace/IDEA_SIGNAL_TABLE.jsonl]
+  decision_sources: [DECISIONS.md]
 default_checkpoints: [C0,C1,C2,C3,C4,C5]
 units_template: templates/UNITS.idea-brainstorm.csv
 contract_model: pipeline.frontmatter/v1

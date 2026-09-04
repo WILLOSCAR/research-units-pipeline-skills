@@ -16,7 +16,9 @@ PIPELINE_CLI = REPO_ROOT / "scripts" / "pipeline.py"
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="rh",
-        description="Outcome-first interface for Goal -> Run -> Evidence -> Improve.",
+        description=(
+            "Turn a Goal into a recoverable Run with a Deliverable and Evidence."
+        ),
     )
     stages = parser.add_subparsers(dest="stage", required=True)
 
@@ -103,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def _dispatch(args: argparse.Namespace) -> int:
     if (args.stage, args.action) == ("goal", "create"):
+        if args.workspace and _is_current_harness_workspace(args.workspace):
+            return 2
         command = ["kickoff", "--topic", args.goal_text]
         if args.workflow:
             command.extend(["--pipeline", args.workflow])
@@ -115,7 +119,9 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _run_pipeline(*command)
 
     if args.stage == "run" and args.action in {"start", "resume"}:
-        if not _workspace_exists(args.workspace):
+        if not _workspace_exists(args.workspace) or _is_current_harness_workspace(
+            args.workspace
+        ):
             return 2
         command = ["run", "--workspace", args.workspace, "--max-steps", str(args.max_steps)]
         if args.action == "start":
@@ -125,14 +131,18 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _run_pipeline(*command)
 
     if (args.stage, args.action) == ("run", "status"):
-        if not _workspace_exists(args.workspace):
+        if not _workspace_exists(args.workspace) or _is_current_harness_workspace(
+            args.workspace
+        ):
             return 2
         workspace = Path(args.workspace).resolve()
         with workspace_invocation_lock(workspace=workspace, operation="rh.run.status"):
             return _run_status(workspace)
 
     if (args.stage, args.action) == ("run", "approve"):
-        if not _workspace_exists(args.workspace):
+        if not _workspace_exists(args.workspace) or _is_current_harness_workspace(
+            args.workspace
+        ):
             return 2
         command = [
             "approve",
@@ -148,14 +158,18 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _run_pipeline(*command)
 
     if (args.stage, args.action) == ("evidence", "inspect"):
-        if not _workspace_exists(args.workspace):
+        if not _workspace_exists(args.workspace) or _is_current_harness_workspace(
+            args.workspace
+        ):
             return 2
         workspace = Path(args.workspace).resolve()
         with workspace_invocation_lock(workspace=workspace, operation="rh.evidence.inspect"):
             return _inspect_evidence(workspace, write_excerpt=bool(args.excerpt))
 
     if (args.stage, args.action) == ("improve", "diagnose"):
-        if not _workspace_exists(args.workspace):
+        if not _workspace_exists(args.workspace) or _is_current_harness_workspace(
+            args.workspace
+        ):
             return 2
         workspace = Path(args.workspace).resolve()
         with workspace_invocation_lock(workspace=workspace, operation="rh.improve.diagnose"):
@@ -183,6 +197,20 @@ def _workspace_exists(value: str) -> bool:
         return True
     print(f"Workspace not found: {workspace}", file=sys.stderr)
     return False
+
+
+def _is_current_harness_workspace(value: str) -> bool:
+    workspace = Path(value).expanduser().resolve(strict=False)
+    marker = workspace / ".harness-v3"
+    if not marker.exists() and not marker.is_symlink():
+        return False
+    print(
+        "This Workspace is owned by current ResearchHarness state (.harness-v3). "
+        "Use `uv run python -m research_harness loop work ...`; the legacy rh CLI "
+        "will not inspect or mutate it.",
+        file=sys.stderr,
+    )
+    return True
 
 
 def _run_status(workspace: Path) -> int:

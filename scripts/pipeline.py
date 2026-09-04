@@ -256,6 +256,7 @@ def _preflight_workspace_command(*, args: argparse.Namespace, workspace: Path) -
     """Reject invalid targets before lock metadata can create Workspace paths."""
 
     _ensure_not_repo_root(workspace, REPO_ROOT)
+    _require_no_current_harness_state(workspace)
     if args.cmd not in {"init", "kickoff"}:
         if not workspace.is_dir():
             raise SystemExit(f"Workspace not found: {workspace}")
@@ -281,6 +282,34 @@ def _require_pristine_run_workspace(workspace: Path) -> None:
             f"Workspace already contains durable Run evidence: {workspace}. "
             "Choose a new Workspace; --overwrite does not replace or migrate an existing Run."
         )
+
+
+def _require_no_current_harness_state(workspace: Path) -> None:
+    marker = workspace / ".harness-v3"
+    if marker.exists() or marker.is_symlink():
+        raise SystemExit(
+            "Workspace contains current ResearchHarness state (.harness-v3); "
+            "the legacy pipeline CLI will not inspect or mutate it. Use "
+            "`uv run python -m research_harness loop work ...`."
+        )
+
+
+def _require_not_inside_current_harness_workspace(target: Path) -> None:
+    """Refuse a path that lies anywhere beneath a current-harness Workspace.
+
+    `_require_no_current_harness_state` checks one directory, which is right for
+    a `--workspace` argument. A write target derived from a file path can sit at
+    any depth below the Workspace root, so checking a fixed number of levels
+    would leave deeper paths unguarded.
+
+    A marker found at any ancestor refuses the write. That is deliberate: the
+    marker means that directory is harness-owned, so everything beneath it is
+    inside that Workspace. Broken symlinks are handled by resolving
+    non-strictly, which leaves a dangling path unresolved rather than raising.
+    """
+    resolved = target.expanduser().resolve(strict=False)
+    for candidate in (resolved, *resolved.parents):
+        _require_no_current_harness_state(candidate)
 
 
 def _execute_command(args: argparse.Namespace) -> int:
@@ -534,6 +563,11 @@ def _execute_command(args: argparse.Namespace) -> int:
         report = render_run_audit_diff_report(payload)
         if args.write:
             output_dir = after_path.parent
+            # `audit-diff` takes no --workspace and so skips the Workspace lock,
+            # but --write still creates files next to the --after report. That
+            # report can sit at any depth inside a Workspace, so walk up rather
+            # than checking a fixed number of levels.
+            _require_not_inside_current_harness_workspace(output_dir)
             report_path = write_run_audit_diff_report(output_dir=output_dir, report=report)
             json_path = write_run_audit_diff_json(output_dir=output_dir, payload=payload)
             print(f"Wrote {report_path}")
