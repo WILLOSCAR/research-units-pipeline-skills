@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -247,6 +248,38 @@ class SourceTutorialPipelineTests(unittest.TestCase):
         self.assertIn("latex/slides/main.tex", spec.target_artifacts)
         self.assertIn("video", spec.quality_contract["source_policy"]["accepted_source_kinds"])
 
+    def test_c2_checkpoint_has_checkpoint_brief_before_human_checkpoint(self) -> None:
+        # Regression: the source-tutorial C2 human checkpoint could never be
+        # approved because its required_skills omitted `checkpoint-brief`, so no
+        # DECISIONS.md C2 review block was ever written and every full-engine run
+        # blocked with "review basis is missing: DECISIONS.md". A
+        # `checkpoint-brief` unit must precede the `human-checkpoint` unit, matching
+        # research-brief/arxiv-survey/idea-brainstorm.
+        from tooling.common import resolve_pipeline_spec_path
+
+        path = resolve_pipeline_spec_path(repo_root=REPO_ROOT, pipeline_value="source-tutorial")
+        spec = PipelineSpec.load(path)
+        c2_skills = spec.stages["C2"].required_skills
+        self.assertIn("checkpoint-brief", c2_skills)
+        self.assertIn("human-checkpoint", c2_skills)
+        self.assertLess(
+            c2_skills.index("checkpoint-brief"),
+            c2_skills.index("human-checkpoint"),
+            c2_skills,
+        )
+
+        # The units template must declare a checkpoint-brief Unit on C2 that the
+        # human-checkpoint Unit depends on (so the review block exists before approval).
+        units_csv = (REPO_ROOT / "templates" / "UNITS.source-tutorial.csv").read_text(encoding="utf-8")
+        rows = [line.split(",") for line in units_csv.splitlines()[1:] if line.strip()]
+        by_skill = {row[3]: row for row in rows if len(row) > 3}
+        self.assertIn("checkpoint-brief", by_skill, "no checkpoint-brief unit in the C2 units template")
+        cb_row, hc_row = by_skill["checkpoint-brief"], by_skill["human-checkpoint"]
+        self.assertEqual(cb_row[7], "C2", cb_row)  # checkpoint column
+        self.assertIn("DECISIONS.md", cb_row[5], cb_row)  # outputs the review block
+        self.assertEqual(hc_row[9], cb_row[0], (hc_row, cb_row))  # human-checkpoint depends_on checkpoint-brief unit
+
+
     def test_repository_verification_installs_latex_scaffold_dependencies(self) -> None:
         workflow = (REPO_ROOT / ".github" / "workflows" / "verify.yml").read_text(encoding="utf-8")
 
@@ -356,18 +389,21 @@ class SourceTutorialPipelineTests(unittest.TestCase):
 
             plan = load_yaml(workspace / "outline" / "module_plan.yml")
             coverage_records = read_jsonl(workspace / "outline" / "source_coverage.jsonl")
-            self.assertEqual(len(coverage_records), len(plan.get("modules") or []))
-            self.assertTrue(all(record.get("module_id") for record in coverage_records))
-            self.assertTrue(all(("source_ids" in record) or ("gaps" in record) for record in coverage_records))
+            module_records = [r for r in coverage_records if r.get("module_id")]
+            recon_records = [r for r in coverage_records if r.get("record_type") == "corpus_reconciliation"]
+            self.assertEqual(len(module_records), len(plan.get("modules") or []))
+            self.assertEqual(len(recon_records), 1)
+            self.assertTrue(all(record.get("module_id") for record in module_records))
+            self.assertTrue(all(("source_ids" in record) or ("gaps" in record) for record in module_records))
             self.assertEqual(
                 check_module_source_coverage(workspace, ["outline/source_coverage.jsonl"]),
                 [],
             )
 
-            coverage_records[0]["source_ids"] = ["missing-source"]
+            module_records[0]["source_ids"] = ["missing-source"]
             self._write_jsonl(
                 workspace / "outline" / "source_coverage.jsonl",
-                coverage_records,
+                module_records + recon_records,
             )
             issues = check_module_source_coverage(
                 workspace,
@@ -377,7 +413,7 @@ class SourceTutorialPipelineTests(unittest.TestCase):
 
             self._write_jsonl(
                 workspace / "outline" / "source_coverage.jsonl",
-                coverage_records[:-1],
+                module_records[:-1] + recon_records,
             )
             issues = check_module_source_coverage(
                 workspace,
@@ -1039,6 +1075,10 @@ class SourceTutorialPipelineTests(unittest.TestCase):
             self.assertEqual(context_issues[0].code, "tutorial_context_packs_invalid_jsonl")
 
     def test_source_ingest_pdf_local_file_succeeds(self) -> None:
+        if shutil.which("pdftotext") is None:
+            self.skipTest(
+                "pdftotext is not installed; deterministic PDF source ingestion requires Poppler"
+            )
         script = REPO_ROOT / ".codex" / "skills" / "source-ingest" / "scripts" / "run.py"
         self.assertTrue(script.exists(), f"missing script: {script}")
 
