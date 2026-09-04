@@ -301,6 +301,11 @@ def _require_not_inside_current_harness_workspace(target: Path) -> None:
     a `--workspace` argument. A write target derived from a file path can sit at
     any depth below the Workspace root, so checking a fixed number of levels
     would leave deeper paths unguarded.
+
+    A marker found at any ancestor refuses the write. That is deliberate: the
+    marker means that directory is harness-owned, so everything beneath it is
+    inside that Workspace. Broken symlinks are handled by resolving
+    non-strictly, which leaves a dangling path unresolved rather than raising.
     """
     resolved = target.expanduser().resolve(strict=False)
     for candidate in (resolved, *resolved.parents):
