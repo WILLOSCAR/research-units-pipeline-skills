@@ -476,7 +476,10 @@ class ReviewArchitectureTests(unittest.TestCase):
                     fieldnames=["claim_id", "related_work", "overlap", "delta", "evidence"],
                 )
                 writer.writeheader()
-                for index in range(1, 5):
+                # Shallow novelty: only 2 distinct related works (below the >=3
+                # positioning floor), so novelty_positioning fails on thin
+                # positioning while the duplicate C01 ids also fail claim_traceability.
+                for index in range(1, 3):
                     writer.writerow(
                         {
                             "claim_id": "C01",
@@ -495,7 +498,7 @@ class ReviewArchitectureTests(unittest.TestCase):
             self.assertIn("evidence_coverage", failed)
             self.assertIn("novelty_positioning", failed)
             novelty = next(item for item in scorecard["dimensions"] if item["id"] == "novelty_positioning")
-            self.assertIn("4 unique related works", novelty["evidence"])
+            self.assertIn("2 unique related works", novelty["evidence"])
 
     def test_paper_review_semantic_failure_is_repaired_in_attempt_history(self) -> None:
         with tempfile.TemporaryDirectory(dir=REPO_ROOT / "workspaces") as tmp:
