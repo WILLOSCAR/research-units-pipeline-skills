@@ -61,7 +61,8 @@ def test_completion_invariant_flags_match_legacy() -> None:
 
 def test_default_provider_is_now_native(monkeypatch: pytest.MonkeyPatch) -> None:
     # Cutover complete: every registered check has a byte-identical native
-    # equivalent (proven by the 68-skill sweep), so native is the default.
+    # equivalent, pinned by the parity test over the whole registry below, so
+    # native is the default.
     # `RESEARCH_HARNESS_QUALITY_PROVIDER=legacy` is the retained escape hatch;
     # clear it so the assertion reflects the real default regardless of ambient env.
     monkeypatch.delenv("RESEARCH_HARNESS_QUALITY_PROVIDER", raising=False)
@@ -1516,9 +1517,8 @@ def test_native_latex_compile_qa_pass(tmp_path: Path) -> None:
 #
 # All six checks are self-contained (no workspace policy). Each is exercised
 # through a real workspace with backing files so the index/provenance grounding
-# join can succeed; `_both` asserts native == legacy. A companion differential
-# randomized comparison sweeps thousands of generated source-tutorial
-# workspaces; these pin the branch-critical cases as regression evidence.
+# join can succeed; `_both` asserts native == legacy. These pin the
+# branch-critical cases as regression evidence.
 
 
 def _st_backed_sources(ws: Path, source_ids: list[str]) -> dict[str, str]:

@@ -294,6 +294,19 @@ def _require_no_current_harness_state(workspace: Path) -> None:
         )
 
 
+def _require_not_inside_current_harness_workspace(target: Path) -> None:
+    """Refuse a path that lies anywhere beneath a current-harness Workspace.
+
+    `_require_no_current_harness_state` checks one directory, which is right for
+    a `--workspace` argument. A write target derived from a file path can sit at
+    any depth below the Workspace root, so checking a fixed number of levels
+    would leave deeper paths unguarded.
+    """
+    resolved = target.expanduser().resolve(strict=False)
+    for candidate in (resolved, *resolved.parents):
+        _require_no_current_harness_state(candidate)
+
+
 def _execute_command(args: argparse.Namespace) -> int:
 
     repo_root = REPO_ROOT
@@ -546,13 +559,10 @@ def _execute_command(args: argparse.Namespace) -> int:
         if args.write:
             output_dir = after_path.parent
             # `audit-diff` takes no --workspace and so skips the Workspace lock,
-            # but --write still creates files next to the --after report. Apply
-            # the same refusal the locked commands get, or the one unlocked
-            # command becomes a way to write into a current-harness Workspace.
-            # The report normally sits in <workspace>/output, so check the
-            # parent too rather than only the directory being written to.
-            _require_no_current_harness_state(output_dir)
-            _require_no_current_harness_state(output_dir.parent)
+            # but --write still creates files next to the --after report. That
+            # report can sit at any depth inside a Workspace, so walk up rather
+            # than checking a fixed number of levels.
+            _require_not_inside_current_harness_workspace(output_dir)
             report_path = write_run_audit_diff_report(output_dir=output_dir, report=report)
             json_path = write_run_audit_diff_json(output_dir=output_dir, payload=payload)
             print(f"Wrote {report_path}")

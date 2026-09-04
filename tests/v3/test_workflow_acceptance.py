@@ -801,9 +801,11 @@ def test_harness_blocks_completion_when_required_checker_is_not_configured() -> 
     assert artifacts.list_manifests(run.id) == ()
 
 
-# `WorkflowAcceptancePolicy.evaluate` has four ways to refuse a unit. Only the
-# missing-evaluator branch was covered, so a regression in the other three --
-# each of which turns a genuine failure into a pass -- would not be caught.
+# `WorkflowAcceptancePolicy.evaluate` has several ways to refuse a unit, and the
+# tests above already cover them -- but by comparing whole AcceptanceEvidence
+# objects, so they also fail for incidental reasons and do not say which property
+# broke. These isolate one property per test, and add an assertion the older ones
+# do not make: a raised evaluator's own message must not reach the issue list.
 class _RejectingEvaluator:
     def evaluate(self, request: AcceptanceRequest) -> AcceptanceEvidence:
         return AcceptanceEvidence(

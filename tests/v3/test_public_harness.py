@@ -803,6 +803,10 @@ def test_audit_diff_write_refuses_a_current_workspace(tmp_path: Path) -> None:
     output directory from the --after report rather than a --workspace flag. Both
     reports are written into `<workspace>/output`, so without an explicit check
     the unlocked command writes into a Workspace every locked command refuses.
+
+    Exit code 1, not the 2 the `rh` guard returns: `scripts/pipeline.py` refuses
+    by raising `SystemExit` with a message, which Python reports as 1, while
+    `product_cli` returns 2 explicitly. The asymmetry predates this guard.
     """
     workspace = tmp_path / "current"
     _create_current_case(workspace, case_id="audit-diff-case")
@@ -836,6 +840,48 @@ def test_audit_diff_write_refuses_a_current_workspace(tmp_path: Path) -> None:
     assert "legacy pipeline CLI will not inspect or mutate it" in result.stderr
     assert not (output / "RUN_AUDIT_DIFF.md").exists()
     assert not (output / "RUN_AUDIT_DIFF.json").exists()
+
+
+def test_audit_diff_write_refuses_a_nested_path_inside_a_current_workspace(
+    tmp_path: Path,
+) -> None:
+    """The refusal must not depend on how deep the report sits.
+
+    A guard that checked a fixed number of levels above the output directory
+    would pass this Workspace's own `output/` and still write one level below it.
+    """
+    workspace = tmp_path / "current"
+    _create_current_case(workspace, case_id="nested-case")
+    nested = workspace / "output" / "archive" / "2026"
+    nested.mkdir(parents=True, exist_ok=True)
+
+    payload_path = nested / "RUN_AUDIT.json"
+    before_path = tmp_path / "before.json"
+    sample = _run_audit_payload(workspace)
+    payload_path.write_text(json.dumps(sample), encoding="utf-8")
+    before_path.write_text(json.dumps(sample), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "pipeline.py"),
+            "audit-diff",
+            "--before",
+            str(before_path),
+            "--after",
+            str(payload_path),
+            "--write",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1, result.stdout
+    assert "legacy pipeline CLI will not inspect or mutate it" in result.stderr
+    assert not (nested / "RUN_AUDIT_DIFF.md").exists()
+    assert not (nested / "RUN_AUDIT_DIFF.json").exists()
 
 
 # The three quality signals answer different questions and must not be conflated:

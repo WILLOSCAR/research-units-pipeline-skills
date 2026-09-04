@@ -32,8 +32,8 @@ from research_harness.acceptance.legacy_tooling import _QUALITY_PROVIDER_ENV_VAR
 def test_default_provider_satisfies_the_port(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # The default is now the native provider (byte-identical, proven by the
-    # 68-skill sweep); clear the opt-in so this reflects the real default
+    # The default is now the native provider, byte-identical to legacy across
+    # the registry; clear the opt-in so this reflects the real default
     # regardless of ambient env, then confirm it satisfies the Port.
     monkeypatch.delenv(_QUALITY_PROVIDER_ENV_VAR, raising=False)
     provider = default_quality_provider()
