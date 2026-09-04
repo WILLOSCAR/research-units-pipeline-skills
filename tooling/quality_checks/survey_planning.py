@@ -143,7 +143,7 @@ def _iter_taxonomy_nodes(items: Iterable) -> Iterable[dict]:
 
 
 def check_outline(workspace: Path, outputs: list[str]) -> list[QualityIssue]:
-    from tooling.common import load_workspace_pipeline_spec, load_yaml
+    from tooling.common import load_yaml
 
     out_rel = outputs[0] if outputs else "outline/outline.yml"
     path = workspace / out_rel

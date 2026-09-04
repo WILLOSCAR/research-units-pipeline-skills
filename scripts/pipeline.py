@@ -13,7 +13,6 @@ from tooling.common import (
     atomic_write_text,
     copy_tree,
     load_workspace_pipeline_spec,
-    pipeline_cli_command,
     requested_delivery_formats,
     resolve_pipeline_spec_path,
     shell_quote,
