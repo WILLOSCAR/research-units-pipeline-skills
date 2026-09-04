@@ -4,16 +4,16 @@ A follow-on read of a generated memo found the "Smallest decisive probe" bullets
 (§3-5) and the §9 next-step ended mid-sentence — "...for any ablation that already
 fixes planner quality and broader" (dropping ", and if the conclusion survives,
 demote this direction") and "...whether observability granularity is already"
-(dropping the control it should be isolated against). Neither directive told the
-reader what to actually do.
+(dropping the control it should be isolated against). None of these directives
+told the reader what to actually do.
 
 Cause: these complete instructional templates were `clean_sentence`-truncated at a
 char limit (180/220) that a long embedded anchor-paper title pushed past, clipping
 the actionable clause. Fix: cap the embedded title and raise the instruction-sentence
 limits so the directive's actionable clause is never dropped.
 
-These tests exercise the deterministic renderers directly (fast); the full-engine
-end-to-end behaviour is covered by the other whole-memo idea-brainstorm tests.
+These tests exercise the deterministic renderers directly (fast); the end-to-end
+behaviour is covered by the other full-engine idea-brainstorm tests.
 """
 
 from __future__ import annotations
