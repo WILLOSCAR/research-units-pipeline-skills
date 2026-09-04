@@ -1,8 +1,8 @@
 """Regression: module-plan outputs cover every concept and end coherently.
 
-An L2 whole-module-plan read (real PIPELINE_TAXONOMY.md via the real
+A whole-module-plan read (real PIPELINE_TAXONOMY.md via the real
 spec->graph->module-plan builders) found two defects in `build_module_plan`
-outputs, both confirmed by the models:
+outputs:
 
 1. A multi-concept module produced a concrete-artifact output ONLY for its FIRST
    concept (`concept_titles[0]`), so a 2-concept module left its second concept

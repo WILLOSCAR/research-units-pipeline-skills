@@ -1,9 +1,10 @@
 """Regression: module exercise expected_output is a learner answer, not an authoring directive.
 
-The c91 unblock opened the source-tutorial exercises to review; on the real
-SCHEMAS.md module plan every "Check yourself" block's expected_output was the
-module's first AUTHORING output — "Produce a short explanation or checklist that
-makes `X` concrete in the tutorial flow" — a directive to the tutorial author, not a
+The checkpoint-brief unblock opened the source-tutorial exercises to review; on
+the real SCHEMAS.md module plan every "Check yourself" block's expected_output
+was the module's first AUTHORING output — "Produce a short explanation or
+checklist that makes `X` concrete in the tutorial flow" — a directive to the
+tutorial author, not a
 description of the learner's expected answer.
 
 `add_module_exercises` now frames expected_output as the substance of a correct

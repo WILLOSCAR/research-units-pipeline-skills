@@ -279,7 +279,6 @@ class SourceTutorialPipelineTests(unittest.TestCase):
         self.assertIn("DECISIONS.md", cb_row[5], cb_row)  # outputs the review block
         self.assertEqual(hc_row[9], cb_row[0], (hc_row, cb_row))  # human-checkpoint depends_on checkpoint-brief unit
 
-
     def test_repository_verification_installs_latex_scaffold_dependencies(self) -> None:
         workflow = (REPO_ROOT / ".github" / "workflows" / "verify.yml").read_text(encoding="utf-8")
 

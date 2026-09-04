@@ -1,8 +1,8 @@
 """Regression: source-tutorial 'Why it matters' is learner prose, not planner text.
 
 The checkpoint-brief fix unblocked the full-engine TUTORIAL.md, exposing a new
-L2 defect: every module's "Why it matters" block
-recited the raw authoring goal ("This matters because the tutorial goal is to Teach
+defect: every module's "Why it matters" block recited the raw authoring goal
+("This matters because the tutorial goal is to Teach
 a new engineer ...") and dumped the internal module-output list ("The module output
 is: Produce a short explanation or checklist that makes `X` concrete ..."). Both are
 planner/authoring artifacts, not reader-facing prose.

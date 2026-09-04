@@ -1,6 +1,6 @@
 """Regression: the tutorial's learning-objective lists read as learner outcomes.
 
-The c111 fix reframed the module-body "Why it matters" objective ("Explain X:")
+An earlier fix reframed the module-body "Why it matters" objective ("Explain X:")
 into a learner outcome ("By the end you should be able to explain X: ..."), but
 the top-level "What You Will Learn" list (TUTORIAL.md) and "Learning objectives"
 list (TUTORIAL_SPEC.md) still rendered the raw authoring imperative. A read

@@ -1,6 +1,6 @@
 """Regression: source-tutorial learning objectives are varied, not one template.
 
-An L2 whole-SPEC coherence review, run on a real repo doc (docs/AUTO_RESEARCH_DESIGN_SYSTEM.md),
+A whole-SPEC coherence review, run on a real repo doc (docs/AUTO_RESEARCH_DESIGN_SYSTEM.md),
 found every learning objective was the same template repeated verbatim —
 "Explain how `X` fits into the end-to-end tutorial flow." — for all five
 concepts, so the objectives did not state a distinct learner performance per

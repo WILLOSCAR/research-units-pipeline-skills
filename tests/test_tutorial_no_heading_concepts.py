@@ -142,7 +142,7 @@ def test_clean_phrase_trims_dangling_prepositions_both_ends() -> None:
 
 
 # ---------------------------------------------------------------------------
-# cycle 58: comma-free declarative source (near-zero coverage + clause fragments)
+# comma-free declarative source (near-zero coverage + clause fragments)
 # ---------------------------------------------------------------------------
 
 _VDB_NOTES = """# Vector Database Field Notes
@@ -227,7 +227,7 @@ def test_ambiguous_verb_before_complement_marks_subject() -> None:
 
 
 # ---------------------------------------------------------------------------
-# cycle 59: FAQ-style source (questions + imperatives)
+# FAQ-style source (questions + imperatives)
 # ---------------------------------------------------------------------------
 
 _FAQ_NOTES = """# Prompt Caching FAQ
@@ -289,7 +289,7 @@ def test_question_sentences_produce_no_concept() -> None:
 
 
 # ---------------------------------------------------------------------------
-# cycle 63: table-only source (markdown comparison/reference table, no prose)
+# table-only source (markdown comparison/reference table, no prose)
 # ---------------------------------------------------------------------------
 
 _TABLE_ONLY = """# Optimizer Comparison Reference
@@ -364,7 +364,7 @@ def test_prose_and_table_source_yields_both() -> None:
 
 
 # ---------------------------------------------------------------------------
-# cycle 65: bulleted-list source ("Term: definition" bullets, no prose/table)
+# bulleted-list source ("Term: definition" bullets, no prose/table)
 # ---------------------------------------------------------------------------
 
 _BULLET_ONLY = """# Kubernetes Primitives
@@ -430,7 +430,7 @@ def test_prose_and_bullets_source_yields_both() -> None:
 
 
 # ---------------------------------------------------------------------------
-# cycle 67: numbered-step procedure source ("1. ... 2. ...", a how-to)
+# numbered-step procedure source ("1. ... 2. ...", a how-to)
 # ---------------------------------------------------------------------------
 
 _NUMBERED_STEPS = """# Deploying a Model to Production
