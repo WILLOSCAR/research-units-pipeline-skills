@@ -248,7 +248,7 @@ def test_evaluator_issues_are_path_safe_secret_safe_and_bounded() -> None:
     raw_issues = tuple(
         (
             f"quality_{index}: failed at "
-            f"'/Users/bytedance/Documents/private repo/output/{index}.json' "
+            f"'/Users/example/Documents/private repo/output/{index}.json' "
             f"token=tok-{index} password: 'pw-{index}' "
             f'api_key="key-{index}" secret=secret-{index} ' + "x" * 1_200
         )
@@ -266,7 +266,7 @@ def test_evaluator_issues_are_path_safe_secret_safe_and_bounded() -> None:
     assert all(len(issue) <= 1_000 for issue in evidence.issues)
     assert evidence.issues[0].startswith("quality_0:")
     joined = "\n".join(evidence.issues)
-    assert "/Users/bytedance" not in joined
+    assert "/Users/example" not in joined
     assert "tok-" not in joined
     assert "pw-" not in joined
     assert "key-" not in joined
@@ -298,7 +298,7 @@ def test_evaluator_issues_are_path_safe_secret_safe_and_bounded() -> None:
         )
     )
     persisted = blocked.run.attempts[-1].message
-    assert "/Users/bytedance" not in persisted
+    assert "/Users/example" not in persisted
     assert all(value not in persisted for value in ("tok-", "pw-", "key-", "secret-"))
     assert len(persisted) <= 16 * 1_002
 

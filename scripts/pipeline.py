@@ -545,6 +545,14 @@ def _execute_command(args: argparse.Namespace) -> int:
         report = render_run_audit_diff_report(payload)
         if args.write:
             output_dir = after_path.parent
+            # `audit-diff` takes no --workspace and so skips the Workspace lock,
+            # but --write still creates files next to the --after report. Apply
+            # the same refusal the locked commands get, or the one unlocked
+            # command becomes a way to write into a current-harness Workspace.
+            # The report normally sits in <workspace>/output, so check the
+            # parent too rather than only the directory being written to.
+            _require_no_current_harness_state(output_dir)
+            _require_no_current_harness_state(output_dir.parent)
             report_path = write_run_audit_diff_report(output_dir=output_dir, report=report)
             json_path = write_run_audit_diff_json(output_dir=output_dir, payload=payload)
             print(f"Wrote {report_path}")

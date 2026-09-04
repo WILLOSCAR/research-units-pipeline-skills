@@ -39,6 +39,20 @@ from tooling.product_cli import main as legacy_cli_main
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _run_audit_payload(workspace: Path) -> dict:
+    """Build a schema-valid run-audit.v2 payload for `workspace`.
+
+    Hand-writing one is impractical — the schema has a deeply nested required
+    shape, and an invalid payload makes `audit-diff` exit before it reaches the
+    write path, which would make the guard look effective when it is not.
+    """
+    from tooling.harness import build_run_audit_payload, validate_run_audit_payload
+
+    _, payload = build_run_audit_payload(workspace=workspace, repo_root=REPO_ROOT)
+    assert validate_run_audit_payload(payload) == [], "fixture payload must be valid"
+    return payload
+
+
 def _create_current_case(
     workspace: Path,
     *,
@@ -747,3 +761,78 @@ def test_legacy_product_cli_refuses_a_current_workspace(
     assert "legacy pipeline CLI will not inspect or mutate it" in direct.stderr
     assert state.read_bytes() == before
     assert not (workspace / ".harness").exists()
+
+
+# The guard is six independently written copies of the same condition, one per
+# legacy subcommand that touches a Workspace. Testing only one of them would let
+# a copy-paste omission in any of the other five through with a green suite.
+@pytest.mark.parametrize(
+    "argv",
+    [
+        pytest.param(["goal", "create", "--goal", "a topic", "--workspace"], id="goal-create"),
+        pytest.param(["run", "start", "--workspace"], id="run-start"),
+        pytest.param(["run", "resume", "--workspace"], id="run-resume"),
+        pytest.param(["run", "status", "--workspace"], id="run-status"),
+        pytest.param(
+            ["run", "approve", "--checkpoint", "C0", "--workspace"], id="run-approve"
+        ),
+        pytest.param(["evidence", "inspect", "--workspace"], id="evidence-inspect"),
+        pytest.param(["improve", "diagnose", "--workspace"], id="improve-diagnose"),
+    ],
+)
+def test_every_legacy_subcommand_refuses_a_current_workspace(
+    tmp_path: Path,
+    argv: list[str],
+) -> None:
+    workspace = tmp_path / "current"
+    _create_current_case(workspace, case_id="guard-case")
+    state = workspace / ".harness-v3" / "state.json"
+    before = state.read_bytes()
+
+    exit_code = legacy_cli_main([*argv, str(workspace)])
+
+    assert exit_code == 2, argv
+    assert state.read_bytes() == before, argv
+    assert not (workspace / ".harness").exists(), argv
+
+
+def test_audit_diff_write_refuses_a_current_workspace(tmp_path: Path) -> None:
+    """`audit-diff` skips the Workspace lock, so its --write needs its own guard.
+
+    It is the one command outside `LOCKED_WORKSPACE_COMMANDS`, and it derives its
+    output directory from the --after report rather than a --workspace flag. Both
+    reports are written into `<workspace>/output`, so without an explicit check
+    the unlocked command writes into a Workspace every locked command refuses.
+    """
+    workspace = tmp_path / "current"
+    _create_current_case(workspace, case_id="audit-diff-case")
+    output = workspace / "output"
+    output.mkdir(parents=True, exist_ok=True)
+
+    payload_path = output / "RUN_AUDIT.json"
+    before_path = tmp_path / "before.json"
+    sample = _run_audit_payload(workspace)
+    payload_path.write_text(json.dumps(sample), encoding="utf-8")
+    before_path.write_text(json.dumps(sample), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "pipeline.py"),
+            "audit-diff",
+            "--before",
+            str(before_path),
+            "--after",
+            str(payload_path),
+            "--write",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1, result.stdout
+    assert "legacy pipeline CLI will not inspect or mutate it" in result.stderr
+    assert not (output / "RUN_AUDIT_DIFF.md").exists()
+    assert not (output / "RUN_AUDIT_DIFF.json").exists()
