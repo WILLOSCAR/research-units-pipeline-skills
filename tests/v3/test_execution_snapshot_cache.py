@@ -1,6 +1,6 @@
 """Unit tests for the execution-snapshot process-scoped validation cache.
 
-These pin the cycle-13 latency optimization: a second `materialize_execution_snapshot`
+These pin the latency optimization: a second `materialize_execution_snapshot`
 call for an already-materialized `(target, revision)` skips the redundant
 byte-level re-hash when the read-only tree's stat fingerprint is unchanged, but
 STILL detects tampering (fingerprint drift falls back to full validation), and a

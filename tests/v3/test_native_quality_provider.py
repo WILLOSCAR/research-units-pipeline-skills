@@ -2,9 +2,9 @@
 
 ``NativeQualityProvider`` is the tooling-free step behind the
 ``QualityCheckProvider`` Port.  It answers registry introspection from native
-constant tables and reimplements the self-contained semantic checks
-(``citation-injector``, ``deliverable-selfloop``, ``artifact-contract-auditor``,
-and ``beamer-compile-qa``), delegating everything else to the legacy adapter.
+constant tables and reimplements every registered semantic check -- the
+self-contained ones directly, the rest through the Workspace policy Port --
+so nothing is delegated to the legacy adapter at runtime.
 These tests lock in:
 
 - Port conformance (``isinstance`` of the runtime-checkable Protocol);
@@ -573,8 +573,8 @@ def _seed_native_pass_outputs(workspace: Path) -> None:
 def test_native_matches_legacy_for_every_registered_skill(tmp_path: Path) -> None:
     """Cutover-safety proof: selecting native is byte-identical to legacy.
 
-    For *every* registered skill (the four native ones + all delegated ones),
-    both ``check_unit_outputs`` and ``check_completion_invariants`` must return
+    For *every* registered skill, both ``check_unit_outputs`` and
+    ``check_completion_invariants`` must return
     the same (code, message) pairs as the legacy provider -- under an empty
     workspace and under one seeded with PASS-state native outputs. This is the
     evidence that flipping ``default_quality_provider`` to native is safe: no
@@ -1085,10 +1085,8 @@ def test_native_arxiv_search_consumes_injected_policy_minimum_records() -> None:
 # These three checks complete native coverage of tooling.quality_checks.
 # survey_retrieval. Each is exercised through a REAL workspace (both providers
 # on the default legacy policy reader), so policy resolves identically and any
-# divergence is in the check's own logic. A local randomized
-# comparison harness additionally sweeps thousands of generated
-# workspaces per skill; these pin the branch-critical cases as regression
-# evidence.
+# divergence is in the check's own logic. These pin the branch-critical cases
+# as regression evidence.
 
 
 def _survey_ws(tmp_path: Path, name: str, *, profile: str = "default") -> Path:
@@ -1829,9 +1827,8 @@ def test_native_tutorial_selfloop_stale(tmp_path: Path) -> None:
 #
 # All six checks resolve the ideation contract through the WorkspacePolicyPort
 # (has_pipeline_contract + resolve_idea_contract), both legacy-backed, so the
-# contract is byte-identical on each side. `_both` asserts native == legacy. A
-# randomized comparison sweeps thousands of generated ideation
-# workspaces; these pin the branch-critical cases as regression evidence.
+# contract is byte-identical on each side. `_both` asserts native == legacy.
+# These pin the branch-critical cases as regression evidence.
 
 
 def _idea_ws(tmp_path: Path, name: str, *, resolvable: bool = True) -> Path:
