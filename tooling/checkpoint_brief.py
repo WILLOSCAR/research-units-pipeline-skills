@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
@@ -168,7 +169,163 @@ def _summarize_artifact(workspace: Path, relpath: str) -> str:
         return _summarize_outline_state(path, relpath)
     if relpath == "output/REROUTE_STATE.json":
         return _summarize_reroute_state(path, relpath)
+    if relpath == "output/TUTORIAL_SPEC.md":
+        return _summarize_tutorial_spec(path, relpath)
+    if relpath == "outline/concept_graph.yml":
+        return _summarize_concept_graph(path, relpath)
+    if relpath == "outline/module_plan.yml":
+        return _summarize_module_plan(path, relpath)
+    if relpath == "outline/source_coverage.jsonl":
+        return _summarize_source_coverage(path, relpath)
     return _summarize_generic_file(path, relpath)
+
+
+def _summarize_tutorial_spec(path: Path, relpath: str) -> str:
+    """Surface the tutorial's SCOPE: title, learning-objective and concept counts,
+    and the concept list — so a maintainer sees what the tutorial teaches, not a
+    byte count."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception as exc:  # noqa: BLE001
+        return f"- `{relpath}`: unreadable ({type(exc).__name__}: {exc})"
+    title = ""
+    section = ""
+    objectives: list[str] = []
+    concepts: list[str] = []
+    for raw in lines:
+        line = raw.rstrip()
+        if line.startswith("# ") and not title:
+            title = line[2:].strip()
+            continue
+        if line.startswith("## "):
+            section = line[3:].strip().lower()
+            continue
+        item = line.strip()
+        if item.startswith("- "):
+            body = item[2:].strip()
+            if section == "learning objectives":
+                objectives.append(body)
+            elif section == "core concepts" and body:
+                # concept bullets render as "`id` Title - summary ..."; keep the
+                # human-readable title so the reviewer sees WHAT is taught.
+                concepts.append(re.sub(r"^`[^`]*`\s*", "", body).split(" - ", 1)[0].strip())
+    out = [
+        f"- `{relpath}`: scope=\"{title}\"; learning-objectives={len(objectives)}, core-concepts={len(concepts)}"
+    ]
+    # Enumerate the objectives (the tutorial's promised learner outcomes) so the
+    # maintainer can review the intent, not just its count.
+    for objective in objectives[:6]:
+        if objective:
+            out.append(f"  - objective: {objective}")
+    if len(objectives) > 6:
+        out.append(f"  - ... {len(objectives) - 6} more objective(s)")
+    for name in concepts[:8]:
+        if name:
+            out.append(f"  - concept: {name}")
+    if len(concepts) > 8:
+        out.append(f"  - ... {len(concepts) - 8} more concept(s)")
+    return "\n".join(out)
+
+
+def _summarize_concept_graph(path: Path, relpath: str) -> str:
+    """Surface concept-graph shape: node/edge counts and whether any node is
+    isolated (no prerequisite edge), a structural gap a reviewer must see."""
+    try:
+        import yaml
+
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:  # noqa: BLE001
+        return f"- `{relpath}`: unreadable ({type(exc).__name__}: {exc})"
+    nodes = data.get("nodes") if isinstance(data, dict) else None
+    edges = data.get("edges") if isinstance(data, dict) else None
+    nodes = nodes if isinstance(nodes, list) else []
+    edges = edges if isinstance(edges, list) else []
+    title_by_id = {
+        str(n.get("id") or "").strip(): str(n.get("title") or n.get("id") or "").strip()
+        for n in nodes
+        if isinstance(n, dict) and str(n.get("id") or "").strip()
+    }
+    node_ids = set(title_by_id)
+    linked: set[str] = set()
+    edge_pairs: list[tuple[str, str]] = []
+    for edge in edges:
+        if isinstance(edge, dict):
+            src_id = str(edge.get("source") or edge.get("from") or "").strip()
+            dst_id = str(edge.get("target") or edge.get("to") or "").strip()
+            for val in (src_id, dst_id):
+                if val:
+                    linked.add(val)
+            if src_id and dst_id:
+                edge_pairs.append((src_id, dst_id))
+    isolated = sorted(node_ids - linked)
+    out = [f"- `{relpath}`: concepts={len(nodes)}, prerequisite-edges={len(edges)}"]
+    # Enumerate the prerequisite ordering so a reviewer can check the sequencing,
+    # not just its count.
+    for src_id, dst_id in edge_pairs[:8]:
+        out.append(f"  - {title_by_id.get(src_id, src_id)} -> {title_by_id.get(dst_id, dst_id)}")
+    if len(edge_pairs) > 8:
+        out.append(f"  - ... {len(edge_pairs) - 8} more prerequisite edge(s)")
+    if isolated:
+        names = ", ".join(title_by_id.get(i, i) for i in isolated[:5])
+        out.append(f"  - isolated (no prerequisite link)={len(isolated)}: {names}")
+    return "\n".join(out)
+
+
+def _summarize_module_plan(path: Path, relpath: str) -> str:
+    """Surface module structure: count, titles, and concepts-per-module — so a
+    reviewer can judge sequencing and coverage without opening the plan."""
+    try:
+        import yaml
+
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:  # noqa: BLE001
+        return f"- `{relpath}`: unreadable ({type(exc).__name__}: {exc})"
+    modules = data.get("modules") if isinstance(data, dict) else None
+    modules = [m for m in (modules or []) if isinstance(m, dict)]
+    out = [f"- `{relpath}`: modules={len(modules)}"]
+    for module in modules[:8]:
+        mid = str(module.get("id") or "").strip()
+        title = str(module.get("title") or "").strip()
+        n_concepts = len(module.get("concepts") or [])
+        out.append(f"  - {mid}: {title} (concepts={n_concepts})")
+    if len(modules) > 8:
+        out.append(f"  - ... {len(modules) - 8} more module(s)")
+    return "\n".join(out)
+
+
+def _summarize_source_coverage(path: Path, relpath: str) -> str:
+    """Surface grounding coverage: module→source mappings, per-module gaps, and
+    any ingested-but-unused source from the corpus-reconciliation record."""
+    try:
+        records = _read_jsonl(path)
+    except (OSError, ValueError) as exc:
+        return f"- `{relpath}`: unreadable ({type(exc).__name__}: {exc})"
+    module_records = [r for r in records if isinstance(r, dict) and r.get("module_id")]
+    recon = [
+        r for r in records
+        if isinstance(r, dict) and str(r.get("record_type") or "") == "corpus_reconciliation"
+    ]
+    modules_with_gaps = sum(1 for r in module_records if r.get("gaps"))
+    out = [
+        f"- `{relpath}`: modules-covered={len(module_records)}, "
+        f"modules-with-gaps={modules_with_gaps}"
+    ]
+    for record in module_records[:8]:
+        mid = str(record.get("module_id") or "").strip()
+        sources = ", ".join(str(s).strip() for s in record.get("source_ids") or [] if str(s).strip())
+        gap_note = " [GAP]" if record.get("gaps") else ""
+        out.append(f"  - {mid}: sources=[{sources}]{gap_note}")
+    if len(module_records) > 8:
+        out.append(f"  - ... {len(module_records) - 8} more module(s)")
+    if recon:
+        unused = [str(s).strip() for s in recon[0].get("unused_source_ids") or [] if str(s).strip()]
+        out.append(
+            f"  - corpus reconciliation: ingested-but-unused sources="
+            + (", ".join(unused) if unused else "none")
+        )
+    else:
+        out.append("  - corpus reconciliation: MISSING (cannot confirm every source is used)")
+    return "\n".join(out)
 
 
 def _summarize_core_set(path: Path, relpath: str) -> str:

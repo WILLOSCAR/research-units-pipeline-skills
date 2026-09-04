@@ -409,7 +409,11 @@ def check_module_source_coverage(workspace: Path, outputs: list[str]) -> list[Qu
     bad = 0
     unknown_sources: set[str] = set()
     record_ids: list[str] = []
+    reconciliation_records: list[dict] = []
     for rec in records:
+        if isinstance(rec, dict) and str(rec.get("record_type") or "").strip() == "corpus_reconciliation":
+            reconciliation_records.append(rec)
+            continue
         if not isinstance(rec, dict) or not rec.get("module_id"):
             bad += 1
             continue
@@ -441,6 +445,68 @@ def check_module_source_coverage(workspace: Path, outputs: list[str]) -> list[Qu
                 ),
             )
         )
+    # Corpus-level reconciliation must be present and honest: it names every
+    # ingested source and any that no module used. A per-module audit alone
+    # cannot surface a source that contributed to zero modules, so without this
+    # record an unused ingested source is silently dropped (all module rows read
+    # `gaps: []`) and a checkpoint reader over-reads coverage as complete.
+    if not reconciliation_records:
+        issues.append(
+            QualityIssue(
+                code="source_coverage_missing_reconciliation",
+                message=(
+                    "Missing a `corpus_reconciliation` record; coverage cannot show whether "
+                    "every ingested source contributed to a module."
+                ),
+            )
+        )
+    elif len(reconciliation_records) > 1:
+        issues.append(
+            QualityIssue(
+                code="source_coverage_duplicate_reconciliation",
+                message=f"`{out_rel}` has {len(reconciliation_records)} `corpus_reconciliation` records; expected exactly one.",
+            )
+        )
+    else:
+        recon = reconciliation_records[0]
+        ingested = [str(sid or "").strip() for sid in recon.get("ingested_source_ids") or [] if str(sid or "").strip()]
+        attributed = {str(sid or "").strip() for sid in recon.get("attributed_source_ids") or [] if str(sid or "").strip()}
+        declared_unused = [str(sid or "").strip() for sid in recon.get("unused_source_ids") or [] if str(sid or "").strip()]
+        recon_gaps = [str(item or "").strip() for item in recon.get("gaps") or [] if str(item or "").strip()]
+        expected_unused = [sid for sid in ingested if sid not in attributed]
+        missing_ingested = sorted(backed_source_ids - set(ingested))
+        if missing_ingested:
+            issues.append(
+                QualityIssue(
+                    code="source_coverage_reconciliation_incomplete",
+                    message=(
+                        "`corpus_reconciliation` omits successfully ingested source(s): "
+                        + ", ".join(missing_ingested)
+                        + "."
+                    ),
+                )
+            )
+        if sorted(declared_unused) != sorted(expected_unused):
+            issues.append(
+                QualityIssue(
+                    code="source_coverage_reconciliation_unused_mismatch",
+                    message=(
+                        "`corpus_reconciliation` unused_source_ids "
+                        f"{sorted(declared_unused)} != ingested-minus-attributed {sorted(expected_unused)}."
+                    ),
+                )
+            )
+        if expected_unused and not recon_gaps:
+            issues.append(
+                QualityIssue(
+                    code="source_coverage_unused_source_not_flagged",
+                    message=(
+                        "Ingested source(s) contributed to no module ("
+                        + ", ".join(sorted(expected_unused))
+                        + ") but `corpus_reconciliation.gaps` is empty."
+                    ),
+                )
+            )
     plan_path = workspace / "outline" / "module_plan.yml"
     if not plan_path.exists() or plan_path.stat().st_size == 0:
         issues.append(

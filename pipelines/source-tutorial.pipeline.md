@@ -63,7 +63,7 @@ stages:
   C2:
     title: Pedagogical structure
     mode: no_prose
-    required_skills: [source-tutorial-spec, concept-graph, module-planner, exercise-builder, module-source-coverage, tutorial-context-pack, human-checkpoint]
+    required_skills: [source-tutorial-spec, concept-graph, module-planner, exercise-builder, module-source-coverage, tutorial-context-pack, checkpoint-brief, human-checkpoint]
     optional_skills: []
     produces: [output/TUTORIAL_SPEC.md, outline/concept_graph.yml, outline/module_plan.yml, outline/source_coverage.jsonl, outline/tutorial_context_packs.jsonl, DECISIONS.md]
     human_checkpoint:
