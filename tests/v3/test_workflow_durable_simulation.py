@@ -47,7 +47,7 @@ def test_workflow_reaches_completion_across_filesystem_restarts(
     plan = plan_from_workflow(
         workflow,
         goal_id=f"goal-{workflow_name}",
-        request="Exercise durable next-engine contract reachability",
+        request="Exercise durable typed-engine contract reachability",
     )
     workspace = tmp_path / "workspace"
     workspace.mkdir()

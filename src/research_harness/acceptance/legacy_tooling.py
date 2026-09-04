@@ -43,11 +43,10 @@ from .workspace_policy import WorkspacePolicyPort
 _QUALITY_PROVIDER_ENV_VAR = "RESEARCH_HARNESS_QUALITY_PROVIDER"
 
 #: The provider selected when no valid opt-in is present.  Now ``native``:
-#: every registered quality check has a byte-for-byte native equivalent (proven
-#: by the 68-skill equivalence sweep, differential fuzzing, and per-module
-#: adversarial audits), so the native provider is the default runtime backend.
+#: every registered quality check has a byte-for-byte native equivalent, pinned
+#: by parity tests, so the native provider is the default runtime backend.
 #: Set ``RESEARCH_HARNESS_QUALITY_PROVIDER=legacy`` to revert to the transitional
-#: ``tooling.quality_gate`` adapter (the escape hatch is retained for one release).
+#: ``tooling.quality_gate`` adapter.
 _DEFAULT_PROVIDER_CHOICE = "native"
 
 #: The full set of recognized selector values.

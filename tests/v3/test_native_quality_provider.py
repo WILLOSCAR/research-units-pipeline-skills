@@ -1084,8 +1084,8 @@ def test_native_arxiv_search_consumes_injected_policy_minimum_records() -> None:
 # These three checks complete native coverage of tooling.quality_checks.
 # survey_retrieval. Each is exercised through a REAL workspace (both providers
 # on the default legacy policy reader), so policy resolves identically and any
-# divergence is in the check's own logic. A companion differential fuzzer
-# (.scratch/parity_fuzz.py, git-excluded) sweeps thousands of randomized
+# divergence is in the check's own logic. A local randomized
+# comparison harness additionally sweeps thousands of generated
 # workspaces per skill; these pin the branch-critical cases as regression
 # evidence.
 
@@ -1517,7 +1517,7 @@ def test_native_latex_compile_qa_pass(tmp_path: Path) -> None:
 # All six checks are self-contained (no workspace policy). Each is exercised
 # through a real workspace with backing files so the index/provenance grounding
 # join can succeed; `_both` asserts native == legacy. A companion differential
-# fuzzer (.scratch/parity_fuzz.py) sweeps thousands of randomized source-tutorial
+# randomized comparison sweeps thousands of generated source-tutorial
 # workspaces; these pin the branch-critical cases as regression evidence.
 
 
@@ -1830,7 +1830,7 @@ def test_native_tutorial_selfloop_stale(tmp_path: Path) -> None:
 # All six checks resolve the ideation contract through the WorkspacePolicyPort
 # (has_pipeline_contract + resolve_idea_contract), both legacy-backed, so the
 # contract is byte-identical on each side. `_both` asserts native == legacy. A
-# companion differential fuzzer sweeps thousands of randomized ideation
+# randomized comparison sweeps thousands of generated ideation
 # workspaces; these pin the branch-critical cases as regression evidence.
 
 

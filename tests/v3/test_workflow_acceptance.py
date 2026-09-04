@@ -621,8 +621,9 @@ def test_repository_factory_rejects_uncovered_required_skill(
         repo_root / "pipelines" / "paper-review.pipeline.md",
         repo_root=repo_root,
     )
+    # `claims-extractor` carries no completion invariant by default, so an
+    # empty registry alone makes it an uncovered required Skill.
     monkeypatch.setattr(quality_gate, "registered_quality_skills", lambda: frozenset())
-    monkeypatch.setattr(quality_gate, "has_completion_invariant", lambda skill: False)
 
     with pytest.raises(ValueError, match="claims-extractor"):
         build_repository_acceptance_policy(
@@ -654,7 +655,6 @@ def test_repository_quality_diagnostics_are_deterministically_bounded(
     monkeypatch.setattr(
         quality_gate, "check_completion_invariants", lambda **kwargs: issues
     )
-    monkeypatch.setattr(quality_gate, "check_unit_outputs", lambda **kwargs: [])
     policy = build_repository_acceptance_policy(
         workflows=(workflow,),
         workspace_for_run=lambda run_id: tmp_path,

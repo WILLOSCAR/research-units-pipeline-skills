@@ -1,1 +1,1 @@
-"""Shared fixtures for next-engine behavioral conformance tests."""
+"""Shared fixtures for typed-engine behavioral conformance tests."""

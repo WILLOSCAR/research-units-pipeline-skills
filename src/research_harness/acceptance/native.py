@@ -39,8 +39,7 @@ adapter is the only module in ``research_harness`` that wraps ``tooling``
 The native tables and checks are kept honest by the Port parity tests, which
 assert the registry equals the legacy provider's and pin every native check
 to byte-for-byte parity (codes + messages + issue order + exception behavior)
-with its legacy counterpart, reinforced by a differential fuzzer and
-per-module adversarial audits.
+with its legacy counterpart.
 """
 
 from __future__ import annotations
