@@ -179,7 +179,20 @@ def _novelty_dimension(claims: list[dict[str, Any]], rows: list[dict[str, str]])
         for row in rows
         if _clean(row.get("related_work")) and "unavailable" not in _clean(row.get("related_work"))
     }
-    passed = bool(claim_ids) and covered == claim_ids and len(related_works) >= 5 and not unavailable
+    # Novelty is adequately positioned when EVERY claim is mapped to a related
+    # work (with overlap/delta/evidence), no rows are unavailable, and the claims
+    # are positioned against a genuinely distinct set of prior works. The distinct
+    # count must be a floor that rejects thin positioning (1-2 works) WITHOUT
+    # punishing a concise but fully-positioned manuscript: a real paper may build
+    # on only 3-4 foundational works, so an arbitrary >=5 wrongly blocked the
+    # entire referee report for such papers. Gate on positioning completeness plus
+    # a >=3-distinct-works floor.
+    passed = (
+        bool(claim_ids)
+        and covered == claim_ids
+        and len(related_works) >= 3
+        and not unavailable
+    )
     return _dimension(
         "novelty_positioning",
         "Novelty positioning",
@@ -224,8 +237,17 @@ def _review_dimension(review_text: str, gaps: list[dict[str, Any]]) -> dict[str,
 
 
 def _recommendation_dimension(review_text: str, gaps: list[dict[str, Any]]) -> dict[str, Any]:
-    match = re.search(r"(?im)^-\s*(strong_accept|accept|weak_accept|borderline|weak_reject|reject|strong_reject)\s*$", review_text)
-    recommendation = match.group(1).lower() if match else ""
+    # The Recommendation line is reader-facing prose ("Weak accept: no major
+    # concerns, ..." / "Weak reject: N major concern(s) must be resolved ...").
+    # Parse the leading verdict phrase into the enum; still accept a legacy bare
+    # enum line ("- weak_accept") for hand-authored fixtures.
+    recommendation = ""
+    prose = re.search(r"(?im)^-\s*(weak accept|weak reject|strong accept|strong reject|accept|reject|borderline)\b", review_text)
+    if prose:
+        recommendation = prose.group(1).lower().replace(" ", "_")
+    else:
+        bare = re.search(r"(?im)^-\s*(strong_accept|accept|weak_accept|borderline|weak_reject|reject|strong_reject)\s*$", review_text)
+        recommendation = bare.group(1).lower() if bare else ""
     has_major = any(_clean(gap.get("severity")) in {"major", "critical"} for gap in gaps)
     inconsistent = has_major and recommendation in {"strong_accept", "accept", "weak_accept"}
     return _dimension(

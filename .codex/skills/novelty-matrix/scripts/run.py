@@ -43,7 +43,7 @@ def main() -> int:
     from tooling.common import read_jsonl, write_tsv
     from tooling.review_artifacts import write_text
     from tooling.review_render import render_novelty_matrix_markdown
-    from tooling.review_text import extract_related_works, parse_item_blocks
+    from tooling.review_text import extract_related_works, parse_item_blocks, related_work_delta
 
     workspace = Path(args.workspace).resolve()
     claims_path = workspace / "output" / "CLAIMS.md"
@@ -75,15 +75,23 @@ def main() -> int:
     else:
         for claim in claims:
             for work in works[:5]:
+                # Prefer the manuscript's OWN stated overlap/delta for this work
+                # (the Related Work prose often says "the delta over X is Y")
+                # rather than identical boilerplate on every row.
+                stated_overlap, stated_delta = related_work_delta(paper_text, work)
                 rows.append(
                     {
                         "schema": "review-novelty-row.v1",
                         "claim_id": claim.get("claim_id", claim.get("id", "")),
                         "claim": claim.get("text", claim.get("claim", "")),
                         "related_work": work,
-                        "overlap": "adjacent problem setting",
-                        "delta": "claimed method delta requires verification",
-                        "evidence": "manuscript claim + cited related work",
+                        "overlap": stated_overlap or "adjacent problem setting",
+                        "delta": stated_delta or "no explicit delta stated in the manuscript; verify against this work",
+                        "evidence": (
+                            "manuscript related-work section"
+                            if (stated_overlap or stated_delta)
+                            else "manuscript claim + cited related work"
+                        ),
                     }
                 )
     write_tsv(

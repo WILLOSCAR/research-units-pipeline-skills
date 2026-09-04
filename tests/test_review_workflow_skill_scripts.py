@@ -382,6 +382,80 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
         self.assertNotIn("supports collecting robot demonstrations", text)
         self.assertNotIn("propose to do so", text)
 
+    def _brief_risks_section(self, text: str) -> str:
+        """Return the text of the '## Open problems / risks' section."""
+        marker = "## Open problems / risks"
+        self.assertIn(marker, text)
+        tail = text.split(marker, 1)[1]
+        # section runs until the next H2 or EOF
+        return tail.split("\n## ", 1)[0]
+
+    def test_research_brief_risks_vary_with_topic(self) -> None:
+        """The risks section must be topic-derived, not hardcoded boilerplate.
+
+        Two disjoint topics (embodied robotics vs clinical NLP) must not yield a
+        byte-identical risks section, and neither brief may inject the other
+        domain's vocabulary. This pins the anti-template / cross-topic-diversity
+        property for the reader-facing Open-problems section (frontier: remove
+        mechanical structure and template residue).
+        """
+
+        embodied = render_research_brief_markdown(
+            goal="# Goal\n\nReliable adaptation of embodied agents under distribution shift.",
+            papers=[
+                {
+                    "paper_id": f"P{idx:04d}",
+                    "title": f"Embodied Robotic Agents: Sim-To-Real Transfer Study {idx}",
+                    "url": f"https://arxiv.org/abs/2501.{idx:05d}",
+                    "abstract": (
+                        "We study sim-to-real transfer for embodied robotic agents. "
+                        "A controlled evaluation reports a 12% reduction in task-failure "
+                        "rate under shifted dynamics. The main limitation is that method "
+                        "and data budget vary together, confounding attribution."
+                    ),
+                }
+                for idx in range(1, 7)
+            ],
+            sections=["Problem Settings & Embodiment", "Model & Policy Architectures", "Evaluation", "Safety & Deployment"],
+        )
+        clinical = render_research_brief_markdown(
+            goal="# Goal\n\nTrustworthy clinical note summarization with large language models.",
+            papers=[
+                {
+                    "paper_id": f"P{idx:04d}",
+                    "title": f"Clinical Language Models: Abstractive Summarization Study {idx}",
+                    "url": f"https://arxiv.org/abs/2502.{idx:05d}",
+                    "abstract": (
+                        "We study abstractive summarization for clinical language models. "
+                        "A controlled evaluation reports an 8-point gain in factual-consistency "
+                        "score vs chart review. The main limitation is that method and data "
+                        "budget vary together, confounding attribution."
+                    ),
+                }
+                for idx in range(1, 7)
+            ],
+            sections=["Clinical", "Language", "Abstractive", "Coding"],
+        )
+
+        embodied_risks = self._brief_risks_section(embodied)
+        clinical_risks = self._brief_risks_section(clinical)
+
+        # (a) the risks section is not byte-identical across unrelated topics
+        self.assertNotEqual(
+            embodied_risks.strip(),
+            clinical_risks.strip(),
+            "Open problems / risks section is identical across disjoint topics "
+            "(hardcoded boilerplate / template residue).",
+        )
+        # (b) neither brief injects the other domain's comparison-lens vocabulary
+        self.assertNotIn("safety", clinical_risks.lower())
+        self.assertNotIn("transfer", clinical_risks.lower())
+        self.assertNotIn("clinical", embodied_risks.lower())
+        # (c) each risks section still keeps the honest, genuinely-universal caveats
+        for risks in (embodied_risks, clinical_risks):
+            self.assertIn("selected set is deliberately compact", risks)
+            self.assertIn("Abstract-level descriptions", risks)
+
     def test_style_certification_adapters_block_until_writer_report_is_clean(self) -> None:
         cases = {
             "style-harmonizer": "sections/style_harmonized.refined.ok",
@@ -726,7 +800,8 @@ class ReviewWorkflowSkillScriptTests(unittest.TestCase):
             review = (workspace / "output" / "REVIEW.md").read_text(encoding="utf-8")
             self.assertIn("### Summary", review)
             self.assertIn("### Recommendation", review)
-            self.assertIn("weak_reject", review)
+            # The recommendation is reader-facing prose; a major gap -> "Weak reject".
+            self.assertIn("Weak reject", review)
 
     def test_protocol_writer_generates_operational_protocol(self) -> None:
         script = REPO_ROOT / ".codex" / "skills" / "protocol-writer" / "scripts" / "run.py"
