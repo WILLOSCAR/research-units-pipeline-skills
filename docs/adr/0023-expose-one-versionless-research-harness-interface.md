@@ -3,6 +3,14 @@
 - Status: accepted
 - Date: 2026-08-11
 
+> Amended by [ADR 0025](0025-make-the-self-correcting-run-the-product-object.md).
+> The decision to expose exactly one versionless interface stands, but the names
+> below were overtaken: the package exports the `Loop*` surface with `Start`,
+> `Continue`, and `Decide`, not `ResearchHarness` with `Create`, `Advance`,
+> `Approve`, `Recover`, and `RunSnapshot`. Those orchestration commands became
+> private implementation language. Read this ADR for why one interface exists;
+> read ADR 0025 and `CONTEXT.md` for what it is called.
+
 ## Context
 
 The typed Workflow, domain, storage, Skill, acceptance, and local-engine Modules

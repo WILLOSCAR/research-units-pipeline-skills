@@ -23,7 +23,8 @@ choices instead of reducing the product Interface.
 ## Decision
 
 Make the **Case** the target public object. Use the domain language in
-[`CONTEXT.md`](../../CONTEXT.md):
+[`CONTEXT.md`](../../CONTEXT.md) — which now carries ADR 0025's Loop glossary,
+the Case terms below having been retired with this decision:
 
 - a material **Claim** is explicitly related to **Evidence** as `supports`,
   `challenges`, or `qualifies`;
