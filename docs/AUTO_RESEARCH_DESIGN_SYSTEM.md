@@ -1,6 +1,6 @@
 # Research Loop Architecture
 
-Research Harness keeps a bounded body of research work inspectable, replayable,
+Research Harness keeps a bounded body of research work inspectable, recoverable,
 and correctable while the Goal, Evidence, and human Decisions change. The unit
 of trust is the Loop, not the answer.
 
@@ -185,18 +185,22 @@ migration implementation. No adapter may advance canonical state independently.
 For a current Run Workspace, `.harness-v3/state.json` is the sole mutable
 authority. It stays Run-shaped because this phase changes the public object
 without reinterpreting execution history. The state and event shapes are pinned
-by machine contracts kept verbatim: `goal-spec.v2`, `run-state.v1`,
-`harness-lock.v1`, `harness-lock.v2`, `run-event.v1`, `unit-attempt.v1`,
-`run-decision.v1`, `checkpoint-review-basis.v1`, `artifact-record.v1`,
-`failure-record.v1`, `run-evaluation.v1`, and `unit-output-manifest.v1`.
+by machine contracts. The current engine writes
+`research-harness.run-aggregate/v1` and `research-harness.completion-manifest/v1`
+into `.harness-v3`, and reads its Workflow snapshot through
+`research-harness.workflow-snapshot/v1` and `/v2`. The legacy `.harness`
+contracts — `goal-spec.v2`, `run-state.v1`, `harness-lock.v1`, `harness-lock.v2`,
+`run-event.v1`, `unit-attempt.v1`, `run-decision.v1`, `artifact-record.v1`,
+`failure-record.v1`, `run-evaluation.v1`, and `unit-output-manifest.v1` — are
+kept verbatim so an existing Workspace still reads.
+`checkpoint-review-basis.v1` spans both.
 
 Step snapshots, completion manifests, Artifact hashes, execution snapshots,
 process metadata, Markdown, reports, deliverables, and Run inspection are
 Evidence or projections. None is another state authority. A Workspace containing
 legacy `.harness` is inspection-only through the interface: it can be summarized
 without a live repository but is never silently upgraded or mixed with
-`.harness-v3` state, and the `workflow-snapshot/v1` and `workflow-snapshot/v2`
-snapshot contracts remain read-only there.
+`.harness-v3` state.
 
 ## 8. Skills And Workflows
 

@@ -122,10 +122,13 @@ state.
 A legacy Workspace containing `.harness` is read-only through the public
 Interface. Historical `goal-spec.v2`, `run-state.v1`, `run-event.v1`,
 `unit-attempt.v1`, `run-decision.v1`, `artifact-record.v1`, `failure-record.v1`,
-`run-evaluation.v1`, and `harness-readiness-audit.v1`/`v2` records keep their
-original meaning; the adapter may summarize them but must not reinterpret or
-upgrade them in place. The `harness-lock.v1`/`v2` and `workflow-snapshot/v1`/`v2`
-contracts pin an execution's inputs so a re-run can be compared against them.
+and `run-evaluation.v1` records keep their original meaning; the adapter may
+summarize them but must not reinterpret or upgrade them in place. The legacy
+`harness-lock.v1`/`v2` and the current `workflow-snapshot/v1`/`v2` contracts each
+pin an execution's inputs so a re-run can be compared against them.
+`harness-readiness-audit.v2` is neither: it is the current repository-level
+readiness report, emitted by `scripts/readiness_audit.py`, not a Workspace
+record.
 
 ## Three Quality Layers
 
