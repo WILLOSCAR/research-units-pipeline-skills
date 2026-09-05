@@ -304,6 +304,38 @@ def test_context_validation_reports_missing_terms(tmp_path: Path) -> None:
     assert "harness" in findings[0].message
 
 
+def test_project_language_validation_reports_missing_sections(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "PROJECT_LANGUAGE.md").write_text("# Project Language\n\nTODO.\n", encoding="utf-8")
+
+    findings = validate_repo._validate_project_language_doc(repo_root=tmp_path)
+
+    assert len(findings) == 1
+    assert findings[0].level == "WARN"
+    assert "`docs/PROJECT_LANGUAGE.md` is missing implementation-language sections" in findings[0].message
+    assert "Language Authority" in findings[0].message
+
+
+def test_project_language_validation_requires_headings_not_bare_text(tmp_path: Path) -> None:
+    """The section names must be headings, not merely present somewhere in the file.
+
+    A substring check passes for a document that concatenates every section name
+    on one line while carrying none of the content those sections name, which is
+    exactly the hollowing this gate exists to catch.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    flat = " ".join(validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS)
+    (docs / "PROJECT_LANGUAGE.md").write_text(f"# Project Language\n\n{flat}\n", encoding="utf-8")
+
+    findings = validate_repo._validate_project_language_doc(repo_root=tmp_path)
+
+    assert len(findings) == 1, findings
+    for section in validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS:
+        assert section in findings[0].message
+
+
 def test_readiness_audit_parses_iteration_progress() -> None:
     assert readiness_audit.parse_iteration_progress("- Iterations completed: 20 of at least 10\n") == (20, 10)
     assert readiness_audit.parse_iteration_progress("no count here") is None

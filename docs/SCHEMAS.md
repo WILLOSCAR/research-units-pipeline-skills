@@ -247,7 +247,7 @@ detection, Decisions bound to an exact revision, and read models derived from
 that revision — is a human-approved direction on the roadmap's Deferred list, not
 an active capability. Do not assign a versioned schema name to it until the
 Roadmap's correction-cost and reviewer-value gates justify a canonical write
-model. Self-evolution stays on that Horizon; the discipline here is
+model. Self-evolution stays on that list; the discipline here is
 self-**correct**, not self-evolve.
 
 SACM, PROV, RDF, RO-Crate, or nanopublication mappings belong in future Export

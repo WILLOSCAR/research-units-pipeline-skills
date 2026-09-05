@@ -121,5 +121,6 @@ A normalized evidence graph additionally requires:
 Until both sets of gates pass, keep Run, Unit, Attempt, and convergence
 internals private but durable, and keep the Loop projection a rendering rather
 than a second authority. Self-correction stays bounded and local, and
-self-evolution remains a deferred, human-approved Horizon — the term is
+self-evolution remains a human-approved direction on the roadmap's Deferred
+list — the term is
 self-correct, never self-evolve.

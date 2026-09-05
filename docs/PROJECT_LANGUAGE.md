@@ -69,20 +69,25 @@ Three pillars carry the product, and all three are grounded in current code.
 ## How the harness acts as referee
 
 This is the one part of the story we can point at line-by-line in code. The
-schema ids named below are the legacy Workspace records; the current engine
-performs the same four checks over `.harness-v3/state.json`. The harness:
+schema ids named below are the legacy Workspace records. Completion agreement
+and Decision staleness work the same way over `.harness-v3/state.json`; scorecard
+recomputation still runs through the legacy quality path, and the current engine
+detects tampering and recovers a prepared Completion rather than replaying a Run
+from its events. The harness:
 
-- **Recomputes scorecards.** It does not trust a self-reported verdict inside an
-  Artifact; it re-derives the `run-evaluation.v1` result from the evaluated
-  inputs.
+- **Checks the verdict against the evaluator.** A report must carry an exact
+  `Status: PASS` attestation, and the quality provider re-derives the scorecard
+  result from the evaluated inputs (`run-evaluation.v1` on the legacy path) —
+  the attestation alone never decides acceptance.
 - **Admits a step out of the Loop only on agreement.** A Unit reaches Completion
   only when its Attempt, required-check evidence, matching Artifacts, and
   `unit-output-manifest.v1` agree. Disagreement keeps the step in the Loop.
 - **Marks a Decision stale.** When the inputs a human reviewed change, the
   recorded `run-decision.v1` against its `checkpoint-review-basis.v1` is
   invalidated rather than silently inherited.
-- **Replays deterministically.** Content-addressed Evidence and durable
-  `run-event.v1` history let the engine reproduce a Run from its inputs.
+- **Detects divergence.** Content-addressed Evidence and an append-only event
+  history (`run-event.v1` on the legacy path) let the engine tell when stored
+  state no longer matches its inputs, and recover a prepared Completion.
 
 ## Private Implementation Language
 
@@ -98,7 +103,7 @@ performs the same four checks over `.harness-v3/state.json`. The harness:
 | Completion | Recoverable transaction that commits a Unit only when its Attempt, required Artifacts, Manifest, and acceptance evidence agree. It is the moment a step exits the Loop. |
 | Checkpoint | The engine's stop that requests a human Decision. The product view describes the choice, not a code such as `C2`. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and provenance (`unit-output-manifest.v1` on the legacy path); not necessarily a portable archive. |
-| Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts. A Run's own audit is `run-audit.v2`; `harness-readiness-audit.v1`/`v2` is the repository-level readiness report. Neither changes research content or Decisions. |
+| Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts. A Run's own audit is `run-audit.v2` on the legacy path; `harness-readiness-audit.v1`/`v2` is the repository-level readiness report. Neither changes research content or Decisions. |
 | Failure | Durable record (`failure-record.v1`) of an observable defect and its owning repair surface. |
 | Evaluation | Append-only scorecard result (`run-evaluation.v1` on the legacy path) whose claim is limited to its named quality layer and evaluated inputs. |
 | Repair | Explicit change followed by re-execution; diagnosis alone is not repair, and it is bounded by marginal gain. |
