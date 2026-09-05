@@ -159,7 +159,7 @@ Three external results are cited as evidence for the design, not as slogans.
 Other work evolves the agent — self-evolving agents whose own open problem is
 trustworthy verification. This project takes the opposite bet: rather than
 improve the agent across Runs, make each Run verify itself. Self-evolution stays
-a deferred, human-approved Horizon (Roadmap Horizon 5), never an active claim.
+a deferred, human-approved Horizon (the roadmap's Deferred section), never an active claim.
 The word is self-**correct**, not self-evolve.
 
 ## Naming Rules

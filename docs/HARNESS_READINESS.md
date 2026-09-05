@@ -35,7 +35,7 @@ model grading itself.
 | Scorecard recomputation | Workflow-local provers recompute scorecards; the harness never trusts a self-reported verdict, and Run research quality remains `NOT_EVALUATED` | `Migration` |
 | Three quality layers | Execution integrity, contract acceptance, and research quality remain separately qualified | `Landed` |
 | Cross-Workflow research quality | Repeated realistic Runs, held-out comparison, expert agreement, and calibrated efficiency evidence | `Deferred` |
-| Bounded harness self-correction | Architecture and Roadmap rule only; automatic candidate creation/promotion is absent, and self-evolution stays a deferred, human-approved Horizon (Roadmap Horizon 5) | `Deferred` |
+| Bounded harness self-correction | Architecture and Roadmap rule only; automatic candidate creation/promotion is absent, and self-evolution stays a deferred, human-approved Horizon (the roadmap's Deferred section) | `Deferred` |
 
 The Loop projection is a rendering over current capabilities. It must not be
 described as a normalized evidence graph, a Loop-native store, a remote

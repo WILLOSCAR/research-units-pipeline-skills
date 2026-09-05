@@ -244,7 +244,7 @@ quality.
 A normalized epistemic write model — immutable revisions carrying material
 claims, explicit `supports/challenges/qualifies` relations, stale-impact
 detection, Decisions bound to an exact revision, and read models derived from
-that revision — is a deferred, human-approved Horizon (Roadmap Horizon 5), not
+that revision — is a deferred, human-approved Horizon (the roadmap's Deferred section), not
 an active capability. Do not assign a versioned schema name to it until the
 Roadmap's correction-cost and reviewer-value gates justify a canonical write
 model. Self-evolution stays on that Horizon; the discipline here is
