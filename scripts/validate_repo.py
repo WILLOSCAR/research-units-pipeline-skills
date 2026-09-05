@@ -25,6 +25,7 @@ from tooling.harness_contracts import (
     ADR_REQUIRED_SECTIONS,
     AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS,
     CONTEXT_REQUIRED_TERMS,
+    PROJECT_LANGUAGE_REQUIRED_TERMS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
@@ -522,7 +523,7 @@ def _validate_skill_binding_governance(pipeline_paths: list[Path]) -> list[Findi
                     f"expected one of {', '.join(sorted(ALLOWED_SKILL_BINDINGS))}.",
                 )
             )
-        if skill_dir.name in referenced:
+        if templated:
             continue
         if binding:
             continue
@@ -641,6 +642,7 @@ def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:
     findings.extend(_validate_schema_summary_doc(repo_root=repo_root))
     findings.extend(_validate_auto_research_design_system_doc(repo_root=repo_root))
     findings.extend(_validate_context_doc(repo_root=repo_root))
+    findings.extend(_validate_project_language_doc(repo_root=repo_root))
     findings.extend(_validate_local_harness_checks(repo_root=repo_root))
 
     return findings
@@ -679,6 +681,32 @@ def _validate_context_doc(*, repo_root: Path) -> list[Finding]:
             Finding(
                 "WARN",
                 f"`{rel_path}` is missing canonical language terms: "
+                + ", ".join(f"`{term}`" for term in missing)
+                + ".",
+            )
+        ]
+    return []
+
+
+def _validate_project_language_doc(*, repo_root: Path) -> list[Finding]:
+    """Gate the implementation-language map's content, not just its presence.
+
+    `CONTEXT.md` took over the glossary gate in this change. Without a check of
+    its own this document would be reachable by every existence check while its
+    body could be emptied unnoticed.
+    """
+    rel_path = "docs/PROJECT_LANGUAGE.md"
+    doc_path = repo_root / rel_path
+    if not doc_path.exists():
+        return []
+
+    text = doc_path.read_text(encoding="utf-8", errors="ignore")
+    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    if missing:
+        return [
+            Finding(
+                "WARN",
+                f"`{rel_path}` is missing implementation-language sections: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )

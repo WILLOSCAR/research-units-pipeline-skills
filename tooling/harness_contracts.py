@@ -258,6 +258,21 @@ CONTEXT_REQUIRED_TERMS = (
     "Decision",
 )
 
+#: Section headings of the implementation-language map.  Full phrases rather
+#: than bare glossary words: `CONTEXT_REQUIRED_TERMS` gates the canonical
+#: glossary, and this document has a different job -- mapping product language
+#: onto what the code actually does -- so gutting it must fail even though the
+#: glossary words would still appear somewhere in the file.
+PROJECT_LANGUAGE_REQUIRED_TERMS = (
+    "Language Authority",
+    "Product-To-Implementation Mapping",
+    "The Loop, the graph, and the Skills",
+    "How the harness acts as referee",
+    "Private Implementation Language",
+    "State Authority",
+    "Three Quality Layers",
+)
+
 PIPELINE_TAXONOMY_REQUIRED_TERMS = (
     "Recipe Maturity",
     "Executable",

@@ -109,7 +109,9 @@ def _write_minimal_harness_docs(repo_root: Path) -> None:
         encoding="utf-8",
     )
     (docs_dir / "PROJECT_LANGUAGE.md").write_text(
-        "# Implementation Language\n\nCanonical language: ../CONTEXT.md\n",
+        "# Implementation Language\n\nCanonical language: ../CONTEXT.md\n\n"
+        + "\n".join(validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS)
+        + "\n",
         encoding="utf-8",
     )
     (docs_dir / "HARNESS_ROADMAP.md").write_text("# Roadmap\n", encoding="utf-8")
