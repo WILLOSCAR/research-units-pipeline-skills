@@ -34,7 +34,7 @@ does.
 | Product concept | Current implementation | Boundary |
 |---|---|---|
 | Goal | The requested outcome plus its constraints, recorded in the Run's own state when it starts (legacy Workspaces persist the same identity as `goal-spec.v2`) | The target a Run converges toward, never a promise the result is true |
-| Run | One recoverable, replayable execution persisted in `.harness-v3/state.json`; under the hood a DAG of steps with content-addressed inputs and outputs | The product object — the self-correcting Run, not a session or job |
+| Run | One recoverable execution persisted in `.harness-v3/state.json`; under the hood a DAG of steps with content-addressed inputs and outputs | The product object — the self-correcting Run, not a session or job |
 | Evidence | Recipe-local intermediate outputs, pointers, and provenance, each content-addressed so a step reproduces from its inputs | Faces inward: feeds the next step and enables reproduction plus local repair |
 | Artifact | Reader-facing deliverable (Brief, Review, Synthesis, Survey, PDF, Idea memo, Tutorial) plus its proof pack of scorecards and per-unit output records (`unit-output-manifest.v1` on the legacy path) | Faces the reader: the deliverable together with the evidence it was produced correctly |
 | Loop | The `*-selfloop` Skill family plus the engine's repair/re-run cycle | Trust is a converged fixed point, not a switch; repair is bounded and local |
@@ -100,12 +100,12 @@ from its events. The harness:
 | Delivery profile | Execution-density and acceptance policy within a Recipe, such as `course_paper`, `survey`, or `deep`. |
 | Use-case overlay | Reader-facing request that reuses a Recipe and delivery profile without creating another Pipeline. |
 | Unit | Logical execution step declared by a Workflow contract; one node in the Run's execution DAG. |
-| Attempt | One concrete execution of a Unit (`unit-attempt.v1`); retries preserve earlier Attempts as Loop history. |
+| Attempt | One concrete execution of a Unit (`unit-attempt.v1` on the legacy path); retries preserve earlier Attempts as Loop history. |
 | Completion | Recoverable transaction that commits a Unit only when its Attempt, required Artifacts, Manifest, and acceptance evidence agree. It is the moment a step exits the Loop. |
 | Checkpoint | The engine's stop that requests a human Decision. The product view describes the choice, not a code such as `C2`. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and provenance (`unit-output-manifest.v1` on the legacy path); not necessarily a portable archive. |
 | Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts. A Run's own audit is `run-audit.v2` on the legacy path; `harness-readiness-audit.v1`/`v2` is the repository-level readiness report. Neither changes research content or Decisions. |
-| Failure | Durable record (`failure-record.v1`) of an observable defect and its owning repair surface. |
+| Failure | Durable record (`failure-record.v1` on the legacy path) of an observable defect and its owning repair surface. |
 | Evaluation | Append-only scorecard result (`run-evaluation.v1` on the legacy path) whose claim is limited to its named quality layer and evaluated inputs. |
 | Repair | Explicit change followed by re-execution; diagnosis alone is not repair, and it is bounded by marginal gain. |
 | Skill | Reusable producer or prover capability under `.codex/skills/`. Producer Skills make Evidence and Artifacts; prover Skills check them. |
@@ -125,7 +125,7 @@ Interface. Historical `goal-spec.v2`, `run-state.v1`, `run-event.v1`,
 `run-evaluation.v1`, and `harness-readiness-audit.v1`/`v2` records keep their
 original meaning; the adapter may summarize them but must not reinterpret or
 upgrade them in place. The `harness-lock.v1`/`v2` and `workflow-snapshot/v1`/`v2`
-contracts pin an execution's inputs so replay stays deterministic.
+contracts pin an execution's inputs so a re-run can be compared against them.
 
 ## Three Quality Layers
 

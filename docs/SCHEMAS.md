@@ -31,8 +31,8 @@ store, and no `case.json` or graph database beside the current state.
 For a current Workspace, `.harness-v3/state.json` is the sole mutable authority.
 Read models, Markdown, contracts, Manifests, exports, and inspection objects are
 projections or Evidence over that authority — none of them is a second store. A
-future normalized epistemic write model must clear ADR 0025's Horizon gates
-(correction cost and reviewer value) before it may replace this model.
+future normalized epistemic write model must clear the measurement thresholds
+ADR 0025 gates it behind before it may replace this model.
 
 The interface emits read models, not another store:
 
@@ -246,7 +246,7 @@ claims, explicit `supports/challenges/qualifies` relations, stale-impact
 detection, Decisions bound to an exact revision, and read models derived from
 that revision — is a human-approved direction on the roadmap's Deferred list, not
 an active capability. Do not assign a versioned schema name to it until the
-Roadmap's correction-cost and reviewer-value gates justify a canonical write
+measurement thresholds ADR 0025 names justify a canonical write
 model. Self-evolution stays on that list; the discipline here is
 self-**correct**, not self-evolve.
 
