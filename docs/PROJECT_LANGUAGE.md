@@ -75,10 +75,11 @@ recomputation still runs through the legacy quality path, and the current engine
 detects tampering and recovers a prepared Completion rather than replaying a Run
 from its events. The harness:
 
-- **Checks the verdict against the evaluator.** A report must carry an exact
-  `Status: PASS` attestation, and the quality provider re-derives the scorecard
-  result from the evaluated inputs (`run-evaluation.v1` on the legacy path) —
-  the attestation alone never decides acceptance.
+- **Checks the verdict where a scorecard exists.** Structural checks accept an
+  exact `Status: PASS` attestation once the report's own shape passes; the
+  scorecard checks re-derive the result from the evaluated inputs
+  (`run-evaluation.v1` on the legacy path) rather than reading the claimed
+  verdict. Which applies is fixed by the check, not chosen per Run.
 - **Admits a step out of the Loop only on agreement.** A Unit reaches Completion
   only when its Attempt, required-check evidence, matching Artifacts, and
   `unit-output-manifest.v1` agree. Disagreement keeps the step in the Loop.
