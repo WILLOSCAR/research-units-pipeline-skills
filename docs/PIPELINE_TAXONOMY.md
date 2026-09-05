@@ -131,8 +131,9 @@ Artifact set, not fresh autonomous execution or cross-topic calibration.
 ## Current Evaluation Surfaces
 
 Recipe-local scorecards share an Evaluation envelope but keep their own
-semantics. The harness recomputes each one — it never trusts a self-reported
-verdict — so a passing scorecard is a converged Loop pass, not a normalized
+semantics. The harness recomputes the scorecard checks rather than reading the
+verdict they report — so a passing scorecard is a converged Loop pass, not a
+normalized
 cross-Recipe truth graph. These are contract-acceptance evidence, not research
 validation.
 

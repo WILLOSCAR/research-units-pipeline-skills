@@ -17,8 +17,9 @@ Underneath, every Run is a DAG of steps with content-addressed inputs and
 outputs. Evidence is the inward-facing, content-addressed intermediate that
 feeds the next step and enables reproduction plus bounded local repair; an
 Artifact is the reader-facing deliverable plus its proof pack. The harness is
-the external referee that performs verify: it recomputes scorecards rather than
-trusting a self-reported verdict, admits a step out of the Loop only against
+the external referee that performs verify: it recomputes the scorecard checks
+rather than reading the verdict a report claims, admits a step out of the Loop
+only against
 required-check evidence and matching Manifests, and marks a human Decision stale
 when its reviewed inputs change.
 
@@ -73,7 +74,7 @@ Contracts, Manifests, and the revision-addressed
 `.harness-v3/execution/<kernel-digest>/` tree are immutable or monotonic
 evidence. The execution tree must match `research-harness.local-identity/v1`;
 subprocess Skills run from that tree rather than mutable checkout paths. This is
-what lets the harness replay a Run deterministically.
+what lets the harness tell when stored state no longer matches its inputs.
 
 `research-harness.workflow-snapshot/v2` adds the required `case_contract`
 fields `kind`, `views`, `claim_sources`, `evidence_sources`, and

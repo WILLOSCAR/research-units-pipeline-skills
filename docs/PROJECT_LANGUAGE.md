@@ -198,9 +198,10 @@ and **Research-stage** — and each carries a proof state, not a truth claim:
 `arxiv-survey` a "Completed outcome pilot", `paper-review` a "Scored fixture
 proof", `arxiv-survey-latex` a "Compiled delivery proof" with an
 "audited 10-page PDF", and research-stage paths such as `graduate-paper` remain
-"Design and Skills only". The current audited counts are 96/140, 0/226, 31/31,
-and 49/49; they measure execution integrity and contract acceptance, and
-establish nothing about research quality.
+"Design and Skills only". The current audited counts are 0/226, 31/31, and
+49/49; the historical 96/140 course-paper snapshot is the residue failure that
+motivated the gate, not a current pass. All of them measure execution integrity
+and contract acceptance, and establish nothing about research quality.
 
 ## Repository Boundary
 

@@ -82,15 +82,17 @@ VRR-Stop result), so stopping must be bounded rather than run to a fixed target.
 ## 4. The Harness As Referee
 
 The harness is the deterministic executor that performs verify. It is the one
-part of the system we can point at line-by-line in code, and it never trusts a
-self-reported verdict:
+part of the system we can point at line-by-line in code:
 
-1. it **recomputes** scorecards rather than reading a model-declared PASS;
+1. it **recomputes** the scorecard checks rather than reading the verdict a
+   report claims, while structural checks accept an exact `Status: PASS` once
+   the report's own shape passes;
 2. it admits a step out of the Loop only when its required-check Evidence,
    recomputed scorecard, and matching Artifacts and manifest all agree;
 3. it marks a human Decision **stale** when the reviewed inputs it was bound to
    change;
-4. it replays a Run deterministically from content-addressed inputs.
+4. it detects when stored state no longer matches its content-addressed inputs,
+   and recovers a prepared Completion.
 
 A Decision is the human's turn to verify inside the Loop — an explicit judgment
 over the exact Run state reviewed. The current engine binds approval to reviewed
