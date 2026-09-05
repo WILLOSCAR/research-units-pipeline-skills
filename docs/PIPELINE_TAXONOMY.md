@@ -1,133 +1,166 @@
-# Workflow Catalog
+# Recipe Catalog
 
-This catalog separates what exists structurally from what has been proven on
-realistic inputs. Users choose a Workflow; maintainers inspect its Pipeline,
-Units, Skills, and proof state.
+This catalog records the private research Recipes currently implemented by
+Workflow and Pipeline compatibility contracts. On the module CLI users pick a
+Loop kind and a desired format; the stable `rh` executable still selects by
+Workflow name, and neither surface asks for Pipeline, Unit, or Skill names.
 
-Every executable Workflow enters the same product loop:
+The unit of trust here is the Loop, not the answer. A Recipe does not promise a
+scientifically true result — it runs a `verify → repair → re-run` Loop and, when
+the Run converges, keeps the checkable Evidence and proof pack that show the
+Artifact was produced correctly, reproducibly, and without the model grading
+itself. "A research loop that engineers its own evidence."
 
-```text
-Goal -> Run -> Evidence -> Improve
+So this catalog separates two things and claims only what it can point at in
+code:
+
+- **executable structure** — the Recipe contract that lets a Run start,
+  re-run, and repair;
+- **observed proof** — the retained scorecards and Artifacts from Runs that
+  actually converged.
+
+Neither an executable Recipe nor a passing scorecard establishes research
+quality. A scorecard PASS is a contract signal — the harness recomputed the
+check and the Evidence, scorecard, and Artifacts agree — never a claim that the
+research is true.
+
+```mermaid
+flowchart LR
+  G[Goal] --> R[Run]
+  R --> E[Evidence]
+  E --> A[Artifact]
+  A -. verify / repair / re-run .-> R
 ```
 
-## Maturity Levels
+Underneath, every Run is a DAG of content-addressed steps; the Loop repairs
+locally and within bounds; the harness — the external referee — decides whether
+each pass counts. The engine is real (durable local Runs, recovery, recomputed
+scorecards, stale-Decision invalidation); research quality is not.
 
-**Contract status** describes whether the Harness can represent and run a path:
+## Recipe Maturity
+
+**Contract status** describes current migration implementation:
 
 - `Executable`: Pipeline frontmatter, Unit template, target Artifacts, and
   Harness validation exist.
-- `Executable variant`: bounded extension of an executable base Workflow.
-- `Research-stage`: design and Skills exist, but the machine-readable executable
-  contract is incomplete.
+- `Executable variant`: an executable extension of another Recipe's current
+  Workflow contract.
+- `Research-stage`: design and Skills exist, but no complete executable
+  contract exists.
 
-**Proof state** describes observed evidence, not architectural completeness:
+**Proof state** describes retained Evidence from Runs that converged:
 
 - `Contract-tested`: schema, routing, gates, and failure behavior are covered.
-- `Scored fixture proof`: a realistic local fixture completed a semantic
-  scorecard and failure -> repair -> rerun cycle.
+- `Scored fixture proof`: a local fixture completed a semantic scorecard and one
+  full Loop pass — a `verify → repair → re-run` cycle recomputed by the harness.
 - `Compiled delivery proof`: final document formats were built and audited.
-- `Completed outcome pilot`: one end-to-end Run produced a reader-facing
-  deliverable from non-placeholder research artifacts.
+- `Completed outcome pilot`: one end-to-end Run produced a reader-facing Artifact
+  from non-placeholder research Evidence.
 
-No proof label means expert-level scientific quality, cross-topic stability, or
-held-out evaluation.
+No proof state means scientific correctness, cross-topic stability, autonomous
+generation, or held-out expert validation. A converged Loop bounds how the
+Artifact was produced; it does not establish that the Artifact is right.
 
-## Current Families
+## Current Recipes
 
-| Family | Workflow | Contract | Unit template | Primary Artifacts | Contract status | Proof state | Open boundary |
+| Family | Current Workflow | Pipeline contract | Unit template | Primary Artifacts | Contract status | Proof state | Open boundary |
 |---|---|---|---|---|---|---|---|
-| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md`, `output/TEMPLATE_RESIDUE_SCORECARD.json` | `Executable` | `Completed outcome pilot` | Current-contract Artifact replay passes at 0/226 residue (0.0%), with 49/49 Units, 31/31 required checks, 75/75 targets, 35/35 Kernel paths, and zero ledger issues; historical 96/140 failure remains diagnostic, while fresh retrieval, autonomous execution, cross-topic calibration, clean-revision reproduction, and expert quality remain open |
-| Survey | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `output/DRAFT.md`, `output/TEMPLATE_RESIDUE_SCORECARD.json`, `latex/main.pdf` | `Executable variant` | `Compiled delivery proof` | The same current-contract replay produces an audited 10-page PDF; from-scratch portability, repetition, and semantic expert review remain open |
-| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Completed outcome pilot` | One online arXiv Run; cross-topic relevance and reading-path usefulness open |
-| Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md`, scorecard | `Executable` | `Scored fixture proof` | Real-manuscript and expert comparison open |
-| Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md`, scorecard | `Executable` | `Scored fixture proof` | Retrieval completeness and validity judgment open |
-| Ideation | `idea-brainstorm` | `pipelines/idea-brainstorm.pipeline.md` | `templates/UNITS.idea-brainstorm.csv` | `output/REPORT.md`, scorecard | `Executable` | `Scored fixture proof` | Novelty judgment and cross-topic stability open |
-| Tutorial | `source-tutorial` | `pipelines/source-tutorial.pipeline.md` | `templates/UNITS.source-tutorial.csv` | `output/TUTORIAL.md`, PDF, slides | `Executable` | `Compiled delivery proof` | Exact coverage -> context-pack -> Source-notes join is fixture-tested; mixed-source grounding depth open |
+| Survey | `arxiv-survey` | `pipelines/arxiv-survey.pipeline.md` | `templates/UNITS.arxiv-survey.csv` | `output/DRAFT.md`, residue scorecard | `Executable` | `Completed outcome pilot` | Retained-Artifact replay passes 0/226 residue with 49/49 Units and 31/31 required checks; fresh retrieval, clean-revision reproduction, cross-topic calibration, and expert review remain open |
+| Survey export | `arxiv-survey-latex` | `pipelines/arxiv-survey-latex.pipeline.md` | `templates/UNITS.arxiv-survey-latex.csv` | `latex/main.pdf` plus Survey Artifacts | `Executable variant` | `Compiled delivery proof` | One audited 10-page PDF; from-scratch portability, repetition, and expert review remain open |
+| Orientation | `research-brief` | `pipelines/research-brief.pipeline.md` | `templates/UNITS.research-brief.csv` | `output/SNAPSHOT.md`, scorecard | `Executable` | `Completed outcome pilot` | One online arXiv execution; cross-topic relevance and reading-path usefulness remain open |
+| Review | `paper-review` | `pipelines/paper-review.pipeline.md` | `templates/UNITS.paper-review.csv` | `output/REVIEW.md`, scorecard | `Executable` | `Scored fixture proof` | Real-manuscript and expert comparison remain open |
+| Review | `evidence-review` | `pipelines/evidence-review.pipeline.md` | `templates/UNITS.evidence-review.csv` | `output/SYNTHESIS.md`, scorecard | `Executable` | `Scored fixture proof` | Retrieval completeness and validity judgment remain open |
+| Ideation | `idea-brainstorm` | `pipelines/idea-brainstorm.pipeline.md` | `templates/UNITS.idea-brainstorm.csv` | `output/REPORT.md`, scorecard | `Executable` | `Scored fixture proof` | Novelty judgment and cross-topic stability remain open |
+| Tutorial | `source-tutorial` | `pipelines/source-tutorial.pipeline.md` | `templates/UNITS.source-tutorial.csv` | `output/TUTORIAL.md`, PDF, slides | `Executable` | `Compiled delivery proof` | Fixture-tested source coverage; mixed-source grounding depth remains open |
 | Thesis | `graduate-paper` | `pipelines/graduate-paper-pipeline.md` | Unit template: none yet | thesis project Artifacts | `Research-stage` | None | Design and Skills only |
 
-`arxiv-survey-latex` is the `Executable variant` of `arxiv-survey`. It inherits
-the research lifecycle and adds TeX/PDF delivery Units and Artifacts.
+### Exporter migration
 
-The `research-brief` proof state is backed by a
-[curated versioned Harness snapshot](../examples/research-brief-harness-proof/README.md)
-and a separate [real-source arXiv snapshot](../examples/research-brief-real-source-proof/README.md).
-The first keeps completion evidence deterministic; the second pressures the
-same contract with online retrieval. Neither implies expert scientific review.
-Both published snapshots were captured under `recoverable-provenance.v1`.
-Their proof labels describe the observed deliverable and historical Run, not a
-current v2 acceptance proof; a refreshed v2 public Run remains open.
+`arxiv-survey-latex` remains an `Executable variant` while behavioral
+conformance is measured. It inherits the Survey research lifecycle and adds
+TeX/PDF Units. Its **exporter target** is a LaTeX/PDF Export Adapter over the
+Survey Recipe; it should not remain a separate Loop kind after Loop-native
+cutover.
 
-## Survey Delivery Profiles
+`research-brief` proof is backed by a
+[curated Harness snapshot](../examples/research-brief-harness-proof/README.md)
+and a separate
+[real-source snapshot](../examples/research-brief-real-source-proof/README.md).
+Both use historical `recoverable-provenance.v1`; neither is current-engine or
+expert-quality proof.
 
-Survey deliverables vary in density and format without changing their research
-lifecycle:
+## Loop Kinds
 
-```text
-topic -> retrieval -> structure -> evidence -> draft -> audit -> optional PDF
-```
+A user states a requested outcome; that selects a **loop kind**, which routes to
+the current Recipe that runs the matching `verify → repair → re-run` Loop. The
+loop kind is the whole interface — one requested outcome, one Loop, one converged
+Artifact plus its proof pack.
 
-| Reader-facing outcome | Use-case overlay | Workflow | Delivery profile | Current boundary |
-|---|---|---|---|---|
-| Course paper, course report, term/end-of-term report | bounded-report use-case overlay | `arxiv-survey` or `arxiv-survey-latex` | `course_paper` | Multi-source, literature-backed assignment; not an experiment report |
-| Seminar or topic report | bounded-report use-case overlay when explicitly bounded | same | `course_paper` | Appropriate when the report compares multiple papers, not one assigned reading |
-| Short literature-review report | bounded-report use-case overlay | same | `course_paper` | Focused question and compact delivery |
-| Technical survey or research-landscape report | bounded-report use-case overlay for a focused question; otherwise none | same | `course_paper` or default `survey` | Research literature must be the main evidence base; live market/web research is outside the current contract |
-| Full literature survey | none | same | default `survey`; optional `deep` | Broad taxonomy and dense evidence requirements |
+| Requested outcome | Loop `kind` | Current Recipe | Required starting point |
+|---|---|---|---|
+| Orient to a topic | `brief` | `research-brief` | question/topic |
+| Review one manuscript | `review` | `paper-review` | supplied manuscript |
+| Synthesize under a protocol | `evidence-synthesis` | `evidence-review` | review question, then a Protocol Decision |
+| Survey a literature | `survey` | `arxiv-survey` | question and delivery constraints |
+| Develop grounded directions | `ideas` | `idea-brainstorm` | question and scope |
+| Teach from fixed sources | `tutorial` | `source-tutorial` | source pack and audience |
 
-The `course_paper` compatibility key represents execution density rather than a
-single reader-facing genre. Its exact retrieval, structure, mapping, and
-citation limits are canonical in the Pipeline contract. Explicit requests for
-supported bounded reports activate it; subject-matter mentions alone do not.
-Market, pricing, procurement, policy-monitoring, and live-web reports remain
-outside this literature-first contract. PDF or LaTeX intent selects the LaTeX
-variant only after the Survey family is chosen.
+`--format pdf` currently applies only to a Survey loop. During migration it
+selects `arxiv-survey-latex`; Tutorial already declares its PDF Artifacts, and
+other kinds reject the option. Format intent picks an export target inside the
+same Loop; it does not create another research lifecycle.
 
-All Survey profiles default to `evidence_mode=abstract`. A Goal can request
-`fulltext` when methods, results, or limitations must be grounded beyond the
-abstract, at higher execution cost.
+### Survey delivery profiles
 
-Reference evidence is intentionally paired. The
-[historical bounded-report snapshot](../examples/course-paper-pilot/README.md)
-measures 96/140 whole-draft matches (68.6%) and 49/90 H3 matches (54.4%), above
-the current 10% writing limit, and remains a failure baseline without current
-v2 ledgers. The separate
-[current-protocol residue-PASS snapshot](../examples/course-paper-residue-pass/README.md)
-measures 0/226 (0.0%), verifies 31/31 checks from its immutable Run contract,
-matches 35/35 Kernel paths, reports zero ledger-integrity issues, and compiles a
-10-page PDF. This establishes attainability for one retained Artifact set. The
-Run lock records a dirty worktree; 48 manual Attempts revalidate retained
-Artifacts and one process Attempt runs the final auditor, so fresh retrieval,
-autonomous authorship, and clean-revision reproduction remain open. Later proof
-should use unrelated topics and report genres with measured model, token, retry,
-latency, rewrite-effort, and expert-quality data.
+Survey profiles change execution density and contract checks, not the loop kind:
 
-## Scored Contract Surfaces
+| Reader outcome | Use-case overlay | Delivery profile | Current boundary |
+|---|---|---|---|
+| Course, seminar, or short literature report | bounded-report use-case overlay | `course_paper` | Multi-source literature assignment, not an experiment report |
+| Focused technical survey | optional bounded-report overlay | `course_paper` or `survey` | Literature-first; live market or policy monitoring is outside the contract |
+| Full literature survey | none | `survey`, optionally `deep` | Broader taxonomy and denser Evidence requirements |
 
-Four Workflow-local semantic scorecards and the Survey family's deterministic
-writing scorecard share the append-only `.harness/evaluations/ledger.jsonl`
-interface while retaining distinct schemas. Pipeline contracts remain the
-source of truth for complete Artifact inventories; this catalog only names the
-join each scorecard exercises.
+Survey defaults to `evidence_mode=abstract`; `fulltext` raises grounding depth
+and execution cost when methods, results, or limitations require it.
 
-| Workflow | Semantic join exercised | Scorecard boundary |
+The historical course-paper snapshot measures 96/140 whole-draft template
+matches (68.6%) and remains a failure baseline — a Loop that had not converged.
+The current-contract retained Artifact replay measures 0/226 residue, passes
+31/31 checks, and compiles a 10-page PDF. This proves attainability for one
+Artifact set, not fresh autonomous execution or cross-topic calibration.
+
+## Current Evaluation Surfaces
+
+Recipe-local scorecards share an Evaluation envelope but keep their own
+semantics. The harness recomputes the scorecard checks rather than reading the
+verdict they report — so a passing scorecard is a converged Loop pass, not a
+normalized
+cross-Recipe truth graph. These are contract-acceptance evidence, not research
+validation.
+
+| Current Recipe | Observable join | Boundary |
 |---|---|---|
-| `paper-review` | manuscript -> unique Claims -> unique evidence gaps -> at least five related works -> review concerns | Traceability and recommendation consistency, not scientific truth |
-| `research-brief` | core-set paper -> grounded theme and briefing pointer -> reading path | Structure, grounding, compactness, and pointer integrity, not broad topic completeness |
-| `idea-brainstorm` | explicit C2 focus/exclusion Decision -> literature signal -> filtered direction -> screening -> shortlist -> memo | Trace-chain integrity, shortlist consistency, actionability, scored diversity, and kill criteria, not novelty proof |
-| `evidence-review` | candidate ID -> protocol clause -> screening decision -> unique extraction/bias row -> bounded synthesis pointer | Complete candidate coverage, bias documentation, bounded conclusions, and pointer integrity, not exhaustive retrieval or causal validity |
-| Survey family | whole draft -> Run-selected writer-template assets -> recorded asset hashes + locked writer implementations -> measured literal overlap | Reproducible lower bound and source-provenance evidence, not authorship, originality, or semantic quality; one 0/226 PASS establishes attainability, not cross-topic calibration |
+| `paper-review` | manuscript assertion -> evidence gap -> related work -> concern | Traceability and recommendation consistency, not scientific truth |
+| `research-brief` | core paper -> grounded theme -> reading path | Structure and pointer integrity, not broad topic completeness |
+| `idea-brainstorm` | Decision -> literature signal -> direction -> shortlist | Trace consistency, probes, and kill criteria, not novelty proof |
+| `evidence-review` | protocol clause -> screening -> extraction -> synthesis | Candidate coverage and bounded conclusions, not exhaustive retrieval or causal validity |
+| Survey | draft -> selected writer assets -> residue measurement | Reproducible template-overlap check, not authorship or originality |
 
 ## Evidence Gaps
 
-The main distinction remains:
-
 ```text
-Executable contract != semantically proven final answer
+executable Recipe contract != converged Loop != research-quality validation
 ```
 
-All seven executable Workflows now declare mandatory completion checks, but
-their semantic evidence remains uneven. The next phase repeats existing
-Workflows across unrelated inputs, compares scorecards with expert judgment,
-measures token and retry cost, and strengthens source-to-output grounding. The
-ordered work belongs in the [Roadmap](HARNESS_ROADMAP.md); this catalog records
-only current family, contract, proof, and open-boundary facts.
+The three layers stack, and this catalog claims only the first two — execution
+integrity and contract acceptance. All seven current Workflow contracts declare
+mandatory completion checks; the harness recomputes the scorecard checks, while
+several structural report checks accept a `Status: PASS` line on its own, and
+research-quality Evidence remains uneven. The next work is repeated unrelated
+Runs, expert comparison, measured cost and retry data across the Loop, and
+stronger source-to-Artifact traceability. Normalized material assertions,
+challenge/qualification relations, and "what would change this?" cards remain
+target behavior rather than current cross-Recipe implementation — and remain
+research-quality claims this project does not yet make. Bounded stopping is the
+Loop discipline: repair while marginal gain is positive, then stop, never run to
+a fixed pass target.

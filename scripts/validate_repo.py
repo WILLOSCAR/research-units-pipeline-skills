@@ -24,15 +24,16 @@ from tooling.harness_contracts import (
     ADR_ALLOWED_STATUSES,
     ADR_REQUIRED_SECTIONS,
     AUTO_RESEARCH_DESIGN_SYSTEM_REQUIRED_TERMS,
+    CONTEXT_REQUIRED_TERMS,
+    PROJECT_LANGUAGE_REQUIRED_TERMS,
     HARNESS_LOCAL_CHECKS,
     HARNESS_DOC_ENTRYPOINTS,
     HARNESS_README_LINKS,
-    HARNESS_SKILL_AUDIT_GATE as HARNESS_SKILL_AUDIT_GATE,  # re-exported for tests/test_harness_validation.py
+    HARNESS_SKILL_AUDIT_GATE as HARNESS_SKILL_AUDIT_GATE,  # noqa: F401  re-exported for contract-parity tests
     FORBIDDEN_OVERLAY_PIPELINE_FILENAMES,
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
-    PROJECT_LANGUAGE_REQUIRED_TERMS,
     REPORT_SCHEMA_TERMS,
 )
 
@@ -479,6 +480,80 @@ def _validate_claude_skills() -> list[Finding]:
     ]
 
 
+ALLOWED_SKILL_BINDINGS = frozenset({"manual", "library", "staged"})
+
+
+def _validate_skill_binding_governance(pipeline_paths: list[Path]) -> list[Finding]:
+    """Every skill dir must be bound to a Units template or declare a `binding:` key.
+
+    A skill is "governed" when it is either referenced in some `templates/UNITS.*.csv`
+    `skill` column, or carries a `binding:` frontmatter key (one of manual|library|staged).
+    Skills satisfying neither are unbound orphans and surface as a WARN.
+    """
+    findings: list[Finding] = []
+    if not SKILLS_DIR.exists():
+        return findings
+
+    referenced = _skills_from_units_templates(pipeline_paths)
+
+    unbound: list[str] = []
+    unreadable: list[str] = []
+    for skill_dir in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))):
+        skill_md = skill_dir / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        templated = skill_dir.name in referenced
+        try:
+            fm, _ = _split_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except Exception:
+            fm = None
+        if not isinstance(fm, dict):
+            # Unreadable front matter cannot declare a binding, so a Skill that no
+            # Units template references is ungoverned rather than exempt. Report the
+            # Skill and the rule only — never the file content or the exception.
+            if not templated:
+                unreadable.append(skill_dir.name)
+            continue
+        binding = str(fm.get("binding") or "").strip()
+        if binding and binding not in ALLOWED_SKILL_BINDINGS:
+            findings.append(
+                Finding(
+                    "WARN",
+                    f"skill `{skill_dir.name}` has unsupported `binding: {binding}`; "
+                    f"expected one of {', '.join(sorted(ALLOWED_SKILL_BINDINGS))}.",
+                )
+            )
+        if templated:
+            continue
+        if binding:
+            continue
+        unbound.append(skill_dir.name)
+
+    if unreadable:
+        findings.append(
+            Finding(
+                "WARN",
+                "Unreadable skill front matter cannot declare a `binding:`, so these skills are "
+                "not referenced by any `templates/UNITS.*.csv` skill column and remain ungoverned: "
+                + ", ".join(f"`{name}`" for name in unreadable)
+                + ".",
+            )
+        )
+
+    if unbound:
+        findings.append(
+            Finding(
+                "WARN",
+                "Unbound skills are not referenced by any `templates/UNITS.*.csv` skill column "
+                "and carry no `binding:` frontmatter (manual|library|staged): "
+                + ", ".join(f"`{name}`" for name in unbound)
+                + ".",
+            )
+        )
+
+    return findings
+
+
 def _validate_docs() -> list[Finding]:
     findings: list[Finding] = []
 
@@ -566,6 +641,7 @@ def _validate_harness_docs(*, repo_root: Path, docs_dir: Path) -> list[Finding]:
     findings.extend(_validate_adr_contracts(repo_root=repo_root, docs_dir=docs_dir))
     findings.extend(_validate_schema_summary_doc(repo_root=repo_root))
     findings.extend(_validate_auto_research_design_system_doc(repo_root=repo_root))
+    findings.extend(_validate_context_doc(repo_root=repo_root))
     findings.extend(_validate_project_language_doc(repo_root=repo_root))
     findings.extend(_validate_local_harness_checks(repo_root=repo_root))
 
@@ -584,7 +660,27 @@ def _validate_auto_research_design_system_doc(*, repo_root: Path) -> list[Findin
         return [
             Finding(
                 "WARN",
-                f"`{rel_path}` is missing Auto Research Design System terms: "
+                f"`{rel_path}` is missing Research Harness Architecture terms: "
+                + ", ".join(f"`{term}`" for term in missing)
+                + ".",
+            )
+        ]
+    return []
+
+
+def _validate_context_doc(*, repo_root: Path) -> list[Finding]:
+    rel_path = "CONTEXT.md"
+    doc_path = repo_root / rel_path
+    if not doc_path.exists():
+        return []
+
+    text = doc_path.read_text(encoding="utf-8", errors="ignore")
+    missing = [term for term in CONTEXT_REQUIRED_TERMS if term not in text]
+    if missing:
+        return [
+            Finding(
+                "WARN",
+                f"`{rel_path}` is missing canonical language terms: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )
@@ -593,18 +689,32 @@ def _validate_auto_research_design_system_doc(*, repo_root: Path) -> list[Findin
 
 
 def _validate_project_language_doc(*, repo_root: Path) -> list[Finding]:
+    """Gate the implementation-language map's content, not just its presence.
+
+    `CONTEXT.md` took over the glossary gate in this change. Without a check of
+    its own this document would be reachable by every existence check while its
+    body could be emptied unnoticed.
+    """
     rel_path = "docs/PROJECT_LANGUAGE.md"
     doc_path = repo_root / rel_path
     if not doc_path.exists():
         return []
 
     text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    # Anchor to headings: a bare substring check passes for a file that merely
+    # concatenates the seven phrases on one line, which is the hollowing this
+    # gate exists to catch.
+    headings = {
+        line.lstrip("#").strip()
+        for line in text.splitlines()
+        if line.startswith("##")
+    }
+    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in headings]
     if missing:
         return [
             Finding(
                 "WARN",
-                f"`{rel_path}` is missing project language terms: "
+                f"`{rel_path}` is missing implementation-language sections: "
                 + ", ".join(f"`{term}`" for term in missing)
                 + ".",
             )
@@ -987,80 +1097,6 @@ def _parse_inputs_outputs(body: str) -> tuple[set[str], set[str]]:
 def _is_skill_local_support_path(value: str) -> bool:
     normalized = str(value or "").strip().lstrip("./")
     return normalized.startswith(("assets/", "references/"))
-
-
-ALLOWED_SKILL_BINDINGS = frozenset({"manual", "library", "staged"})
-
-
-def _validate_skill_binding_governance(pipeline_paths: list[Path]) -> list[Finding]:
-    """Every skill dir must be bound to a Units template or declare a `binding:` key.
-
-    A skill is "governed" when it is either referenced in some `templates/UNITS.*.csv`
-    `skill` column, or carries a `binding:` frontmatter key (one of manual|library|staged).
-    Skills satisfying neither are unbound orphans and surface as a WARN.
-    """
-    findings: list[Finding] = []
-    if not SKILLS_DIR.exists():
-        return findings
-
-    referenced = _skills_from_units_templates(pipeline_paths)
-
-    unbound: list[str] = []
-    unreadable: list[str] = []
-    for skill_dir in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir() and not p.name.startswith((".", "_"))):
-        skill_md = skill_dir / "SKILL.md"
-        if not skill_md.exists():
-            continue
-        templated = skill_dir.name in referenced
-        try:
-            fm, _ = _split_frontmatter(skill_md.read_text(encoding="utf-8"))
-        except Exception:
-            fm = None
-        if not isinstance(fm, dict):
-            # Unreadable front matter cannot declare a binding, so a Skill that no
-            # Units template references is ungoverned rather than exempt. Report the
-            # Skill and the rule only — never the file content or the exception.
-            if not templated:
-                unreadable.append(skill_dir.name)
-            continue
-        binding = str(fm.get("binding") or "").strip()
-        if binding and binding not in ALLOWED_SKILL_BINDINGS:
-            findings.append(
-                Finding(
-                    "WARN",
-                    f"skill `{skill_dir.name}` has unsupported `binding: {binding}`; "
-                    f"expected one of {', '.join(sorted(ALLOWED_SKILL_BINDINGS))}.",
-                )
-            )
-        if templated:
-            continue
-        if binding:
-            continue
-        unbound.append(skill_dir.name)
-
-    if unreadable:
-        findings.append(
-            Finding(
-                "WARN",
-                "Unreadable skill front matter cannot declare a `binding:`, so these skills are "
-                "not referenced by any `templates/UNITS.*.csv` skill column and remain ungoverned: "
-                + ", ".join(f"`{name}`" for name in unreadable)
-                + ".",
-            )
-        )
-
-    if unbound:
-        findings.append(
-            Finding(
-                "WARN",
-                "Unbound skills are not referenced by any `templates/UNITS.*.csv` skill column "
-                "and carry no `binding:` frontmatter (manual|library|staged): "
-                + ", ".join(f"`{name}`" for name in unbound)
-                + ".",
-            )
-        )
-
-    return findings
 
 
 def _skills_from_units_templates(pipeline_paths: list[Path]) -> set[str]:

@@ -13,7 +13,7 @@ Research Harness 把研究目标变成一次文件优先、可恢复的 Run。�
 定位到最小修复面。
 
 ```text
-Goal -> Run -> Evidence -> Improve
+Goal -> Run -> Evidence -> Artifact
 ```
 
 它不宣称自己是“自主科学家”。它提供的是一套基础设施，让 Agent 协助的研究过程
@@ -210,7 +210,8 @@ uv run --locked --extra test python -m pytest -q
 
 - [Auto Research 架构](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
 - [Workflow Catalog 与 Proof State](docs/PIPELINE_TAXONOMY.md)
-- [统一项目语言](docs/PROJECT_LANGUAGE.md)
+- [统一产品术语表](CONTEXT.md)
+- [实现语言对照](docs/PROJECT_LANGUAGE.md)
 - [Roadmap](docs/HARNESS_ROADMAP.md)
 - [当前 Readiness](docs/HARNESS_READINESS.md)
 - [Schemas](docs/SCHEMAS.md)

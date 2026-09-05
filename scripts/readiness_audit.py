@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from tooling.harness_contracts import (
+    CONTEXT_REQUIRED_TERMS,
     CURRENT_WORKFLOWS,
     EXECUTABLE_PIPELINE_CONTRACTS,
     EXECUTABLE_UNIT_TEMPLATES,
@@ -21,7 +22,6 @@ from tooling.harness_contracts import (
     PIPELINE_TAXONOMY_ROW_REQUIREMENTS,
     PIPELINE_TAXONOMY_REQUIRED_TERMS,
     PIPELINE_TAXONOMY_VARIANT_REQUIREMENTS,
-    PROJECT_LANGUAGE_REQUIRED_TERMS,
     READINESS_AUDIT_SCHEMA,
     READINESS_MIN_ITERATIONS,
     READINESS_REQUIRED_DOCS,
@@ -95,7 +95,7 @@ def build_readiness_audit(*, repo_root: Path, progress_path: Path | None) -> dic
         _check_required_paths(repo_root=repo_root, rel_paths=REQUIRED_DOCS, check_id="docs", label="required docs"),
         _check_readme_links(repo_root=repo_root),
         _check_adr_set(repo_root=repo_root),
-        _check_project_language(repo_root=repo_root),
+        _check_context(repo_root=repo_root),
         _check_workflow_taxonomy(repo_root=repo_root),
         _check_required_paths(
             repo_root=repo_root,
@@ -319,28 +319,28 @@ def _check_workflow_taxonomy(*, repo_root: Path) -> ReadinessCheck:
     )
 
 
-def _check_project_language(*, repo_root: Path) -> ReadinessCheck:
-    language_path = repo_root / "docs" / "PROJECT_LANGUAGE.md"
+def _check_context(*, repo_root: Path) -> ReadinessCheck:
+    language_path = repo_root / "CONTEXT.md"
     if not language_path.exists():
         return ReadinessCheck(
-            "project_language",
+            "case_language",
             "WARN",
-            "Missing `docs/PROJECT_LANGUAGE.md`.",
-            "Restore canonical project language before closure.",
+            "Missing `CONTEXT.md`.",
+            "Restore the canonical language before closure.",
         )
     text = language_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    missing = [term for term in CONTEXT_REQUIRED_TERMS if term not in text]
     if missing:
         return ReadinessCheck(
-            "project_language",
+            "case_language",
             "WARN",
-            "Project language is missing required term(s): " + _format_check_list(missing) + ".",
+            "Canonical language is missing required term(s): " + _format_check_list(missing) + ".",
             "Keep canonical terms stable across README, docs, validation, and reports.",
         )
     return ReadinessCheck(
-        "project_language",
+        "case_language",
         "PASS",
-        f"Project language defines all {len(PROJECT_LANGUAGE_REQUIRED_TERMS)} required canonical terms.",
+        f"Canonical language defines all {len(CONTEXT_REQUIRED_TERMS)} required terms.",
         "Update this contract when the project vocabulary intentionally changes.",
     )
 

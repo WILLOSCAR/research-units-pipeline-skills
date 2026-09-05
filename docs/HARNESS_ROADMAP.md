@@ -4,7 +4,7 @@ The project already has seven executable research Workflows. The next phase is
 not Workflow expansion; it is evidence-building for one common product loop:
 
 ```text
-Goal -> Run -> Evidence -> Improve
+Goal -> Run -> Evidence -> Artifact
 ```
 
 The roadmap is ordered by dependency. A later horizon should not be presented

@@ -1,254 +1,268 @@
-# Run And Report Schemas
+# Current Authority And Compatibility Schemas
 
-Schema names are local stability labels for machine-readable workspace files.
-They are validated by tests and producers rather than a separate JSON Schema
-runtime.
+Schema names are local stability labels for the machine-readable files a Run
+leaves inside its Workspace. They describe current execution and report
+compatibility for the self-correcting Run — the product object is the Run, and
+the unit of trust is the Loop, not the answer. These names are not a normalized
+epistemic model, and a scorecard identifier is a contract signal, never a claim
+that the research is true.
 
-## Run Ledger
+The product story the schemas serve is small:
+
+```text
+Goal -> Run -> Evidence -> Artifact,  closed by a verify/repair/re-run Loop
+```
+
+Underneath, every Run is a DAG of steps with content-addressed inputs and
+outputs. Evidence is the inward-facing, content-addressed intermediate that
+feeds the next step and enables reproduction plus bounded local repair; an
+Artifact is the reader-facing deliverable plus its proof pack. The harness is
+the external referee that performs verify: it recomputes the scorecard checks
+rather than reading the verdict a report claims, admits a step out of the Loop
+only against
+required-check evidence and matching Manifests, and marks a human Decision stale
+when its reviewed inputs change.
+
+## Run Projection Status
+
+The public interface projects one Run-shaped aggregate into its read models.
+There is no persisted cross-Run normalized graph, no separate claim/evidence
+store, and no `case.json` or graph database beside the current state.
+
+For a current Workspace, `.harness-v3/state.json` is the sole mutable authority.
+Read models, Markdown, contracts, Manifests, exports, and inspection objects are
+projections or Evidence over that authority — none of them is a second store. A
+future normalized epistemic write model must clear the measurement thresholds
+ADR 0025 gates it behind before it may replace this model.
+
+The interface emits read models, not another store:
+
+| Schema | Surface | Meaning |
+|---|---|---|
+| `research-harness.case-result/v1` | `loop work` / `loop decide` JSON | Run/Loop projection after one meaningful advance: bounded issues, qualified quality signals, and the current read model |
+| `research-harness.case-inspection/v1` | `loop show` JSON | Read-only Run/Loop projection; optional `--details` adds bounded private-execution counts |
+| `research-harness.error/v1` | JSON failures and usage errors | Stable fault code plus bounded issues; no command, environment, or private process arguments |
+
+The `research-harness.case-result/v1` and `research-harness.case-inspection/v1`
+identifiers are frozen machine contract names; the read model they carry is a
+projection of the self-correcting Run, not a normalized epistemic object.
+
+`NEEDS_DECISION` is a normal Loop stop, not a failed command: it is the human's
+turn to verify inside the Loop. Its projection contains a human-readable prompt
+and the reviewed Artifact basis without exposing Checkpoint or Unit identifiers.
+`normalized_claims_available: false` keeps the current capability boundary
+explicit — the interface does not expose a normalized claim store because none
+is built.
+
+## Current Run Workspace Authority
 
 | Schema | Path | Producer | Purpose |
 |---|---|---|---|
-| `goal-spec.v2` | `.harness/goal.json` | `tooling.run_state.initialize_run_state` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
-| `run-state.v1` | `.harness/run.json` | `tooling.run_state` | Current Run snapshot and active Attempt |
-| `harness-lock.v1` | `.harness/harness.lock.json` | historical Runs | Git revision and hashes for the checkout-resident Pipeline, Units, Skill implementations, and Kernel; retained for compatibility |
-| `harness-lock.v2` | `.harness/harness.lock.json` | `tooling.run_state.initialize_run_state` | v1 identity plus a Workspace-local, path-preserving Pipeline contract snapshot and a complete current-Kernel hash manifest; active mutation fails closed on either boundary's drift |
-| `workspace-invocation-lock.v1` | `.harness/invocation.lock` | `tooling.run_state.workspace_invocation_lock` | Diagnostic owner metadata for the process-scoped Workspace command lock |
-| `run-plan.v1` | `.harness/plan/*.json` | `tooling.run_state` | Planned and effective Unit views |
-| `run-event.v1` | `.harness/events.jsonl` | `tooling.run_state` | Append-only transition history, including Completion prepare/commit/recovery stages |
-| `unit-attempt.v1` | `.harness/attempts.jsonl` | `tooling.run_state` | Started and finished records for each Attempt; process-owned starts record execution mode, PID, and host, while scripted finishes may add measured adapter runtime, output character counts, and log path |
-| `run-decision.v1` | `.harness/decisions.jsonl` | `tooling.run_state.record_decision` | Machine-readable human and Harness interventions; Checkpoint approvals include a `checkpoint-review-basis.v1` Artifact fingerprint bundle |
-| `artifact-record.v1` | `.harness/artifacts.jsonl` | `tooling.run_state.register_artifacts` | Versioned Artifact provenance and hashes |
-| `failure-record.v1` | `.harness/failures/ledger.jsonl` | `tooling.run_state` | Append-only Failure opening and resolution records |
-| `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | `tooling.run_state.record_evaluation` | Append-only projection of Workflow scorecard verdicts, dimensions, repair surfaces, and optional efficiency metrics; complete scorecards remain Artifacts |
-| `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | `tooling.harness.write_unit_manifest` | Per-Attempt output contract, Artifact hashes, Completion phase (`PREPARED` or final status), executed Skill fingerprint, and additive Workflow-acceptance evidence |
+| `research-harness.run-aggregate/v1` | `.harness-v3/state.json` | `research_harness.storage.FilesystemRunLedger` | Sole mutable current aggregate: Goal, plan, revision, private Unit state, Attempts, Completions, approvals, Events, and active Attempt |
+| `research-harness.completion-manifest/v1` | `.harness-v3/manifests/*.json` | `research_harness.storage.FilesystemArtifacts` | PREPARED, DONE, or BLOCKED Completion evidence, Artifact identity, and acceptance evidence |
+| `research-harness.workflow-snapshot/v2` | `.harness-v3/contracts/workflow.json` | `research_harness._local_runtime` | Current compiled compatibility Workflow, exact Pipeline/Unit-source hashes, and required read-model projection mapping |
+| `research-harness.workflow-snapshot/v1` | historical `.harness-v3/contracts/workflow.json` | historical producer | Read-compatible Workflow snapshot without a required projection contract; retained for old-Run inspection only |
+| `research-harness.local-identity/v1` | `.harness-v3/contracts/identity.json` | `research_harness._local_runtime` | Pipeline, Kernel, Completion Protocol, and runtime-component hashes authenticated by aggregate revision |
+| `research-harness.active-skill-owner/v1` | `.harness-v3/runtime/active-attempt.json` | local engine | Ephemeral PID/process-group liveness evidence used to reject unsafe interruption; never Unit or Run state |
 
-The JSONL ledgers are append-only. `run.json` and `effective.json` are current
-projections and may be replaced atomically.
+`.harness-v3` is an internal storage namespace, not a public product version.
+`state.json` advances through optimistic revision and atomic replacement. Its
+Event prefix and identity are append-preserving. `invocation.lock` contains no
+business state.
 
-A `checkpoint-review-basis.v1` object binds one approval to the active HUMAN
-Unit and the current hashes of its declared review inputs and direct
-dependency evidence. For `DECISIONS.md`, only the matching marked Checkpoint
-block and a checkbox-normalized approval line are hashed; later Checkpoint
-blocks cannot invalidate an earlier Decision, while edits inside its reviewed
-block still do. Historical approval records
-without this object remain readable but cannot authorize Completion. When the
-basis becomes stale, execution, Completion, and PREPARED recovery clear the
-readable checkbox and append `checkpoint.approval.revoked` before the Unit can
-be approved again.
+Contracts, Manifests, and the revision-addressed
+`.harness-v3/execution/<kernel-digest>/` tree are immutable or monotonic
+evidence. The execution tree must match `research-harness.local-identity/v1`;
+subprocess Skills run from that tree rather than mutable checkout paths. This is
+what lets the harness tell when stored state no longer matches its inputs.
 
-`invocation.lock` is not a historical ledger and its presence does not mean a
-command is active. The operating-system `flock`, not the retained JSON metadata,
-is authoritative.
+`research-harness.workflow-snapshot/v2` adds the required `case_contract`
+fields `kind`, `views`, `claim_sources`, `evidence_sources`, and
+`decision_sources`. These field names are frozen machine keys: they map existing
+Artifact paths into a read-only projection of the Run and do not normalize any
+claim contents or claim-evidence relations. Readers may inspect a historical
+`research-harness.workflow-snapshot/v1` snapshot as old-Run evidence, but a Run
+with no valid `case_contract` fails closed and cannot be presented as a complete
+current read model.
 
-Attempt ownership is separate from command locking. `process` Attempts may be
-recovered when their recorded local PID is gone; `manual`, legacy, and
-unknown-host Attempts remain open until an explicit transition. A `DOING` Unit
-without a unique open Attempt is an integrity error, not evidence that the
-Harness may synthesize an owner.
+## Legacy Compatibility Schemas
 
-`UNITS.csv`, `STATUS.md`, checkpoint/decision views, and generated diagnostic
-reports are also mutable projections or sinks. Their historical Artifact
-records remain useful, but current-hash equality is enforced only for immutable
-Unit outputs. A Unit is trusted as DONE when its successful Attempt, final DONE
-Manifest, required Artifact records, and any declared Evaluation agree.
+These schemas retain their original Run meaning. The stable legacy interpreter
+continues to own its supported mutation path until cutover, while the current
+interface treats a `.harness` Workspace as read-only and never upgrades it in
+place.
 
-New locks declare `protocols.completion = recoverable-provenance.v2`. Version 2
-binds mandatory Workflow acceptance to the PREPARED/DONE Manifest and Completion
-Events. A v1 PREPARED transaction may be migrated only when current acceptance
-checks pass again; the migrated evidence records its source protocol. Failed
-revalidation becomes a durable `acceptance_recovery_failed` Failure and a
-`BLOCKED` Unit. Unversioned historical locks are never silently upgraded.
+| Schema | Path | Purpose |
+|---|---|---|
+| `goal-spec.v2` | `.harness/goal.json` | Goal identity, request, Workflow, constraints, target Artifacts, and success criteria |
+| `run-state.v1` | `.harness/run.json` | Current legacy Run snapshot and active Attempt |
+| `harness-lock.v1` | `.harness/harness.lock.json` | Historical checkout-resident Pipeline, Unit, Skill, and Kernel identity |
+| `harness-lock.v2` | `.harness/harness.lock.json` | Workspace-local Pipeline snapshot plus complete current-Kernel hash manifest; active legacy mutation fails closed on drift |
+| `workspace-invocation-lock.v1` | `.harness/invocation.lock` | Diagnostic metadata for process-scoped Workspace command serialization |
+| `run-plan.v1` | `.harness/plan/*.json` | Planned and effective Unit projections |
+| `run-event.v1` | `.harness/events.jsonl` | Append-only transition and Completion prepare/commit/recovery history |
+| `unit-attempt.v1` | `.harness/attempts.jsonl` | Attempt starts, finishes, execution mode, ownership, and optional measured runtime/output fields |
+| `run-decision.v1` | `.harness/decisions.jsonl` | Human or Harness interventions, including a Checkpoint review basis when applicable |
+| `checkpoint-review-basis.v1` | nested in a Decision | Fingerprints the active human Unit and the reviewed Artifact evidence; spans both paths — the current engine also writes it |
+| `artifact-record.v1` | `.harness/artifacts.jsonl` | Versioned Artifact provenance and hashes |
+| `failure-record.v1` | `.harness/failures/ledger.jsonl` | Append-only Failure opening and resolution records |
+| `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | Qualified Workflow scorecard projection; full scorecards remain Artifacts |
+| `unit-output-manifest.v1` | `output/unit_logs/*.<attempt-id>.manifest.json` | Attempt output contract, hashes, Completion phase, Skill fingerprint, and acceptance evidence |
 
-The `kernel` object in a v2 lock is an execution boundary, not only descriptive
-metadata. Existing active Runs refuse `run-one`, `run`, `approve`, and `mark`
-when any current `HARNESS_KERNEL_PATHS` entry is missing, unexpected, malformed,
-or hash-mismatched. Read-only inspection remains available. Run Audit exposes a
-`ledger_integrity.kernel_lock` status; completed Runs retain their historical
-verdict even when the executing checkout has since changed.
+Legacy JSONL ledgers are append-only. `run.json`, `effective.json`, `UNITS.csv`,
+`STATUS.md`, Decision Markdown, and generated reports are projections. A legacy
+Unit is admitted out of the Loop as DONE only when its successful Attempt, final
+Manifest, and required Artifact records agree; no one of those records is taken
+on its own.
+
+`checkpoint-review-basis.v1` hashes the matching Decision block and reviewed
+inputs. Later unrelated blocks do not invalidate it, while edits within the
+reviewed basis do — this is exactly the mechanism that marks a Decision stale
+when what the human verified changes. Historical approvals without the object
+remain readable but cannot authorize current Completion.
+
+`harness-lock.v2` is an execution constraint, not descriptive metadata. Active
+legacy mutation refuses Kernel or Pipeline drift; read-only inspection remains
+available and completed evidence retains its historical verdict.
 
 ## Harness Reports
 
-| Schema | JSON output | Producer | Validator | ADR |
-|---|---|---|---|---|
-| `skill-audit-report.v1` | `uv run python scripts/audit_skills.py --format json` | `scripts.audit_skills.build_report_payload` | `scripts.audit_skills.validate_skill_audit_payload` | ADR 0004 |
-| `doctor-report.v1` | `output/DOCTOR_REPORT.json` | `tooling.harness.build_doctor_payload` | `tooling.harness.validate_doctor_payload` | ADR 0003 |
-| `run-audit.v2` | `output/RUN_AUDIT.json` | `tooling.harness.build_run_audit_payload` | `tooling.harness.validate_run_audit_payload` | ADR 0017 |
-| `run-audit.v1` | historical `output/RUN_AUDIT.json` | historical producer; current validator remains read-compatible | `tooling.harness.validate_run_audit_payload` | ADR 0002 |
-| `run-audit-diff.v1` | `output/RUN_AUDIT_DIFF.json` | `tooling.harness.build_run_audit_diff_payload` | `tooling.harness.validate_run_audit_diff_payload` | ADR 0005 |
-| `improvement-report.v1` | `output/IMPROVEMENT_REPORT.json` | `tooling.harness.build_improvement_payload` | `tooling.harness.validate_improvement_payload` | ADR 0007 |
-| `artifact-pack.v1` | `output/ARTIFACT_PACK.json` | `tooling.harness.build_artifact_pack_payload` | `tooling.harness.validate_artifact_pack_payload` | ADR 0008 |
+Report names remain Run-shaped compatibility contracts. A read model may
+summarize them but does not change their schema meaning.
 
-`artifact-pack.v1` is an Artifact index and review manifest. It records paths,
-presence, hashes, and excerpts; it is not a portable archive containing every
-referenced file.
+| Schema | Output | Producer | Purpose |
+|---|---|---|---|
+| `skill-audit-report.v1` | JSON stdout | `scripts.audit_skills` | Repository Skill structure and policy audit |
+| `doctor-report.v1` | `output/DOCTOR_REPORT.json` | `tooling.harness` | Bounded state and integrity diagnosis |
+| `run-audit.v2` | `output/RUN_AUDIT.json` | `tooling.harness` | Current cross-ledger integrity and required Workflow acceptance |
+| `run-audit.v1` | historical `output/RUN_AUDIT.json` | historical producer | Read-compatible historical audit without v2 acceptance projection |
+| `run-audit-diff.v1` | `output/RUN_AUDIT_DIFF.json` | `tooling.harness` | JSON-backed comparison of two Audit projections |
+| `improvement-report.v1` | `output/IMPROVEMENT_REPORT.json` | `tooling.harness` | Blocking repair map plus non-blocking quality opportunities |
+| `artifact-pack.v1` | `output/ARTIFACT_PACK.json` | `tooling.harness` | Artifact index and review manifest, not a portable archive |
 
-`improvement-report.v1` separates blocking repair suggestions from
-`quality_opportunities`. The latter projects measurable headroom from the
-latest passing Workflow scorecard and does not change the report exit code or
-turn a PASS into a Failure. It gives a human or agent a bounded place to improve
-an accepted Run while preserving the distinction between contract acceptance
-and research quality.
+The `artifact-pack.v1` proof pack is positioned as an instance of the emerging
+reproducible-provenance standard (rollout cards / provenance packages), not a
+new schema of our own.
 
-Run Audit includes `ledger_integrity` counts and issues. These
-checks join Run identity, Event sequence, Attempt pairs, Manifests, Artifacts,
-Decisions, Failures, Evaluations, and current DONE projections; they do not
-replace Workflow-local semantic scorecards. New reports also project an
-additive Attempt summary with terminal status, execution mode, retry counts,
-and measured adapter runtime when the local executor supplied it. Legacy and
-manual Attempts remain valid with runtime fields unavailable. When telemetry is
-present, the terminal Event carries the same normalized record; reconciliation
-preserves it and Run Audit reports malformed or divergent copies.
+`run-audit.v2` requires explicit `workflow_acceptance`. Required-check Units
+must have matching PASS evidence in final Manifests and committed Events. Older
+DONE records without that evidence are `UNVERIFIED`, not inferred as accepted.
+The Audit verdict is an execution-integrity and contract-acceptance statement,
+not research-quality proof.
 
-Current v2 reports may also include
-`quality_observations.template_residue`, a projection of the latest
-`template-residue-scorecard.v1` Evaluation. It exposes the measured whole-draft
-ratio, threshold, Run-selected asset count, asset-selection status, writer
-implementation-lock status, and scorecard path. The projection validates count,
-ratio, dimension, provenance, and verdict consistency before reporting
-`RECORDED`; contradictory evidence is reported as `INVALID`. Historical v2
-reports without this additive projection remain valid.
+Scorecard validators recompute totals, critical failures, repair projections,
+and verdicts rather than trusting the verdict a report claims. The structural
+report checks are weaker and not uniform: several accept a `Status: PASS` line
+on its own. A structurally valid but contradictory scorecard cannot
+authorize Completion. Optional Attempt and template-residue projections remain
+diagnostic and keep unavailable legacy telemetry explicit.
 
-`run-audit.v2` requires a `workflow_acceptance` projection. It
-joins the active Workflow's `required_checks` to current UNITS and matching
-acceptance records in both the DONE Manifest and committed Completion Event.
-`PASS` therefore means every required-check Unit is DONE with explicit,
-cross-ledger PASS evidence; older DONE Manifests without that record are
-reported as `UNVERIFIED`, not inferred as accepted. Its verdict distinguishes
-`PASS`, `IN_PROGRESS`, `INCOMPLETE`, and `ATTENTION`; only `PASS` exits zero.
-Older `run-audit.v1` payloads remain readable without this field and retain the
-historical `PASS`/`ATTENTION` verdict vocabulary.
+## Readiness Audit Schemas
 
-Scorecard validators recompute dimension totals, failed critical dimensions,
-failure projections, and the final verdict. A structurally valid but internally
-contradictory scorecard cannot authorize Completion.
+| Schema | Status | Meaning |
+|---|---|---|
+| `harness-readiness-audit.v2` | current | Renames the language check id from `project_language` to `case_language` and adopts the Loop-first document contract |
+| `harness-readiness-audit.v1` | historical | Used the earlier project-language and Run-first contract; valid only as evidence about its original checkout |
 
-New `run-audit-diff.v1` payloads add an optional `attempt_comparison` object.
-When both source audits contain Attempt summaries, it reports Attempt, retry,
-measured adapter-runtime, and captured-output deltas. When either source
-predates those summaries, the comparison is explicitly unavailable. These
-deltas are diagnostic evidence and do not change the diff verdict.
+A `harness-readiness-audit.v1` report must not be presented as current readiness
+evidence after the document contract moved to Loop language. The version bump is
+what carries that rename: a v1 report names the language check `project_language`
+and a v2 report names it `case_language`, so a consumer keyed on the check id
+must read the schema version first.
 
-## Repository Skill Invocation Evaluation
-
-The tracked corpus is repository validation input. Model predictions and
-evaluation reports are generated development evidence and should normally stay
-under a gitignored `workspaces/<name>/evaluation/` directory.
+## Repository Invocation Evaluation
 
 | Schema | Path or producer | Purpose |
 |---|---|---|
-| `skill-invocation-cases.v1` | `tests/fixtures/skill_invocation_cases.yaml` | Stable prompts, expected primary repository Skill, allowed support Skills, forbidden confusions, and scorer-only split/tag diagnostics |
-| `skill-invocation-candidate-pack.v1` | `scripts/evaluate_skill_invocations.py --emit-candidate-pack` | Gold-label-free model input containing repository Skill descriptions and case prompts only |
-| `skill-invocation-prediction.v1` | One JSONL record per case, supplied by Codex, GPT Pro, or another model runner | Ordered selected Skills plus optional observed model, token, and latency fields |
-| `skill-invocation-evaluation.v1` | `scripts/evaluate_skill_invocations.py` | Aggregate and split/tag accuracy, forbidden/unexpected selection, repository versus external Skill choice, and reproducible Skill-context character load |
-| `workflow-context-footprint.v1` | `scripts/audit_workflow_context.py` | Separate static proxies for full-catalog routing descriptions, unique selected Skill bodies, and serial per-Unit selected bodies; never represented as observed model tokens |
+| `skill-invocation-cases.v1` | `tests/fixtures/skill_invocation_cases.yaml` | Stable prompts and expected repository Skill routing |
+| `skill-invocation-candidate-pack.v1` | `scripts/evaluate_skill_invocations.py --emit-candidate-pack` | Gold-label-free model input |
+| `skill-invocation-prediction.v1` | supplied JSONL | Ordered Skill selections plus optional observed telemetry |
+| `skill-invocation-evaluation.v1` | `scripts/evaluate_skill_invocations.py` | Aggregate and split/tag routing results |
+| `workflow-context-footprint.v1` | `scripts/audit_workflow_context.py` | Static character-count proxies for routing and selected Skill bodies |
 
-The evaluator does not infer tokens from characters. An unscored corpus report
-is a context baseline, not model-selection evidence. A scored `PASS` applies
-only to the supplied model predictions and corpus version.
+`skill-invocation-cases.v1` is a frozen machine contract name. Character counts
+are not token measurements. An unscored corpus report is a context baseline; a
+scored PASS applies only to the supplied predictions and corpus version.
 
-## Published Run Evidence
+## Pipeline-Local Evidence
 
-| Schema | Path | Producer | Purpose |
-|---|---|---|---|
-| `completed-run-evidence.v1` | `examples/<pilot>/run-summary.json` | Curated from a completed local Run and checked by repository tests | Small publishable proof containing the Goal, completion counts, audit result, delivery facts, Artifact hashes, and explicit limitations |
+Pipeline-local schemas remain the current join surfaces between producer Skills
+(which make content) and prover Skills (which check it). They must not be
+relabelled as one normalized epistemic graph.
 
-A published evidence snapshot is not the complete Workspace and cannot be used
-to resume execution. It keeps only the files needed to inspect a delivery claim;
-Attempts, transient logs, source corpora, build by-products, and backups remain
-local unless a future reproducibility contract requires them.
+### Survey compatibility
 
-## Survey Section Snapshot
+| Schema | Path | Purpose |
+|---|---|---|
+| `sections-manifest.v1` | `sections/sections_manifest.jsonl` | Section paths, citation blocks, byte counts, ownership, and freshness hashes |
+| `template-residue-measurement.v1` | nested in the residue scorecard | English/CJK sentence counts, literal-template matches, selected assets, and localized examples |
+| `template-residue-scorecard.v1` | `output/TEMPLATE_RESIDUE_SCORECARD.json` | Whole-draft threshold plus selected-asset and implementation-lock evidence |
 
-| Schema | Path | Producer | Purpose |
-|---|---|---|---|
-| `sections-manifest.v1` | `sections/sections_manifest.jsonl` | `subsection-writer`, then `argument-selfloop` | Current section paths, ownership metadata, citation blocks, byte counts, and SHA-256 fingerprints used by the final merge freshness gate |
-| `template-residue-measurement.v1` | Nested in `output/TEMPLATE_RESIDUE_SCORECARD.json`; historical snapshots may embed it in `run-summary.json` | `tooling.quality_checks.template_residue` | English/CJK sentence counts, literal-fragment matches, selected asset hashes, and heading-aware examples; a historical snapshot may explicitly use a candidate-bank set when Run selection was not retained |
-| `template-residue-scorecard.v1` | `output/TEMPLATE_RESIDUE_SCORECARD.json`; Completion projects its verdict and dimensions into `.harness/evaluations/ledger.jsonl` | `pipeline-auditor` via `tooling.quality_checks.template_residue` | Whole-draft residue threshold plus Run-selected asset provenance and fail-closed v2 implementation-lock verification for the three owning Skills |
+Template residue is a reproducible writing-contract signal, not authorship,
+originality, or semantic-quality classification. One retained-Artifact replay
+passes 31/31 checks at 0/226; this establishes attainability for that Artifact
+set only, not general research quality.
 
-The final argument snapshot refreshes this manifest after all H3 mutators.
-`section-merger` refuses an explicitly supplied manifest when a required section
-is missing or its bytes/hash no longer match.
+### `paper-review` compatibility
 
-`template-residue-measurement.v1` removes Markdown headings and citation
-markers, splits the entire reader-facing draft into English or CJK sentences,
-retains the nearest heading and responsible writer Skill for each example, and
-compares them case-insensitively with fixed template fragments at or above the
-configured literal-length floor. Earlier H3-only checks use the same
-implementation to fail sooner. A current Run records its selected front-matter
-asset paths and hashes in `output/FRONT_MATTER_CONTEXT.json`;
-`template-residue-scorecard.v1`
-also compares the three template-owning Skill implementations with
-`harness.lock.json`. Missing selection evidence, missing or legacy locks, and
-implementation drift fail closed. The scorecard keeps counts, ratio, threshold,
-asset hashes, localized examples, and lock evidence. The Evaluation ledger keeps
-only the common verdict-and-dimensions projection. It is an acceptance signal,
-not an authorship, originality, or semantic-quality classifier. The 10% limit is
-an initial policy target. One current-contract retained-Artifact replay passes
-31/31 checks at 0/226 (0.0%), establishing attainability for that Artifact set
-but not fresh retrieval, autonomous execution, or calibration across topics and
-profiles.
+| Schema | Path | Purpose |
+|---|---|---|
+| `review-claim.v1` | `output/CLAIMS.jsonl` | Manuscript-local review-claim ID, type, text, scope, and pointer |
+| `review-evidence-gap.v1` | `output/EVIDENCE_AUDIT.jsonl` | Review-claim-linked evidence state, gap, severity, and minimal fix |
+| `review-novelty-row.v1` | `output/NOVELTY_MATRIX.tsv` | Review-claim-to-related-work overlap, delta, and Evidence row |
+| `paper-review-scorecard.v1` | `output/REVIEW_SCORECARD.json` | Traceability rubric, failures, and repair surfaces |
 
-## `paper-review` Evidence
+`review-claim.v1` is a frozen machine contract name specific to manuscript
+review; it is not the retired canonical vocabulary. Its existence does not mean
+`research-brief`, `arxiv-survey`, `idea-brainstorm`, `source-tutorial`, or
+`evidence-review` currently produce the same review-claim contract.
 
-The `paper-review` Workflow keeps human-readable Markdown and machine-readable
-sidecars in the same Workspace. Structured records are the join interface;
-Markdown remains the reader-facing view.
+### Other Pipeline scorecards
 
-| Schema | Path | Producer | Purpose |
-|---|---|---|---|
-| `review-claim.v1` | `output/CLAIMS.jsonl` | `claims-extractor` | Stable claim ID, type, text, scope, and manuscript pointer |
-| `review-evidence-gap.v1` | `output/EVIDENCE_AUDIT.jsonl` | `evidence-auditor` | Claim-linked evidence state, gap, severity, and minimal fix |
-| `review-novelty-row.v1` | `output/NOVELTY_MATRIX.tsv` | `novelty-matrix` | Claim-to-related-work overlap, delta, and evidence row |
-| `paper-review-scorecard.v1` | `output/REVIEW_SCORECARD.json` | `deliverable-selfloop` via `tooling.review_evaluation` | Scored traceability rubric, failures, and repair surfaces |
+| Schema | Path | Purpose |
+|---|---|---|
+| `research-brief-scorecard.v1` | `output/BRIEF_SCORECARD.json` | Brief structure, compactness, reading path, and pointer validation |
+| `idea-brainstorm-scorecard.v1` | `output/IDEA_SCORECARD.json` | Trace consistency, actionability, diversity, probes, and kill criteria |
+| `evidence-review-scorecard.v1` | `output/EVIDENCE_SCORECARD.json` | Protocol, screening, extraction, bias, synthesis, and pointer checks |
 
-## `research-brief` Evidence
+These scorecards project into `run-evaluation.v1` while keeping distinct
+semantics. A scorecard PASS is a contract signal, never a truth claim: review
+scorecards do not establish scientific truth; Ideas scorecards do not establish
+novelty; Evidence-review scorecards do not perform meta-analysis, establish
+causal truth, or compensate for an incomplete pool.
 
-| Schema | Path | Producer | Purpose |
-|---|---|---|---|
-| `research-brief-scorecard.v1` | `output/BRIEF_SCORECARD.json` | `deliverable-selfloop` via `tooling.brief_evaluation` | Brief structure, compactness, reading path, and core-set pointer validation |
+## Published Compatibility Evidence
 
-## `idea-brainstorm` Evidence
+| Schema | Path | Purpose |
+|---|---|---|
+| `completed-run-evidence.v1` | `examples/<pilot>/run-summary.json` | Curated historical or current execution proof with Goal, counts, Audit result, delivery facts, hashes, and limitations |
 
-| Schema | Path | Producer | Purpose |
-|---|---|---|---|
-| `idea-brainstorm-scorecard.v1` | `output/IDEA_SCORECARD.json` | `deliverable-selfloop` via `tooling.idea_evaluation` | Memo structure, trace consistency, direction actionability/diversity, and core-set pointer validation |
+A published snapshot is not a complete Workspace and cannot resume execution. It
+is evidence for its stated claim and checkout — that a Run was produced
+correctly and reproducibly — not a canonical store or proof of general research
+quality.
 
-## `evidence-review` Evidence
+## A Normalized Epistemic Store Is Not A Schema Yet
 
-| Schema | Path | Producer | Purpose |
-|---|---|---|---|
-| `evidence-review-scorecard.v1` | `output/EVIDENCE_SCORECARD.json` | `deliverable-selfloop` via `tooling.evidence_review_evaluation` | Protocol operability, clause-linked screening, extraction coverage, bias fields, synthesis structure, and paper-pointer validation |
+A normalized epistemic write model — immutable revisions carrying material
+claims, explicit `supports/challenges/qualifies` relations, stale-impact
+detection, Decisions bound to an exact revision, and read models derived from
+that revision — is a human-approved direction on the roadmap's Deferred list, not
+an active capability. Do not assign a versioned schema name to it until the
+measurement thresholds ADR 0025 names justify a canonical write
+model. Self-evolution stays on that list; the discipline here is
+self-**correct**, not self-evolve.
 
-All four Workflow-local scorecards are projected into `run-evaluation.v1`. The
-common record does not force Claims or review-specific fields onto other
-Workflows. Model, token, cost, and latency values remain nullable until the
-runtime can measure them.
-
-`tooling/scorecards.py` owns only the shared scorecard lifecycle: semantic
-policy loading, four-point dimension records, aggregate verdicts, failure
-projection, envelope validation, Markdown rendering, and JSON persistence.
-Each `tooling/*_evaluation.py` module still owns its Workflow's dimensions,
-Evidence interpretation, counts, and limitations.
-
-`paper-review-scorecard.v1` measures observable semantic contracts. It does not
-claim to determine scientific truth, reproduce experiments, or replace an
-expert referee.
-
-`idea-brainstorm-scorecard.v1` does not establish novelty. It verifies that the
-memo exposes falsifiable probes, kill criteria, traceable anchors, and a
-non-collapsed lead set over the literature already present in the Workspace.
-
-`evidence-review-scorecard.v1` validates the observable chain from protocol
-clauses to synthesis pointers. It does not perform meta-analysis, establish
-causal truth, or compensate for an incomplete candidate pool.
-
-`improvement-report.v1` keeps suggestions limited to currently open Failures,
-but its additive `repair_history` field also preserves opened and resolved
-Attempt pairs for completed Run review.
+SACM, PROV, RDF, RO-Crate, or nanopublication mappings belong in future Export
+Adapters for real consumers; they are not internal storage requirements.
 
 ## Compatibility Rule
 
-- Additive fields may be introduced within a `.v1` report when existing readers ignore unknown fields.
-- Renaming, removing, or changing the meaning of a required field requires a new schema version.
-- A human-readable Markdown report may summarize a ledger but must not become the only source for machine recovery.
-- Do not create a sidecar unless another tool, future Agent, or reviewer needs stable fields.
+- Additive fields may remain within a `.v1` contract when readers ignore unknown
+  fields and meaning is unchanged.
+- Renaming, removing, or changing a required field's meaning requires a new
+  schema version.
+- A Markdown read model may summarize a ledger but cannot become the only
+  recovery source.
+- Do not create a sidecar unless another tool or reviewer needs stable fields.
+- Do not create a new product-object schema merely to rename Run-shaped state.
