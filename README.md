@@ -231,6 +231,7 @@ completed Run or a failure-repair regression that supports it.
 - [Architecture](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
 - [Workflow catalog and proof states](docs/PIPELINE_TAXONOMY.md)
 - [Canonical project language](docs/PROJECT_LANGUAGE.md)
+- [Loop glossary](CONTEXT.md)
 - [Roadmap](docs/HARNESS_ROADMAP.md)
 - [Current readiness](docs/HARNESS_READINESS.md)
 - [Schemas](docs/SCHEMAS.md)

@@ -14,8 +14,6 @@ import json
 import os
 import re
 import socket
-import subprocess
-import uuid
 from collections import Counter
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -41,6 +39,24 @@ from tooling.common import (
 )
 from tooling.harness_contracts import HARNESS_KERNEL_PATHS
 from tooling.pipeline_snapshot import inspect_pipeline_snapshot_bundle
+from tooling.provenance_primitives import (
+    _checkpoint_artifact_fingerprint,
+    _checkpoint_decisions_projection,
+    _file_sha256,
+    _git_output,
+    _new_id,
+    _path_fingerprint,
+    _relative_or_absolute,
+    implementation_fingerprint,
+)
+from tooling.run_state_io import (
+    _append_jsonl,
+    _last_event_seq,
+    _read_json_object,
+    _read_jsonl,
+    _write_json,
+    read_jsonl_with_errors,
+)
 
 
 HARNESS_DIR = ".harness"
@@ -3083,29 +3099,6 @@ def _append_event(
     return record
 
 
-def _append_jsonl(path: Path, record: dict[str, Any]) -> None:
-    ensure_dir(path.parent)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-
-
-def _last_event_seq(path: Path) -> int:
-    if not path.exists():
-        return 0
-    last = 0
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(record, dict) and isinstance(record.get("seq"), int):
-                last = max(last, int(record["seq"]))
-    return last
-
-
 def _load_units(workspace: Path) -> list[dict[str, str]]:
     path = workspace / "UNITS.csv"
     if not path.exists():
@@ -3137,157 +3130,3 @@ def _goal_request_from_markdown(path: Path) -> str:
         return ""
     lines = [line.strip() for line in path.read_text(encoding="utf-8", errors="ignore").splitlines()]
     return " ".join(line.lstrip("- ") for line in lines if line and not line.startswith("#")).strip()
-
-
-def _path_fingerprint(path: Path) -> dict[str, Any]:
-    if path.is_dir():
-        files = sorted(item for item in path.rglob("*") if item.is_file())
-        digest = hashlib.sha256()
-        for item in files:
-            digest.update(str(item.relative_to(path)).encode("utf-8"))
-            digest.update(_file_sha256(item).encode("ascii"))
-        return {"type": "directory", "file_count": len(files), "sha256": digest.hexdigest()}
-    return {"type": "file", "size": path.stat().st_size, "sha256": _file_sha256(path)}
-
-
-def _checkpoint_artifact_fingerprint(
-    *,
-    path: Path,
-    relpath: str,
-    checkpoint: str,
-) -> dict[str, Any]:
-    if relpath != "DECISIONS.md" or not path.is_file():
-        return _path_fingerprint(path)
-    text = path.read_text(encoding="utf-8", errors="replace")
-    normalized = _checkpoint_decisions_projection(text, checkpoint=checkpoint).encode("utf-8")
-    return {
-        "type": "file",
-        "size": len(normalized),
-        "sha256": hashlib.sha256(normalized).hexdigest(),
-        "normalization": "checkpoint-block-and-approval-checkbox-insensitive",
-    }
-
-
-def _checkpoint_decisions_projection(text: str, *, checkpoint: str) -> str:
-    """Project only one Checkpoint block so later Decisions do not stale earlier approval."""
-
-    block_match = re.search(
-        rf"<!-- BEGIN CHECKPOINT:{re.escape(checkpoint)} -->(.*?)<!-- END CHECKPOINT:{re.escape(checkpoint)} -->",
-        text,
-        flags=re.DOTALL,
-    )
-    if block_match is None:
-        return ""
-    approval_match = re.search(
-        rf"^(\s*-\s*)\[[ xX]\](\s*(?:Approve\s+)?{re.escape(checkpoint)}\b.*)$",
-        text,
-        flags=re.MULTILINE,
-    )
-    approval = ""
-    if approval_match is not None:
-        approval = f"{approval_match.group(1)}[ ]{approval_match.group(2)}"
-    return f"{approval}\n{block_match.group(0).strip()}\n"
-
-
-def implementation_fingerprint(path: Path) -> dict[str, Any]:
-    files = sorted(
-        item
-        for item in path.rglob("*")
-        if item.is_file()
-        and "__pycache__" not in item.parts
-        and item.suffix not in {".pyc", ".pyo"}
-    )
-    digest = hashlib.sha256()
-    for item in files:
-        digest.update(str(item.relative_to(path)).encode("utf-8"))
-        digest.update(bytes.fromhex(_file_sha256(item)))
-    return {"file_count": len(files), "sha256": digest.hexdigest()}
-
-
-def _file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _git_output(repo_root: Path, *args: str) -> str:
-    try:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-    except OSError:
-        return ""
-    return result.stdout.strip() if result.returncode == 0 else ""
-
-
-def _relative_or_absolute(path: Path | None, root: Path) -> str:
-    if path is None:
-        return ""
-    try:
-        return str(path.resolve().relative_to(root.resolve()))
-    except ValueError:
-        return str(path.resolve())
-
-
-def _read_json_object(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return payload if isinstance(payload, dict) else {}
-
-
-def _read_jsonl(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    records: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            if not line.strip():
-                continue
-            try:
-                payload = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(payload, dict):
-                records.append(payload)
-    return records
-
-
-def read_jsonl_with_errors(path: Path) -> tuple[list[dict[str, Any]], list[int]]:
-    """Read valid JSON objects while retaining malformed line numbers for audit."""
-
-    if not path.exists():
-        return [], []
-    records: list[dict[str, Any]] = []
-    malformed: list[int] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
-                continue
-            try:
-                payload = json.loads(line)
-            except json.JSONDecodeError:
-                malformed.append(line_number)
-                continue
-            if isinstance(payload, dict):
-                records.append(payload)
-            else:
-                malformed.append(line_number)
-    return records, malformed
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    atomic_write_text(path, json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-
-
-def _new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex}"

@@ -1,133 +1,238 @@
 # Roadmap
 
-The project already has seven executable research Workflows. The next phase is
-not Workflow expansion; it is evidence-building for one common product loop:
+The roadmap moves from an honest Loop projection to a Loop-native product:
 
 ```text
-Goal -> Run -> Evidence -> Improve
+Goal -> Run -> Evidence -> Artifact,  closed by a verify/repair/re-run Loop
 ```
 
-The roadmap is ordered by dependency. A later horizon should not be presented
-as active until the earlier evidence exists.
+The unit of trust is the Loop, not the answer. This roadmap is about making that
+Loop — verify, repair, re-run — the object the product is built around, not
+about adding more Workflow families. The eight workflows already present
+(arxiv-survey, arxiv-survey-latex, research-brief, paper-review, evidence-review,
+idea-brainstorm, source-tutorial, and the Research-stage graduate-paper) are the
+surface; the Run underneath every one of them is a DAG that the harness verifies
+pass by pass. Each horizon carries measurement evidence and deletion gates.
+Later work must not be described as active before earlier gates pass.
 
-## Horizon 1: Make Completion Trustworthy
+Read the three quality layers before reading any horizon: execution integrity,
+contract acceptance, and research quality. This project claims only the first
+two. A scorecard PASS is a contract signal, never a truth claim, and no horizon
+below promises that a Run's result is scientifically true — only that it was
+produced correctly, reproducibly, and without the model grading itself.
 
-Goal: every `DONE` Unit means that execution evidence and the Workflow's
-observable acceptance contract agree.
+## Horizon 1: Make The Loop Honest
+
+Goal: expose one Loop-shaped interface — Goal, Run, Evidence, Artifact — without
+creating a second state authority or claiming research quality the engine does
+not establish.
 
 Landed foundation:
 
-- require each executable Workflow to declare mandatory completion checks;
-- run those checks through the shared Completion Protocol for scripted, manual,
-  default, and strict execution;
-- retain `--strict` for additional diagnostics rather than as the only checked
-  path;
-- record rejected checks as durable `acceptance_contract_failed` evidence and
-  route them through Improvement diagnosis;
-- persist each successful mandatory check result in the Unit Manifest and
-  Completion Event; retain failed checks as BLOCKED Manifests, Failures, and
-  terminal Attempts; then summarize declared, verified, pending, blocked,
-  skipped, and legacy-unverified coverage in Run Audit;
-- publish `recoverable-provenance.v2` and `run-audit.v2`, fail closed on
-  acceptance-incomplete recovery, and prevent composed reports from promoting
-  a non-PASS Audit.
-- publish `harness-lock.v2`, load runtime policy from a Workspace-local Pipeline
-  snapshot bundle, and fail closed when that contract evidence drifts.
+- one source-checkout module CLI and one Python interface that open a Run,
+  advance it through its DAG, and inspect its state;
+- `.harness-v3/state.json` as the sole mutable authority for a current Run
+  Workspace, so the Loop has exactly one place to write;
+- content-addressed Evidence at every step, so a Run reproduces the same step
+  from the same inputs and the Loop can repair locally and bounded;
+- the harness as external referee: it recomputes scorecards rather than trusting
+  a self-reported verdict, admits a step out of the Loop only against
+  required-check evidence with matching Artifacts and manifest, and marks a human
+  Decision stale when its reviewed inputs change;
+- legacy `.harness` inspection without mutation or a live repository;
+- one qualified three-layer quality interpretation, claiming only execution
+  integrity and contract acceptance.
 
 Remaining work:
 
-- fault-inject the remaining Completion write boundaries and verify
-  deterministic recovery;
-- refresh one public completed Run under v2 so the curated proof shows the new
-  cross-ledger acceptance record rather than only historical v1 evidence.
+- complete behavioral conformance for all current producer and prover skills
+  rather than relying only on declarative contract parity;
+- replace verify implementations that still require legacy-only projections;
+- complete the remaining Run fault-injection matrix so recovery is exercised,
+  not asserted;
+- retain disposable-Workspace replay evidence;
+- publish one fresh realistic current-engine Run as a "Completed outcome pilot".
 
 Exit evidence:
 
-- all executable Workflows reject an intentionally invalid Artifact before
-  `DONE`;
-- manual completion cannot bypass the same contract;
-- crash recovery preserves Attempts, Failures, Manifests, and Artifact history.
+- no command can create both `.harness` and `.harness-v3` authorities in one
+  Workspace;
+- an Artifact and its proof pack are never emitted from a step the harness did
+  not admit out of the Loop;
+- every current workflow reaches the same meaningful Decision, blocked, and
+  completed outcomes through the one interface;
+- legacy Workspaces remain byte-identical under inspection.
 
-## Horizon 2: Build A Cross-Workflow Evaluation Corpus
+Evidence (2026-08):
 
-Goal: distinguish contract acceptance from useful research quality.
+The acceptance/verify layer now has native, independently-audited parity with
+the legacy `tooling.quality_checks` path, and the deterministic Run
+fault/replay matrix is exercised end-to-end:
 
-Run the existing Workflows on unrelated inputs and retain compact, versioned
-evidence snapshots:
+- **Native acceptance conformance + legacy-projection retirement.** All 68
+  registered quality checks and the `outline-refiner` completion invariant are
+  ported to `NativeQualityProvider` behind the `QualityCheckProvider` Port; the
+  runtime default is native, with `RESEARCH_HARNESS_QUALITY_PROVIDER=legacy`
+  retained as a one-release escape hatch. Byte-parity is pinned by
+  `test_native_matches_legacy_for_every_registered_skill` (every registered
+  skill, under empty and PASS-seeded workspaces), a differential fuzzer, and an
+  independent adversarial audit (two reviewers, ~6,900 differential trials plus
+  AST string-equivalence, zero workspace-input-reachable divergences). The
+  native self-contained path imports no `tooling.*` at runtime
+  (`test_native_self_contained_check_does_not_import_tooling_at_runtime`).
+- **Run fault-injection matrix.** Recovery is exercised, not asserted, for
+  state-write faults at attempt-begin
+  (`test_state_write_fault_at_attempt_begin_is_recoverable`) and at the
+  prepare-completion save, which leaves an orphaned PREPARED Manifest next to
+  a still-RUNNING Attempt
+  (`test_orphan_manifest_recovers_after_prepare_completion_save_fault`),
+  manifest finalize/status faults, and process-death/interrupt-active recovery
+  (the crash-adapter tests). The durable state is path-independent by
+  construction (workspace-relative artifact paths; no workspace field in the
+  run-aggregate schema).
+- **Disposable-Workspace replay.** A completed Run replays byte-identically in
+  a fresh workspace
+  (`test_completed_run_is_replayable_in_a_disposable_workspace`), and a Run
+  blocked mid-flight at a human checkpoint can be cloned, approved, and driven
+  to completion there
+  (`test_checkpoint_blocked_run_replays_and_completes_in_a_disposable_workspace`).
+
+Still blocked (needs real LLM access, outside autonomous authority): the
+"Completed outcome pilot" (one fresh realistic current-engine Run) and full
+end-to-end behavioral conformance of producer/prover skills beyond the
+acceptance/verify layer. The strategic "Remaining work" list above is left
+intact; this block records evidence, not a claim that every item is closed.
+
+## Horizon 2: Prove The Loop Across Workflows
+
+Goal: decide whether the one Loop interface can become the stable `rh` surface
+by running the same verify/repair/re-run cycle across every workflow.
 
 - compare `paper-review` concerns and recommendation logic with expert referee
   reports;
-- repeat `research-brief` across topics and evaluate relevance, reading-path
-  usefulness, and retrieval stability;
-- repeat `idea-brainstorm` and evaluate direction diversity, grounding, and
-  expert-perceived novelty;
-- repeat `evidence-review` and compare protocol execution with human screening
-  and extraction judgments;
-- repeat bounded Survey reports across course, seminar, and technical-report
-  prompts; the first completed current-contract Artifact replay establishes
-  per-Artifact attainability, so repeat retrieval and execution from a clean
-  revision, retain whole-draft residue scorecards, measure rewrite effort, and
-  calibrate the initial 10% policy across unrelated Runs;
-- strengthen `source-tutorial` source-to-module and module-to-slide grounding.
-
-Each retained case should include Goal, locked Workflow revision, final
-deliverable, structured scorecard, Run Audit, expert or held-out judgment when
-available, retries, measured adapter runtime, and model/token metadata when the
-runtime exposes it.
+- repeat `research-brief` across unrelated topics and test reading-path value;
+- compare `evidence-review` screening and extraction with human judgments;
+- evaluate `idea-brainstorm` grounding, diversity, probes, and kill criteria;
+- repeat `arxiv-survey` retrieval and writing from clean revisions to test
+  reproduction;
+- test `source-tutorial` across mixed real source sets;
+- retain the full proof trail per Run — `run-state.v1`, `run-event.v1`,
+  `unit-attempt.v1`, `run-decision.v1`, `artifact-record.v1`,
+  `failure-record.v1`, `run-evaluation.v1`, and `unit-output-manifest.v1` —
+  so each Loop pass is auditable after the fact;
+- measure runtime, retries, output size, and model/token fields when available.
 
 Exit evidence:
 
-- each executable family has more than one realistic completed Run;
-- scorecard agreement and disagreement with expert review are visible;
-- quality, token, latency, and retry comparisons use measured data rather than
-  estimates.
+- every Executable workflow (and the Executable variant `arxiv-survey-latex`)
+  has more than one realistic completed Run;
+- recomputed-scorecard agreement and disagreement with expert review are visible
+  as data, not asserted;
+- quality, latency, token, and retry comparisons use measured data — the current
+  fixtures include a "Scored fixture proof", a "Compiled delivery proof", and an
+  "audited 10-page PDF", with `graduate-paper` still "Design and Skills only";
+- stable `rh` cutover has an explicit rollback and legacy read-only plan.
 
-## Horizon 3: Improve Context And Repair Efficiency
+After this gate, the one Loop interface becomes the stable `rh` orchestration
+surface. Do not keep permanent `goal/run/evidence/improve` aliases beside it.
 
-Goal: reduce avoidable context loading and reruns without hiding evidence.
+## Horizon 3: Strengthen The Content Graph Behind The Loop
 
-- keep Skill descriptions as compact invocation pointers;
-- load only the active Workflow, current Unit, declared inputs, and relevant
-  repair context;
-- add direct and confusion-pair invocation cases for every Workflow family;
-- route failures to the smallest owning surface: Artifact, Skill, Unit,
-  Workflow policy, or Harness kernel;
-- make planned, effective, and actual execution paths inspectable;
-- keep `scripts/audit_workflow_context.py` as the static character-count
-  baseline, then measure real prompt tokens, repeated scans, and Artifact
-  hashing before optimizing them.
+Goal: determine whether a richer content graph — sitting on top of the execution
+DAG — improves review enough to justify more machinery, without turning the
+graph into the pitch. The graph is the engine, not the story.
+
+Build a bounded prototype over retained Runs. Every Run is already a DAG of
+content-addressed nodes (the execution layer); this horizon tests a second layer
+of content graphs the prover skills build over that same Evidence — for example
+the concept-graph, the claim-evidence-matrix, and the novelty-matrix:
+
+- link only material assertions to the exact Evidence that supports, challenges,
+  or qualifies them, with content-addressed locators;
+- preserve contrary Evidence and visible gaps rather than smoothing them away;
+- make every linked node answer "what would change this?";
+- detect staleness when the retained Evidence a node depends on changes, so the
+  Loop knows what to re-verify;
+- reuse the same retained Evidence across overlapping workflows instead of
+  re-deriving it;
+- compare automatic links with blind expert correction.
+
+Promotion gates (measurement, not truth claims):
+
+- at least 95% of expert-identified material assertions reach exact Evidence in
+  no more than two interactions;
+- incorrect links stay below 2% and manual correction below 10%;
+- source changes mark every affected node stale with fewer than 5% false
+  positives;
+- median support lookup is below 60 seconds and review time improves at least
+  20%;
+- overlapping workflows reuse at least 70% of retained Evidence.
+
+If correction stays above 10% or review time does not improve over 30 realistic
+Runs, keep the richer content graph as an inspection-only projection and stop the
+graph-native migration. The execution DAG and its verify/repair Loop remain the
+product regardless.
+
+## Horizon 4: Make Reproduction And Local Repair First-Class
+
+Goal: harden the graph and provenance behind the Loop only after Horizon 3 earns
+the complexity — so that reproduction and bounded local repair become guaranteed
+properties, not emergent ones.
+
+- introduce immutable Run revisions over the existing content-addressed Evidence;
+- bind Decisions and evaluations to an exact revision, so a `run-decision.v1`
+  and a `run-evaluation.v1` always name the state they judged;
+- keep current workflows as private skill compositions behind the one interface;
+- render every reader-facing Artifact from a named revision, with its proof pack
+  identifying that revision;
+- move `arxiv-survey-latex` behind a LaTeX/PDF export adapter;
+- retain private execution provenance — the Run DAG, its Units, and their
+  Attempts — without re-exposing them as public vocabulary;
+- import legacy evidence by reference without rewriting it;
+- delete superseded public Run types, Workflow selection, and duplicate
+  projections.
 
 Exit evidence:
 
-- routing regressions remain stable across at least two model families;
-- realistic Runs report measurable context, token, retry, and latency changes;
-- a failed quality dimension names one bounded repair surface.
+- there is exactly one canonical Run authority and the Loop still writes to only
+  one place;
+- every Artifact identifies its source revision;
+- contrary Evidence survives updates and exports;
+- the three quality layers remain separate and only the first two are claimed;
+- current workflows preserve behavioral conformance;
+- legacy inspection remains available and read-only.
 
-## Horizon 4: Evaluate Harness Candidates
+## Horizon 5: Evaluate Harness Candidates
 
-Goal: turn accumulated Run evidence into controlled system evolution without
-allowing the Harness to rewrite itself in place.
+Others evolve the agent; this project makes each Run verify itself. Self-evolving
+agents are a real line of work whose own open problem is trustworthy
+verification — the exact thing the Loop is built to supply. So self-evolution
+stays here, deferred and human-approved, and nowhere else in this roadmap.
 
-1. cluster durable Failure and Evaluation records;
-2. propose one candidate change in an isolated worktree;
-3. isolate candidates with process/filesystem permissions and policy
-   allowlists beyond the landed per-Run Kernel-drift guard;
-4. replay the target failure;
-5. run historical regression and held-out cases;
-6. compare quality, cost, latency, and stability;
-7. require human approval for promotion;
-8. retain the prior baseline for rollback.
+Only after a corpus of retained Runs exists may the project evaluate reusable
+changes to the harness itself: cluster durable failures recorded as
+`failure-record.v1`, propose one isolated candidate, replay target and held-out
+Runs, compare recomputed scorecards and cost, require explicit human promotion,
+and keep the prior baseline for rollback.
 
-This is the project's bounded self-improvement direction. Candidate creation,
-promotion, and rollback automation are not implemented yet.
+Candidate creation, promotion, and rollback automation are not implemented. The
+active Run never rewrites its own harness policy. The word is self-**correct**:
+a Run corrects itself inside a bounded Loop; it does not evolve the referee.
 
-## Deferred
+## Deferred Or Rejected
 
-- distributed worker leases and scheduling;
+Deferred until a second real adapter or supported caller exists:
+
+- remote execution and distributed leases;
 - database-backed or hosted Run storage;
-- automatic Harness promotion;
-- model-weight modification;
-- promotion of `graduate-paper` to an executable Workflow.
+- additional export and evaluator seams;
+- promotion of the Research-stage `graduate-paper` to an Executable workflow.
 
-These directions are deferred because their interfaces depend on completed-Run
-evidence that the current project is still collecting.
+Rejected as the internal product shape:
+
+- full SACM/GSN, RDF, or RO-Crate JSON-LD as canonical storage;
+- a graph database or graph-first UI;
+- sentence-level assertion atomization;
+- one truth or confidence score — a scorecard PASS is a contract signal, never a
+  truth claim;
+- automatic harness promotion.

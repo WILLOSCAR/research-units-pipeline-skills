@@ -1,148 +1,202 @@
 # Project Language
 
-These terms are the canonical vocabulary for README files, Workflow guides,
-Pipeline contracts, Skills, reports, and validation messages.
+The canonical product glossary is the root [`CONTEXT.md`](../CONTEXT.md). It
+defines eight terms — **Goal**, **Run**, **Evidence**, **Artifact**, **Loop**,
+**verify**, **harness**, and **Decision**. This document does not repeat that
+glossary; it maps those terms to the current implementation and names the
+private implementation concepts precisely.
 
-## Product Model
+The one-line commitment underneath every mapping below: the unit of trust is the
+Loop, not the answer. We do not claim a result is scientifically true. We prove
+it was produced correctly, reproducibly, and without the model grading itself.
+Research Harness is a research loop that engineers its own evidence.
 
-```text
-Goal -> Run -> Evidence -> Improve
-```
+## Language Authority
 
-| Term | Canonical meaning |
-|---|---|
-| Goal | Requested outcome, constraints, target Artifacts, and success criteria. The machine view is `goal-spec.v2`. |
-| Run | One file-first execution of a Goal against an initially pinned Harness revision and Pipeline contract snapshot. The current local Harness can reconcile and resume its explicitly supported single-process interruption paths. |
-| Evidence | Umbrella product stage for the Research Evidence that supports a deliverable and the Run Evidence that supports its execution history. |
-| Research Evidence | Sources, extracted observations, Claim-Evidence links, contradictions, gaps, and limitations that justify or qualify research content. |
-| Run Evidence | Attempts, Decisions, Artifacts, Manifests, hashes, Evaluations, Failures, and Audits that explain how a Run executed and whether its contracts passed. |
-| Improve | Diagnose observed Run failures and route them to bounded repair surfaces. The current command does not apply repairs or promote a Harness candidate. |
-
-Use `Improvement` for the diagnosis-and-repair process, not as a synonym for
-unbounded self-modification. Distinguish these two operations:
-
-- **Run-local repair:** change an Artifact, decision, or Skill output inside the
-  current Workspace and rerun affected Units.
-- **Harness candidate:** propose a change to reusable policy, then evaluate it
-  externally before promotion. Candidate creation and promotion are not
-  implemented.
-
-## System Terms
-
-| Term | Canonical meaning |
-|---|---|
-| Research Harness | The public project name and user-facing product surface for choosing a Workflow, running it, inspecting Evidence, and diagnosing bounded improvements. |
-| Auto Research Design System | The whole repository: research and control Skills, user-facing Workflows, executable Pipeline contracts, and a file-first Harness for end-to-end research delivery. |
-| Harness | Deterministic execution support for protocol, state, scheduling, Attempts, completion integrity, checkpoints, recovery, provenance, validation, Audit, and handoff. |
-| Harness kernel | Protected code that owns Run identity, scheduling, state transitions, Completion, provenance, reconciliation, diagnosis, quality dispatch, and shared scorecard mechanics. Its file inventory is `HARNESS_KERNEL_PATHS`. |
-| Skill | A reusable capability under `.codex/skills/`. Research Skills transform research content; control Skills materialize deterministic reports, manifests, checkpoints, or local gates. |
-| Workflow | User-selectable research path such as `paper-review`; this is the product-facing unit of choice. |
-| Pipeline | Concrete contract under `pipelines/` that implements a Workflow through stages, required Skills, target Artifacts, and acceptance rules. |
-| Delivery profile | Execution-density policy inside one Workflow, such as `course_paper`, `survey`, or `deep` in the Survey family. It changes budgets and gates, not the research lifecycle. |
-| Use-case overlay | Reader-facing use case that reuses an existing Workflow and delivery profile without adding another Pipeline. Course papers, course reports, and seminar reports can use the Survey family's bounded-report use-case overlay, which selects the `course_paper` delivery profile. |
-
-## Execution Terms
-
-| Term | Canonical meaning |
-|---|---|
-| Workspace | Directory containing the human-readable project files and machine-readable ledger for one Run. It is a storage boundary, not a Workflow. |
-| Revision lock | `harness-lock.v2` record that binds a Run to repository identity, a Workspace-local Pipeline snapshot bundle, Unit template, Skill implementations, Kernel hashes, and Completion Protocol. Active v2 mutation fails closed on Pipeline or Kernel drift; inspection remains available and skips reconciliation under drift. It is not the Invocation lock. |
-| Invocation lock | Process-scoped local mutex that serializes complete Harness commands against one Workspace. It is distinct from the Harness revision lock and is not a distributed worker lease. |
-| Unit | Logical step declared in `UNITS.csv`, with an owner, dependencies, inputs, outputs, and acceptance rule. |
-| Attempt | One concrete execution of a Unit. A retry creates another Attempt and preserves earlier history. Process-owned Attempts carry local crash-recovery metadata; manual Attempts may span commands. |
-| Completion | Recoverable transaction that commits a Unit only when its required outputs, successful Attempt, Workflow-required acceptance checks, DONE Manifest, Artifact records, and any declared Evaluation agree. `DONE` in `UNITS.csv` is its mutable projection. |
-| Checkpoint | Explicit boundary at which execution may require evidence review or human approval before later Units become runnable. Human approval requires a readable decision view, an append-only Decision record, and a matching fingerprint of the reviewed Artifacts. |
-| Artifact | Durable input, intermediate output, report, manifest, scorecard, or deliverable produced or consumed by a Run. |
-| Manifest | Machine-readable index of Artifact identity, existence, size, hash, and related provenance. It is not necessarily a portable archive. |
-| Decision | Append-only record of an explicit human or Harness intervention. A Checkpoint approval also records which Artifact versions were reviewed, so later edits invalidate stale authorization. |
-| Audit | Bounded inspection of Run state, cross-ledger integrity, Artifact coverage, provenance, implementation freshness, or declared quality contracts. It may reconcile recoverable projections only for a current matching Run; under identity or Kernel drift it reads the evidence in place. It does not alter research content or Decisions. |
-| Failure | Durable record of an observable defect, its causal behavior, and the repair surface that owns it. |
-| Evaluation | Append-only Workflow-local scorecard result attached to a Run Attempt, including verdict, dimensions, repair surfaces, and optional efficiency metrics. |
-| Project Memory | Human-approved durable knowledge in ADRs, vocabulary, tests, validation rules, and accepted architecture constraints. |
-| Structural readiness | A Workflow can be initialized, represented, executed or blocked predictably, audited, and resumed. |
-| Semantic readiness | A Workflow repeatedly produces useful, traceable, evidence-disciplined results on realistic inputs. |
-
-## Three Quality Layers
-
-Quality claims must name their layer. A PASS in one layer must not be described
-as proof of another.
-
-| Layer | Question answered | Current mechanism | Does not establish |
-|---|---|---|---|
-| Execution integrity | Did the declared work run and commit consistently? | Attempts, Events, Manifests, hashes, recovery, Doctor, Audit | That the research answer is good |
-| Contract acceptance | Did required Artifacts satisfy the observable Pipeline contract for this Workflow? | `quality_contract.completion_policy.required_checks`, Workflow-local scorecards, Artifact audit | Scientific correctness, novelty, or exhaustive retrieval |
-| Research quality | Is the answer relevant, correct, complete enough, and useful for its reader? | Research Evidence, realistic repeated Runs, held-out cases, and expert review | General validity beyond the evaluated inputs |
-
-Workflow-required acceptance checks run at the shared Completion boundary for
-normal, strict, and manual completion. `--strict` adds registered diagnostics
-that a Workflow has not promoted into its mandatory policy; it is not a switch
-between unchecked and checked execution.
-
-Use `PASS` with a qualifier such as `execution-integrity PASS` or
-`contract-acceptance PASS` when the scope could otherwise be ambiguous. Reserve
-`research-quality validated` for evidence from realistic repeated evaluation or
-expert comparison.
-
-## Evidence Chains
-
-Structured sidecars make reader-facing Markdown traceable without forcing one
-universal research schema.
-
-```text
-`paper-review`:
-claim_id -> evidence gap -> novelty row -> review concern -> scorecard check
-
-`research-brief`:
-core-set paper ID -> briefing pointer -> reading path -> brief scorecard
-
-`arxiv-survey`:
-core-set paper ID -> subsection brief -> evidence binding -> evidence draft -> cited section -> report audit
-
-`idea-brainstorm`:
-C2 Decision -> core-set paper ID -> signal -> filtered direction -> screening -> shortlist -> memo -> idea scorecard
-
-`evidence-review`:
-candidate ID -> protocol clause -> screening decision -> unique extraction row -> synthesis pointer -> evidence scorecard
-
-`source-tutorial`:
-manifest source ID -> indexed local source -> provenance pointer -> module coverage -> context pack -> visible Source notes -> tutorial module -> delivery gate
-```
-
-Markdown is the human view. JSONL, TSV, CSV, and JSON provide stable joins for
-validation, recovery, and repair localization.
+- Product copy, public Interface names, and new architecture documents start
+  from `CONTEXT.md`.
+- This document owns implementation mapping and the private vocabulary.
+- Pipeline contracts and historical schemas keep their existing names until a
+  behavioral migration changes their meaning.
+- A compatibility name does not become a second product concept merely because
+  it remains visible in a file or schema. The machine-contract identifiers below
+  (for example `research-harness.case-result/v1`) contain legacy substrings;
+  they are schema names, not product vocabulary, and are never narrated as
+  product terms.
 
 ## Product-To-Implementation Mapping
 
-| Product stage | Internal implementation |
+The causal spine is fixed: **verify** is the soul, the **harness** is the
+external referee that performs verify, and the self-correcting **Loop** is the
+shape the two produce. Every product term maps to something the engine already
+does.
+
+| Product concept | Current implementation | Boundary |
+|---|---|---|
+| Goal | The requested outcome plus its constraints, captured as `goal-spec.v2` when a Run starts | The target a Run converges toward, never a promise the result is true |
+| Run | One recoverable, replayable execution persisted in `.harness-v3/state.json`; under the hood a DAG of steps with content-addressed inputs and outputs | The product object — the self-correcting Run, not a session or job |
+| Evidence | Recipe-local intermediate outputs, pointers, and provenance, each content-addressed so a step reproduces from its inputs | Faces inward: feeds the next step and enables reproduction plus local repair |
+| Artifact | Reader-facing deliverable (Brief, Review, Synthesis, Survey, PDF, Idea memo, Tutorial) plus its proof pack — scorecards and `unit-output-manifest.v1` | Faces the reader: the deliverable together with the evidence it was produced correctly |
+| Loop | The `*-selfloop` Skill family plus the engine's repair/re-run cycle | Trust is a converged fixed point, not a switch; repair is bounded and local |
+| verify | The harness recomputing scorecards, checking required-check evidence, comparing content hashes, and testing review-basis freshness | The harness checking a pass against something the model cannot smooth away — never self-critique |
+| harness | The deterministic executor for scheduling, state, Attempt history, Completion, recovery, provenance, validation, and inspection | The external referee that decides whether each Loop pass counts |
+| Decision | Human Checkpoint records and their reviewed-Artifact basis (`checkpoint-review-basis.v1`, `run-decision.v1`) | The human's turn to verify inside the Loop, over the exact Run state reviewed |
+
+The Run read model is a projection built from `.harness-v3/state.json`. The
+public Interface delegates mutation to the private engine and then returns a
+Run-shaped view; it does not maintain a normalized proposition graph, and this
+document does not claim one exists.
+
+## The Loop, the graph, and the Skills
+
+Three pillars carry the product, and all three are grounded in current code.
+
+- **Loop.** A Run reaches trust by repeating `verify → repair → re-run` until
+  the pass stops finding new faults. This is the `*-selfloop` Skill family
+  (`writer-selfloop`, `deliverable-selfloop`, `evidence-selfloop`,
+  `tutorial-selfloop`, `argument-selfloop`) plus the engine's Completion and
+  recovery machinery. Trust is a converged fixed point, not a boolean flag set by
+  a single pass.
+- **Graph.** A Run is a DAG, and the DAG is the engine, not the pitch. Two
+  layers exist: an execution DAG of Units with content-addressed nodes, which is
+  what makes reproduction and bounded local repair possible; and content graphs
+  produced by Skills — `concept-graph`, `claim-evidence-matrix`,
+  `novelty-matrix` — that structure the research itself.
+- **Skills.** Producer Skills make content; prover Skills check it. Neither is
+  the product on its own — the product is the combination, a producer feeding a
+  prover inside the Loop.
+
+## How the harness acts as referee
+
+This is the one part of the story we can point at line-by-line in code. The
+harness:
+
+- **Recomputes scorecards.** It does not trust a self-reported verdict inside an
+  Artifact; it re-derives the `run-evaluation.v1` result from the evaluated
+  inputs.
+- **Admits a step out of the Loop only on agreement.** A Unit reaches Completion
+  only when its Attempt, required-check evidence, matching Artifacts, and
+  `unit-output-manifest.v1` agree. Disagreement keeps the step in the Loop.
+- **Marks a Decision stale.** When the inputs a human reviewed change, the
+  recorded `run-decision.v1` against its `checkpoint-review-basis.v1` is
+  invalidated rather than silently inherited.
+- **Replays deterministically.** Content-addressed Evidence and durable
+  `run-event.v1` history let the engine reproduce a Run from its inputs.
+
+## Private Implementation Language
+
+| Term | Precise current meaning |
 |---|---|
-| Goal | `GOAL.md`, `.harness/goal.json`, Workflow routing, Pipeline contract |
-| Run | Workspace, `UNITS.csv`, Units, Attempts, Completion Events, Skills, Decisions |
-| Evidence | Research Evidence: Sources and Claim-Evidence links; Run Evidence: Attempts, Artifacts, manifests, scorecards, Failures, audits, Artifact index |
-| Improve | Failure ledger, Evaluation ledger, improvement report, explicit repair surface |
+| Recipe | Private research strategy selected from a requested Goal. During migration, each executable Recipe is implemented by one current Workflow/Pipeline family. |
+| Workflow | Compatibility name for a validated research path such as `paper-review`. It names an execution contract, not a product choice. |
+| Pipeline | Concrete contract under `pipelines/` that implements a Workflow through stages, Skills, target Artifacts, and acceptance rules. |
+| Delivery profile | Execution-density and acceptance policy within a Recipe, such as `course_paper`, `survey`, or `deep`. |
+| Use-case overlay | Reader-facing request that reuses a Recipe and delivery profile without creating another Pipeline. |
+| Unit | Logical execution step declared by a Workflow contract; one node in the Run's execution DAG. |
+| Attempt | One concrete execution of a Unit (`unit-attempt.v1`); retries preserve earlier Attempts as Loop history. |
+| Completion | Recoverable transaction that commits a Unit only when its Attempt, required Artifacts, Manifest, and acceptance evidence agree. It is the moment a step exits the Loop. |
+| Checkpoint | The engine's stop that requests a human Decision. The product view describes the choice, not a code such as `C2`. |
+| Manifest | Machine-readable index of Artifact identity, existence, size, hash, and provenance (`unit-output-manifest.v1`); not necessarily a portable archive. |
+| Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts (`harness-readiness-audit.v1`/`v2`). It does not change research content or Decisions. |
+| Failure | Durable record (`failure-record.v1`) of an observable defect and its owning repair surface. |
+| Evaluation | Append-only scorecard result (`run-evaluation.v1`) whose claim is limited to its named quality layer and evaluated inputs. |
+| Repair | Explicit change followed by re-execution; diagnosis alone is not repair, and it is bounded by marginal gain. |
+| Skill | Reusable producer or prover capability under `.codex/skills/`. Producer Skills make Evidence and Artifacts; prover Skills check them. |
+| Workspace | Directory that confines one execution and its projections. |
+| Harness candidate | Proposed reusable policy change evaluated outside the active Run before any human-approved promotion. Candidate creation and promotion are not implemented. |
+
+## State Authority
+
+For a current Run Workspace, `.harness-v3/state.json` is the sole mutable state
+authority. Contracts, Manifests, exports, Markdown, `UNITS.csv`, and the
+Run-shaped view are Evidence or projections. None may independently advance
+state.
+
+A legacy Workspace containing `.harness` is read-only through the public
+Interface. Historical `goal-spec.v2`, `run-state.v1`, `run-event.v1`,
+`unit-attempt.v1`, `run-decision.v1`, `artifact-record.v1`, `failure-record.v1`,
+`run-evaluation.v1`, and `harness-readiness-audit.v1`/`v2` records keep their
+original meaning; the adapter may summarize them but must not reinterpret or
+upgrade them in place. The `harness-lock.v1`/`v2` and `workflow-snapshot/v1`/`v2`
+contracts pin an execution's inputs so replay stays deterministic.
+
+## Three Quality Layers
+
+Every quality statement names its layer. A result in one layer is not evidence
+for another. We claim only the first two.
+
+| Layer | Question answered | Current evidence | Does not establish |
+|---|---|---|---|
+| Execution integrity | Did declared work commit consistently? | Attempts, Events, Manifests, hashes, recovery, Doctor, Audit | That an Artifact is good or true |
+| Contract acceptance | Did required Artifacts satisfy observable Recipe checks? | Required checks, Recipe-local scorecards, Artifact Audit | Scientific correctness, novelty, or exhaustive retrieval |
+| Research quality | Is the Run relevant, correct enough, complete enough, and useful for its reader? | Realistic repeated Runs, held-out evaluation, expert review | General validity beyond evaluated inputs — remains open |
+
+Use qualified phrases such as `execution-integrity PASS` and
+`contract-acceptance PASS`. A scorecard PASS is a contract signal, never a truth
+claim. Reserve `research-quality validated` for realistic repeated evaluation or
+expert comparison; the engine does not establish it today.
+
+Stopping is bounded: the Loop repairs while marginal gain is positive and then
+stops. It does not run to a fixed pass target, because trusting a noisy verifier
+to a target can raise reported pass rates while lowering true validity.
+
+## Why external and why bounded
+
+Three external results are cited as evidence for the design, not as slogans.
+
+- **Mirror Loop.** Ungrounded self-refinement does not converge — it produces
+  fluent restatement, not correctness — so verification must be external to the
+  model's own text. This is why the harness, not self-critique, performs verify.
+- **VRR-Stop.** Trusting a noisy verifier can raise pass rates while lowering
+  true validity, so stopping must be bounded by marginal gain rather than run to
+  a fixed target.
+- **Rollout Cards / TRACER.** Agent research is converging on reproducible
+  provenance packages as a delivery standard; the `ARTIFACT_PACK` proof pack is
+  positioned as an instance of that emerging standard, not a new schema.
+
+## Positioning
+
+Other work evolves the agent — self-evolving agents whose own open problem is
+trustworthy verification. This project takes the opposite bet: rather than
+improve the agent across Runs, make each Run verify itself. Self-evolution stays
+a deferred, human-approved Horizon (Roadmap Horizon 5), never an active claim.
+The word is self-**correct**, not self-evolve.
 
 ## Naming Rules
 
-- Say `Workflow` when describing what a user chooses; say `Pipeline` for the
-  concrete executable contract.
-- Say `Run` for an execution and `Workspace` for the directory that stores it.
-- Say `revision lock` for pinned implementation hashes and `Invocation lock` for
-  local command serialization; do not call either one a distributed lease.
-- Say `Unit` for a logical plan step and `Attempt` for one execution of it.
-- Say a Unit is `committed` when Completion evidence agrees; do not treat a
-  hand-edited `DONE` cell as proof of success.
-- Say `Artifact index` or `manifest` unless a real portable archive exists.
-- Say `Research Evidence` for support behind a research claim and `Run Evidence`
-  for provenance or execution checks; use `Evidence` only for the umbrella
-  product stage.
-- Say `diagnose` when the system only locates a repair; reserve `repair` for an
-  applied change and successful rerun.
-- Say `use-case overlay` when an existing Workflow carries the same lifecycle.
-- Say `delivery profile` for machine-level density or quality policy; do not use
-  it as a synonym for a new Workflow or reader-facing genre.
+- Say `Run` for the public research object and `Artifact` for a reader-facing
+  deliverable and its proof pack. Do not call a projection canonical state.
+- Say `Evidence` for a content-addressed intermediate that faces inward; say
+  `Artifact` for the reader-facing deliverable plus its proof pack.
+- Say `Loop` for the `verify → repair → re-run` cycle. Do not call a single
+  pass or a bare retry a Loop.
+- Say `verify` only for the harness checking a pass against recomputed
+  scorecards, required-check evidence, hashes, or a review basis — never for the
+  model grading itself.
+- Say `Recipe` in product architecture. Say `Workflow` or `Pipeline` only when
+  discussing compatibility files or execution contracts.
+- Say `Unit`, `Attempt`, and `Completion` only inside implementation,
+  migration, schema, or provenance discussions.
+- Say `Decision` for the human judgment; `Checkpoint` is how the engine pauses to
+  request it, and a Decision goes stale when its reviewed inputs change.
+- Say `diagnose` when the system only locates a repair surface. Say `repair`
+  only after a change and successful re-execution.
+- Say `Export Adapter` for LaTeX/PDF formatting. `arxiv-survey-latex` remains an
+  Executable variant, not proof that a general Export Adapter exists.
+
+## Maturity And Proof State
+
+Workflow maturity uses fixed labels — **Executable**, **Executable variant**,
+and **Research-stage** — and each carries a proof state, not a truth claim:
+`arxiv-survey` a "Completed outcome pilot", `paper-review` a "Scored fixture
+proof", `arxiv-survey-latex` a "Compiled delivery proof" with an
+"audited 10-page PDF", and research-stage paths such as `graduate-paper` remain
+"Design and Skills only". The current audited counts are 96/140, 0/226, 31/31,
+and 49/49; they measure execution integrity and contract acceptance, and
+establish nothing about research quality.
 
 ## Repository Boundary
 
-Project Skills participate in research Runs. Global engineering Skills such as
-`improve-codebase-architecture`, `tdd`, and `grill-with-docs` are maintainer
-tools for changing this repository; they are not runtime dependencies of a
-research Workflow.
+Project Skills participate in Recipe execution. Global engineering Skills for
+architecture, testing, or repository maintenance are maintainer tools, not
+runtime dependencies of a Run.

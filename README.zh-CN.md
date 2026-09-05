@@ -211,6 +211,7 @@ uv run --locked --extra test python -m pytest -q
 - [Auto Research 架构](docs/AUTO_RESEARCH_DESIGN_SYSTEM.md)
 - [Workflow Catalog 与 Proof State](docs/PIPELINE_TAXONOMY.md)
 - [统一项目语言](docs/PROJECT_LANGUAGE.md)
+- [Loop 术语表](CONTEXT.md)
 - [Roadmap](docs/HARNESS_ROADMAP.md)
 - [当前 Readiness](docs/HARNESS_READINESS.md)
 - [Schemas](docs/SCHEMAS.md)
