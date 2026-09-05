@@ -68,7 +68,7 @@ ADR 0024's product object and glossary. It does not reinterpret the engine:
 ADRs 0021–0023 (typed deep modules, the owned local Run engine, and the one
 versionless interface) remain accepted, and `.harness-v3/state.json` remains the
 sole mutable authority. Self-evolution stays a deferred, human-approved Horizon
-(Roadmap Horizon 5), never an active claim; the term is self-**correct**, not
+(the roadmap's Deferred section), never an active claim; the term is self-**correct**, not
 self-evolve.
 
 ## Consequences
@@ -77,17 +77,17 @@ The product story returns to terms the engine already implements and puts
 Skills and Artifacts back on stage, so documentation stops advertising a
 normalized Claim graph the code does not build. README, `CONTEXT.md`, the
 architecture, taxonomy, language, roadmap, readiness, and schema docs must be
-realigned from Case language to Loop language, and the shared
-`CONTEXT_REQUIRED_TERMS` contract consumed by `validate_repo`,
-`readiness_audit`, and their tests moves to the eight new terms.
+realigned from Case language to Loop language, and the required-terms contracts
+in `tooling/harness_contracts.py` that `validate_repo` and `readiness_audit`
+consume are to gain a `CONTEXT.md` entry covering the eight new terms.
 
 The public interface wording is renamed with this decision: the exported
 types move from `Case*` to `Loop*`, the module CLI group becomes `loop`
 (`loop work/show/decide`), and `Start.goal`/`--goal` replaces the earlier
 question wording. Frozen machine contracts are deliberately not renamed — the
 schema names `research-harness.case-result/v1` and `case-inspection/v1`, the
-`case_contract` snapshot field, stable fault codes, and the `case_language`
-check id are retained for stability while their human-facing meaning is the
+`case_contract` snapshot field, and stable fault codes are retained for
+stability while their human-facing meaning is the
 Loop-first contract. The migration remains replace-not-layer: no third product
 story, no second state authority, and legacy `.harness` inspection stays
 read-only.
