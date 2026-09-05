@@ -67,9 +67,10 @@ about the Loop, not product-wide research-quality evidence.
 ## Readiness Audit Schema
 
 `harness-readiness-audit.v2` is the current readiness report schema. Version 2
-uses the canonical-language check (retained under the stable check id
-`case_language` for schema stability, while its human-facing messages now
-enforce the eight-term Loop glossary) and the Loop-first document contract.
+renames the language check id from `project_language` to `case_language`, moves
+its human-facing messages onto the eight-term Loop glossary, and adopts the
+Loop-first document contract. Because the id changed with the version, a consumer
+that parses check ids must read the schema version first.
 `harness-readiness-audit.v1` is historical and reflects the earlier
 project-language contract; it remains evidence about its own checkout but is not
 current readiness proof.

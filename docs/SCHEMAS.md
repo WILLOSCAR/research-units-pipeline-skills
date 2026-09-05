@@ -103,7 +103,7 @@ place.
 | `run-event.v1` | `.harness/events.jsonl` | Append-only transition and Completion prepare/commit/recovery history |
 | `unit-attempt.v1` | `.harness/attempts.jsonl` | Attempt starts, finishes, execution mode, ownership, and optional measured runtime/output fields |
 | `run-decision.v1` | `.harness/decisions.jsonl` | Human or Harness interventions, including a Checkpoint review basis when applicable |
-| `checkpoint-review-basis.v1` | nested in a Decision | Fingerprints the active human Unit and the reviewed Artifact evidence |
+| `checkpoint-review-basis.v1` | nested in a Decision | Fingerprints the active human Unit and the reviewed Artifact evidence; spans both paths — the current engine also writes it |
 | `artifact-record.v1` | `.harness/artifacts.jsonl` | Versioned Artifact provenance and hashes |
 | `failure-record.v1` | `.harness/failures/ledger.jsonl` | Append-only Failure opening and resolution records |
 | `run-evaluation.v1` | `.harness/evaluations/ledger.jsonl` | Qualified Workflow scorecard projection; full scorecards remain Artifacts |
@@ -151,8 +151,9 @@ The Audit verdict is an execution-integrity and contract-acceptance statement,
 not research-quality proof.
 
 Scorecard validators recompute totals, critical failures, repair projections,
-and verdicts — the harness performs verify by recomputation, never by trusting
-the reported verdict. A structurally valid but contradictory scorecard cannot
+and verdicts rather than trusting the verdict a report claims. The structural
+report checks are weaker and not uniform: several accept a `Status: PASS` line
+on its own. A structurally valid but contradictory scorecard cannot
 authorize Completion. Optional Attempt and template-residue projections remain
 diagnostic and keep unavailable legacy telemetry explicit.
 
@@ -160,13 +161,14 @@ diagnostic and keep unavailable legacy telemetry explicit.
 
 | Schema | Status | Meaning |
 |---|---|---|
-| `harness-readiness-audit.v2` | current | Uses the canonical `case_language` check id (retained for schema stability) and the Loop-first document contract |
+| `harness-readiness-audit.v2` | current | Renames the language check id from `project_language` to `case_language` and adopts the Loop-first document contract |
 | `harness-readiness-audit.v1` | historical | Used the earlier project-language and Run-first contract; valid only as evidence about its original checkout |
 
 A `harness-readiness-audit.v1` report must not be presented as current readiness
-evidence after the document contract moved to Loop language. The `case_language`
-check id is kept only for stability; its human-facing meaning is the Loop-first
-contract.
+evidence after the document contract moved to Loop language. The version bump is
+what carries that rename: a v1 report names the language check `project_language`
+and a v2 report names it `case_language`, so a consumer keyed on the check id
+must read the schema version first.
 
 ## Repository Invocation Evaluation
 

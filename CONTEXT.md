@@ -13,9 +13,9 @@ converges toward, not a promise about the truth of the result.
 _Avoid_: task, prompt, mission
 
 **Run**:
-One recoverable, replayable execution that pursues a Goal. A Run is a graph of
-steps with content-addressed inputs and outputs, so the same inputs reproduce
-the same step.
+One recoverable execution that pursues a Goal. A Run is a graph of
+steps with content-addressed inputs and outputs, so a step's recorded inputs and
+outputs can be checked against what it produced.
 _Avoid_: session, job, conversation
 
 **Evidence**:
@@ -48,7 +48,8 @@ _Avoid_: self-critique, self-review, self-grade
 **harness**:
 The deterministic executor that performs verify: it admits a step out of the
 Loop only when its Evidence, scorecard, and Artifacts agree, invalidates human
-Decisions whose reviewed inputs changed, and replays a Run deterministically.
+Decisions whose reviewed inputs changed, and detects when stored state no longer
+matches its inputs so it can recover a prepared Completion.
 The harness is the external referee that makes each Loop pass count.
 _Avoid_: orchestrator, framework, runner
 

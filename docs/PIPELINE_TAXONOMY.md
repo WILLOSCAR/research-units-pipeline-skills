@@ -1,8 +1,9 @@
 # Recipe Catalog
 
 This catalog records the private research Recipes currently implemented by
-Workflow and Pipeline compatibility contracts. Users pick a Loop kind and a
-desired format; they never need Workflow, Pipeline, Unit, or Skill names.
+Workflow and Pipeline compatibility contracts. On the module CLI users pick a
+Loop kind and a desired format; the stable `rh` executable still selects by
+Workflow name, and neither surface asks for Pipeline, Unit, or Skill names.
 
 The unit of trust here is the Loop, not the answer. A Recipe does not promise a
 scientifically true result — it runs a `verify → repair → re-run` Loop and, when
@@ -153,11 +154,13 @@ executable Recipe contract != converged Loop != research-quality validation
 
 The three layers stack, and this catalog claims only the first two — execution
 integrity and contract acceptance. All seven current Workflow contracts declare
-mandatory completion checks the harness recomputes, but research-quality Evidence
-remains uneven. The next work is repeated unrelated Runs, expert comparison,
-measured cost and retry data across the Loop, and stronger source-to-Artifact
-traceability. Normalized material assertions, challenge/qualification relations,
-and "what would change this?" cards remain target behavior rather than current
-cross-Recipe implementation — and remain research-quality claims this project
-does not yet make. Bounded stopping is the Loop discipline: repair while marginal
-gain is positive, then stop, never run to a fixed pass target.
+mandatory completion checks; the harness recomputes the scorecard checks, while
+several structural report checks accept a `Status: PASS` line on its own, and
+research-quality Evidence remains uneven. The next work is repeated unrelated
+Runs, expert comparison, measured cost and retry data across the Loop, and
+stronger source-to-Artifact traceability. Normalized material assertions,
+challenge/qualification relations, and "what would change this?" cards remain
+target behavior rather than current cross-Recipe implementation — and remain
+research-quality claims this project does not yet make. Bounded stopping is the
+Loop discipline: repair while marginal gain is positive, then stop, never run to
+a fixed pass target.

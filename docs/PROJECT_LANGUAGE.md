@@ -71,7 +71,8 @@ Three pillars carry the product, and all three are grounded in current code.
 This is the one part of the story we can point at line-by-line in code. The
 schema ids named below are the legacy Workspace records. Completion agreement
 and Decision staleness work the same way over `.harness-v3/state.json`; scorecard
-recomputation still runs through the legacy quality path, and the current engine
+recomputation runs on the current engine's native quality provider, with the
+legacy quality path retained as an explicit opt-in; and the current engine
 detects tampering and recovers a prepared Completion rather than replaying a Run
 from its events. The harness:
 
@@ -124,8 +125,9 @@ Interface. Historical `goal-spec.v2`, `run-state.v1`, `run-event.v1`,
 `unit-attempt.v1`, `run-decision.v1`, `artifact-record.v1`, `failure-record.v1`,
 and `run-evaluation.v1` records keep their original meaning; the adapter may
 summarize them but must not reinterpret or upgrade them in place. The legacy
-`harness-lock.v1`/`v2` and the current `workflow-snapshot/v1`/`v2` contracts each
-pin an execution's inputs so a re-run can be compared against them.
+`harness-lock.v1`/`v2` and the current `workflow-snapshot/v2` contracts each
+pin an execution's inputs so a re-run can be compared against them;
+`workflow-snapshot/v1` is read-compatible only and is never written.
 `harness-readiness-audit.v2` is neither: it is the current repository-level
 readiness report, emitted by `scripts/readiness_audit.py`, not a Workspace
 record.

@@ -15,7 +15,7 @@ Artifacts and decisions, checks observable contracts, and points failures back
 to the smallest repair surface.
 
 ```text
-Goal -> Run -> Evidence -> Improve
+Goal -> Run -> Evidence -> Artifact
 ```
 
 It is not an autonomous-scientist claim. It is infrastructure for making
