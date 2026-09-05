@@ -85,8 +85,8 @@ The harness is the deterministic executor that performs verify. It is the one
 part of the system we can point at line-by-line in code:
 
 1. it **recomputes** the scorecard checks rather than reading the verdict a
-   report claims, while structural checks accept an exact `Status: PASS` once
-   the report's own shape passes;
+   report claims; the structural report checks vary — some validate the
+   report's shape, others accept its `Status: PASS` line on its own;
 2. it admits a step out of the Loop only when its required-check Evidence,
    recomputed scorecard, and matching Artifacts and manifest all agree;
 3. it marks a human Decision **stale** when the reviewed inputs it was bound to

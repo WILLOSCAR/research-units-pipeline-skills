@@ -32,7 +32,7 @@ model grading itself.
 | Decision freshness | A human Decision binds the reviewed Artifact hashes; changed inputs mark the Decision stale and revoke its authorization | `Landed` |
 | Artifact provenance | Manifest hashes, Artifact records, immutable-output drift detection, and pinned implementation evidence | `Landed` |
 | Verify and repair localization | Doctor, Audit, Failure ledger, and bounded local repair exist; applied repair is not yet its own public transaction | `Landed` |
-| Scorecard recomputation | Workflow-local provers recompute the scorecard checks rather than reading the verdict a report claims; structural checks accept an exact `Status: PASS` once the report's own shape passes, and Run research quality remains `NOT_EVALUATED` | `Migration` |
+| Scorecard recomputation | Workflow-local provers recompute the scorecard checks rather than reading the verdict a report claims; the structural report checks vary, some accepting a `Status: PASS` line on its own, and Run research quality remains `NOT_EVALUATED` | `Migration` |
 | Three quality layers | Execution integrity, contract acceptance, and research quality remain separately qualified | `Landed` |
 | Cross-Workflow research quality | Repeated realistic Runs, held-out comparison, expert agreement, and calibrated efficiency evidence | `Deferred` |
 | Bounded harness self-correction | Architecture and Roadmap rule only; automatic candidate creation/promotion is absent, and self-evolution stays a human-approved direction on the roadmap's Deferred list | `Deferred` |

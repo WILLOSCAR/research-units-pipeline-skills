@@ -112,8 +112,8 @@ place.
 Legacy JSONL ledgers are append-only. `run.json`, `effective.json`, `UNITS.csv`,
 `STATUS.md`, Decision Markdown, and generated reports are projections. A legacy
 Unit is admitted out of the Loop as DONE only when its successful Attempt, final
-Manifest, required Artifact records, and declared Evaluation agree — the harness
-does not trust any single self-reported field.
+Manifest, and required Artifact records agree; no one of those records is taken
+on its own.
 
 `checkpoint-review-basis.v1` hashes the matching Decision block and reviewed
 inputs. Later unrelated blocks do not invalidate it, while edits within the

@@ -13,8 +13,8 @@ itself. "A research loop that engineers its own evidence."
 So this catalog separates two things and claims only what it can point at in
 code:
 
-- **executable structure** — the Recipe contract that lets a Run start, replay,
-  and repair;
+- **executable structure** — the Recipe contract that lets a Run start,
+  re-run, and repair;
 - **observed proof** — the retained scorecards and Artifacts from Runs that
   actually converged.
 
