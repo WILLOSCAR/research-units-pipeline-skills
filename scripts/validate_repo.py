@@ -701,7 +701,15 @@ def _validate_project_language_doc(*, repo_root: Path) -> list[Finding]:
         return []
 
     text = doc_path.read_text(encoding="utf-8", errors="ignore")
-    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in text]
+    # Anchor to headings: a bare substring check passes for a file that merely
+    # concatenates the seven phrases on one line, which is the hollowing this
+    # gate exists to catch.
+    headings = {
+        line.lstrip("#").strip()
+        for line in text.splitlines()
+        if line.startswith("##")
+    }
+    missing = [term for term in PROJECT_LANGUAGE_REQUIRED_TERMS if term not in headings]
     if missing:
         return [
             Finding(

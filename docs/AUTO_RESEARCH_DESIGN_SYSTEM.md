@@ -292,7 +292,7 @@ state authority, and no permanent synchronization layer.
 
 Others evolve the agent — self-evolving agents whose own open problem is
 trustworthy verification. We make each Run verify itself. Self-evolution stays a
-deferred, human-approved Horizon (the roadmap's Deferred section), never an active claim.
+human-approved direction on the roadmap's Deferred list, never an active claim.
 
 Reject a single truth score, sentence-level normalized content storage, a
 graph-first UI as the primary interface, parallel writable state, hypothetical

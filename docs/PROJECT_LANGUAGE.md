@@ -69,7 +69,8 @@ Three pillars carry the product, and all three are grounded in current code.
 ## How the harness acts as referee
 
 This is the one part of the story we can point at line-by-line in code. The
-harness:
+schema ids named below are the legacy Workspace records; the current engine
+performs the same four checks over `.harness-v3/state.json`. The harness:
 
 - **Recomputes scorecards.** It does not trust a self-reported verdict inside an
   Artifact; it re-derives the `run-evaluation.v1` result from the evaluated
@@ -96,10 +97,10 @@ harness:
 | Attempt | One concrete execution of a Unit (`unit-attempt.v1`); retries preserve earlier Attempts as Loop history. |
 | Completion | Recoverable transaction that commits a Unit only when its Attempt, required Artifacts, Manifest, and acceptance evidence agree. It is the moment a step exits the Loop. |
 | Checkpoint | The engine's stop that requests a human Decision. The product view describes the choice, not a code such as `C2`. |
-| Manifest | Machine-readable index of Artifact identity, existence, size, hash, and provenance (`unit-output-manifest.v1`); not necessarily a portable archive. |
+| Manifest | Machine-readable index of Artifact identity, existence, size, hash, and provenance (`unit-output-manifest.v1` on the legacy path); not necessarily a portable archive. |
 | Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts. A Run's own audit is `run-audit.v2`; `harness-readiness-audit.v1`/`v2` is the repository-level readiness report. Neither changes research content or Decisions. |
 | Failure | Durable record (`failure-record.v1`) of an observable defect and its owning repair surface. |
-| Evaluation | Append-only scorecard result (`run-evaluation.v1`) whose claim is limited to its named quality layer and evaluated inputs. |
+| Evaluation | Append-only scorecard result (`run-evaluation.v1` on the legacy path) whose claim is limited to its named quality layer and evaluated inputs. |
 | Repair | Explicit change followed by re-execution; diagnosis alone is not repair, and it is bounded by marginal gain. |
 | Skill | Reusable producer or prover capability under `.codex/skills/`. Producer Skills make Evidence and Artifacts; prover Skills check them. |
 | Workspace | Directory that confines one execution and its projections. |
@@ -159,7 +160,7 @@ Three external results are cited as evidence for the design, not as slogans.
 Other work evolves the agent — self-evolving agents whose own open problem is
 trustworthy verification. This project takes the opposite bet: rather than
 improve the agent across Runs, make each Run verify itself. Self-evolution stays
-a deferred, human-approved Horizon (the roadmap's Deferred section), never an active claim.
+a human-approved direction on the roadmap's Deferred list, never an active claim.
 The word is self-**correct**, not self-evolve.
 
 ## Naming Rules

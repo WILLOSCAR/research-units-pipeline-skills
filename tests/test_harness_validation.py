@@ -110,7 +110,9 @@ def _write_minimal_harness_docs(repo_root: Path) -> None:
     )
     (docs_dir / "PROJECT_LANGUAGE.md").write_text(
         "# Implementation Language\n\nCanonical language: ../CONTEXT.md\n\n"
-        + "\n".join(validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS)
+        + "\n".join(
+            f"## {section}" for section in validate_repo.PROJECT_LANGUAGE_REQUIRED_TERMS
+        )
         + "\n",
         encoding="utf-8",
     )
