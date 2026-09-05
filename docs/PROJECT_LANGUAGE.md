@@ -33,14 +33,14 @@ does.
 
 | Product concept | Current implementation | Boundary |
 |---|---|---|
-| Goal | The requested outcome plus its constraints, captured as `goal-spec.v2` when a Run starts | The target a Run converges toward, never a promise the result is true |
+| Goal | The requested outcome plus its constraints, recorded in the Run's own state when it starts (legacy Workspaces persist the same identity as `goal-spec.v2`) | The target a Run converges toward, never a promise the result is true |
 | Run | One recoverable, replayable execution persisted in `.harness-v3/state.json`; under the hood a DAG of steps with content-addressed inputs and outputs | The product object — the self-correcting Run, not a session or job |
 | Evidence | Recipe-local intermediate outputs, pointers, and provenance, each content-addressed so a step reproduces from its inputs | Faces inward: feeds the next step and enables reproduction plus local repair |
-| Artifact | Reader-facing deliverable (Brief, Review, Synthesis, Survey, PDF, Idea memo, Tutorial) plus its proof pack — scorecards and `unit-output-manifest.v1` | Faces the reader: the deliverable together with the evidence it was produced correctly |
+| Artifact | Reader-facing deliverable (Brief, Review, Synthesis, Survey, PDF, Idea memo, Tutorial) plus its proof pack of scorecards and per-unit output records (`unit-output-manifest.v1` on the legacy path) | Faces the reader: the deliverable together with the evidence it was produced correctly |
 | Loop | The `*-selfloop` Skill family plus the engine's repair/re-run cycle | Trust is a converged fixed point, not a switch; repair is bounded and local |
 | verify | The harness recomputing scorecards, checking required-check evidence, comparing content hashes, and testing review-basis freshness | The harness checking a pass against something the model cannot smooth away — never self-critique |
 | harness | The deterministic executor for scheduling, state, Attempt history, Completion, recovery, provenance, validation, and inspection | The external referee that decides whether each Loop pass counts |
-| Decision | Human Checkpoint records and their reviewed-Artifact basis (`checkpoint-review-basis.v1`, `run-decision.v1`) | The human's turn to verify inside the Loop, over the exact Run state reviewed |
+| Decision | Human Checkpoint records and their reviewed-Artifact basis (`checkpoint-review-basis.v1`; `run-decision.v1` on the legacy path) | The human's turn to verify inside the Loop, over the exact Run state reviewed |
 
 The Run read model is a projection built from `.harness-v3/state.json`. The
 public Interface delegates mutation to the private engine and then returns a
@@ -97,7 +97,7 @@ harness:
 | Completion | Recoverable transaction that commits a Unit only when its Attempt, required Artifacts, Manifest, and acceptance evidence agree. It is the moment a step exits the Loop. |
 | Checkpoint | The engine's stop that requests a human Decision. The product view describes the choice, not a code such as `C2`. |
 | Manifest | Machine-readable index of Artifact identity, existence, size, hash, and provenance (`unit-output-manifest.v1`); not necessarily a portable archive. |
-| Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts (`harness-readiness-audit.v1`/`v2`). It does not change research content or Decisions. |
+| Audit | Bounded inspection of state, provenance, Artifact coverage, and declared quality contracts. A Run's own audit is `run-audit.v2`; `harness-readiness-audit.v1`/`v2` is the repository-level readiness report. Neither changes research content or Decisions. |
 | Failure | Durable record (`failure-record.v1`) of an observable defect and its owning repair surface. |
 | Evaluation | Append-only scorecard result (`run-evaluation.v1`) whose claim is limited to its named quality layer and evaluated inputs. |
 | Repair | Explicit change followed by re-execution; diagnosis alone is not repair, and it is bounded by marginal gain. |
