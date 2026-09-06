@@ -1,0 +1,81 @@
+{
+ "captured_at": "2026-08-21T00:00:00+08:00",
+ "engine": "research_harness typed local engine",
+ "goal": "Review one supplied manuscript through the current typed research_harness engine and reach a COMPLETED Review.",
+ "limitations": [
+  "One Recipe (paper-review), one synthetic manuscript, one topic.",
+  "Proves execution-integrity and contract-acceptance for this run only; NOT research quality, novelty, or exhaustive-retrieval validation.",
+  "A COMPLETED run and a PASS scorecard are contract signals, never a truth claim about the review's correctness.",
+  "Not expert reviewed; cross-topic and real-manuscript proof remain open.",
+  "Artifact hashes are content-addressed for this checkout; skill or manuscript changes will change them by design.",
+  "REVIEW_SCORECARD.json embeds a wall-clock generated_at; its recorded hash is over timestamp-normalized content, not the raw bytes."
+ ],
+ "observed_storage_schemas": {
+  "completion_manifest (.harness-v3/manifests/*.json, 9 files)": "research-harness.completion-manifest/v1",
+  "local_identity (.harness-v3/contracts/identity.json)": "research-harness.local-identity/v1",
+  "run_state_ledger (.harness-v3/state.json)": "research-harness.run-aggregate/v1",
+  "workflow_snapshot (.harness-v3/contracts/workflow.json)": "research-harness.workflow-snapshot/v2"
+ },
+ "produced_artifacts": [
+  {
+   "path": "output/PAPER.md",
+   "sha256": "07674f9f63d22eb8f347b75811f46a02dbb509bcca3cd1f6e8e67fed0bca2649",
+   "size": 2186
+  },
+  {
+   "path": "output/CLAIMS.jsonl",
+   "sha256": "75ace2f3570b846229507e35395a72454336b1dd6da5149a995a3311692238b2",
+   "size": 3140
+  },
+  {
+   "path": "output/EVIDENCE_AUDIT.jsonl",
+   "sha256": "4036ce0befdd4c533a980bf835e55fc872b173d73f0f4f9686d634ff2839ef08",
+   "size": 4713
+  },
+  {
+   "path": "output/NOVELTY_MATRIX.tsv",
+   "sha256": "687db4b33bd0c1b7415f223ca7af7966915e859724d5466545f1856bc657beb8",
+   "size": 13528
+  },
+  {
+   "path": "output/REVIEW.md",
+   "sha256": "1808aff351f450ccf26d7e186fa99e26cfbab803680b49b1df6a021010d0ab33",
+   "size": 2247
+  },
+  {
+   "hash_basis": "sha256 over canonical JSON with `generated_at` normalized to '<normalized-for-reproducible-hash>'; the on-disk file embeds a wall-clock `generated_at` (tooling.common.now_iso_seconds -> datetime.now), so a plain sha256sum of the raw file will differ by design.",
+   "path": "output/REVIEW_SCORECARD.json",
+   "sha256": "253057e02069df10479d97ac7f7cb00b469e8a64a5e5f34abf2856a286de9682",
+   "size": 2803
+  }
+ ],
+ "run_state": "COMPLETED",
+ "schema": "completed-run-evidence.v1",
+ "semantic_scorecard_schema": "paper-review-scorecard.v1",
+ "source_mode": "deterministic_synthetic_manuscript",
+ "storage_namespace": ".harness-v3",
+ "units": {
+  "done": 9,
+  "total": 9,
+  "unit_status": {
+   "U001": "DONE",
+   "U002": "DONE",
+   "U005": "DONE",
+   "U010": "DONE",
+   "U020": "DONE",
+   "U025": "DONE",
+   "U030": "DONE",
+   "U035": "DONE",
+   "U040": "DONE"
+  }
+ },
+ "verification": {
+  "novelty_matrix_grounded": "positioned claims against the manuscript reference list rather than emitting the 'related works unavailable' fallback.",
+  "reached_completed": true,
+  "real_skills": "producer skills (manuscript-ingest, claims-extractor, evidence-auditor, novelty-matrix, rubric-writer) plus the artifact-contract-auditor ran as subprocesses; no stub adapters.",
+  "scorecard_pass_score": 80,
+  "scorecard_score": 100,
+  "scorecard_verdict": "PASS"
+ },
+ "workflow": "paper-review"
+}
