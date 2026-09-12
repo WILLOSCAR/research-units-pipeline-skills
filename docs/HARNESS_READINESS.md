@@ -125,3 +125,74 @@ than a second authority. Self-correction stays bounded and local, and
 self-evolution remains a human-approved direction on the roadmap's Deferred
 list — the term is
 self-correct, never self-evolve.
+
+## Current development snapshot — 2026-09-12
+
+This is a point-in-time status note for a developer picking up the repository.
+The normative readiness audit above is unchanged; this section records the
+current baseline, two bounded exploration results, and the next-step queue. It
+is not a release changelog and cites only evidence present on `main`.
+
+### Delivered baseline
+
+- The typed Run engine, the versionless `research_harness` interface, the
+  native quality provider, and the byte-for-byte typed-engine evidence are on
+  `main`. Relevant history: PR #17 (typed `research_harness` engine with its
+  acceptance suites), PR #19 (rename the language contract to `CONTEXT.md` and
+  align the documentation to shipped behavior), PR #22 (evidence-auditor upgrade
+  with negation-aware evidence detection, overclaim and pointer fixes), PR #23
+  (regenerated typed-engine proof plus the reproducibility producer).
+- Reproduce the published proofs from a clone:
+
+  ```bash
+  uv run --locked python scripts/generate_typed_engine_run_evidence.py --check
+  ```
+
+  It exits 0 only when the committed `examples/*-typed-engine-proof` summaries
+  regenerate byte-for-byte against the current tree (fixed capture stamp, no
+  wall clock). The proof directories are `examples/paper-review-typed-engine-proof`
+  and `examples/research-brief-typed-engine-proof`.
+- The numbers below are historical observations bound to the versions that
+  produced them, not a fresh `main` CI run; CI is the authoritative signal for
+  any given commit.
+
+### Two bounded exploration probes (2026-09-12), both no-defect-found within scope
+
+1. **Evidence-auditor method/dataset regex latency.** The alternative
+   `\d[\d,\s]*\s*(…)` in `_METHOD_DATASET_CUE` (`.codex/skills/evidence-auditor/scripts/run.py`)
+   shows quadratic backtracking on a constructed long pure digit/comma/space
+   input (roughly 2.4 ms at 500 chars to 434 ms at 8000). It did **not**
+   reproduce on the three sampled real corpora under `.scratch/corpora/`, where
+   the longest contiguous trigger run was 11 characters (sub-millisecond), and
+   flattened results tables are not pathological because non-digit punctuation
+   breaks the run. Scope is three corpora: this does not prove the worst case is
+   unreachable on every real manuscript, only that no defect was observed in the
+   sample; the pattern's matching semantics were left unchanged.
+2. **Research-brief "Key themes" distinctness.** On the current public example
+  `examples/research-brief-harness-proof/SNAPSHOT.md`, six theme bullets showed
+  no surface-word overlap across any pair, and each bullet adds terms absent
+  from its paper title. This is a lexical check, not a proof of semantic quality,
+  and it covers one snapshot; it does not generalize to other generated briefs.
+
+### Working rules (stable)
+
+The long-term quality goal is unchanged. Completing a cycle does not close the
+continuous project. Discovery is bounded to at most two distinct probes or
+thirty minutes per round, and a round with no new evidence rotates direction.
+Each investigation freezes its reader task and acceptance first, fixes at the
+earliest causal owner, and validates with same-topic and held-out cases. The
+project keeps one current state document plus an append-only change record;
+private corpora, run state, and local planning do not ship with the repository.
+
+### Next-step priority queue
+
+| Priority | Item | Status | First acceptable acceptance |
+|---|---|---|---|
+| 1 | Run interruption recovery: restart replay with no duplicate Decision | Not tested end-to-end on the shipped engine | Interrupt a Run mid-Unit; resume; exactly one Decision per checkpoint, no duplicated provenance |
+| 2 | Evidence-auditor first-hit section binding and subsection-capture reset | Observed, open | Cross-section claims bind to the correct heading; a subsection heading no longer turns capture off for its body |
+| 3 | Research-brief "Open problems / risks" bullet distinctness | Untested sibling of the Key-themes probe | On a real snapshot, bullets are mutually distinct and grounded, checked with the same lexical-plus-manual method |
+| 4 | Mixed-clause negation under-reports affirmed evidence | Known conservative limitation | A clause that denies one signal while affirming another reports the affirmed signal without re-introducing fabricated support |
+
+Items 1–4 are suggestions for future work, not completed capabilities. None is
+grounded in a reproduced current-`main` failure yet; each needs a real-material
+reproduction before it becomes an active fix.
