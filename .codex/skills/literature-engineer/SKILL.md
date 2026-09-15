@@ -1,133 +1,125 @@
 ---
 name: literature-engineer
-description: "Multi-route literature expansion + metadata normalization for evidence-first surveys."
+description: Build the candidate pool sources/ — one provenance-bearing Markdown file per source — by multi-route retrieval (offline exports, arXiv, a scholarly index, snowballing) from the Success Spec or, in evidence-synthesis, from the protocol's search specification.
+role: producer
+reads: [success_spec.yaml, protocol.md]
+outputs: [sources/]
 ---
 
-# Literature Engineer (evidence collector)
+# Literature Engineer
 
-## Triggers & routing
-
-- **Trigger**: evidence collector, literature engineer, 文献扩充, 多路召回, snowballing, cited by, references, 元信息增强, provenance.
-- **Use when**: Workflow 需要按锁定的 retrieval policy 扩充候选文献并补齐可追溯 metadata。
-
-
-Goal: build a **large, verifiable candidate pool** for downstream dedupe/rank, mapping, notes, citations, and drafting.
-
-This skill is intentionally **evidence-first**: if you can't reach the target size with verifiable IDs/provenance, the correct behavior is to **block** and ask for more exports / enable network, not to fabricate.
-
-## Load Order
-
-Always read:
-- `references/domain_pack_overview.md` — how domain packs drive topic-specific behavior
-
-Domain packs (loaded by topic match):
-- `assets/domain_packs/llm_agents.json` — pinned classic/survey arXiv IDs for LLM agent topics
-
-## Script Boundary
-
-Use `scripts/run.py` only for:
-- multi-route offline import, normalization, and provenance tagging
-- online arXiv/Semantic Scholar API retrieval
-- snowball expansion and deduplication
-- retrieval report generation
-
-Do not treat `run.py` as the place for:
-- hardcoded pinned arXiv ID lists (use domain packs)
-- hardcoded topic detection logic (use domain packs)
+The `retrieve` step of the `survey`, `ideas`, and `evidence-synthesis` kinds.
+It builds the wide candidate pool those kinds start from: several retrieval
+routes merged by stable identifier, one file per source under `sources/`.
+`dedupe-rank` (`survey`, `ideas`) or `screening-manager`
+(`evidence-synthesis`) reads each file's front matter and abstract; every
+later table names a source by its file stem; the writer cites the file by hash.
 
 ## Inputs
 
-- `queries.md`
-  - `keywords`, `exclude`, `max_results`, `time window`
-- Optional offline sources (any combination; all are merged):
-  - `papers/import.(csv|json|jsonl|bib)`
-  - `papers/arxiv_export.(csv|json|jsonl|bib)`
-  - `papers/imports/*.(csv|json|jsonl|bib)`
-- Optional snowball exports (offline):
-  - `papers/snowball/*.(csv|json|jsonl|bib)`
+- `success_spec.yaml` — `scope` and the `coverage` criteria supply the query
+  terms and the sources that must be present; `drift` supplies exclusions.
+  The packet's `goal.text` may name offline exports (CSV,
+  JSON, JSONL, BibTeX) in the workspace, a venue, or a time window.
+- `protocol.md` (`evidence-synthesis` only) — its search specification is
+  authoritative: run the databases, query strings, date window, and languages
+  it lists exactly as written. Its inclusion and exclusion clauses are
+  `screening-manager`'s to apply, not this step's.
 
 ## Outputs
 
-- `papers/papers_raw.jsonl`
-  - 1 record per line; minimum fields:
-    - `title` (str), `authors` (list[str]), `year` (int|""), `url` (str)
-    - stable identifier(s): `arxiv_id` and/or `doi`
-    - `abstract` (str; may be empty in offline mode)
-    - `source` (str) + `provenance` (list[dict])
-- `papers/papers_raw.csv` (human scan)
-- `papers/retrieval_report.md` (route counts, missing-meta stats, next actions)
+`sources/<source_id>.md`, one per source. `source_id` is the arXiv id without
+version (`2210.03629`; old-style ids replace `/` with `_`), else
+`<first-author-surname>-<year>-<first-three-title-words>` in lower-case ASCII
+with hyphens (`smith-2021-retrieval-augmented-generation`).
 
-## Workflow (multi-route)
+```markdown
+---
+source_id: "2210.03629"
+title: "ReAct: Synergizing Reasoning and Acting in Language Models"
+authors: ["Shunyu Yao", "Jeffrey Zhao", "Dian Yu"]
+year: 2022
+venue: "ICLR 2023"                 # "arXiv cs.CL" when nothing else is known
+url: "https://arxiv.org/abs/2210.03629"
+doi: ""                            # empty string when unknown
+retrieved_at: "2026-09-13T02:40:00Z"
+origin: ["pinned_classic", "query:Q1"]  # pinned_classic | pinned_survey | query:<id>
+retrievals:                         # every route that returned the source
+  - {route: arxiv-api, query_id: Q1, query: '(all:agent OR all:agents) AND (all:llm OR all:"language model")'}
+  - {route: snowball-citations, seed: "2308.11432"}
+  - {route: export, file: "exports/scopus.csv"}
+---
 
-1. **Offline-first merge**: ingest all available offline exports (and label provenance per file).
-2. **Online retrieval (optional)**: if enabled, run arXiv API retrieval for each keyword query.
-3. **Snowballing (optional)**: expand from seed papers via references/cited-by (online), or merge offline snowball exports.
-4. **Normalize + dedupe**: canonicalize IDs/URLs, merge duplicates while unioning `provenance`.
-5. **Report**: write a concise retrieval report with coverage buckets and missing-meta counts.
+## Abstract
 
-## Quality checklist
+<the abstract exactly as the route returned it; "(no abstract in record)" if none>
+```
 
-- [ ] Candidate pool meets the active Workflow's declared retrieval floor **without fabrication**. For Workflows with `retrieval_policy.minimum_records`, use that value; survey profiles may instead derive a stricter pool target from `core_size`.
-- [ ] Each record has a stable identifier (`arxiv_id` or `doi`, plus `url`).
-- [ ] Each record has provenance: which route/file/API produced it.
+All ten front-matter keys are present in every file (empty when unknown).
+Add `## Retrieved text` only when full text was fetched: first line names
+where from (`pdf_url`, page range), then the text in reading order with the
+paper's headings as `###`, so `paper-notes` can point at `§3.2`.
 
-## Script
+`schema-valid` is bound to this step but does not parse `.md` files; the only
+kernel check here is that `outputs/sources/` holds at least one file. Every
+downstream Skill parses the front matter as YAML: quote titles with colons.
 
-### Quick Start
+## Method
 
-- `uv run python .codex/skills/literature-engineer/scripts/run.py --help`
+1. **Search spec.** `survey` and `ideas`: from the noun phrases of `scope`,
+   the sources and aspects the `coverage` criteria name, and the `drift`
+   exclusions, form 4–8 queries with stable ids `Q1`, `Q2`, ….
+   `evidence-synthesis`: copy the protocol's
+   query ids, strings and window verbatim, one route per database it names, and
+   add nothing. When `scope` (or `goal.text`) contains a term from
+   `trigger_group_a` and one from `trigger_group_b`, or a `name_triggers`
+   entry, of a pack under `assets/domain_packs/`, add one query
+   `query_rewrite.core_clause AND query_rewrite.signal_clause` and fetch its
+   `pinned_classics` and `pinned_surveys` by id. A pack widens recall inside
+   the spec's scope, never replaces its terms, and is not used under a protocol.
+   `origin` lists each matching classification: `pinned_classic`,
+   `pinned_survey`, or `query:<id>`. For other named ids, exports and
+   snowball hits use `query:id_list`, `query:export`, `query:snowball`.
+   `retrievals` holds the actual routes, query ids and strings, seeds or
+   export paths; retain all contributing records.
+2. **Routes**, in this order: (a) offline exports named in
+   `goal.text`; (b) the arXiv API
+   (`https://export.arxiv.org/api/query`, `max_results` ≤ 200 per page,
+   about 3 s between requests); (c) one scholarly index when reachable
+   (Semantic Scholar Graph, OpenAlex, or Crossref) for non-arXiv venues and
+   DOIs; (d) one hop of snowballing from each pinned survey and each source a
+   `coverage` criterion names, keeping only hits inside the time window that
+   contain at least one scope term.
+3. **Merge.** Key by DOI, then arXiv id (version stripped), then normalised
+   title (lower-case, ASCII-folded, punctuation and whitespace removed) plus
+   year. Union `origin` and `retrievals`; keep the record with the longest abstract; one file
+   per key.
+4. **Pool size.** `survey` 150–300 files, `ideas` 60–150,
+   `evidence-synthesis` everything the protocol's searches return (no cap);
+   a number in the Goal or in a criterion wins. If the reachable routes stop
+   short, write what was fetched and run `rh escalate --reason` naming the
+   unreachable routes; `extend` on that Decision resumes this same packet.
+5. **Check the spec.** Every source a `coverage` criterion names by id or
+   title is present (fetch it by id if the queries missed it); under a
+   protocol, every database and query id it names appears in `retrievals`.
 
+## Repair
 
-### All Options
+A Fault routed here says either that a cited `sources/<file>` is empty,
+truncated, or not the paper its id names (`source-support`,
+`implicates: retrieve`), or that a source or database the spec or protocol
+names is absent from the pool (`spec-coverage`). Re-run the routes and write
+the whole `outputs/sources/` again: fetch the bad id afresh, fetch the
+missing source by id, run the missing database as a route, drop a file the
+Fault shows to be off-scope.
 
-- See `uv run python .codex/skills/literature-engineer/scripts/run.py --help`.
-- Reads retrieval config from `queries.md`.
-- Offline inputs (merged if present): `papers/import.(csv|json|jsonl|bib)`, `papers/arxiv_export.(csv|json|jsonl|bib)`, `papers/imports/*.(csv|json|jsonl|bib)`.
-- Optional offline snowball inputs: `papers/snowball/*.(csv|json|jsonl|bib)`.
-- Online expansion requires network: use `--online` and/or `--snowball`.
-- Online retrieval is best-effort: arXiv API can be flaky in some environments; the script will also attempt a Semantic Scholar route when needed.
-- For LLM-agent topics, the script also performs a best-effort **pinned arXiv id_list fetch** (canonical classics like ReAct/Toolformer/Reflexion/Voyager/Tree-of-Thoughts + a small prior-survey seed set) so `ref.bib` can include must-cite anchors even when keyword search misses them.
-- If HTTPS/TLS to external domains is unstable, the Semantic Scholar route is fetched via the `r.jina.ai` proxy so the pipeline can still self-boot without manual exports.
-- When an online run returns `0` records due to transient network errors, a simple rerun is often sufficient (the pipeline should not fabricate).
+## Do not
 
-
-### Examples
-
-- Offline imports only:
-  - Put exports under `papers/imports/` then run:
-    - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace>`
-
-- Explicit offline inputs (multi-route):
-  - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace> --input path/to/a.bib --input path/to/b.jsonl`
-
-- Online arXiv retrieval (needs network):
-  - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace> --online`
-
-- Snowballing (needs network unless you provide offline snowball exports):
-  - `uv run python .codex/skills/literature-engineer/scripts/run.py --workspace <workspace> --snowball`
-
-## Troubleshooting
-
-### Issue: cannot reach the active Workflow's candidate-pool target
-
-**Symptom**:
-- `papers/papers_raw.jsonl` is below the explicit or profile-derived minimum declared by the locked Workflow.
-
-**Causes**:
-- Only a small offline export was provided.
-- Network is blocked so online retrieval/snowballing can't run.
-
-**Solutions**:
-- Provide additional exports under `papers/imports/` (multiple routes/queries).
-- Provide snowball exports under `papers/snowball/`.
-- Enable network and rerun with `--online --snowball`.
-
-### Issue: many records missing stable IDs
-
-**Symptom**:
-- Report shows many entries with empty `arxiv_id` and `doi`.
-
-**Solutions**:
-- Prefer arXiv/OpenReview/ACL exports that include stable IDs.
-- If you have network, rerun with `--online` to backfill arXiv IDs.
-- Filter out ID-less entries before downstream citation generation.
+- Do not screen, rank, or choose a core set; `dedupe-rank` and
+  `screening-manager` do that from this pool.
+- Do not write summaries, notes, judgments, or any text you did not retrieve.
+- Do not write a file for a source you could not fetch under a verifiable
+  identifier, nor a stand-in for a source the spec names.
+- Do not apply a protocol's inclusion or exclusion clauses, or add queries
+  the protocol did not specify.
+- Do not change a `source_id` between passes; every later table carries it.

@@ -1,120 +1,153 @@
 ---
 name: outline-builder
-description: "Convert a taxonomy (`outline/taxonomy.yml`) into a bullet-only outline (`outline/outline.yml`) with sections/subsections."
+description: Build outline.yml — sections (and, for a survey, subsections) with the question each answers, the source ids it draws on, a word budget, and bullets only — from the Success Spec, the core set, and the sources or taxonomy.
+role: producer
+reads: [success_spec.yaml, core_set.csv, sources/, taxonomy.yml]
+outputs: [outline.yml]
 ---
 
 # Outline Builder
 
-## Triggers & routing
+The `outline` step of the `brief` and `survey` kinds. It decides what the
+deliverable will say and in what order, before any prose exists: each
+section names the Success Spec question it answers, the sources it will
+cite, and how many words it may spend. The writer follows it section by
+section; the `spec-coverage` prover later asks whether every criterion was
+reachable from it.
 
-- **Trigger**: outline builder, bullet outline, outline.yml, 大纲生成, bullets-only.
-- **Use when**: structure 阶段（NO PROSE），已有 taxonomy，需要生成可映射/可写作的章节与小节骨架（每小节≥3 bullets）。
-- **Skip if**: 已经有批准过且可映射的 outline（避免无意义 churn）。
-- **Network**: none.
-- **Guardrail**: bullets-only；移除 TODO/模板语句；每小节至少 3 个可检查 bullets。
+## How this step is worked
 
+The harness writes `steps/outline/pass-<n>/packet.json` (readable copy:
+`packet.md`) with `schema: rh.packet/1`, `run_id`, `kind`, `pass_id`, `step`,
+`n`, `role`, `skill {name, path, identity}`, `goal {text, constraints}`,
+`criteria [{id, text, kind, ground, layer, gates, params}]`, `inputs [{name,
+path, hash}]`, `outputs [{name, path}]`, `budget {passes_used, passes_total,
+passes_per_gate}`, `instructions`.
 
-`outline/outline.refined.ok` freezes a reviewed outline only while the marker is newer than the outline, all declared inputs, the defaults asset, and the generator. Upstream changes invalidate the marker and trigger a backed-up regeneration.
+1. Read the packet and every input at its listed path. In `brief` the
+   inputs are `success_spec.yaml`, `core_set.csv`, and each
+   `sources/<file>`; in `survey` they are `success_spec.yaml`,
+   `taxonomy.yml`, `core_set.csv` (no `sources/`: the taxonomy already
+   places the papers; read `core_set.csv` for titles and years).
+2. Write `outputs/outline.yml` with exactly that name.
+3. Run `rh continue`.
 
-Build `outline/outline.yml` from either:
-- `outline/taxonomy.yml` (legacy H3-first compatibility path)
-- `outline/chapter_skeleton.yml` + `outline/section_briefs.jsonl` (section-first transition path)
-
-Compatibility mode is active: this migration keeps the current output contract while moving intro/related defaults, Stage A bullet templates, and domain-specific comparison framing into `references/` and `assets/`.
-
-## Load Order
-
-Always read:
-- `references/overview.md`
-- `references/stage_a_contract.md`
-
-Read by task:
-- `references/intro_related_patterns.md` when changing `Introduction` / `Related Work` defaults
-- `references/examples_good.md` and `references/examples_bad.md` for bullet calibration
-
-Machine-readable asset:
-- `assets/outline_defaults.yaml`
+A repair packet (`role: repair`) also carries `faults [{id, gate, criterion,
+ground, step, checked_step, message, evidence, pass_id}]` and
+`cited_evidence [{name, path, hash}]`; the harness writes `inputs/faults.json`
+and copies each eligible cited Evidence object to `inputs/evidence/<first 16 hex of
+hash>`. The failed attempt's `outline.yml` is not provided. A Fault here
+names a criterion or aspect no section answers, a section with no sources
+behind it, or a placeholder left in. Rebuild the outline from the inputs so
+each Fault is answered.
 
 ## Inputs
 
-Required:
-- `outline/taxonomy.yml`
+- `success_spec.yaml` — `criteria` of kind `answers` and `coverage` are the
+  questions the outline must reach; `length` `params` bound the total words;
+  `scope` and `drift` bound the topics.
+- `core_set.csv` — `source_id,title,year,venue,score,reason`; the sources a
+  section may name. A section names only ids from this file.
+- `sources/<source_id>.md` (`brief`) — read the abstracts to decide what
+  each theme can say.
+- `taxonomy.yml` (`survey`) — the tree of categories with `source_ids`; top
+  level becomes sections, leaves become subsections.
 
-Optional human calibration only:
-- `ref/agent-surveys/STYLE_REPORT.md`
-- `ref/agent-surveys/text/`
+## Outputs
 
-## Output
+`outline.yml`, one YAML document, bullets only — no paragraphs:
 
-Keep the current output contract:
-- `outline/outline.yml`
+```yaml
+title: "Tool-using LLM agents on the web"
+kind: brief                       # brief | survey
+introduction:                     # survey only: what the Introduction must set up
+  question: "scope"
+  source_ids: ["2308.11432"]
+  budget_words: 350
+  bullets: ["position against the 2023 agent surveys [2308.11432]"]
+sections:
+  - id: S1
+    title: Key themes
+    question: "which sub-problems of web agents the brief covers"   # a criterion id from success_spec.yaml, or a scope question
+    source_ids: ["2307.13854", "2210.03629"]
+    budget_words: 320
+    bullets:
+      - "realistic web environments replace synthetic tasks [2307.13854]"
+    subsections:                  # survey: one per taxonomy leaf; brief: one per theme
+      - id: S1.1
+        title: Realistic environments
+        taxonomy_id: T3.1         # survey only
+        question: "how end-to-end web tasks are evaluated"
+        source_ids: ["2307.13854"]
+        budget_words: 160
+        bullets:
+          - "Intent: what belongs here and how it differs from S1.2"
+          - "Evidence needs: task suites; success metrics; human baselines [2307.13854]"
+          - "Comparison axes: task realism; metric granularity; cost"
+discussion:                       # survey only
+  question: "open problems the criteria name"
+  source_ids: []
+  budget_words: 300
+  bullets: []
+```
 
-## Compatibility mode
+- `id`s are `S1`, `S2`, … and `S1.1`, `S1.2`, …; `question` is a criterion
+  `id` from `success_spec.yaml` or a short question quoted from its `scope`;
+  `source_ids` are stems of `sources/` files present in `core_set.csv`;
+  every bullet that asserts something about a paper ends with its ids in
+  brackets. `budget_words` sum (including `introduction`/`discussion`) stays
+  within the `length` criterion's `max_words`.
+- For `brief` the sections are exactly the writer's four: `Scope`,
+  `Key themes` (3–5 subsections, one theme each), `What to read first`
+  (bullets in reading order with a one-line reason each), `Open problems`.
+- For `survey` the sections are body chapters; `introduction` and
+  `discussion` are separate blocks; each subsection carries the bullet
+  fields in `references/bullet_contract.md`.
+- No `<!-- scaffold -->`, `TODO`, `TBD`, `FIXME`, or `XXX` anywhere: the
+  kernel `scaffold-absent` gate scans this file. Write the bullet or leave
+  it out.
 
-Current mode is reference-first with script compatibility:
-- front-chapter defaults live in `assets/outline_defaults.yaml`
-- Stage A bullet defaults and comparison-axis packs live in `assets/outline_defaults.yaml`
-- examples and boundary rules live in `references/`
-- `scripts/run.py` still owns outline materialization, section-first input selection, and placeholder-safe overwrite behavior
+## Method
 
-## Script boundary
+1. List the `answers` and `coverage` criteria; every one must be the
+   `question` of at least one section or subsection. A criterion no source
+   in the core set can speak to is still a section, whose bullets say what
+   the sources leave open (`Open problems` / `discussion`).
+2. `brief`: group the core set into 3–5 themes by what the abstracts share
+   (problem setting, mechanism, evaluation), not by keyword; order themes
+   from framing to evaluation to open problems; pick the reading list by
+   score and role (one survey, one canonical method, one benchmark).
+3. `survey`: take the taxonomy's top level as sections in the tree's order,
+   its leaves as subsections, and its `source_ids` as each node's sources.
+   Merge a leaf with fewer than two sources into its sibling and say so in
+   the parent's bullets. Read `references/intro_related_patterns.md` for the
+   `introduction` block. Derive `Comparison axes` bullets from the named
+   sources' mechanisms, settings, metrics and failure modes.
+4. Budget: take `max_words` (or the kind's usual length: brief ≈ 600,
+   survey per the Goal); `survey` gives ~8% to `introduction`, ~10% to
+   `discussion`, the rest to sections in proportion to source count;
+   `brief` gives Scope ≈ 90, Key themes ≈ 320, reading list ≈ 90, Open
+   problems ≈ 100 for a 600-word bound.
+5. Calibrate bullets with `references/examples_good.md` and
+   `references/examples_bad.md`: specific, checkable against the named
+   sources, different from one subsection to the next.
 
-Use `scripts/run.py` only for:
-- loading taxonomy or section-first structure inputs plus the defaults asset
-- rendering the outline skeleton deterministically
-- preserving existing non-placeholder outlines
-- choosing comparison-axis packs from machine-readable defaults
+## Serves
 
-Do not treat the script as the main place for:
-- domain framing for `Introduction` / `Related Work`
-- long bullet banks or writing exemplars
-- prompt-heavy guidance about how a good outline should read
+- `answers` — the `spec-coverage` prover judges whether the deliverable
+  answers each criterion as scoped. A finding that cites `outline.yml`
+  and names `implicates: outline` can route repair here; a gap the writer
+  can close from the outline stays on `write`.
+- `coverage` — the same prover lists what each `coverage` criterion requires
+  and finds where the deliverable addresses it; a named source or aspect
+  that no section carries is what it will report missing. Every named
+  source and aspect has a section or subsection here.
+- Kernel gates on this step: `schema-valid` (non-empty, parseable YAML) and
+  `scaffold-absent`.
 
-## Output shape rules
+## Non-goals
 
-Keep these stable:
-- `outline/outline.yml` is a YAML list
-- `Introduction` and `Related Work` remain the first two H2 sections
-- each H3 subsection contains the Stage A bullets: `Intent:` / `RQ:` / `Evidence needs:` / `Expected cites:`
-- each H3 subsection adds several topic-specific bullets after the Stage A fields
-- the helper never overwrites non-placeholder user work
-
-## Quick Start
-
-- `uv run python .codex/skills/outline-builder/scripts/run.py --help`
-- `uv run python .codex/skills/outline-builder/scripts/run.py --workspace <workspace>`
-
-## Execution notes
-
-When running this skill in compatibility mode, `scripts/run.py` currently reads:
-- `outline/taxonomy.yml`, or
-- `outline/chapter_skeleton.yml` + `outline/section_briefs.jsonl`
-- `assets/outline_defaults.yaml`
-
-The optional style references under `ref/agent-surveys/` are for human calibration only:
-- use `ref/agent-surveys/STYLE_REPORT.md` to sanity-check chapter counts / thickness
-- skim `ref/agent-surveys/text/` only to calibrate structure rather than wording
-
-## Script
-
-### Quick Start
-
-- `uv run python .codex/skills/outline-builder/scripts/run.py --workspace <workspace>`
-
-### All Options
-
-- `--workspace <dir>`
-- `--unit-id <id>`
-- `--inputs <path1;path2>`
-- `--outputs <path1;path2>`
-- `--checkpoint <C*>`
-
-### Examples
-
-- `uv run python .codex/skills/outline-builder/scripts/run.py --workspace <workspace>`
-
-## Troubleshooting
-
-- If `Related Work` still carries domain-specific framing, patch `assets/outline_defaults.yaml` before changing Python.
-- If subsection bullets feel generic, review `references/stage_a_contract.md` and `references/examples_good.md`.
-- If the outline is structurally valid but too fragmented, reroute to `outline-budgeter` rather than expanding this script.
+- Prose, transitions, or a title paragraph — the writer's job.
+- Changing the taxonomy or the core set; a bad split is a Fault for
+  `taxonomy` or `curate`.
+- Citing a source that is not in `core_set.csv`.

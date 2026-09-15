@@ -1,0 +1,53 @@
+# Fixture Loop kind for conformance tests: a four-step brief with kernel and
+# agent gates, one skippable step, and a small budget.
+schema: rh.kind/1
+kind: brief-fixture
+title: Fixture brief
+deliverable: brief.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 12, passes_per_gate: 3, stall_passes: 2}
+adaptivity: {add: true, skip: [curate], reorder: false}
+steps:
+  - id: spec
+    skill: spec-fixture
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: retrieve
+    skill: retrieve-fixture
+    consumes: [success_spec.yaml]
+    produces: [sources/]
+    serves: [supported, coverage]
+  - id: curate
+    skill: curate-fixture
+    consumes: [sources/]
+    produces: [core_set.csv]
+    serves: [coverage]
+  - id: write
+    skill: writer-fixture
+    consumes: [success_spec.yaml, sources/, core_set.csv]
+    produces: [brief.md, statements.json]
+    serves: [answers, supported, coverage, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [write]
+    schema-valid: [curate, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: support-prover-fixture
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: coverage-prover-fixture
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: checked_step

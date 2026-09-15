@@ -1,167 +1,96 @@
 ---
 name: paper-notes
-description: "Write structured notes for each paper in the core set into `papers/paper_notes.jsonl` (summary/method/results/limitations)."
+description: Write paper_notes.jsonl — one checkable note per line (source_id, kind, claim, verbatim evidence_span, locator) for every core-set paper, drawn only from the retrieved source files.
+role: producer
+reads: [success_spec.yaml, core_set.csv, sources/]
+outputs: [paper_notes.jsonl]
 ---
 
 # Paper Notes
 
-## Triggers & routing
-
-- **Trigger**: paper notes, structured notes, reading notes, 论文笔记, paper_notes.jsonl.
-- **Use when**: survey 的 evidence 阶段（C3），已有 `papers/core_set.csv`（以及可选 fulltext），需要为后续 claims/citations/writing 准备可引用证据。
-
-
-Produce consistent, searchable paper notes that later steps (claims, visuals, writing) can reliably synthesize.
-
-This is still **NO PROSE**: keep notes as bullets / short fields, not narrative paragraphs.
-
-## Load Order
-
-Always read:
-- `references/overview.md`
-- `references/note_schema.md`
-
-Read by task:
-- `references/limitation_taxonomy.md` when writing or reviewing limitations (avoid boilerplate)
-- `references/result_extraction_examples.md` when extracting key_results (good vs bad examples)
-- `references/source_text_hygiene.md` when result/limitation fields still preserve paper self-narration or author-result wrappers
-
-Machine-readable assets:
-- `assets/note_schema.json` — JSONL record schema for validation
-- `assets/evidence_tags.json` — evidence bank tagging categories (extensible without code changes)
-- `assets/source_text_hygiene.json` — note-field source sentence cleanup policy
-- repo-wide `assets/limitation-signals.json` — shared polarity rules for
-  distinguishing unresolved constraints from resolved failures or improvements
-
-## Script Boundary
-
-Use `scripts/run.py` only for:
-- deterministic scaffold generation from core_set + metadata
-- priority selection based on mapping coverage
-- evidence bank construction from structured note fields
-
-Do not treat `run.py` as the place for:
-- paper-specific limitation prose (use `references/limitation_taxonomy.md` for guidance)
-- domain-specific evaluation heuristics hidden in code
-- reader-facing narrative text
-
-## Role cards (prompt-level guidance)
-
-- **Close Reader**
-  - Mission: extract what is *specific* and *checkable* (setup, method, metrics, limits).
-  - Do: name concrete tasks/benchmarks and what the paper actually measures.
-  - Avoid: generic summary boilerplate that could fit any paper.
-
-- **Results Recorder**
-  - Mission: capture evaluation anchors that later writing needs.
-  - Do: record task + metric + constraints (budget/tool access) whenever available.
-  - Avoid: copying numbers without the evaluation setting that makes them meaningful.
-  - Avoid: promoting artifact introductions (`X enables ...`, `our framework features ...`) into `key_results`.
-  - Avoid: promoting benchmark-positioning, field-motivation, or author-navigation lines (`we apply ... and show ...`, `we then discuss how ...`) into `key_results`.
-
-- **Limitation Logger**
-  - Mission: capture the caveats that change interpretation.
-  - Do: write paper-specific limitations (protocol mismatch, missing ablations, threat model gaps).
-  - Avoid: repeated generic limitations like “may not generalize” without specifics.
-
-
-## When to use
-
-- After you have a core set (and ideally a mapping) and need evidence-ready notes.
-- Before writing a survey draft.
+The `notes` step of the `survey` kind. For every core-set paper it records
+what the source file says — setting, mechanism, results, limitations — as
+one-sentence claims, each tied to a verbatim span and a locator in that file.
+`survey-writer` takes its pointers from these notes: a note's `locator`
+becomes a statement's `locator`, and the `source-support` prover opens the
+same file at that locator. A note whose span is not in the file, or whose
+claim adds what the span lacks, becomes an unsupported statement downstream.
 
 ## Inputs
 
-- `papers/core_set.csv`
-- Optional: `outline/mapping.tsv` (to prioritize)
-- Optional: `papers/fulltext_index.jsonl` + `papers/fulltext/*.txt` (if running in fulltext mode)
+- `core_set.csv` — `source_id,title,year,venue,score,reason`; every
+  `source_id` gets notes. `score` and `reason` (`survey`, `pinned-*`,
+  `coverage:*`) mark the high-priority papers.
+- `sources/<source_id>.md` — front matter, `## Abstract`, and
+  `## Retrieved text` when present. The only ground: what is not in the file
+  is not in the notes. Ignore files whose stem is not in `core_set.csv`.
+- `success_spec.yaml` — always in the packet; `scope` and the `coverage`
+  criteria say which aspects to note first.
 
 ## Outputs
 
-- `papers/paper_notes.jsonl` (JSONL; one record per paper)
-- `papers/evidence_bank.jsonl` (JSONL; addressable evidence snippets derived from notes; profile target: course paper >=4, A150++ >=7 items/paper on average)
+`paper_notes.jsonl`, UTF-8, one JSON object per line, no blank lines, papers
+in `core_set.csv` order:
 
-## Decision: evidence depth
+```json
+{"note_id": "2210.03629-n1", "source_id": "2210.03629", "kind": "summary", "claim": "ReAct prompts a language model to interleave reasoning traces with task actions so that reasoning updates the plan and actions fetch external information.", "evidence_span": "generate both reasoning traces and task-specific actions in an interleaved manner", "locator": "abstract"}
+{"note_id": "2210.03629-n2", "source_id": "2210.03629", "kind": "result", "claim": "On ALFWorld and WebShop, ReAct beats imitation and reinforcement learning baselines by 34 and 10 absolute points of success rate with one or two in-context examples.", "evidence_span": "outperforms imitation and reinforcement learning methods by an absolute success rate of 34% and 10% respectively", "locator": "abstract"}
+{"note_id": "2210.03629-n3", "source_id": "2210.03629", "kind": "limitation", "claim": "The abstract evaluates on four tasks and reports no cost or latency for the longer interleaved trajectories.", "evidence_span": "on two interactive decision making benchmarks (ALFWorld and WebShop)", "locator": "abstract"}
+```
 
-- If you have extracted text (`papers/fulltext/*.txt`) → enrich key papers using fulltext snippets and set `evidence_level: "fulltext"`.
-- If you only have abstracts (default) → keep long-tail notes abstract-level, but still fully enrich **high-priority** papers (see below).
+- `note_id` is `<source_id>-n<k>`, `k` from 1 per paper; `source_id` is the
+  source file's stem. All six keys are present in every line.
+- `kind` is one of `summary`, `setting`, `method`, `result`, `limitation`.
+- `claim` is one neutral sentence in your words, specific to this paper.
+- `evidence_span` is a contiguous verbatim quote of at most 40 words from the
+  source file; `locator` says where it sits: `abstract`, `title`, `§3.2` (a
+  `###` heading under `## Retrieved text`), `L40-L46` (line numbers of the
+  file), or `p.5`.
+- Kernel gates on this step: `schema-valid` (every non-blank line parses as
+  JSON, at least one line) and `scaffold-absent` (no `<!-- scaffold -->`, no
+  whole-word `TODO`, `TBD`, `FIXME`, or `XXX`).
 
-## Workflow (heuristic)
-Uses: `outline/mapping.tsv`, `papers/fulltext_index.jsonl`.
+## Method
 
+1. **Minimums.** Every core paper: at least two notes, one `summary` and one
+   `limitation` or `setting`. High-priority papers (top third by `score`, or
+   `reason` containing `survey`, `pinned-`, or `coverage:`): at least four —
+   `summary`, `method`, one or more `result`, one or more `limitation`. A
+   file whose `## Abstract` is `(no abstract in record)`: exactly one
+   `summary` restating the title, `locator: title`.
+2. **Depth follows the file.** With only an abstract every locator is
+   `abstract`; with `## Retrieved text`, prefer spans from the body and give
+   `§` or `L` locators.
+3. **Results** carry task or benchmark, metric, number, and baseline as far
+   as the span gives them and no further
+   (`references/result_extraction_examples.md`).
+4. **Limitations** are paper-specific and checkable against the file
+   (`references/limitation_taxonomy.md`). An absence claim ("the abstract
+   reports no cost figure") requires reading the whole file, is phrased
+   about the file, and points at the span that lists what is reported. At
+   most one evidence-depth caveat per paper, never the same sentence twice.
+5. **Hygiene.** Strip author narration ("we show that", "in this work"),
+   roadmap lines, and availability lines from `claim`; never alter
+   `evidence_span` (`references/source_text_hygiene.md`).
+6. **Check** before writing: every `core_set.csv` `source_id` meets its
+   minimum; every `evidence_span` is found verbatim in its file at its
+   `locator`; no two papers share a `claim` sentence.
 
-1. Ensure **coverage**: every `paper_id` in `papers/core_set.csv` must have one JSONL record.
-2. Use mapping to choose **high-priority papers**:
-   - heavily reused across subsections
-   - pinned classics (ReAct/Toolformer/Reflexion… if in scope)
-3. For high-priority papers, capture:
-   - 3–6 summary bullets (what’s new, what problem setting, what’s the loop)
-   - `method` (mechanism and architecture; what differs from baselines)
-   - `key_results` (benchmarks/metrics; include numbers if available)
-   - `limitations` (specific assumptions/failure modes; avoid generic boilerplate)
-4. For long-tail papers:
-   - keep summary bullets short (abstract-derived is OK)
-   - still include at least one limitation, but make it specific when possible
-5. Assign a stable `bibkey` for each paper for citation generation.
+## Repair
 
-## Quality checklist
+A Fault routed here comes from the kernel (file missing or empty, a line that
+does not parse, a placeholder token) or from a prover finding that cites
+`paper_notes.jsonl` (a note's span was not in the file at its locator; a core
+paper had no notes to write from). Reread the source files and write the
+whole `paper_notes.jsonl` again; for a cited note, quote the passage exactly
+as the file has it, or drop the note when the file does not contain it.
 
-- [ ] Coverage: every `paper_id` in `papers/core_set.csv` appears in `papers/paper_notes.jsonl`.
-- [ ] High-priority papers have non-`TODO` method/results/limitations.
-- [ ] Limitations are not copy-pasted across many papers.
-- [ ] `evidence_level` is set correctly (`abstract` vs `fulltext`).
+## Do not
 
-- [ ] Evidence bank: `papers/evidence_bank.jsonl` exists and meets the selected profile (course paper >=4; A150++ >=7 items/paper on average).
-## Helper script (optional)
-
-### Quick Start
-
-- `uv run python .codex/skills/paper-notes/scripts/run.py --help`
-- `uv run python .codex/skills/paper-notes/scripts/run.py --workspace <workspace>`
-
-### All Options
-
-- See `--help` (this helper is intentionally minimal)
-
-### Examples
-
-- Generate notes, then optionally enrich `priority=high` papers:
-  - Run the helper once, then refine `papers/paper_notes.jsonl` (e.g., add full-text details for key papers and diversify limitations).
-
-### Notes
-
-- The helper writes deterministic metadata/abstract-level notes and marks key papers with `priority=high`.
-- In `pipeline.py --strict` it will be blocked if high-priority notes are incomplete (missing method/key_results/limitations) or contain placeholders.
-
-## Troubleshooting
-
-### Common Issues
-
-#### Issue: High-priority notes still look like scaffolds
-
-**Symptom**:
-- Quality gate reports missing `method/key_results` or `TODO` placeholders.
-
-**Causes**:
-- Notes were generated from abstracts only; key papers weren’t enriched.
-
-**Solutions**:
-- Fully enrich `priority=high` papers: `method`, ≥1 `key_results`, ≥3 `summary_bullets`, ≥1 concrete `limitations`.
-- If you need full text evidence, run `pdf-text-extractor` in `fulltext` mode for key papers.
-
-#### Issue: Repeated limitations across many papers
-
-**Symptom**:
-- Quality gate reports repeated limitation boilerplate.
-
-**Causes**:
-- Copy-pasted limitations instead of paper-specific failure modes/assumptions.
-
-**Solutions**:
-- Replace boilerplate with paper-specific limitations (setup, data, evaluation gaps, failure cases).
-
-### Recovery Checklist
-
-- [ ] `papers/paper_notes.jsonl` covers all `papers/core_set.csv` paper_ids.
-- [ ] ≥80% of `priority=high` notes satisfy method/results/limitations completeness.
-- [ ] No `TODO` remains in high-priority notes.
+- Do not write prose, synthesis across papers, or rankings.
+- Do not put a number, benchmark, or baseline in `claim` that the
+  `evidence_span` does not contain.
+- Do not draw on memory of the paper, other papers, or the title alone for a
+  `method` or `result` note.
+- Do not paraphrase, stitch, or trim inside `evidence_span`.
+- Do not write the same limitation sentence for more than one paper.

@@ -1,0 +1,72 @@
+# Loop kind: review — a referee-style review of one manuscript. The Goal
+# points at the manuscript (a path or the text). Every concern names a
+# claim or an evidence gap in the ledgers derived from the manuscript.
+# Delivers review.md + statements.json.
+schema: rh.kind/1
+kind: review
+title: Manuscript review
+deliverable: review.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 24, passes_per_gate: 3, stall_passes: 2}
+adaptivity: {add: true, skip: [], reorder: false}
+steps:
+  - id: spec
+    skill: success-spec
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: ingest
+    skill: manuscript-ingest
+    consumes: [goal.md, success_spec.yaml]
+    produces: [manuscript.md]       # faithful full text; the Source ground of this kind
+    serves: [supported, coverage]
+  - id: claims
+    skill: claims-extractor
+    consumes: [manuscript.md]
+    produces: [claims.jsonl]
+    serves: [coverage, argument]
+  - id: audit
+    skill: evidence-auditor
+    consumes: [manuscript.md, claims.jsonl]
+    produces: [evidence_gaps.jsonl]
+    serves: [supported, argument]
+  - id: novelty
+    skill: novelty-matrix
+    consumes: [manuscript.md, claims.jsonl]
+    produces: [novelty_matrix.tsv]
+    serves: [coverage, argument]
+  - id: write
+    skill: review-writer
+    consumes: [success_spec.yaml, manuscript.md, claims.jsonl, evidence_gaps.jsonl, novelty_matrix.tsv]
+    produces: [review.md, statements.json]
+    serves: [answers, supported, coverage, argument, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [spec, claims, audit, novelty, write]
+    schema-valid: [spec, claims, audit, novelty, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: source-support-prover
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: spec-coverage-prover
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: argument-sound
+      skill: argument-prover
+      kind: grounded
+      ground: source
+      serves: [argument]
+      applies_to: [write]
+      routing: checked_step

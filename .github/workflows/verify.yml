@@ -21,17 +21,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Install system test dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends \
-            latexmk \
-            lmodern \
-            poppler-utils \
-            texlive-fonts-recommended \
-            texlive-latex-extra \
-            texlive-xetex
-
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
@@ -46,17 +35,8 @@ jobs:
       - name: Check Python defects
         run: uv run --locked --extra test ruff check .
 
-      - name: Validate repository contracts
-        run: uv run --locked python scripts/validate_repo.py --strict
-
-      - name: Audit readiness
-        run: uv run --locked python scripts/readiness_audit.py --strict
-
-      - name: Audit Skills
-        run: uv run --locked python scripts/audit_skills.py --fail-on WARN --summary-only
-
-      - name: Audit Workflow context
-        run: uv run --locked python scripts/audit_workflow_context.py
+      - name: Check documents
+        run: uv run --locked python scripts/check_docs.py
 
       - name: Run tests
         run: uv run --locked --extra test python -m pytest -q

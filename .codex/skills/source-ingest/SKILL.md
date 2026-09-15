@@ -1,72 +1,107 @@
 ---
 name: source-ingest
-description: "Fetch and normalize supported source-tutorial inputs into local, traceable text artifacts."
+description: Fetch every manifest.yml entry and write it as one faithful, citable Markdown file sources/<source_id>.md with front matter, headings preserved, and page or time anchors.
+role: producer
+reads: [manifest.yml]
+outputs: [sources/]
 ---
 
 # Source Ingest
 
-## Triggers & routing
-
-- **Trigger**: source ingest, ingest sources, normalize tutorial sources, 网页抽取, 资料归一化.
-- **Use when**: `source-tutorial` 的 C1，需要把 `sources/manifest.yml` 中的网页/PDF/repo/docs 变成可追溯文本。
-- **Skip if**: source manifest 还没定，或来源尚未确认。
-- **Network**: required for remote URLs.
-- **Guardrail**: 只把成功抽取的内容当作有效 source；失败来源必须落盘记录，不能默默忽略。
-
-
-Goal: normalize mixed source inputs into local tutorial-ready text while preserving provenance.
+The `ingest` step of the `tutorial` kind. For every entry in `manifest.yml`
+it fetches the source, converts it to Markdown text without changing its
+meaning, and writes `sources/<source_id>.md`. `concept-graph` and
+`module-planner` point at this text by heading, page, time, or line anchors;
+`tutorial-writer` quotes and condenses it; the `source-support` prover opens
+the same file at the same anchors. The text must be faithful and its anchors
+stable.
 
 ## Inputs
 
-- `sources/manifest.yml`
+`manifest.yml` — `schema: rh.source_manifest/1`, `sources: [{source_id,
+kind, locator, label, role, audience_note}]`. URL locators need network
+access. `success_spec.yaml` is in the packet but is not needed here.
 
 ## Outputs
 
-- `sources/index.jsonl`
-- `sources/provenance.jsonl`
+`sources/<source_id>.md`, one per manifest entry, UTF-8:
 
-## Supported kinds
+```markdown
+---
+source_id: retries-guide
+title: Client retries guide
+kind: html
+locator: https://example.dev/docs/retries
+ingested_at: 2026-09-13T10:42:00Z
+---
 
-- `webpage`
-- `pdf`
-- `markdown`
-- `repo`
-- `docs_site`
-- `video`
+# Client retries guide
 
-## Behavior
+## Retry policy
 
-- Accept local file paths or remote URLs from `sources/manifest.yml`.
-- For `video`, use transcript-first ingestion:
-  - provided `transcript_locator`
-  - Bilibili subtitles when available
-  - otherwise fail clearly instead of pretending the watch page is usable text
-- Plain YouTube/Bilibili watch pages should not be modeled as `kind: webpage`.
-- Continue past optional-source failures and record warnings.
-- Fail closed when any source marked `required: true` cannot be ingested.
+A retry budget bounds how many times the client re-sends a request …
+```
 
-## Script
+- Front matter: `source_id` (equals the file stem and the manifest id),
+  `title` (the document's own title, else the manifest `label`), `kind`,
+  `locator`, `ingested_at` (ISO 8601, UTC).
+- Body: the source's text in reading order; headings as Markdown headings,
+  code as fenced blocks, tables as Markdown tables. Nothing summarised,
+  paraphrased, translated, or reordered.
+- Anchors later steps use as locators: a heading line verbatim
+  (`## Retry policy`); `<!-- page N -->` alone on a line at each PDF page
+  start (cited as `p.N`); `[mm:ss]` at the start of each transcript paragraph
+  (cited as `[mm:ss]`); the file's own line numbers (`L40-L46`).
+- Kernel checks on this step: the integrity check (`outputs/sources/` holds
+  at least one file). `schema-valid` is bound but does not parse `.md`;
+  `scaffold-absent` is not bound, so `TODO` inside ingested code stays as it
+  is.
 
-### Quick Start
+## Method
 
-- `uv run python .codex/skills/source-ingest/scripts/run.py --workspace <workspace>`
+By `kind`:
 
-### All Options
+1. `pdf` — `pdftotext -layout <file> -`, or PyMuPDF when available (use font
+   size to recover headings). Re-join words hyphenated across lines, drop
+   running headers and footers, keep figure and table captions, insert
+   `<!-- page N -->` at each page start.
+2. `html` — fetch the page; keep the main content; drop navigation,
+   sidebars, footers, cookie banners, scripts, styles. Map `h1`–`h6` to
+   `#`–`######`; keep lists, code blocks, tables, and link text (drop link
+   targets unless the text is the URL).
+3. `md` — copy the text; normalise line endings; keep headings as they are.
+4. `repo` — ingest only what the locator names: the README and, after `#`,
+   the named path. A code file is one section headed by its path
+   (`## src/client/retry.py`) followed by one fenced block; a directory is
+   one such section per file, in path order. Never the whole tree.
+5. `video-transcript` — read the subtitle or transcript file, merge cues into
+   paragraphs at pauses or speaker changes, start each paragraph with its
+   `[mm:ss]` anchor.
 
-- `--workspace <dir>` (required)
-- `--unit-id <U###>`
-- `--inputs <semicolon-separated>`
-- `--outputs <semicolon-separated>`
-- `--checkpoint <C#>`
+Rules: one entry, one file. A source that cannot be fetched or yields no text
+gets no file — try another route first (direct download, a cached copy, a
+raw-content URL); if it still fails, leave it out and, when the entry is
+`primary`, run `rh escalate --reason` naming it, since nothing can teach from
+it. Keep headings verbatim, one blank line between paragraphs, no re-wrapping
+of lines. Keep warnings, deprecation notes, and version banners. Preserve code
+whitespace exactly; the writer's `quotes` relation depends on it.
 
-### Examples
+## Repair
 
-- Ingest all listed sources:
-  - `uv run python .codex/skills/source-ingest/scripts/run.py --workspace <workspace>`
+A Fault routed here (`source-support` or `spec-coverage` with
+`implicates: ingest`, citing one `sources/<file>`) says the file is empty,
+truncated, the wrong document, or lacks the passage a locator names. Re-fetch
+that entry by another route and write the whole `outputs/sources/` again;
+entries the manifest did not change come out with the same headings and
+anchors, because every downstream step re-runs from this text.
 
-## Troubleshooting
+## Do not
 
-### Issue: repo or docs site ingests too much noise
-
-**Fix**:
-- Narrow the manifest to the most relevant docs root or replace the source with a specific docs page.
+- Do not select what to teach, extract concepts, or plan modules.
+- Do not ingest a source the manifest does not list, or re-decide an
+  entry's `kind`.
+- Do not write a stub, a summary from memory, or a copy of the manifest entry
+  in place of text you could not fetch.
+- Do not add commentary, notes, or ratings inside a source file.
+- Do not strip body content that looks like boilerplate but carries meaning
+  (warnings, version notes, deprecations).

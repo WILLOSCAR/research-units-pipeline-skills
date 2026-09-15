@@ -9,41 +9,18 @@ description = "An end-to-end Auto Research design system built from semantic ski
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "pypdf>=4.0",
   "PyYAML>=6.0",
 ]
 
 [project.scripts]
-rh = "tooling.product_cli:main"
+rh = "rh.cli:main"
 
 [tool.setuptools]
-packages = [
-  "tooling",
-  "tooling.quality_checks",
-  "research_harness",
-  "research_harness.application",
-  "research_harness.acceptance",
-  "research_harness.domain",
-  "research_harness.engine",
-  "research_harness.migration",
-  "research_harness.skills",
-  "research_harness.storage",
-  "research_harness.workflows",
-]
-
-[tool.setuptools.package-dir]
-research_harness = "src/research_harness"
-"research_harness.application" = "src/research_harness/application"
-"research_harness.acceptance" = "src/research_harness/acceptance"
-"research_harness.domain" = "src/research_harness/domain"
-"research_harness.engine" = "src/research_harness/engine"
-"research_harness.migration" = "src/research_harness/migration"
-"research_harness.skills" = "src/research_harness/skills"
-"research_harness.storage" = "src/research_harness/storage"
-"research_harness.workflows" = "src/research_harness/workflows"
+packages = ["rh", "rh.kernel"]
+package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
-research_harness = ["py.typed"]
+rh = ["kinds/*.yaml"]
 
 [project.optional-dependencies]
 test = [
@@ -59,4 +36,4 @@ select = ["E9", "F63", "F7", "F82", "F401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "src"]
+pythonpath = ["src"]

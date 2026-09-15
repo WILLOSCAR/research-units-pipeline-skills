@@ -1,51 +1,43 @@
 profile: gen_image
 display_name: Generative image models
-compatibility_mode: p0
 detect:
   all_of_groups:
     - [image, images, text-to-image, text to image, image generation, inpainting, editing, personalization, stable diffusion, sdxl]
     - [diffusion, generation, generative, dit, maskgit, vqgan, vqvae, gan, autoregressive, latent]
-representative_papers:
-  top_level_max: 4
-  suffix_template: " Representative paper_id(s): {paper_ids}."
 taxonomy:
   - name: "Foundations & Formulations"
-    description_base: "Core objectives, representations, and sampling/inference formulations for modern generative image models."
-    representative_terms: [diffusion, text, image, token, gan, edit]
+    definition: "Core objectives, representations, and sampling or inference formulations for modern generative image models."
     children:
       - name: "Objectives and likelihood views"
-        description: "Training objectives (denoising/score matching, autoregressive factorization, adversarial training) and what they optimize."
-      - name: "Representations (pixel/latent/token)"
-        description: "How representations (pixel space, continuous latents, discrete tokens) shape compute, fidelity, and controllability."
+        definition: "Training objectives (denoising and score matching, autoregressive factorisation, adversarial training) and what they optimise."
+      - name: "Representations (pixel, latent, token)"
+        definition: "How representations (pixel space, continuous latents, discrete tokens) shape compute, fidelity, and controllability."
       - name: "Sampling and efficiency"
-        description: "Samplers/solvers, guidance, distillation/consistency, and other techniques that reduce inference steps and cost."
+        definition: "Samplers and solvers, guidance, distillation and consistency, and other techniques that reduce inference steps and cost."
   - name: "Model Families (Diffusion & Token-based)"
-    description_base: "Major model families for text-to-image generation and editing, and the trade-offs they induce (quality, speed, controllability)."
-    representative_terms: [diffusion, latent, transformer, token, masked, autoregressive]
+    definition: "Major model families for text-to-image generation and editing, and the trade-offs they induce in quality, speed, and controllability."
     children:
       - name: "Diffusion and latent diffusion"
-        description: "Diffusion-style pipelines, latent diffusion, and conditioning mechanisms (cross-attention) with implications for compute and controllability."
+        definition: "Diffusion-based generators, latent diffusion, and conditioning mechanisms (cross-attention) with implications for compute and controllability."
       - name: "Diffusion transformers and scaling"
-        description: "Transformer backbones (DiT-style) and scaling/architecture choices that affect sample quality, training stability, and inference speed."
-      - name: "Token-based / AR / masked generation"
-        description: "Discrete tokenization, autoregressive or masked token predictors, and decoding strategies; comparisons versus diffusion pipelines."
+        definition: "Transformer backbones (DiT-style) and scaling or architecture choices that affect sample quality, training stability, and inference speed."
+      - name: "Token-based, autoregressive, and masked generation"
+        definition: "Discrete tokenisation, autoregressive or masked token predictors, and decoding strategies, compared against diffusion generators."
   - name: "Control, Editing & Conditioning"
-    description_base: "Mechanisms to steer generation: structured conditioning, layout/geometry signals, inpainting/editing, and personalization."
-    representative_terms: [control, editing, conditioning, personalization, lora, dreambooth]
+    definition: "Mechanisms to steer generation: structured conditioning, layout and geometry signals, inpainting and editing, and personalisation."
     children:
       - name: "Structured controls"
-        description: "Conditioning with geometry/layout/depth/pose/segmentation and how control signals propagate through the backbone."
+        definition: "Conditioning with geometry, layout, depth, pose, or segmentation, and how control signals propagate through the backbone."
       - name: "Instruction-guided editing"
-        description: "Editing/inversion methods, text-based editing, and failure modes such as identity drift or over-editing."
-      - name: "Personalization and tuning"
-        description: "Fine-tuning and parameter-efficient adaptation (e.g., LoRA-like) for subject-driven personalization with limited examples."
+        definition: "Editing and inversion methods, text-based editing, and failure modes such as identity drift or over-editing."
+      - name: "Personalisation and tuning"
+        definition: "Fine-tuning and parameter-efficient adaptation (LoRA-like) for subject-driven personalisation with few examples."
   - name: "Evaluation, Safety & Provenance"
-    description_base: "How models are evaluated, common benchmark pitfalls, and concerns around bias, misuse, and provenance/watermarking."
-    representative_terms: [evaluation, benchmark, safety, provenance, watermark, robustness]
+    definition: "How models are evaluated, common benchmark pitfalls, and concerns around bias, misuse, and provenance or watermarking."
     children:
       - name: "Metrics and human evaluation"
-        description: "Automatic metrics (distribution/semantic alignment) and human evaluation protocols; gaps between metrics and perception."
+        definition: "Automatic metrics (distribution and semantic alignment) and human evaluation protocols; gaps between metrics and perception."
       - name: "Robustness and failure modes"
-        description: "Prompt sensitivity, compositional failures, bias/toxicity, and reliability issues under distribution shift."
+        definition: "Prompt sensitivity, compositional failures, bias and toxicity, and reliability under distribution shift."
       - name: "Provenance and safeguards"
-        description: "Watermarking/provenance, dataset governance, and mitigation strategies for misuse and deepfakes."
+        definition: "Watermarking and provenance, dataset governance, and mitigation strategies for misuse and deepfakes."

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skill front matter",
+  "description": "The YAML block between the leading '---' lines of a SKILL.md, as src/rh/kernel/skills.py parses it (yaml.safe_load; a non-mapping is treated as empty). The kernel reads role (default 'producer'), scaffold_marker (default '<!-- scaffold -->'), and description, and hashes the whole file as the Skill's identity. tests/conformance/test_skill_library.py checks reads/outputs (producer) and gate/outputs/context (prover) against every Loop kind that names the Skill.",
+  "oneOf": [{"$ref": "#/$defs/producer"}, {"$ref": "#/$defs/prover"}],
+  "$defs": {
+    "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "equals the directory name under .codex/skills/"},
+    "output_name": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+(/)?$", "description": "a file name (brief.md) or a directory name ending in / (sources/), exactly as the kind's consumes/produces spell it"},
+    "producer": {
+      "type": "object",
+      "required": ["name", "description", "role", "reads", "outputs"],
+      "properties": {
+        "name": {"$ref": "#/$defs/name"},
+        "description": {"type": "string", "minLength": 20, "description": "one sentence: from which inputs it writes which output, for which step of which kind"},
+        "role": {"const": "producer"},
+        "reads": {"type": "array", "items": {"$ref": "#/$defs/output_name"}, "description": "superset of every naming step's consumes, minus goal.md and success_spec.yaml"},
+        "outputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/output_name"}, "description": "superset of every naming step's produces"},
+        "scaffold_marker": {"type": "string", "minLength": 1, "default": "<!-- scaffold -->", "description": "the token the scaffold-absent gate looks for in this Skill's outputs; the kernel uses the default when omitted"}
+      },
+      "additionalProperties": false
+    },
+    "prover": {
+      "type": "object",
+      "required": ["name", "description", "role", "gate", "outputs", "context"],
+      "properties": {
+        "name": {"$ref": "#/$defs/name"},
+        "description": {"type": "string", "minLength": 20, "description": "one sentence: what it verifies, against which ground, for which gate"},
+        "role": {"const": "prover"},
+        "gate": {
+          "type": "object",
+          "required": ["id", "kind", "ground", "serves", "routing"],
+          "properties": {
+            "id": {"type": "string", "description": "the gate id in the kind's gates.agent[] entry"},
+            "kind": {"enum": ["grounded", "structural", "calibrated"], "description": "must equal the kind's declaration"},
+            "ground": {"enum": ["source", "computation"], "description": "must equal the kind's declaration; human ground is a Decision, never a prover"},
+            "serves": {"type": "array", "minItems": 1, "items": {"type": "string"}, "description": "criterion kinds, a superset of the kind's serves (supported, answers, coverage, novelty, argument, ...)"},
+            "routing": {"enum": ["checked_step", "upstream_of_cited_evidence"], "description": "how faults.route sends a finding: to the checked step, or to an upstream step named in implicates that produced a cited hash"}
+          },
+          "additionalProperties": false
+        },
+        "outputs": {"const": ["gate_result.json"]},
+        "context": {"const": "fresh"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

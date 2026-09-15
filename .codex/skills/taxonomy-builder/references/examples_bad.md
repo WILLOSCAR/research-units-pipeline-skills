@@ -1,46 +1,47 @@
-# Bad Examples
+# Bad examples
 
 ## Bad placeholder taxonomy
 
 ```yaml
-- name: Methods
-  description: Papers and ideas centered on methods.
+- id: T1
+  name: Methods
+  definition: "Papers and ideas centered on methods."
   children:
-    - name: Overview
-      description: Key aspects of methods.
-    - name: Benchmarks
-      description: Key aspects of benchmarks.
+    - id: T1.1
+      name: Overview
+      definition: "Key aspects of methods."
+    - id: T1.2
+      name: Benchmarks
+      definition: "Key aspects of benchmarks."
 ```
 
 Problems:
 - generic names with no chapter-level meaning
-- descriptions are template boilerplate
-- leaf buckets do not explain inclusion boundaries
+- definitions are template boilerplate
+- leaves do not explain membership
+- no `source_ids`, so nothing downstream can be checked
 
 ## Bad over-fragmented taxonomy
 
 ```yaml
-- name: Prompting
-  description: Prompting papers.
-- name: Tools
-  description: Tool papers.
-- name: Planning
-  description: Planning papers.
-- name: Memory
-  description: Memory papers.
-- name: Agents
-  description: Agent papers.
+- {id: T1, name: Prompting, definition: "Prompting papers."}
+- {id: T2, name: Tools, definition: "Tool papers."}
+- {id: T3, name: Planning, definition: "Planning papers."}
+- {id: T4, name: Memory, definition: "Memory papers."}
+- {id: T5, name: Agents, definition: "Agent papers."}
 ```
 
 Problems:
-- too many thin top-level buckets
+- too many thin top-level nodes
 - keyword clustering instead of reader-oriented structure
-- impossible to map cleanly into a paper-like outline later
+- impossible to turn into a paper-like outline
 
-## Bad reader-facing leakage
+## Bad leakage into definitions
 
-Avoid final descriptions containing:
-- `TODO`
+Avoid definitions containing:
+- `TODO`, `TBD`, or the scaffold marker (the `scaffold-absent` gate fails
+  the step)
 - `...` / `…`
 - `Misc` / `Other`
-- prose about pipeline stages or workspace mechanics
+- talk about steps, passes, files, or how the tree was produced
+- pasted source ids instead of a `source_ids` list

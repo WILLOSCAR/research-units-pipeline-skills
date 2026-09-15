@@ -1,45 +1,37 @@
 profile: embodied_ai
 display_name: Embodied AI and robot foundation models
-compatibility_mode: p0
 detect:
   all_of_groups:
     - [embodied, robot, robotic, manipulation, navigation, humanoid, mobile manipulation]
     - [vision-language-action, vla, policy, control, foundation model, world model, generalist robot]
-representative_papers:
-  top_level_max: 4
-  suffix_template: " Representative paper_id(s): {paper_ids}."
 taxonomy:
   - name: "Problem Settings & Embodiment"
-    description_base: "Task settings, embodiment assumptions, and interface choices that define what an embodied system can observe, decide, and execute."
-    representative_terms: [embodied, robot, manipulation, navigation, embodiment]
+    definition: "Task settings, embodiment assumptions, and interface choices that define what an embodied system can observe, decide, and execute."
     children:
       - name: "Manipulation, navigation, and task scope"
-        description: "How the literature separates manipulation, navigation, mobile manipulation, and broader service-robot settings, and what these settings demand from the agent."
+        definition: "How the literature separates manipulation, navigation, mobile manipulation, and broader service-robot settings, and what these settings demand from the agent."
       - name: "Observation, action, and embodiment interfaces"
-        description: "Perception channels, action spaces, control frequency, sensor layouts, and embodiment-specific interfaces that constrain transfer and robustness."
+        definition: "Perception channels, action spaces, control frequency, sensor layouts, and embodiment-specific interfaces that constrain transfer and robustness."
   - name: "Model & Policy Architectures"
-    description_base: "Core architectural choices for embodied AI, including VLA systems, policy backbones, and world-model-based control."
-    representative_terms: [vision-language-action, policy, world model, control, action]
+    definition: "Core architectural choices for embodied AI, including VLA systems, policy backbones, and world-model-based control."
     children:
       - name: "Vision-language-action and policy backbones"
-        description: "VLA-style backbones, action tokenization, policy heads, and how language/vision context is turned into executable robot actions."
+        definition: "VLA-style backbones, action tokenisation, policy heads, and how language and vision context is turned into executable robot actions."
       - name: "World models, planning, and reasoning"
-        description: "World-model-based control, planning, memory, and reasoning mechanisms used for long-horizon or partially observed embodied tasks."
+        definition: "World-model-based control, planning, memory, and reasoning mechanisms used for long-horizon or partially observed embodied tasks."
       - name: "Transfer across embodiments and viewpoints"
-        description: "Cross-robot, cross-camera, and cross-environment adaptation, including calibration, viewpoint robustness, and embodiment transfer."
+        definition: "Cross-robot, cross-camera, and cross-environment adaptation, including calibration, viewpoint robustness, and embodiment transfer."
   - name: "Data, Training & Post-Training"
-    description_base: "How embodied systems are trained, adapted, and improved using demonstrations, simulation, human videos, and feedback."
-    representative_terms: [pretraining, finetuning, demonstration, human videos, post-training, alignment]
+    definition: "How embodied systems are trained, adapted, and improved using demonstrations, simulation, human videos, and feedback."
     children:
       - name: "Pretraining data and supervision"
-        description: "Data sources, supervision strategies, simulation vs real-world mixtures, and how dataset composition shapes generalization."
+        definition: "Data sources, supervision strategies, simulation versus real-world mixtures, and how dataset composition shapes generalisation."
       - name: "Post-training, feedback, and continual improvement"
-        description: "Post-training, feedback-driven updates, policy improvement, and continual adaptation under real-world or in-context constraints."
+        definition: "Post-training, feedback-driven updates, policy improvement, and continual adaptation under real-world or in-context constraints."
   - name: "Evaluation, Safety & Deployment"
-    description_base: "Evaluation, safety, and deployment constraints for embodied AI systems in real or realistic robot settings."
-    representative_terms: [benchmark, evaluation, safety, deployment, sim2real, robustness]
+    definition: "Evaluation, safety, and deployment constraints for embodied AI systems in real or realistic robot settings."
     children:
-      - name: "Benchmarks, metrics, and generalization"
-        description: "Benchmark suites, task coverage, success metrics, generalization tests, and the difference between short-horizon wins and robust embodied competence."
+      - name: "Benchmarks, metrics, and generalisation"
+        definition: "Benchmark suites, task coverage, success metrics, generalisation tests, and the difference between short-horizon wins and robust embodied competence."
       - name: "Safety, reliability, and real-world deployment"
-        description: "Safety alignment, reliability, execution failures, sim-to-real gaps, and practical deployment constraints for embodied systems."
+        definition: "Safety alignment, reliability, execution failures, sim-to-real gaps, and practical deployment constraints for embodied systems."

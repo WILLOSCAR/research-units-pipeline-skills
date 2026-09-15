@@ -1,31 +1,40 @@
-# Intro / Related Patterns
+# Introduction block and survey positioning
 
-Use this file to keep the standard front structure paper-like without pinning the skill to a single domain.
+Use this when filling the survey outline's `introduction` block (and a
+`discussion` block) so the front of the survey reads like a paper without
+pinning the skill to one field.
 
-## `Introduction`
+## `introduction`
 
-The intro should orient the reader, not pre-commit to a particular field.
+The Introduction orients the reader and does not pre-commit to a domain
+framing the taxonomy does not carry. Its bullets cover:
 
-Keep the bullets focused on:
-- motivation and timeliness
-- scope boundaries
-- reader questions the survey will answer
-- evidence inventory / evaluation framing
-- roadmap into the taxonomy-driven chapters
+- motivation and timeliness, anchored in the sources that show the field
+  moving (cite ids)
+- scope boundaries, condensed from `success_spec.yaml` `scope` and `drift`
+- the reader questions the survey answers — one bullet per `answers`
+  criterion, by id
+- the evidence inventory: how many core sources, their year span, the
+  surveys already in the set
+- positioning against existing surveys: which `pinned_surveys` or
+  survey-tagged rows of `core_set.csv` cover adjacent ground, and what this
+  survey adds (structure, evidence policy, comparison lens)
+- a roadmap: one bullet per section id in order
 
-Avoid domain-specific wording unless it is already explicit in the taxonomy or workspace artifacts.
+Positioning belongs here unless the taxonomy has an explicit node for
+related surveys; the writer's deliverable shape has no separate Related
+Work section.
 
-## `Related Work`
+## `discussion`
 
-The related-work section should position the survey against adjacent literature without assuming a fixed neighborhood like agents / tools / RAG / security.
+- cross-cutting tensions that recur across sections, each with the ids that
+  raise it
+- open problems the `coverage` criteria name and the sources leave open
+- limits of the evidence base (abstract-only sources, venue skew)
 
-Keep the bullets focused on:
-- neighboring literatures or adjacent problem framings
-- differences from existing surveys/reviews
-- scope boundaries and terminology alignment
-- why the chosen taxonomy yields stronger comparisons
+## Domain rule
 
-## Routing rule
-
-If the surrounding domain is obvious from the taxonomy or workspace inputs, the human/editor may adapt the bullets by editing `assets/outline_defaults.yaml`.
-Do not move this framing into Python.
+Take domain wording only from the taxonomy, the Success Spec, or the
+sources. If the field is obvious from those, name it; if not, keep the
+bullets generic. Never import a fixed neighbourhood (agents / tools / RAG /
+security) the inputs do not show.

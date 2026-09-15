@@ -1,60 +1,58 @@
-# Bad Examples
+# Bad examples
 
-## Bad `SKILL.md`: overloaded entrypoint
+Read once when authoring; each is a pattern the standard rejects and why.
 
-```markdown
-# Skill
-
-This file contains the complete domain background, the evaluation rubric, the writing voice, the sentence bank, and the implementation notes for the script.
-```
-
-Why it fails:
-- the entrypoint becomes too large to skim
-- another agent must read everything before it can act
-- routing and reference loading are unclear
-
-## Bad script boundary: hidden method in Python
-
-```python
-INTRO_OPENERS = [
-    "This section provides an overview of the topic.",
-    "The next section walks through the main design space."
-]
-
-DEFAULT_DOMAIN = "some favored domain"
-```
-
-Why it fails:
-- the method is hidden in implementation details
-- the skill quietly bakes in a domain default
-- the script now owns reader-facing voice
-
-## Bad reader-facing output
-
-```text
-This workspace artifact summarizes the current pipeline stage and organizes the next section of the document.
-```
-
-Why it fails:
-- it leaks internal process terms
-- it describes the writing process instead of delivering content
-
-## Bad example quality
-
-```text
-The deliverable should become stronger later after remaining gaps are filled.
-```
-
-Why it fails:
-- it is vague and not actionable
-- it normalizes unfinished language instead of modeling a complete artifact
-
-## Bad reference design
+## Restating the packet
 
 ```markdown
-See another file for details.
+## How this step is worked
+The harness writes `steps/<step>/pass-<n>/packet.json` with `schema`,
+`run_id`, `pass_id`, `inputs [{name, path, hash}]`, `budget {...}` …
+1. Read the packet. 2. Write `outputs/<name>`. 3. Run `rh continue`.
 ```
 
-Why it fails:
-- it does not say which file to read or when
-- it creates unnecessary search work for the next agent
+`packet.md § Instructions` already says this; thirty lines per Skill go
+stale the day `steps.py` changes.
+
+## Inventing kernel behavior
+
+```markdown
+The Fault the repairer sees joins the findings' messages with `; ` and
+keeps the first 600 characters, so put the most important finding first.
+```
+
+`faults.from_result` makes one Fault per finding, message verbatim. A kernel
+claim `src/rh/kernel/*.py` does not support is a bug in the Skill.
+
+## A finding without grounds
+
+```json
+{"message": "s3 overstates the result.", "evidence": ["<sha256 of brief.md>"]}
+```
+
+This locates the claim but does not explain or cite what contradicts it.
+For a source-support failure, add the source hash and what the passage
+actually says; name `s3` through `statement`. The kernel keeps the draft
+hash in the Fault but excludes prior outputs of the repaired step from
+its cited Evidence. Coverage findings may cite a deliverable to show an omission.
+
+## Self-verification
+
+```markdown
+After writing, check the table against the criteria and append `Quality: OK`.
+```
+
+A producer's verdict is not Evidence; gates and provers verify.
+
+## Vague output, soft method
+
+```markdown
+## Outputs
+- a notes file for later steps
+## Method
+Consider merging directions that seem similar; keep a reasonable number.
+```
+
+No file name, format, or example to write the next Skill against; no rule
+or count, so two agents produce two tables. The same goes for "leave `TODO`
+where a source is missing": `scaffold-absent` fails the step on the token.

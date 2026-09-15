@@ -1,97 +1,109 @@
 ---
 name: _template_reference_first
-description: |
-  Internal template for creating or refactoring a skill into the repository's reference-first shape.
-  **Trigger**: reference-first template, blueprint skill, create a reusable skill, refactor a script-heavy skill.
-  **Use when**: you need a lean `SKILL.md`, explicit `references/`, machine-readable `assets/`, and a minimal deterministic `run.py`.
+description: Authoring template for a Skill under the harness contract — the front matter the kernel and the conformance tests read, the section order a SKILL.md follows, and what each section says and leaves out; copy it, no kind schedules it.
 ---
 
-# Reference-First Skill Template
+# Skill template
 
-## Why this exists
+A Skill is the prose contract the agent reads when the harness hands it a
+packet. The kernel reads only the front matter — `role` to match the pass it
+schedules, `scaffold_marker` for the `scaffold-absent` gate, `description`
+for listings — and hashes the whole `SKILL.md` as the Skill's identity, which
+is how a prover is kept from being its own producer. The body tells the agent
+how to work one step so that its outputs survive verify. Copy this directory
+to `.codex/skills/<name>/`, keep the section order below, replace every
+sentence. This file's own front matter has only `name` and `description`
+because no kind schedules it.
 
-This package is the default starting point for new or refactored skills in this repo.
+## Front matter
 
-It demonstrates the intended split of responsibilities:
-- `SKILL.md` routes the workflow
-- `references/` holds method, judgment, and exemplars
-- `assets/` holds machine-readable contracts
-- `scripts/` handles deterministic execution only
+Producer (named by a kind's `steps[].skill`):
 
-Use it as a shape to copy and customize, not as a domain-specific skill.
+```yaml
+---
+name: brief-writer                  # equals the directory name
+description: One sentence — from which inputs it writes which output, for which step of which kind.
+role: producer
+reads: [success_spec.yaml, outline.yml, core_set.csv, sources/]   # ⊇ each step's consumes, minus goal.md / success_spec.yaml
+outputs: [brief.md, statements.json]                              # ⊇ each step's produces, exact file names
+scaffold_marker: "<!-- scaffold -->"                              # optional; this value is the default
+---
+```
 
-## Inputs
+Prover (named by a kind's `gates.agent[].skill`):
 
-- the job the skill should encode
-- the expected inputs and outputs for that job
-- acceptance criteria and failure conditions
-- any domain packs, schemas, or existing artifacts that must be reused
+```yaml
+---
+name: source-support-prover
+description: One sentence — what it verifies, against which ground, for which gate.
+role: prover
+gate: {id: source-support, kind: grounded, ground: source, serves: [supported], routing: upstream_of_cited_evidence}
+outputs: [gate_result.json]
+context: fresh
+---
+```
 
-## Outputs
+`tests/conformance/test_skill_library.py` holds the front matter to the kinds:
+`reads` ⊇ consumes (minus goal/spec) and `outputs` ⊇ produces for every step
+naming the Skill; a prover's `gate.kind` and `gate.ground` equal the kind's,
+`gate.serves` ⊇ the kind's, `outputs` is exactly `[gate_result.json]`,
+`context` is `fresh`; the library holds exactly the Skills the kinds name plus
+this template; no `.md` in the library carries a self-reported verdict or the
+name of a removed engine. `assets/front_matter.schema.json` states the same
+contract as JSON Schema.
 
-- a lean `SKILL.md`
-- `references/overview.md`
-- `references/examples_good.md`
-- `references/examples_bad.md`
-- `assets/schema.json`
-- `scripts/run.py`
+## Body
 
-## Workflow
+50–110 lines of English prose after the front matter (deliverable writers and
+provers up to 120), sections in this order. Do not restate what
+`packet.md § Instructions` already says — read the Skill, read `inputs/`,
+write `outputs/`, run `rh continue`, a repair answers Faults from the inputs
+in fresh context, a prover judges from `inputs/` only — and do not restate
+the Goal, the Success Spec, or the story's vocabulary.
 
-1. Define the job and its boundary
-- write down the trigger, intended outcome, and explicit non-goals
-- separate reusable behavior from one-off project context
+- `# <Title>` then two to four sentences: which step of which kind, what the
+  output is for, which downstream Skill or prover consumes it. Not the
+  packet, the budget, or the harness.
+- `## Inputs` — one bullet per input name: the fields or sections that
+  matter, using the producer Skill's names verbatim; whether the input may
+  be absent because the kind lets the Run skip its producer.
+- `## Outputs` — one entry per output: exact file name, exact format (header
+  row, JSONL fields, section headings), a minimal example that can be
+  copied, and the kernel gates bound to this step with what each checks
+  (`schema-valid`, `scaffold-absent`; on the deliverable step also
+  `pointer-resolution`, `provenance-present`, `length-bound`). A writer
+  states the statements ↔ paragraphs rule and the pointer format here.
+- `## Method` — numbered, deterministic steps with counts and thresholds
+  written out (`3–6 clusters`, `drop when any score is 0.2 or lower`). No
+  "consider", "maybe", "where appropriate".
+- `## Repair` — three to six lines: which Faults reach this step (from
+  which gate, citing which of its outputs) and how this step answers each.
+  Not the repair packet's shape.
+- `## Do not` — at most six bullets, each a boundary another Skill owns or a
+  way the outputs would fail verify.
 
-2. Write `SKILL.md` as a router
-- keep only the activation rule, inputs, outputs, workflow, block conditions, and resource routing
-- do not copy large judgment rules, domain essays, or sentence banks into this file
+Prover variant: `## Verdict` replaces Method and Repair — how each item is
+judged and against which input, how `score` is computed, which Evidence a
+finding cites (the deliverable may locate the defect; prior outputs of the
+repaired step are excluded from its cited Evidence), when `implicates` is set (only under
+`upstream_of_cited_evidence`, only naming a step that produced a cited
+hash), and a GateResult example whose `step` and `pass_id` are the checked
+pass's.
 
-3. Move reusable thinking into `references/`
-- put domain knowledge, decision rubrics, and method notes in `references/overview.md`
-- if the skill can emit reader-facing text, include both `references/examples_good.md` and `references/examples_bad.md`
-- keep reference files one hop away from `SKILL.md`; avoid deep reference chains
+## Layout
 
-4. Put contracts into `assets/`
-- store machine-readable schemas, templates, or static resource packs in `assets/`
-- use `assets/schema.json` for the structured artifact that the skill validates or emits
+`SKILL.md` is the contract and usually the only file read. `references/`
+holds judgment the body points to by file name for a named situation
+(rubrics, good and bad examples); `assets/` holds curated data the Method
+consumes (domain packs, schemas). A reference or asset the body does not
+name, or that repeats the body, is deleted. No scripts: deterministic checks
+belong to kernel gates, judgment to a prover Skill.
 
-5. Keep `scripts/run.py` deterministic
-- allow file discovery, normalization, validation, manifest generation, and external tool calls
-- keep prose templates, domain defaults, and reader-facing judgment out of Python
+## Done when
 
-6. Validate hygiene before reuse
-- make sure the package has no unresolved placeholders in reader-facing examples
-- make sure `SKILL.md` explicitly tells the agent when to read each reference file
-
-## When to read `references/`
-
-- Always read `references/overview.md` before customizing or applying this template.
-- Read `references/examples_good.md` when the skill writes reader-facing text or shapes another writer skill.
-- Read `references/examples_bad.md` when cleaning up generator voice, pipeline jargon, or weak deliverable framing.
-- If the skill has domain variants, add explicit domain-pack references and mention the selection rule here.
-
-## Assets to reuse
-
-- `assets/schema.json`: a generic contract for a reference-first skill manifest; adapt it to the concrete skill you are building.
-
-## Script role
-
-- `scripts/run.py` is a minimal validator and manifest builder.
-- Read or patch the script only when you need deterministic behavior.
-- Do not rely on the script to supply the skill's method, voice, domain taxonomy, or reader-facing examples.
-
-## Block conditions
-
-Stop and fix the package before reuse if any of these are true:
-- `SKILL.md` duplicates long reference content instead of routing to `references/`
-- `run.py` contains domain defaults, sentence libraries, or filler prose
-- reader-facing examples contain unresolved placeholders or internal pipeline jargon
-- the schema does not match the artifact the skill is supposed to validate or emit
-
-## Done checklist
-
-- `SKILL.md` stays lean and references other files explicitly
-- `references/` contains the actual method and exemplars
-- `assets/` contains machine-readable contracts only
-- `scripts/run.py` stays deterministic and small
-- the package can be understood by reading `SKILL.md` and the referenced files without reading all Python first
+- The front matter parses and `test_skill_library.py` passes.
+- Every sentence about kernel behavior can be found in `src/rh/kernel/*.py`.
+- Every file name, column, field, and locator format matches the
+  neighbouring Skills on the kind's chain — read them, do not assume.
+- `references/examples_good.md` and `references/examples_bad.md` were read
+  once for calibration; nothing in them was copied verbatim.

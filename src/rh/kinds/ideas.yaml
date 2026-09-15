@@ -1,0 +1,77 @@
+# Loop kind: ideas — a discussion memo of grounded research directions for a
+# topic and scope: retrieval, a signal table of tensions and missing pieces,
+# a direction pool, a screening pass, then the memo. Every direction names
+# the sources it grows out of. Delivers ideas.md + statements.json.
+schema: rh.kind/1
+kind: ideas
+title: Research directions memo
+deliverable: ideas.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 30, passes_per_gate: 3, stall_passes: 2}
+adaptivity: {add: true, skip: [curate, screen], reorder: false}
+steps:
+  - id: spec
+    skill: success-spec
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: retrieve
+    skill: literature-engineer
+    consumes: [success_spec.yaml]
+    produces: [sources/]            # one file per source, hashed individually
+    serves: [supported, coverage]
+  - id: curate
+    skill: dedupe-rank
+    consumes: [sources/]
+    produces: [core_set.csv]
+    serves: [coverage]
+  - id: signals
+    skill: idea-signal-mapper
+    consumes: [success_spec.yaml, core_set.csv, sources/]
+    produces: [signal_table.jsonl]  # tension / missing piece / axis per cluster, with source ids
+    serves: [supported, coverage]
+  - id: directions
+    skill: idea-direction-generator
+    consumes: [success_spec.yaml, signal_table.jsonl, sources/]
+    produces: [direction_pool.jsonl]
+    serves: [answers, novelty]
+  - id: screen
+    skill: idea-screener
+    consumes: [success_spec.yaml, direction_pool.jsonl, sources/]
+    produces: [screening_table.jsonl]
+    serves: [answers, novelty]
+  - id: write
+    skill: ideas-writer
+    consumes: [success_spec.yaml, core_set.csv, signal_table.jsonl, direction_pool.jsonl, screening_table.jsonl, sources/]
+    produces: [ideas.md, statements.json]
+    serves: [answers, supported, coverage, novelty, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [spec, signals, directions, screen, write]
+    schema-valid: [spec, retrieve, curate, signals, directions, screen, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: source-support-prover
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: spec-coverage-prover
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: novelty
+      skill: novelty-prover
+      kind: grounded
+      ground: source
+      serves: [novelty]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence

@@ -1,0 +1,70 @@
+# Loop kind: tutorial — an article-first tutorial taught from a fixed source
+# pack for a named audience: a source manifest, ingested source text, a
+# concept graph, a module plan, then the tutorial prose. Every paragraph
+# carries a statement that points at an ingested source or the plan.
+# Delivers tutorial.md + statements.json.
+schema: rh.kind/1
+kind: tutorial
+title: Source-grounded tutorial
+deliverable: tutorial.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 30, passes_per_gate: 3, stall_passes: 2}
+adaptivity: {add: true, skip: [concepts], reorder: false}
+decisions:
+  - id: D-plan
+    after: plan
+    prompt: "Approve the module plan before writing: module order, objectives, the sources each module teaches from, the exercises. Reject with a reason to have it revised."
+steps:
+  - id: spec
+    skill: success-spec
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: manifest
+    skill: source-manifest
+    consumes: [goal.md, success_spec.yaml]
+    produces: [manifest.yml]        # source_id / kind / locator / label per source
+    serves: [coverage]
+  - id: ingest
+    skill: source-ingest
+    consumes: [manifest.yml]
+    produces: [sources/]            # one normalized text file per source, hashed individually
+    serves: [supported, coverage]
+  - id: concepts
+    skill: concept-graph
+    consumes: [success_spec.yaml, sources/]
+    produces: [concept_graph.yml]   # prerequisite DAG; nodes carry source ids
+    serves: [answers, coverage]
+  - id: plan
+    skill: module-planner
+    consumes: [success_spec.yaml, concept_graph.yml, sources/]
+    produces: [module_plan.yml]     # ordered modules: objectives, concepts, source ids, exercise
+    serves: [answers, coverage]
+  - id: write
+    skill: tutorial-writer
+    consumes: [success_spec.yaml, manifest.yml, concept_graph.yml, module_plan.yml, sources/]
+    produces: [tutorial.md, statements.json]
+    serves: [answers, supported, coverage, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [spec, manifest, concepts, plan, write]
+    schema-valid: [spec, manifest, ingest, concepts, plan, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: source-support-prover
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: spec-coverage-prover
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence

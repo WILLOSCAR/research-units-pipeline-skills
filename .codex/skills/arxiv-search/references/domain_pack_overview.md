@@ -1,25 +1,33 @@
-# Shared Retrieval Domain Pack — LLM Agents
+# Domain packs for retrieval
 
-## Purpose
+A domain pack is curated knowledge about one research area: arXiv ids of
+classic papers and surveys that a reader of that area expects to see, and
+query clauses that retrieve the area precisely. Packs live under
+`../literature-engineer/assets/domain_packs/<domain>.json` relative to the
+`arxiv-search` Skill directory. That directory is the single owner;
+retrieval records classifications in `origin` for curation to consume.
 
-This domain pack externalizes the LLM-agent-specific pinned IDs, topic detection,
-and query construction logic that was previously hardcoded in:
-- `arxiv-search/scripts/run.py` (`_looks_like_llm_agent_topic`, `_llm_agent_query`)
-- `literature-engineer/scripts/run.py` (`_pinned_arxiv_ids`)
-- `dedupe-rank/scripts/run.py` (`_looks_like_llm_agent_topic`, `_pinned_records`, `_is_agent_survey_record`)
+## Fields
 
-## Loading
+- `topic_triggers` — `trigger_group_a` and `trigger_group_b`: the pack applies
+  when the Success Spec's `scope` (or `goal.text`) contains a term from each
+  group; `name_triggers` are system names that alone indicate the area.
+- `pinned_classics`, `pinned_surveys` — `{arxiv_id, label}` entries to
+  retrieve by id when the pack applies.
+- `query_rewrite.core_clause`, `query_rewrite.signal_clause` — fielded arXiv
+  query fragments; the first query is `core_clause AND signal_clause`.
+- Legacy `survey_detection` entries may be present; curation uses its own
+  title rule and the recorded `pinned_survey` classification.
 
-All three retrieval skills should load:
-```
-assets/domain_packs/llm_agents.json
-```
+## Rule of use
 
-If the workspace topic does NOT match any domain pack's `topic_triggers`, the skills
-should fall back to generic behavior (no pinning, no query rewriting, no survey boosting).
+The Success Spec decides scope; a pack only helps reach it. If `scope` names
+a narrower question than the pack's area, keep the spec's terms in every
+query and treat the pinned ids as candidates that `dedupe-rank` may drop. If
+no pack matches, build queries from the spec alone; there is no penalty for
+having no pack.
 
-## How to Add a New Domain
+## Adding a pack
 
-1. Create a new JSON file under `assets/domain_packs/` (e.g., `robotics.json`)
-2. Fill in `topic_triggers`, `pinned_classics`, `pinned_surveys`, `query_rewrite_rules`, and `survey_detection`
-3. No code changes needed — the scripts load all packs and match by trigger
+Create `../literature-engineer/assets/domain_packs/<domain>.json` with the fields above. Keep only
+ids you have checked resolve to the paper the label names.

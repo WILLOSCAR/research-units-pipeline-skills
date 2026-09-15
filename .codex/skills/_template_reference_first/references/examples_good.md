@@ -1,71 +1,61 @@
-# Good Examples
+# Good examples
 
-## Good `SKILL.md` routing
+Read once when authoring; each shows one section done to the standard.
 
-```markdown
-## When to read `references/`
-
-- Always read `references/overview.md` before drafting or validating the deliverable.
-- Read `references/examples_good.md` before writing reader-facing sections.
-- Read `references/examples_bad.md` when removing generic opener patterns or internal jargon.
-```
-
-Why it works:
-- the loading rule is explicit
-- the entrypoint stays short
-- the actual method lives outside `SKILL.md`
-
-## Good reference guidance
+## `## Outputs` entry
 
 ```markdown
-## Decision rubric
-
-- choose the smallest artifact that proves the claim
-- make risks concrete enough to stop the work early if needed
-- prefer bounded recommendations over exhaustive option lists
+`core_set.csv`, UTF-8, header row, one row per retained source, ordered by
+descending `score`. Columns: `source_id,title,year,venue,score,reason`;
+`source_id` is the stem of the kept `sources/` file. Kernel gates on this
+step: `schema-valid` (a header row; every non-empty row has the header's
+width) and `scaffold-absent`.
 ```
 
-Why it works:
-- it teaches judgment, not just formatting
-- it is reusable across tasks in the same skill
+Exact name, columns, provenance rule, ordering, and the gates that will
+actually run — a downstream Skill can be written against it.
 
-## Good reader-facing example
+## `## Method` step
 
-```text
-Recommended path: start with the smallest version that can be evaluated in one week, record one clear success signal, and define in advance what result would make the project not worth extending.
+```markdown
+4. `verdict: drop` when any score is 0.2 or lower. Compare the rest pairwise:
+   two that share hypothesis form, `contribution_shape`, and
+   `first_experiment` design and differ only in the object studied are one
+   program — `merge` the lower-scoring into the higher.
 ```
 
-Why it works:
-- the advice is concrete
-- the sentence is complete and copy-safe
-- it avoids internal pipeline terms
+A threshold, a comparison rule, and the field names the rule reads; two
+agents reach the same table.
 
-## Good schema shape
+## `## Repair` entry
+
+```markdown
+A `source-support` finding that cites this table (a value the writer
+condensed is not what the source reports at `locator`) arrives as a `source`
+Fault naming the statement. Reread the named source in full and rewrite the
+whole table; a header-only table is never padded to answer a coverage Fault.
+```
+
+Names the gate, what it cites, and the rewrite — not the packet's shape.
+
+## Prover finding
 
 ```json
-{
-  "artifact_name": "decision-memo",
-  "required_sections": [
-    "recommendation",
-    "inputs_used",
-    "risks",
-    "next_step"
-  ],
-  "reader_facing": true
-}
+{"message": "Direction 3 (D5) proposes a fixed-store, varied-trigger ablation; sources/2405.04321.md §6 reports exactly this ablation on three scaffolds.",
+ "evidence": ["<sha256 of sources/2405.04321.md>", "<sha256 of direction_pool.jsonl>"],
+ "statement": "s31", "criterion": "C7", "implicates": null}
 ```
 
-Why it works:
-- it captures a contract the script can validate
-- it stays machine-readable and domain-neutral
+Cites the ground (the closing source) and the upstream table, names the
+statement by id. A deliverable hash may additionally locate the defect;
+the kernel filters prior outputs of the repaired step from its cited Evidence.
 
-## Good script boundary
+## Statements ↔ paragraphs rule (writer)
 
-```text
-The script validates the manifest, checks required files, and writes a small report.
-It does not generate the final narrative or supply domain defaults.
+```markdown
+Every body paragraph contains, verbatim after whitespace normalization, the
+text of at least one statement that has evidence; a list with no blank line
+inside is one paragraph; a heading glued to its body does not exempt it.
 ```
 
-Why it works:
-- deterministic work stays in code
-- high-level judgment stays in references and instructions
+`gates.paragraphs()` and `check_provenance_present` in one actionable line.

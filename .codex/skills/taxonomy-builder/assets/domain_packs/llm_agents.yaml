@@ -1,43 +1,35 @@
 profile: llm_agents
 display_name: Tool-using LLM agents
-compatibility_mode: p0
 detect:
   all_of_groups:
     - [agent, agents]
     - [llm, language model, gpt, chatgpt]
-representative_papers:
-  top_level_max: 4
-  suffix_template: " Representative paper_id(s): {paper_ids}."
 taxonomy:
   - name: "Foundations & Interfaces"
-    description_base: "Problem formulation and interface design for tool-using LLM agents: the agent loop, action spaces, and the tool/environment boundary that constrains reliability."
-    representative_terms: [agent, tool, environment, api, interface, function]
+    definition: "Problem formulation and interface design for tool-using LLM agents: the agent loop, action spaces, and the tool/environment boundary that constrains reliability."
     children:
       - name: "Agent loop and action spaces"
-        description: "Agent loop abstractions (state → decide → act → observe), action representations, environment/tool modeling, and failure recovery assumptions."
+        definition: "Agent loop abstractions (observe → decide → act), action representations, environment and tool modelling, and failure-recovery assumptions."
       - name: "Tool interfaces and orchestration"
-        description: "Calling tools/APIs (function calling), tool selection/routing, permissions/sandboxing, and orchestration patterns that affect correctness and safety."
+        definition: "Calling tools and APIs (function calling), tool selection and routing, permissions and sandboxing, and orchestration patterns that affect correctness and safety."
   - name: "Core Components (Planning + Memory)"
-    description_base: "Core capability levers for long-horizon agents: planning/reasoning for action selection and memory/retrieval for grounded state."
-    representative_terms: [planning, reasoning, memory, retrieval, rag]
+    definition: "Core capability levers for long-horizon agents: planning and reasoning for action selection, and memory and retrieval for grounded state."
     children:
       - name: "Planning and reasoning loops"
-        description: "Decomposition, plan search/verification, and robustness under partial observability and tool failures; how planning interleaves with tool calls."
+        definition: "Decomposition, plan search and verification, robustness under partial observability and tool failures; how planning interleaves with tool calls."
       - name: "Memory and retrieval (RAG)"
-        description: "Working vs long-term memory, retrieval policies, state summarization, grounding strategies, and how memory interacts with planning and tool use."
+        definition: "Working versus long-term memory, retrieval policies, state summarisation, grounding strategies, and how memory interacts with planning and tool use."
   - name: "Learning, Adaptation & Coordination"
-    description_base: "How agents improve with experience (reflection/RL/prompt/program optimization) and how multiple agents coordinate to divide labor or verify outputs."
-    representative_terms: [reflection, self, improve, rl, multi-agent, coordination, communication]
+    definition: "How agents improve with experience (reflection, RL, prompt or program optimisation) and how several agents coordinate to divide labour or verify outputs."
     children:
       - name: "Self-improvement and adaptation"
-        description: "Reflection/critique/revision loops, preference optimization, and evaluation-driven prompt/program tuning; stability and reward hacking risks."
+        definition: "Reflection, critique, and revision loops; preference optimisation; evaluation-driven prompt or program tuning; stability and reward-hacking risks."
       - name: "Multi-agent coordination"
-        description: "Role specialization, communication protocols, debate/verification patterns, aggregation, and coordination failure modes."
+        definition: "Role specialisation, communication protocols, debate and verification patterns, aggregation, and coordination failure modes."
   - name: "Evaluation & Risks"
-    description_base: "What we measure and why it is hard: benchmarks/protocols for tool-use and long-horizon tasks, plus risk surfaces and governance constraints for deployed agents."
-    representative_terms: [benchmark, evaluation, tool, safety, security, attack, governance]
+    definition: "What is measured and why it is hard: benchmarks and protocols for tool use and long-horizon tasks, plus risk surfaces and governance constraints for deployed agents."
     children:
       - name: "Benchmarks and evaluation protocols"
-        description: "Task suites, datasets, metrics, human evaluation, leakage/reproducibility concerns, and how evaluation choices bias conclusions."
+        definition: "Task suites, datasets, metrics, human evaluation, leakage and reproducibility concerns, and how evaluation choices bias conclusions."
       - name: "Safety, security, and governance"
-        description: "Threat models (prompt injection, data exfiltration, tool abuse), guardrails/monitoring, and governance controls for deployed agents."
+        definition: "Threat models (prompt injection, data exfiltration, tool abuse), guardrails and monitoring, and governance controls for deployed agents."

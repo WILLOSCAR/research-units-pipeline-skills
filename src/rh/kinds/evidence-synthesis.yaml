@@ -1,0 +1,75 @@
+# Loop kind: evidence-synthesis — a protocol-driven synthesis of the
+# evidence on a review question: protocol, screening, extraction, risk of
+# bias, then a bounded narrative whose every statement points at an
+# included source or at the protocol/screening/extraction records.
+# Delivers synthesis.md + statements.json.
+schema: rh.kind/1
+kind: evidence-synthesis
+title: Evidence synthesis
+deliverable: synthesis.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 36, passes_per_gate: 3, stall_passes: 2}
+adaptivity: {add: true, skip: [appraise], reorder: false}
+decisions:
+  - id: D-protocol
+    after: protocol
+    prompt: "Approve the protocol before retrieval: question, search spec, inclusion/exclusion clauses, extraction schema. Reject with a reason to have it revised."
+steps:
+  - id: spec
+    skill: success-spec
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: protocol
+    skill: protocol-writer
+    consumes: [goal.md, success_spec.yaml]
+    produces: [protocol.md]         # question, search spec, I#/E# clauses, extraction schema
+    serves: [answers, coverage]
+  - id: retrieve
+    skill: literature-engineer
+    consumes: [success_spec.yaml, protocol.md]
+    produces: [sources/]            # one file per candidate, hashed individually
+    serves: [supported, coverage]
+  - id: screen
+    skill: screening-manager
+    consumes: [protocol.md, sources/]
+    produces: [screening_log.csv]   # one row per candidate: decision + protocol clause
+    serves: [coverage]
+  - id: extract
+    skill: extraction-form
+    consumes: [protocol.md, screening_log.csv, sources/]
+    produces: [extraction_table.csv]
+    serves: [supported, coverage]
+  - id: appraise
+    skill: bias-assessor
+    consumes: [protocol.md, extraction_table.csv, sources/]   # protocol names the risk-of-bias instrument
+    produces: [risk_of_bias.csv]
+    serves: [supported]
+  - id: write
+    skill: evidence-synthesis-writer
+    consumes: [success_spec.yaml, protocol.md, screening_log.csv, extraction_table.csv, risk_of_bias.csv, sources/]
+    produces: [synthesis.md, statements.json]
+    serves: [answers, supported, coverage, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [spec, protocol, screen, extract, appraise, write]
+    schema-valid: [spec, retrieve, screen, extract, appraise, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: source-support-prover
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: spec-coverage-prover
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence

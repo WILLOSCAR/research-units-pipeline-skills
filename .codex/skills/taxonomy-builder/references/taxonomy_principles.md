@@ -1,49 +1,54 @@
-# Taxonomy Principles
+# Taxonomy principles
 
-## 1) Optimize for reader questions, not keyword buckets
+## 1) Optimise for reader questions, not keyword buckets
 
-Good top-level nodes read like chapter titles in a survey.
-Bad top-level nodes read like bag-of-words clusters.
+Good top-level nodes read like chapter titles in a survey. Bad top-level
+nodes read like bag-of-words clusters.
 
-## 2) Prefer fewer, thicker top-level buckets
+## 2) Prefer fewer, thicker top-level categories
 
-A paper-like survey usually wants a small number of chapter-driving buckets.
-If every recurring term becomes a top-level node, downstream outline and writing quality collapse.
+A paper-like survey wants a small number of chapter-driving categories. If
+every recurring term becomes a top-level node, the outline and the prose
+fragment with it.
 
 ## 3) Make leaves mappable
 
-A leaf should plausibly absorb multiple papers.
-Tiny or one-off leaves usually belong as comparison axes inside a subsection, not as taxonomy nodes.
+A leaf should plausibly absorb several papers. A one-paper leaf usually
+belongs as a comparison axis inside a sibling subsection, not as a node.
 
-## 4) Encode scope in the description
+## 4) Encode scope in the definition
 
-A good node description says what belongs here and what kind of comparison the bucket supports.
-It should help `section-mapper` and later writers avoid scope drift.
+A good definition says what belongs in the node and what comparison it
+supports. It is what lets `outline-builder` and the writer avoid drift.
 
-## 5) Separate mechanism / evaluation / risk when the corpus supports it
+## 5) Separate mechanism, evaluation, and risk when the corpus supports it
 
-If a topic mixes system design, benchmarking, and safety into one bucket, mapping becomes ambiguous.
-Split only when the split is meaningful to readers and mappable to papers.
+If a topic mixes system design, benchmarking, and safety in one node,
+placement becomes ambiguous. Split only when the split is meaningful to
+readers and populated by sources.
 
 ## 6) Avoid generic placeholders
 
-Avoid node names like:
-- `Overview`
-- `Representative Approaches`
-- `Benchmarks`
-- `Open Problems`
-- `Misc` / `Other`
+Not as node names: `Overview`, `Representative Approaches`, `Benchmarks`,
+`Open Problems`, `Misc`, `Other`. They signal that the tree is dodging the
+real organising question.
 
-These are usually signs that the taxonomy is dodging the real organizing question.
+## 7) Keep definitions concrete
 
-## 7) Keep descriptions concrete
+Mention the design or evaluation question the node covers, the assumptions
+or constraints that matter there, and — via `source_ids` — the papers that
+populate it. Do not paste ids into the definition text.
 
-Prefer descriptions that mention:
-- what design/evaluation question the bucket covers
-- what assumptions or constraints matter there
-- representative paper IDs when available
+## 8) Serve the Success Spec first
 
-## 8) Treat domain packs as explicit support, not hidden bias
+Every aspect an `answers` or `coverage` criterion names has a node the
+outline can point at. A pack or archetype that lacks such a node is
+extended; a pack node the core set does not populate is dropped.
 
-If a domain needs a curated taxonomy shape, put it in `assets/domain_packs/<domain>.yaml` and document it in `references/domain_pack_<domain>.md`.
-Do not hide domain chapter structure as Python strings.
+## 9) Treat domain packs as explicit support, not hidden bias
+
+If an area needs a curated starting tree, put it in
+`../assets/domain_packs/<domain>.yaml` (`profile`, `display_name`,
+`detect.all_of_groups`, `taxonomy` of `name` / `definition` / `children`).
+Nothing about a domain lives outside that file; the pack is a starting
+shape the core set and the Success Spec reshape, never a fixed answer.

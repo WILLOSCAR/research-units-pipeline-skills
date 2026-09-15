@@ -1,0 +1,70 @@
+# Loop kind: survey — a structured survey of a literature under the Goal's
+# delivery constraints: retrieval, a curated core set, a taxonomy and outline,
+# per-paper notes, then the survey prose. Every paragraph carries a statement
+# that points at a retrieved source. Delivers survey.md + statements.json.
+schema: rh.kind/1
+kind: survey
+title: Literature survey
+deliverable: survey.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 48, passes_per_gate: 4, stall_passes: 2}
+adaptivity: {add: true, skip: [curate, notes], reorder: false}
+steps:
+  - id: spec
+    skill: success-spec
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: retrieve
+    skill: literature-engineer
+    consumes: [success_spec.yaml]
+    produces: [sources/]            # one file per source, hashed individually
+    serves: [supported, coverage]
+  - id: curate
+    skill: dedupe-rank
+    consumes: [sources/]
+    produces: [core_set.csv]
+    serves: [coverage]
+  - id: taxonomy
+    skill: taxonomy-builder
+    consumes: [success_spec.yaml, core_set.csv, sources/]
+    produces: [taxonomy.yml]
+    serves: [answers, coverage]
+  - id: outline
+    skill: outline-builder
+    consumes: [success_spec.yaml, taxonomy.yml, core_set.csv]
+    produces: [outline.yml]         # sections and subsections, bullets only, with paper ids
+    serves: [answers, coverage]
+  - id: notes
+    skill: paper-notes
+    consumes: [core_set.csv, sources/]
+    produces: [paper_notes.jsonl]
+    serves: [supported]
+  - id: write
+    skill: survey-writer
+    consumes: [success_spec.yaml, taxonomy.yml, outline.yml, core_set.csv, paper_notes.jsonl, sources/]
+    produces: [survey.md, statements.json]
+    serves: [answers, supported, coverage, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [spec, taxonomy, outline, notes, write]
+    schema-valid: [spec, retrieve, curate, taxonomy, outline, notes, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: source-support-prover
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: spec-coverage-prover
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence

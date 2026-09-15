@@ -1,0 +1,41 @@
+# Fixture Loop kind with an intermediate Decision after the first producer step.
+schema: rh.kind/1
+kind: review-fixture
+title: Fixture review with a mid-Run Decision
+deliverable: brief.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 12, passes_per_gate: 3, stall_passes: 2}
+decisions:
+  - {id: D-sources, after: retrieve, prompt: "Are these the sources to review?"}
+steps:
+  - id: spec
+    skill: spec-fixture
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: retrieve
+    skill: retrieve-fixture
+    consumes: [success_spec.yaml]
+    produces: [sources/]
+    serves: [supported, coverage]
+  - id: write
+    skill: writer-fixture
+    consumes: [success_spec.yaml, sources/]
+    produces: [brief.md, statements.json]
+    serves: [answers, supported, coverage, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [write]
+    schema-valid: [write]
+  agent:
+    - id: source-support
+      skill: support-prover-fixture
+      serves: [supported]
+      applies_to: [write]
+    - id: spec-coverage
+      skill: coverage-prover-fixture
+      serves: [answers, coverage]
+      applies_to: [write]

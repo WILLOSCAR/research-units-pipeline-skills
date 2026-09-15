@@ -1,0 +1,60 @@
+# Loop kind: brief — a one-page research brief that orients a reader to a
+# topic: its boundary, the key themes, and what to read first. Every body
+# paragraph carries a statement that points at one retrieved source.
+# Delivers brief.md + statements.json.
+schema: rh.kind/1
+kind: brief
+title: Research brief
+deliverable: brief.md
+statements: statements.json
+formats: [md]
+budget: {passes_total: 24, passes_per_gate: 3, stall_passes: 2}
+adaptivity: {add: true, skip: [curate], reorder: false}
+steps:
+  - id: spec
+    skill: success-spec
+    consumes: [goal.md]
+    produces: [success_spec.yaml]
+    fixed: true
+  - id: retrieve
+    skill: arxiv-search
+    consumes: [success_spec.yaml]
+    produces: [sources/]            # one file per source, hashed individually
+    serves: [supported, coverage]
+  - id: curate
+    skill: dedupe-rank
+    consumes: [sources/]
+    produces: [core_set.csv]
+    serves: [coverage]
+  - id: outline
+    skill: outline-builder
+    consumes: [success_spec.yaml, core_set.csv, sources/]
+    produces: [outline.yml]
+    serves: [answers, coverage]
+  - id: write
+    skill: brief-writer
+    consumes: [success_spec.yaml, outline.yml, core_set.csv, sources/]
+    produces: [brief.md, statements.json]
+    serves: [answers, supported, coverage, provenance, scaffold, format, length]
+gates:
+  kernel:
+    pointer-resolution: [write]
+    provenance-present: [write]
+    scaffold-absent: [spec, outline, write]
+    schema-valid: [spec, retrieve, curate, outline, write]
+    length-bound: [write]
+  agent:
+    - id: source-support
+      skill: source-support-prover
+      kind: grounded
+      ground: source
+      serves: [supported]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
+    - id: spec-coverage
+      skill: spec-coverage-prover
+      kind: grounded
+      ground: source
+      serves: [answers, coverage]
+      applies_to: [write]
+      routing: upstream_of_cited_evidence
