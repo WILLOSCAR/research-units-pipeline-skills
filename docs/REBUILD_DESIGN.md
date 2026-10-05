@@ -96,6 +96,11 @@ Every record is JSON (or YAML where a human edits it), carries
 | **Lesson** (project-level) | `run, kind, goal_hash, faults[], repairs[]{fault, worked}, decisions[], stop, proof_pack_hash, replay_bundle{evidence_dir, gates[]}` | distilled by the kernel when a Run ends by accept, abandon, or exhaustion; the replay bundle is an Evidence store under `lessons/<run>/evidence/` holding what each failing gate needs to be re-run |
 | **Evolve** (project-level) | `id, target (gate:… \| kind:… \| skill:… \| budget:…), lessons[], rationale, status`, plus `replay.json{results[]{lesson, gate, pass_id, caught}}` | replay re-runs every kernel gate the cited Lessons record against the bundle; agent gates are attested by a human (`attest --caught\|--missed`); adoption requires ≥1 replayed failure, every one caught, and a named human |
 
+The adoption API and CLI reject an empty or whitespace-only actor name before
+writing. The recorded name is a caller-supplied audit label, not authenticated
+identity or proof that a human made the Decision. Replay requirements remain
+independent of that label.
+
 ## 3. Storage layout
 
 One Run is one directory. The project keeps Lessons and evolves beside its

@@ -385,6 +385,8 @@ def attest(project: Path, evolve_id: str, lesson_id: str, gate: str, caught: boo
 
 def adopt(project: Path, evolve_id: str, by: str) -> dict:
     """Accept the evolve; refused unless ``replay.json`` exists and every entry was caught."""
+    if not isinstance(by, str) or not by.strip():
+        raise ValueError("adoption requires a nonblank actor name; this label does not authenticate a human")
     proposal = _read_json(_proposal_path(project, evolve_id), f"evolve {evolve_id!r}")
     path = _replay_path(project, evolve_id)
     if not path.is_file():
