@@ -426,11 +426,20 @@ class Harness:
         canonical = specmod.dump_spec(parsed)
         state.spec_hash = self.ws.evidence.put_text(canonical, SPEC_FILE, produced_by).hash
         (self.ws.root / SPEC_FILE).write_text(canonical, encoding="utf-8")
+        basis = decisions.spec_basis(state)
+        current = {entry.name: entry.hash for entry in basis}
+        for earlier in state.decisions:
+            if earlier.id == decisions.D0 or earlier.id.startswith(f"{decisions.D0}-"):
+                changed = [entry.name for entry in earlier.basis if current.get(entry.name) != entry.hash]
+                if changed and not earlier.stale:
+                    earlier.stale = True
+                    self._project_decision(earlier)
+                    self.ws.log("decision.stale", decision=earlier.id, changed=changed)
         decision = self._ask(
             state,
             decisions.D0,
             "Review the Success Spec against the Goal: are these the criteria, with these grounds, that would make the deliverable count? Accept, or reject with a reason.",
-            decisions.spec_basis(state),
+            basis,
         )
         self.ws.log("spec.bound", spec_hash=state.spec_hash, criteria=len(parsed.criteria))
         return self._await(state, decision)
