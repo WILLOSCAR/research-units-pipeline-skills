@@ -203,6 +203,7 @@ class Harness:
 
     def plan_skip(self, step_id: str) -> Outcome:
         with self.ws.transaction() as state:
+            self._ensure_plan_editable(state)
             kind = self._kind(state)
             step = self._plan_step(state, step_id)
             if step_id not in kind.adaptivity.skip or step.fixed or step_id == kind.artifact_step().id:
@@ -218,6 +219,7 @@ class Harness:
 
     def plan_add(self, step_yaml: str) -> Outcome:
         with self.ws.transaction() as state:
+            self._ensure_plan_editable(state)
             kind = self._kind(state)
             if not kind.adaptivity.add:
                 raise HarnessError(f"kind {kind.kind!r} does not allow adding steps")
@@ -631,6 +633,13 @@ class Harness:
             return state.plan.get(step_id)
         except KeyError as exc:
             raise HarnessError(f"no step {step_id!r} in the plan") from exc
+
+    def _ensure_plan_editable(self, state: RunState) -> None:
+        if state.status in ENDED:
+            raise HarnessError(f"the Run is {state.status.value}; its plan cannot be changed")
+        pending = state.pending_decision()
+        if pending is not None and pending.id.startswith(decisions.D_FINAL):
+            raise HarnessError(f"the Artifact is in final review; reject {pending.id} before changing the plan")
 
     def _record_op(self, state: RunState, op: PlanOp) -> None:
         state.plan.ops.append(op)
