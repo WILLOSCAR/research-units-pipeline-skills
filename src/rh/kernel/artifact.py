@@ -9,9 +9,11 @@ rather than trusted.
 from __future__ import annotations
 
 import json
+import tempfile
+from pathlib import Path
 
 import rh
-from rh.kernel.evidence import EvidenceCorrupt, EvidenceStore, sha256_text
+from rh.kernel.evidence import EvidenceCorrupt, EvidenceStore, sha256_bytes, sha256_text
 from rh.kernel.gates import parse_statements, result_text
 from rh.kernel.kinds import Kind, KindError
 from rh.kernel.records import (
@@ -27,7 +29,7 @@ from rh.kernel.records import (
     Verdict,
     encode,
 )
-from rh.kernel.run import PROOF_PACK_JSON, PROOF_PACK_MD, Workspace
+from rh.kernel.run import GOAL_FILE, PROOF_PACK_JSON, PROOF_PACK_MD, SPEC_FILE, Workspace
 
 PROOF_PACK_SCHEMA = "rh.proof_pack/1"
 
@@ -430,7 +432,79 @@ def assemble(ws: Workspace, state: RunState, kind: Kind) -> dict[str, str]:
     return hashes
 
 
-def reverify(ws: Workspace, state: RunState) -> list[str]:
+def _projection_entries(state: RunState, kind: Kind | None) -> dict[str, tuple[str, GateResult | None]]:
+    entries = {}
+    if kind is not None:
+        entries[GOAL_FILE] = (state.goal.hash, None)
+        if state.spec_hash:
+            entries[SPEC_FILE] = (state.spec_hash, None)
+        names = {"deliverable": kind.deliverable, "statements": kind.statements,
+                 "proof_pack": PROOF_PACK_JSON, "proof_pack_md": PROOF_PACK_MD}
+        entries.update({f"artifact/{names[key]}": (digest, None) for key, digest in state.artifact.items() if key in names})
+    entries.update({f"gates/{r.pass_id}.{r.gate}.json": (r.hash, r) for r in state.gate_results if r.hash})
+    return entries
+
+
+def _regular_projection(path: Path, root: Path) -> bool:
+    return not any(p.is_symlink() for p in (path, *path.parents) if p != root and root in p.parents)
+
+
+def changed_projections(ws: Workspace, state: RunState, kind: Kind | None = None) -> list[str]:
+    """Diagnose canonical copies without writing or trusting their contents."""
+    changed = []
+    for rel, (digest, gate) in _projection_entries(state, kind).items():
+        path = ws.root / rel
+        try:
+            if not _regular_projection(path, ws.root) or not path.is_file():
+                changed.append(rel)
+                continue
+            data = path.read_bytes()
+            body = json.loads(data) if gate else None
+            actual = sha256_text(result_text(body)) if gate else sha256_bytes(data)
+            if gate and body.get("hash") != digest:
+                actual = ""
+            if actual != digest:
+                changed.append(rel)
+        except (OSError, ValueError, UnicodeError, AttributeError):
+            changed.append(rel)
+    return changed
+
+
+def restore_projections(ws: Workspace, state: RunState, kind: Kind, *, skip: tuple[str, ...] = ()) -> list[str]:
+    """Preserve edited regular files, then restore copies from verified authority."""
+    entries = _projection_entries(state, kind)
+    changed = [rel for rel in changed_projections(ws, state, kind)
+               if rel not in skip or not (ws.root / rel).is_file() or not _regular_projection(ws.root / rel, ws.root)]
+    replacements = {}
+    backup_root = ws.root / "projection-edits"
+    if changed and (not _regular_projection(backup_root, ws.root) or (backup_root.exists() and not backup_root.is_dir())):
+        raise ArtifactError("projection-edits must be a regular directory; no projections restored")
+    for rel in changed:
+        path = ws.root / rel
+        if not _regular_projection(path, ws.root) or (path.exists() and not path.is_file()):
+            raise ArtifactError(f"projection {rel} is not a regular file; preserve it manually before continuing")
+        digest, gate = entries[rel]
+        data = ws.evidence.get(digest)  # verify every replacement before any writes
+        replacements[rel] = json.dumps({**json.loads(data), "hash": digest}, indent=2, ensure_ascii=False).encode() if gate else data
+    backup = None
+    for rel in changed:
+        path = ws.root / rel
+        if path.exists():
+            if backup is None:
+                backup_root.mkdir(exist_ok=True)
+                backup = Path(tempfile.mkdtemp(prefix="edit-", dir=backup_root))
+            saved = backup / rel
+            saved.parent.mkdir(parents=True, exist_ok=True)
+            saved.write_bytes(path.read_bytes())
+    for rel, data in replacements.items():
+        path = ws.root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        ws.log("projection.restored", path=rel, backup=str((backup / rel).relative_to(ws.root)) if backup and (backup / rel).is_file() else None)
+    return changed
+
+
+def reverify(ws: Workspace, state: RunState, kind: Kind | None = None) -> list[str]:
     """Recompute every hash in ``state.artifact``, every pass output and every gate result; return the problems."""
     store = ws.evidence
     broken = "does not resolve or match its hash"
@@ -441,7 +515,5 @@ def reverify(ws: Workspace, state: RunState) -> list[str]:
     for r in state.gate_results:
         if r.hash and store.verify_all([r.hash]):
             problems.append(f"gate result {r.pass_id}/{r.gate}: evidence {r.hash[:12]} {broken}")
-        projection = ws.gates / f"{r.pass_id}.{r.gate}.json"
-        if projection.is_file() and sha256_text(result_text(json.loads(projection.read_text(encoding="utf-8")))) != r.hash:
-            problems.append(f"gate result projection {projection.name} was edited; the recorded result stands")
+    problems += [f"projection {rel} differs or is missing; the recorded Evidence stands" for rel in changed_projections(ws, state, kind)]
     return problems

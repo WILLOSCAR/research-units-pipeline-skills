@@ -132,9 +132,23 @@ an `fcntl` lock, mutate, write `version+1` via atomic rename; a writer that
 finds the version moved raises `RunConflict`. Admitting a step hashes the
 outputs into the CAS before the state that names them is written, so a crash
 between the two leaves unreferenced objects, never dangling references.
-Projections are untrusted: `inspect` and `continue` re-verify the artifact and
-gate projections against the CAS, and one that disagrees is restored and
-logged. Only CAS corruption (bytes that do not match their hash) fails closed.
+Projections are untrusted: `inspect` diagnoses changed or missing Goal, bound
+Success Spec, Artifact (including both proof-pack forms), and gate projections
+without writing. `continue` restores these copies from verified CAS bytes,
+including after completion or abandonment. Before replacing an edited regular
+file, it preserves the exact bytes under `projection-edits/edit-*/<original path>`
+and logs that recovery path. Missing copies need no backup; directories and
+symlinks are diagnosed but require manual preservation before recovery. Neither
+recovery nor inspection changes the recorded Artifact, Decisions, or Lessons;
+continuation still makes its ordinary state-version/trace update.
+
+A valid Success Spec edit while D0 is pending retains its explicit revision
+flow and requires a fresh D0. After D0 has been answered, editing the visible
+copy does not revise canonical criteria: use the stop Decision's `revise` flow.
+CAS corruption (bytes that do not match their hash) fails closed. Recovery
+preflights every replacement before writing; this is not a sandbox or a
+guarantee against concurrent external edits. Recovery backups are local copies,
+not new Evidence, and the harness does not automatically delete them.
 
 ## 4. Kernel modules
 
