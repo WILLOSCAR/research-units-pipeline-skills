@@ -8,11 +8,50 @@ from __future__ import annotations
 import json
 from functools import partial
 
-from agent_stub import Agent, gate_result, inputs_by_name, to_d0, write_brief
+from agent_stub import Agent, gate_result, inputs_by_name, to_d0, write_brief, write_spec
 
 from rh.api import OutcomeKind
 from rh.kernel import steps
 from rh.kernel.records import PassStatus
+
+
+def test_successful_steps_stop_at_the_total_budget_and_resume_after_extension(tmp_path):
+    harness, agent, _ = to_d0(tmp_path, spec=partial(write_spec, budget={"passes_total": 1}))
+
+    blocked = harness.decide("D0", "accept")
+
+    assert blocked.kind is OutcomeKind.BLOCKED
+    assert blocked.stop["reason"] == "exhausted"
+    assert blocked.decision["options"] == ["extend", "revise", "abandon"]
+    before = harness.ws.load()
+    assert before.passes_used == before.budget.passes_total == 1
+    assert before.pending_pass is None
+    assert not before.passes_for("retrieve")
+
+    # Repeated resume calls keep the same stop and do not spend more passes.
+    assert harness.continue_().decision["id"] == blocked.decision["id"]
+    assert harness.ws.load().passes == before.passes
+    assert len(harness.ws.load().decisions) == len(before.decisions)
+
+    resumed = harness.decide(blocked.decision["id"], "extend", extend=3)
+    assert Agent.packet_of(resumed)["pass_id"] == "retrieve#1"
+    review = agent.drive(resumed)
+    assert review.decision["id"] == "D-final"
+    assert harness.ws.load().passes_used == harness.ws.load().budget.passes_total == 4
+
+
+def test_verification_and_final_review_are_allowed_exactly_at_the_total_budget(tmp_path):
+    harness, agent, _ = to_d0(tmp_path, spec=partial(write_spec, budget={"passes_total": 4}))
+
+    review = agent.drive(harness.decide("D0", "accept"))
+
+    assert review.kind is OutcomeKind.NEEDS_DECISION
+    assert review.decision["id"] == "D-final"
+    state = harness.ws.load()
+    assert state.passes_used == state.budget.passes_total == 4
+    assert len(state.passes) > state.passes_used  # Prover passes do not consume the production budget.
+    assert not any(d.id.startswith("D-budget") for d in state.decisions)
+    assert harness.decide("D-final", "accept", by="test operator").kind is OutcomeKind.COMPLETED
 
 
 def to_write_repair(tmp_path):
