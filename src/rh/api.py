@@ -117,16 +117,20 @@ class Harness:
     def continue_(self) -> Outcome:
         with self.ws.transaction() as state:
             kind = self._kind(state)
-            if state.status in ENDED:
-                return self._ended(state)
             pending = state.pending_decision()
-            if pending is not None:
+            skip = (SPEC_FILE,) if pending and pending.id.startswith(decisions.D0) else ()
+            restored = artifact.restore_projections(self.ws, state, kind, skip=skip)
+            if state.status in ENDED:
+                outcome = self._ended(state)
+            elif pending is not None:
                 changed = decisions.changed_basis(self.ws, pending, kind)
-                return self._reviewed_changed(state, kind, pending, changed) if changed else self._await(state, pending)
-            current = self._open_pass(state)
-            if current is not None and current.closed_at is None:
-                return self._take_back(state, kind, current)
-            return self._advance(state, kind)
+                outcome = self._reviewed_changed(state, kind, pending, changed) if changed else self._await(state, pending)
+            else:
+                current = self._open_pass(state)
+                outcome = self._take_back(state, kind, current) if current is not None and current.closed_at is None else self._advance(state, kind)
+            if restored:
+                outcome = replace(outcome, message=f"{', '.join(restored)} restored from Evidence; existing edits saved under projection-edits/. {outcome.message}")
+            return outcome
 
     def decide(
         self,
@@ -198,7 +202,7 @@ class Harness:
             "open_faults": [encode(f) for f in state.open_faults()],
             "decisions": [{"id": d.id, "outcome": encode(d.outcome), "stale": d.stale, "reason": d.reason} for d in state.decisions],
             "artifact": state.artifact,
-            "integrity": artifact.reverify(self.ws, state),
+            "integrity": artifact.reverify(self.ws, state, kind),
         }
 
     def plan_skip(self, step_id: str) -> Outcome:
@@ -524,11 +528,8 @@ class Harness:
             self.ws.log("decision.stale", decision=decision.id, changed=changed)
             outcome = self._raise_d0(state, parsed, produced_by="human")
             return replace(outcome, message=f"{decision.id} went stale because {SPEC_FILE} was edited; the edit was taken as a revision and a new Decision was raised.")
-        for name in changed:
-            entry = next(e for e in decision.basis if e.name == name)
-            self.ws.evidence.link_into(entry.hash, self.ws.root / decisions.projections(kind)[name])
-        self.ws.log("projection.restored", decision=decision.id, changed=changed)
-        return self._await(state, decision, message=f"{', '.join(changed)} had been edited outside the harness; restored from Evidence. {decision.prompt}")
+        artifact.restore_projections(self.ws, state, kind)
+        return self._await(state, decision, message=f"{', '.join(changed)} had been edited outside the harness; restored from Evidence, with existing edits saved under projection-edits/. {decision.prompt}")
 
     def _end(self, state: RunState, kind: Kind) -> Outcome:
         """The Run has ended: assemble the final proof pack, distill its Lesson, report."""
