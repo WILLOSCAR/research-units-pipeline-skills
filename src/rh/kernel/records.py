@@ -310,6 +310,16 @@ class Stop:
 
 
 @dataclass
+class ExecutionContract:
+    kernel: dict[str, str]
+    kernel_version: str
+    kind_source: str
+    kind_hash: str
+    skills: dict[str, str]
+    schema: str = "rh.execution_contract/1"
+
+
+@dataclass
 class RunState:
     run_id: str
     kind: str
@@ -333,6 +343,7 @@ class RunState:
     created_at: str = field(default_factory=now)
     updated_at: str = field(default_factory=now)
     schema: str = "rh.run/1"
+    execution_contract: ExecutionContract | None = None  # absent in historical, inspection-only Runs
 
     # -- lookups -------------------------------------------------------------
 

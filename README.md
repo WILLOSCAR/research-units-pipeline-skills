@@ -134,6 +134,17 @@ language: [`CONTEXT.md`](CONTEXT.md).
 
 ## Using It
 
+> **Execution compatibility.** Runs created before execution-contract pinning
+> are read-only under this runtime, including active Runs: they cannot resume
+> in place. Continue them with their known original H0 checkout/runtime, or
+> start a new Run; the pre-refactor snapshot tag and today's main are not
+> substitutes for that original runtime.
+> No command invents missing historical provenance. New Runs require the
+> recorded kernel, selected kind and Skill bytes to continue; restore those
+> bytes (and restart the process if needed), or start a new Run after an
+> upgrade. `rh inspect` remains read-only for old and drifted Runs. See
+> [execution-contract compatibility](docs/REBUILD_DESIGN.md#execution-contract-compatibility).
+
 Python 3.10+ and [uv](https://docs.astral.sh/uv/):
 
 ```bash

@@ -113,6 +113,14 @@ flowchart LR
 
 ## 使用
 
+> **执行兼容边界。** 引入执行契约固定之前创建的 Run，在新运行时下均为只读，
+> 包括尚未完成的 Run，不能原地续跑。请使用该 Run 已知的原始 H0 代码版本和
+> 运行环境继续，或新建 Run；重构前的快照标签和当前 main 都不能替代原始版本。
+> 不会自动补填缺失的历史身份。新 Run 续跑时要求 kernel、所选 kind 和 Skill
+> 字节与记录一致；升级后应恢复原始字节（必要时重启进程），或新建 Run。
+> `rh inspect` 对旧 Run 和发生契约漂移的 Run 始终保持只读。
+> 详见[执行契约兼容说明](docs/REBUILD_DESIGN.md#execution-contract-compatibility)。
+
 需要 Python 3.10+ 与 [uv](https://docs.astral.sh/uv/)：
 
 ```bash

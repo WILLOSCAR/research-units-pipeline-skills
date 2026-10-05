@@ -208,5 +208,10 @@ def render_inspect(report: dict) -> str:
         lines += ["", f"stop: {report['stop']['reason']}"]
     if report["artifact"]:
         lines += ["", "artifact:"] + [f"  {k}: {v[:12]}" for k, v in report["artifact"].items()]
+    contract = report["execution_contract"]
+    lines += ["", "execution contract: " + contract["status"]]
+    lines += [f"  {problem}" for problem in contract["problems"]]
+    if report["pending_decision"] and report["reviewed_changed"] is None:
+        lines.append("  reviewed-file comparison unavailable without a readable recorded kind")
     lines += ["", "integrity: " + ("clean" if not report["integrity"] else "; ".join(report["integrity"]))]
     return "\n".join(lines) + "\n"
