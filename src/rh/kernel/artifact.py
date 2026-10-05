@@ -430,17 +430,38 @@ def assemble(ws: Workspace, state: RunState, kind: Kind) -> dict[str, str]:
     return hashes
 
 
+def evidence_problems(ws: Workspace, state: RunState) -> list[str]:
+    """Verify authoritative hashes, including retained review and Fault Evidence.
+
+    Only hashes referenced by the state are required. Unreferenced CAS objects
+    may remain after an interrupted write and do not authorize any transition.
+    Projections are deliberately excluded: edits to readable copies are not
+    corruption of the underlying Evidence.
+    """
+    references = [("goal", state.goal.hash)]
+    if state.spec_hash:
+        references.append(("success spec", state.spec_hash))
+    references += [(f"artifact {name}", digest) for name, digest in state.artifact.items()]
+    references += [(f"pass {p.id} output {name}", digest) for p in state.passes for name, digest in p.outputs.items()]
+    references += [(f"gate result {r.pass_id}/{r.gate}", r.hash) for r in state.gate_results if r.hash]
+    references += [(f"Decision {d.id} basis {entry.name}", entry.hash) for d in state.decisions for entry in d.basis]
+    references += [(f"Fault {f.id}", digest) for f in state.faults for digest in f.evidence]
+    references += [(f"gate finding {r.pass_id}/{r.gate}", digest) for r in state.gate_results for f in r.findings for digest in f.evidence]
+    broken = set(ws.evidence.verify_all(sorted({digest for _, digest in references})))
+    return [f"{name}: evidence {digest[:12]} does not resolve or match its hash" for name, digest in references if digest in broken]
+
+
+def require_integrity(ws: Workspace, state: RunState) -> None:
+    """Refuse to advance or answer a Decision on corrupt retained Evidence."""
+    problems = evidence_problems(ws, state)
+    if problems:
+        raise EvidenceCorrupt("; ".join(problems))
+
+
 def reverify(ws: Workspace, state: RunState) -> list[str]:
-    """Recompute every hash in ``state.artifact``, every pass output and every gate result; return the problems."""
-    store = ws.evidence
-    broken = "does not resolve or match its hash"
-    problems = [
-        f"artifact {name}: evidence {digest[:12]} {broken}" for name, digest in state.artifact.items() if store.verify_all([digest])
-    ]
-    problems += [f"pass {b['pass_id']} output {b['output']}: evidence {b['hash'][:12]} {broken}" for b in _integrity(state, store)["broken"]]
+    """Report authoritative corruption and edited gate-result projections."""
+    problems = evidence_problems(ws, state)
     for r in state.gate_results:
-        if r.hash and store.verify_all([r.hash]):
-            problems.append(f"gate result {r.pass_id}/{r.gate}: evidence {r.hash[:12]} {broken}")
         projection = ws.gates / f"{r.pass_id}.{r.gate}.json"
         if projection.is_file() and sha256_text(result_text(json.loads(projection.read_text(encoding="utf-8")))) != r.hash:
             problems.append(f"gate result projection {projection.name} was edited; the recorded result stands")

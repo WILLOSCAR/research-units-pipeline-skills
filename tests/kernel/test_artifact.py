@@ -114,7 +114,7 @@ def make_run(root: Path) -> tuple[Workspace, RunState, Kind]:
     state = RunState(
         run_id="brief-20260912-000000-ab12",
         kind="brief",
-        goal=Goal(text="Summarise retrieval.", hash="g" * 64),
+        goal=Goal(text="Summarise retrieval.", hash=store.put_text("Summarise retrieval.", "goal.md", "goal").hash),
         plan=plan,
         status=RunStatus.COMPLETED,
         spec=spec,
@@ -217,7 +217,7 @@ def test_proof_pack_has_every_section(tmp_path: Path) -> None:
     assert coverage["c2"]["satisfied"] is True  # D-final accepted
     assert pack["loop"]["passes_used"] == 2 and pack["loop"]["repairs"] == 0
     assert pack["identities"]["steps"] == {"spec": "a" * 64, "write": "b" * 64}
-    assert pack["evidence"]["count"] == 4
+    assert pack["evidence"]["count"] == 5
 
 
 def test_human_criterion_is_pending_without_d_final(tmp_path: Path) -> None:

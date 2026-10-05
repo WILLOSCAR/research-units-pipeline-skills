@@ -61,7 +61,9 @@ class EvidenceStore:
     def put_bytes(self, data: bytes, name: str, produced_by: str) -> EvidenceEntry:
         digest = sha256_bytes(data)
         target = self.objects / digest
-        if not target.exists():
+        if target.exists():
+            self.get(digest)  # deduplication must not admit an already corrupt object
+        else:
             tmp = target.with_suffix(".tmp")
             tmp.write_bytes(data)
             os.replace(tmp, target)
