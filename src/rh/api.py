@@ -273,6 +273,14 @@ class Harness:
             return self._await(state, pending)
         for step in state.plan.active():
             if step.status is StepStatus.PENDING and steps.inputs_ready(state, step):
+                if state.passes_used >= state.budget.passes_total:
+                    return self._exhausted(
+                        state,
+                        "budget",
+                        f"{state.passes_used} of {state.budget.passes_total} passes used",
+                        pass_id=None,
+                        basis=decisions.spec_basis(state),
+                    )
                 return self._progressed(state, self._open(state, kind, step, Role.PRODUCER), f"step {step.id}: perform the packet")
         left = [s.id for s in state.plan.active() if s.status is StepStatus.PENDING]
         if left:
