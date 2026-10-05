@@ -1,10 +1,7 @@
 name: Update star history
 
 on:
-  schedule:
-    - cron: "23 */6 * * *"
-  watch:
-    types: [started]
+  # Automatic updates are disabled; retain the manual trigger for future use.
   workflow_dispatch:
 
 permissions:
