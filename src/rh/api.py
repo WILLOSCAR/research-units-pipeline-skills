@@ -16,10 +16,10 @@ from pathlib import Path
 
 import yaml
 
-from rh.kernel import artifact, decisions, faults, lessons, loop, spec as specmod, steps
+from rh.kernel import artifact, contracts, decisions, faults, lessons, loop, spec as specmod, steps
 from rh.kernel.evidence import EvidenceCorrupt
 from rh.kernel.gates import KERNEL_GATES, GateContext, GateResultInvalid, result_text, validate_agent_result
-from rh.kernel.kinds import KINDS_DIR, Kind, KindError, load_kind
+from rh.kernel.kinds import KINDS_DIR, Kind
 from rh.kernel.records import (
     BasisEntry,
     Decision,
@@ -99,13 +99,16 @@ class Harness:
     def start(self, goal_text: str, kind_name: str, fmt: str = "md") -> Outcome:
         if self.ws.exists():
             raise HarnessError(f"a Run already exists at {self.ws.root}; use `rh continue`")
-        kind = load_kind(kind_name, self.kinds_dir)
+        try:
+            pin, kind, self._execution_skills = contracts.capture(kind_name, self.kinds_dir, self.skills)
+        except (OSError, ValueError, yaml.YAMLError) as exc:
+            raise HarnessError(str(exc)) from exc
         if fmt not in kind.formats:
             raise HarnessError(f"kind {kind.kind!r} delivers {', '.join(kind.formats)}, not {fmt!r}")
         if not goal_text.strip():
             raise HarnessError("the Goal is empty")
         self._check_skills(kind)
-        state = RunState(run_id=new_run_id(kind.kind), kind=kind.kind, goal=Goal(goal_text), plan=kind.plan(), format=fmt, budget=kind.budget)
+        state = RunState(run_id=new_run_id(kind.kind), kind=kind.kind, goal=Goal(goal_text), plan=kind.plan(), execution_contract=pin, format=fmt, budget=kind.budget)
         self.ws.init()
         state.goal.hash = self.ws.evidence.put_text(goal_text, GOAL_FILE, "goal").hash
         (self.ws.root / GOAL_FILE).write_text(goal_text, encoding="utf-8")
@@ -168,7 +171,7 @@ class Harness:
 
     def inspect(self) -> dict:
         state = self.ws.load()
-        kind = self._kind(state)
+        problems, kind, _ = contracts.check(state, self.kinds_dir, self.skills)
         pending = state.pending_decision()
         current = self._open_pass(state)
         return {
@@ -181,7 +184,12 @@ class Harness:
             "budget": {**encode(state.budget), "passes_used": state.passes_used},
             "stop": encode(state.stop),
             "pending_decision": encode(pending),
-            "reviewed_changed": decisions.changed_basis(self.ws, pending, kind) if pending else [],
+            "reviewed_changed": decisions.changed_basis(self.ws, pending, kind) if pending and kind else None if pending else [],
+            "execution_contract": {
+                "status": "unpinned" if state.execution_contract is None else "drift" if problems else "match",
+                "problems": problems,
+                "recorded": encode(state.execution_contract),
+            },
             "pending_pass": None
             if current is None
             else {"id": current.id, "role": current.role.value, "gate": current.gate, "packet": str(self._packet_path(current))},
@@ -198,7 +206,7 @@ class Harness:
             "open_faults": [encode(f) for f in state.open_faults()],
             "decisions": [{"id": d.id, "outcome": encode(d.outcome), "stale": d.stale, "reason": d.reason} for d in state.decisions],
             "artifact": state.artifact,
-            "integrity": artifact.reverify(self.ws, state),
+            "integrity": artifact.reverify(self.ws, state) + ([f"execution contract: {p}" for p in problems] if state.status not in ENDED else []),
         }
 
     def plan_skip(self, step_id: str) -> Outcome:
@@ -238,15 +246,21 @@ class Harness:
             missing = [c for c in step.consumes if c not in produced]
             if missing:
                 raise HarnessError(f"step {step.id!r} consumes {missing} that no earlier step produces")
+            skill = self._execution_skills.get(step.skill) or self.skills.load(step.skill)
+            for gate in kind.gates_for(step.id):
+                if gate.skill and self._execution_skills[gate.skill].identity == skill.identity:
+                    raise HarnessError(f"gate {gate.id!r} would let step {step.id!r} verify itself")
+            state.execution_contract.skills[step.skill] = skill.identity
+            self._execution_skills[step.skill] = skill
             state.plan.steps.insert(position, step)
-            self._record_op(state, PlanOp(op="add", step=step.id, detail={"after": after, "skill": step.skill}))
+            self._record_op(state, PlanOp(op="add", step=step.id, detail={"after": after, "skill": step.skill, "skill_identity": skill.identity}))
             return self._resume(state, kind, f"added {step.id}")
 
     def escalate(self, reason: str) -> Outcome:
         if not reason.strip():
             raise HarnessError("escalation needs a reason")
         with self.ws.transaction() as state:
-            self._kind(state)  # refuse to act on a Run whose kind no longer loads
+            self._kind(state)  # preflight before any execution or mutation
             if state.status is not RunStatus.RUNNING:
                 raise HarnessError(f"the Run is {state.status.value}; nothing to escalate")
             current = self._open_pass(state)  # the escalation's basis: the latest outputs of the step in progress
@@ -314,8 +328,8 @@ class Harness:
                 checked,
                 specmod.criteria_for_gate(state.spec, decl.id),
                 self.ws.evidence,
-                self.skills.load(decl.skill),
-                self.skills.load(state.plan.get(checked.step).skill),
+                self._execution_skills[decl.skill],
+                self._execution_skills[state.plan.get(checked.step).skill],
                 inputs=steps.given_hashes(state, pass_),
             )
         except GateResultInvalid as exc:
@@ -357,7 +371,7 @@ class Harness:
                 outputs=steps.output_bytes(self.ws, checked),
                 criteria=[],
                 store=self.ws.evidence,
-                producer=self.skills.load(step.skill),
+                producer=self._execution_skills[step.skill],
                 deliverable=kind.deliverable,
                 statements=kind.statements,
                 inputs=steps.given_hashes(state, checked),
@@ -586,10 +600,11 @@ class Harness:
     # --------------------------------------------------------------- helpers
 
     def _kind(self, state: RunState) -> Kind:
-        try:
-            return load_kind(state.kind, self.kinds_dir)
-        except KindError as exc:
-            raise HarnessError(str(exc)) from exc
+        problems, kind, skills = contracts.check(state, self.kinds_dir, self.skills)
+        if problems:
+            raise HarnessError("execution contract: " + "; ".join(problems) + "; restore the recorded files or start a new Run")
+        self._execution_skills = skills
+        return kind
 
     def _check_skills(self, kind: Kind) -> None:
         for step in kind.steps:
@@ -600,11 +615,11 @@ class Harness:
                 continue
             if not self.skills.has(gate.skill):
                 raise HarnessError(f"gate {gate.id!r} names missing prover Skill {gate.skill!r}")
-            prover = self.skills.load(gate.skill)
+            prover = self._execution_skills[gate.skill]
             if prover.role != "prover":
                 raise HarnessError(f"Skill {gate.skill!r} must declare `role: prover` to serve gate {gate.id!r}")
             for step in kind.steps:
-                if gate.applies(step.id) and self.skills.load(step.skill).identity == prover.identity:
+                if gate.applies(step.id) and self._execution_skills[step.skill].identity == prover.identity:
                     raise HarnessError(f"gate {gate.id!r} would let step {step.id!r} verify itself")
 
     def _open_pass(self, state: RunState) -> Pass | None:
@@ -614,7 +629,7 @@ class Harness:
 
     def _open(self, state: RunState, kind: Kind, step: Step, role: Role, *, gate: GateDecl | None = None, checked: Pass | None = None, faults: list[Fault] = ()) -> Pass:
         """Open a pass on ``step``: a prover follows the gate's Skill and carries its criteria; producers and repairs follow the step's."""
-        skill = self.skills.load(gate.skill if gate else step.skill)
+        skill = self._execution_skills[gate.skill if gate else step.skill]
         criteria = specmod.criteria_for_gate(state.spec, gate.id) if gate else specmod.criteria_for_step(state.spec, step)
         return steps.open_pass(self.ws, state, kind, step, skill, role, criteria, gate=gate, checked=checked, faults=faults)
 

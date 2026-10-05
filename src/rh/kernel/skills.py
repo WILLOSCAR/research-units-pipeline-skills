@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from rh.kernel.evidence import sha256_file
+from rh.kernel.evidence import sha256_bytes
 
 
 class SkillError(ValueError):
@@ -58,11 +58,15 @@ class SkillLibrary:
         path = self.root / name / "SKILL.md"
         if not path.is_file():
             raise SkillNotFound(f"Skill {name!r} not found under {self.root}")
-        return Skill(name=name, path=path, identity=sha256_file(path), front=front_matter(path))
+        data = path.read_bytes()
+        return Skill(name=name, path=path, identity=sha256_bytes(data), front=_front_matter(data.decode("utf-8"), path))
 
 
 def front_matter(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8")
+    return _front_matter(path.read_text(encoding="utf-8"), path)
+
+
+def _front_matter(text: str, path: Path) -> dict:
     if not text.startswith("---"):
         return {}
     end = text.find("\n---", 3)

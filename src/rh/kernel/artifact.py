@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 
-import rh
 from rh.kernel.evidence import EvidenceCorrupt, EvidenceStore, sha256_text
 from rh.kernel.gates import parse_statements, result_text
 from rh.kernel.kinds import Kind, KindError
@@ -222,7 +221,16 @@ def _loop(state: RunState) -> dict:
 
 
 def _identities(state: RunState) -> dict:
-    return {"steps": state.skill_identities(), "kernel": rh.__version__}
+    pin = state.execution_contract
+    return {
+        "steps": state.skill_identities(),
+        "passes": {p.id: p.skill_identity for p in state.passes},
+        "kernel": pin.kernel_version if pin else None,
+        "kernel_files": dict(pin.kernel) if pin else None,
+        "kind": pin.kind_hash if pin else None,
+        "skills": dict(pin.skills) if pin else None,
+        "execution_contract": pin.schema if pin else None,
+    }
 
 
 def _evidence_index(store: EvidenceStore) -> dict:
@@ -384,7 +392,11 @@ def render_proof_pack(pack: dict) -> str:
         "## Identities",
         "",
         *_table(["step", "skill identity"], [[s, h] for s, h in pack["identities"]["steps"].items()]),
-        f"Kernel: rh {pack['identities']['kernel']}",
+        f"Kernel: {pack['identities']['kernel'] or '(historical identity unavailable)'}",
+        f"Kind: {pack['identities']['kind'] or '(historical identity unavailable)'}",
+        *_table(["kernel source", "identity"], list((pack["identities"]["kernel_files"] or {}).items())),
+        *_table(["Skill", "identity"], list((pack["identities"]["skills"] or {}).items())),
+        *_table(["pass", "Skill identity"], list(pack["identities"]["passes"].items())),
         "",
         "## Evidence index",
         "",
