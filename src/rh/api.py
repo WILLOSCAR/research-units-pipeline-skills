@@ -112,10 +112,12 @@ class Harness:
         self.ws.create(state)
         self.ws.log("run.started", run_id=state.run_id, kind=kind.kind)
         with self.ws.transaction() as state:
+            artifact.require_integrity(self.ws, state)
             return self._advance(state, kind)
 
     def continue_(self) -> Outcome:
         with self.ws.transaction() as state:
+            artifact.require_integrity(self.ws, state)
             kind = self._kind(state)
             if state.status in ENDED:
                 return self._ended(state)
@@ -139,6 +141,7 @@ class Harness:
         by: str | None = None,
     ) -> Outcome:
         with self.ws.transaction() as state:
+            artifact.require_integrity(self.ws, state)
             kind = self._kind(state)
             decision = state.decision(decision_id)
             if decision is None:
@@ -203,6 +206,7 @@ class Harness:
 
     def plan_skip(self, step_id: str) -> Outcome:
         with self.ws.transaction() as state:
+            artifact.require_integrity(self.ws, state)
             kind = self._kind(state)
             step = self._plan_step(state, step_id)
             if step_id not in kind.adaptivity.skip or step.fixed or step_id == kind.artifact_step().id:
@@ -218,6 +222,7 @@ class Harness:
 
     def plan_add(self, step_yaml: str) -> Outcome:
         with self.ws.transaction() as state:
+            artifact.require_integrity(self.ws, state)
             kind = self._kind(state)
             if not kind.adaptivity.add:
                 raise HarnessError(f"kind {kind.kind!r} does not allow adding steps")
@@ -246,6 +251,7 @@ class Harness:
         if not reason.strip():
             raise HarnessError("escalation needs a reason")
         with self.ws.transaction() as state:
+            artifact.require_integrity(self.ws, state)
             self._kind(state)  # refuse to act on a Run whose kind no longer loads
             if state.status is not RunStatus.RUNNING:
                 raise HarnessError(f"the Run is {state.status.value}; nothing to escalate")
